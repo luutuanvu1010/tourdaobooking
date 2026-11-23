@@ -1,11 +1,13 @@
 // Kịch bản Chrome — nhập vé bằng QR, trần lô, Bỏ lô (ADR-0156, tiêu chí nghiệm thu 1, 3, 4, 5, 8, 9).
+// Sửa 2026-11-21: bước 1 viết lại theo ADR-0175 Đ1.3/Đ1.4 — Kế toán giữ `ve.phat-hanh` nên CÓ lối vào Vé điện tử (chỉ khối «Tạo vé Tour Đảo», không khối nhập lô hãng ngoài,
+//   kho chỉ lô Tour Đảo, tạo lô hãng ngoài 403); trang Cài đặt vé điện tử vẫn bị từ chối. Bản cũ khẳng định «Kế toán không có lối vào» nên đỏ từ ADR-0175.
 // Sửa 2026-11-09 (Đợt 1, N4): các khẳng định «Đã nhập N vé vào kho.» nay so phần đầu câu — từ ADR-0174 («Có vé») máy nối thêm câu nói dịch vụ đang tắt ô «Có vé» khi dịch vụ thử chưa bật ô đó.
 // Rào DUY NHẤT cho phần đọc QR trên trình duyệt (Đ1): `npm test` và e2e không mở trang, nên không biết bộ đọc có chạy trong gói thật không.
 // Ảnh thử do bộ vẽ QR có sẵn (web/vendor/qrcode.js) vẽ NGAY TRONG TRANG thành tệp thật; không có ảnh vé thật trong kho mã. Riêng khối «anh-that» (tuỳ chọn) đọc ảnh thật trên máy,
 // chặn mọi lời gọi ghi trong trang nên ảnh và mã không rời trình duyệt, không chụp màn hình, không in chuỗi nào.
 // Thứ tự tài khoản (kho cookie dùng chung, đóng trang trước khi mở tài khoản khác): Kế toán → Quản trị → Bán hàng → Toàn quyền → Bán hàng.
 // Bước (mỗi khổ 390 và 1040; bước 50 ảnh chỉ khổ 1040):
-//   1  Kế toán: không có lối vào; mở thẳng hai trang ⇒ câu tiếng Việt, không thấy nội dung.
+//   1  Kế toán (ADR-0175): có lối vào Vé điện tử, trang chỉ có khối Tạo vé Tour Đảo; kho chỉ lô Tour Đảo; tạo lô hãng ngoài 403; Cài đặt vé điện tử: không lối vào, mở thẳng bị từ chối.
 //   2  Quản trị: có Vé điện tử, không có Cài đặt vé điện tử; mở thẳng bị từ chối; PUT 403.
 //   3  Bán hàng: như Quản trị.
 //   4  Toàn quyền đổi 50 → 30: tải lại vẫn 30; nhật ký có số cũ, số mới; trang nhập lô theo 30; chọn 31 ảnh ⇒ báo ngay, không tạo lô; về 50, chọn 51 ảnh ⇒ báo ngay, không tạo lô.
@@ -31,7 +33,6 @@ const { ACCOUNTS, KHO, PHA, axeKiem, bam, bocucSach, buoc, choDongHop, choHop, c
 /** Bọc lời gọi vào trang: trang đứng hẳn hoặc sập thì CDP không bao giờ trả lời, nên phải có giờ giới hạn riêng để thành bước đỏ thay vì kẹt cả kịch bản. */
 const coGio = (ms, nhan, viec) => { let t; return Promise.race([viec, new Promise((_, huy) => { t = setTimeout(() => huy(new Error(`quá ${ms / 1000} giây: ${nhan}`)), ms); })]).finally(() => clearTimeout(t)); };
 const DICH_VU = "TD101";
-const CAU_CHAN_KHO = "Trang Vé điện tử chỉ Bán hàng, Quản trị và Toàn quyền dùng được.";
 const CAU_CHAN_CAI_DAT = "Trang này chỉ Toàn quyền dùng được.";
 const DAU_QR = ("7".repeat(30) + Date.now()).slice(-30);
 /** Chuỗi 36 chữ số giả, cùng dạng vé thật. */
@@ -152,12 +153,28 @@ try {
     const tien = laDienThoai ? 1000 : 2000;
 
     let p = await moTrang(ACCOUNTS.accounting, "/", vp);
-    await buoc(`${kho}.1`, "Kế toán: không có lối vào, mở thẳng hai trang bị từ chối bằng câu tiếng Việt", async () => {
-      assert.equal(await coLoiVaoTrang(p, env, "/ve-kho", laDienThoai), false, "lối vào Vé điện tử");
+    await buoc(`${kho}.1`, "Kế toán (ADR-0175): vào Vé điện tử, chỉ khối Tạo vé Tour Đảo, kho chỉ lô Tour Đảo, tạo lô hãng ngoài 403; Cài đặt vé điện tử bị từ chối", async () => {
+      assert.equal(await coLoiVaoTrang(p, env, "/ve-kho", laDienThoai), true, "lối vào Vé điện tử (Kế toán giữ ve.phat-hanh — ADR-0175 Đ1.3)");
       assert.equal(await coLoiVaoTrang(p, env, "/ve-cai-dat", laDienThoai), false, "lối vào Cài đặt vé điện tử");
       await diToi(p, env, "/ve-kho");
-      await p.waitFor(`document.getElementById('error').textContent === ${JSON.stringify(CAU_CHAN_KHO)}`, "câu từ chối trang Vé điện tử");
-      assert.equal(await p.ev("document.getElementById('vk-noi-dung').hidden"), true);
+      await p.waitFor("!document.getElementById('vk-noi-dung').hidden && !document.getElementById('vk-kho').textContent.includes('Đang tải')", "trang Vé điện tử hiện nội dung cho Kế toán");
+      assert.equal(await p.ev("document.getElementById('error').hidden"), true, "không có câu từ chối");
+      assert.deepEqual(await p.ev("[document.getElementById('vk-khoi-tao').hidden, document.getElementById('vk-khoi-lo').hidden]"), [false, true], "khối «Tạo vé Tour Đảo» hiện, khối «Nhập lô mới» (vé hãng ngoài, ô ve.kho.manage) ẩn");
+      // Máy chủ: Kế toán không thao tác được lô hãng ngoài (coQuyenLo) — đây là chỗ phân biệt luật cũ và luật mới chứ không chỉ ẩn/hiện.
+      const taoHangNgoai = await goiTrongTrang(p, "POST", "/api/ve/lo", { catalogCode: DICH_VU, nhomKhach: "ADULT", tenSanPham: `Kế toán thử ${kho}`, nguon: "HANG_NGOAI" });
+      assert.equal(taoHangNgoai.status, 403, `Kế toán tạo lô hãng ngoài: ${taoHangNgoai.status} ${JSON.stringify(taoHangNgoai.json)}`);
+      // Kho và danh sách lô chỉ có lô Tour Đảo (nguonDuocXem). Lượt 390 chạy khi kho còn trống; lượt 1040 có lô hãng ngoài do Bán hàng nhập ở lượt 390 — Quản trị phải thấy chúng (tiền đề) thì phép lọc mới có nghĩa.
+      const khoKt = await goiTrongTrang(p, "GET", "/api/ve/kho");
+      assert.equal(khoKt.status, 200, `Kế toán GET /api/ve/kho: ${khoKt.status}`);
+      assert.deepEqual(khoKt.json.kho.filter((d) => d.nguon !== "TOUR_DAO"), [], "kho Kế toán thấy không có dòng vé hãng ngoài");
+      const loKt = await goiTrongTrang(p, "GET", "/api/ve/lo");
+      assert.equal(loKt.status, 200, `Kế toán GET /api/ve/lo: ${loKt.status}`);
+      assert.deepEqual(loKt.json.lo.filter((l) => l.nguon !== "TOUR_DAO").map((l) => l.tenSanPham), [], "danh sách lô Kế toán thấy không có lô hãng ngoài");
+      if (!laDienThoai) {
+        const khoQt = phai(await call(ACCOUNTS.admin, "GET", "/api/ve/kho"), 200, "Quản trị GET /api/ve/kho");
+        assert.ok(khoQt.kho.some((d) => d.nguon === "HANG_NGOAI"), "tiền đề: Quản trị thấy dòng vé hãng ngoài trong kho (nhập ở lượt 390)");
+      }
+      await bocucSach(p, "Kế toán /ve-kho");
       await diToi(p, env, "/ve-cai-dat");
       await p.waitFor(`document.getElementById('error').textContent === ${JSON.stringify(CAU_CHAN_CAI_DAT)}`, "câu từ chối trang cài đặt");
       assert.equal(await p.ev("document.getElementById('vcd-noi-dung').hidden"), true);

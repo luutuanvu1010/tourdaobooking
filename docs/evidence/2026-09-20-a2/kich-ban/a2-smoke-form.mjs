@@ -1,3 +1,5 @@
+// Sửa 2026-11-21 (bước 12b, banner ở cột dính máy tính): chờ Tóm tắt tính xong lần đầu trước khi bấm Lưu — từ đặc tả 2026-11-20 (không trùng lặp trường, commit 4c2ba3b1c)
+//   hai dòng «Tạm tính», «Giảm giá» chỉ ẩn sau lần tính đầu, kịch bản bấm sớm nên đo banner ở vị trí tạm và đỏ (cả trên bản chính 734989a3f). Luật «banner luôn thấy» không đổi.
 // Kiểm form lập/sửa đơn bằng Chrome thật (khổ iPhone 390×844). Chạy từ GỐC repo:
 //   npm run build:web && CHROME_BIN=<đường dẫn tuyệt đối tới kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-form.mjs
 import assert from "node:assert/strict";
@@ -402,6 +404,9 @@ try {
   // ---- 12b) bố cục theo khổ: máy tính 1040 hai cột (cột tóm tắt bên phải, nút Lưu trong khung nhìn); iPad dọc 800 thanh Lưu có nền ----
   p = await env.as(ACCOUNTS.salesA, "/order-form", { width: 1040, height: 800, mobile: false });
   await p.waitFor("document.getElementById('services-empty') && !document.getElementById('services-empty').hidden", "form (máy tính)");
+  // Đặc tả 2026-11-20 (không trùng lặp): chưa giảm giá thì Tóm tắt ẩn «Tạm tính», «Giảm giá». Hai dòng có sẵn trong HTML tĩnh, lần tính tóm tắt đầu (recompute, ~0,3–0,5 giây sau khi
+  // trang hiện) mới ẩn chúng, cột phải ngắn lại 56px. Bấm Lưu trước lúc đó thì banner đo ở vị trí tạm, thấp hơn 56px (đo 21/11: 709–839 rồi 653–783 ở khung cao 800) ⇒ chờ form tính xong.
+  await p.waitFor("document.getElementById('sum-subtotal').parentElement.hidden && document.getElementById('sum-discount').parentElement.hidden", "máy tính: Tóm tắt đã tính lần đầu — chưa giảm giá thì ẩn «Tạm tính», «Giảm giá» (đặc tả 20/11)");
   const lay = await p.ev(`(() => { const a = document.querySelector('.form-main').getBoundingClientRect(); const b = document.querySelector('.form-side').getBoundingClientRect(); const s = document.getElementById('save').getBoundingClientRect();
     return { sideRightOfMain: b.left >= a.right - 1, saveInView: s.top >= 0 && s.bottom <= innerHeight, overflow: document.documentElement.scrollWidth - innerWidth }; })()`);
   assert.deepEqual([lay.sideRightOfMain, lay.saveInView], [true, true], "máy tính: cột tóm tắt bên phải cột form, nút Lưu trong khung nhìn");
