@@ -17,6 +17,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Giá mùa vụ (kế hoạch 16 việc 21/11, Việc 10; ADR-0229 chủ duyệt 22/11). Nhánh claude/modest-goldstine-a52295. CÓ migration 0188, 0189.
+    // Số 3.33 là SỐ TẠM (main lúc gộp 23/11 có 3.32); nhánh này nhập CUỐI trong 16 việc — bước A.0 đặt lại số và ngày. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0229.
+    version: "3.33",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Dịch vụ & giá: nút «Giá mùa vụ» cho một dịch vụ hoặc cả nhóm — tăng theo phần trăm hoặc số tiền trong một khoảng ngày đi. Giá chỉ áp sau khi người khác duyệt." },
+      { kind: "moi", text: "Lập đơn: dịch vụ có ngày đi trong mùa tự lấy giá mùa vụ. Văn phòng thấy thêm dòng nhỏ ghi mức tăng." },
+      { kind: "doi", text: "Đơn đã xác nhận giữ nguyên giá; muốn dời sang ngày thuộc mùa giá khác thì huỷ và lập đơn mới. Đơn nháp đổi ngày đi thì giá được tính lại theo ngày mới." },
+      { kind: "doi", text: "Hoa hồng theo phần trăm của đại lý không tính trên phần tăng giá mùa vụ." },
+    ],
+  },
+  {
     // Công tắc chặn đơn chưa có giờ đón khi sát ngày đón + nhóm «Cài đặt lập đơn» (kế hoạch 16 việc 21/11, Việc 7; ADR-0227 chủ duyệt 22/11). Nhánh claude/keen-austin-0abaf2. Migration 0182.
     // Số 3.32 = số trống kế tiếp sau 3.31 (Việc 6) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0227.
     version: "3.32",
