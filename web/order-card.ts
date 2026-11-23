@@ -48,7 +48,8 @@ export interface OrderCardData {
   deliveredAt?: string | null;
   completedAt?: string | null;
   /** Bỏ qua khi `money` ≠ "full". */
-  total: number;
+  /** Vắng = máy chủ không gửi Tổng bán lẻ (Kế toán thuần xem đơn đối tác — ADR-0226). */
+  total?: number;
   serviceNames: string[];
   staffName: string;
   createdAt: string;
@@ -190,7 +191,7 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
   // không rút gọn (khác "Còn thu" ở dòng 2, phải rút gọn vì chung hàng với SĐT trong khổ hẹp).
   const daTraSlot = h("div", { hidden: true });
   if (money !== "none") detailLines.push(daTraSlot);
-  if (money === "full") detailLines.push(h("div", null, "Tổng ", vnd(o.total)));
+  if (money === "full" && o.total !== undefined) detailLines.push(h("div", null, "Tổng ", vnd(o.total)));
   if (svc) detailLines.push(h("div", null, svc));
   if (o.pickupPlace) detailLines.push(h("div", null, "Đón tại ", o.pickupPlace));
   if (o.staffName) detailLines.push(h("div", null, "Người lập: ", o.staffName));
@@ -203,12 +204,16 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
   return { el, handlerSlot, tien: { tienSlot, daTraSlot } };
 }
 
-/** Điền "Còn thu" (dòng 2) + "Đã trả" (phần xổ) từ số của billing. `t` vắng = chưa biết → giữ ẩn. */
-export function dienTien(slots: { tienSlot: HTMLElement; daTraSlot: HTMLElement }, t: { daThu: number; conLai: number } | undefined): void {
-  if (!t || !slots.tienSlot.isConnected) return;
-  // Chữ «Còn thu» ẩn khi thẻ nằm trong bảng thẳng cột (đầu cột đã ghi) — data-an-bang của khung gốc.
-  replaceChildren(slots.tienSlot, h("span", { "data-an-bang": "" }, "Còn thu "), moneySpan(t.conLai === 0 ? "money-ok" : "money-due", t.conLai));
+/**
+ * Điền "Còn thu" (dòng 2) + "Đã trả" (phần xổ) từ số của billing. `t` vắng = chưa biết → giữ ẩn.
+ * ADR-0226: `n` có (đơn đối tác của Kế toán thuần, máy chủ không gửi số bán lẻ) ⇒ dòng 2 là số nợ với nhãn máy chủ chọn theo dấu, phần xổ là «Tour Đảo đã thu hộ tiền mặt».
+ */
+export function dienTien(slots: { tienSlot: HTMLElement; daTraSlot: HTMLElement }, t: { daThu: number; conLai: number } | undefined, n?: { no: number; thuHoTienMat: number; nhan: string; nhanThuHo: string }): void {
+  const x = n ? ([n.nhan, n.no > 0, Math.abs(n.no), n.nhanThuHo, n.thuHoTienMat] as const) : t && (["Còn thu", t.conLai !== 0, t.conLai, "Đã trả", t.daThu] as const);
+  if (!x || !slots.tienSlot.isConnected) return;
+  // Chữ «Còn thu» ẩn khi thẻ nằm trong bảng thẳng cột (đầu cột đã ghi) — data-an-bang của khung gốc. Nhãn nợ đối tác KHÔNG ẩn: đầu cột ghi «Còn thu», thiếu nhãn thì đọc sai chiều tiền.
+  replaceChildren(slots.tienSlot, h("span", n ? null : { "data-an-bang": "" }, `${x[0]} `), moneySpan(x[1] ? "money-due" : "money-ok", x[2]));
   slots.tienSlot.hidden = false;
-  replaceChildren(slots.daTraSlot, "Đã trả ", vnd(t.daThu));
+  replaceChildren(slots.daTraSlot, `${x[3]} `, vnd(x[4]));
   slots.daTraSlot.hidden = false;
 }

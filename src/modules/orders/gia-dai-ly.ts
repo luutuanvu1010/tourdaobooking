@@ -9,7 +9,7 @@ import { thanhTienDong, type PaxCode } from "../../shared/order-lines.ts";
 import { effectiveService, phiHieuLuc, type SubtotalServiceInput } from "./money-adjustment.ts";
 import { getLatestAdjustments } from "./repository";
 import { banChupTuDb, chuaCoBanChup } from "./thuong-mai.ts";
-import { docGiaDaiLyNhieu } from "./thuong-mai-repo.ts";
+import { coDaiLyNhieuDon, docGiaDaiLyNhieu } from "./thuong-mai-repo.ts";
 import { quyenMoCuaNguoiLap } from "./xac-nhan-repo";
 import { tienChoHoaHong } from "./xac-nhan-chung";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
@@ -66,6 +66,17 @@ export async function giaDaiLyNhieuDon(db: D1Database, orderIds: readonly string
   const nguoiLap = [...new Set(doc.don.filter((o) => o.la !== 1).map((o) => o.staff_id))];
   const thuan = await Promise.all(nguoiLap.map(async (id) => [id, await nguoiLapDoiTacThuan(db, id)] as const));
   return ghepGiaDaiLy({ doc, dieuChinh, doiTacThuan: new Set(thuan.filter(([, la]) => la).map(([id]) => id)) });
+}
+
+/**
+ * ADR-0226 (Việc 6): tập đơn ĐẠI LÝ trong `orderIds`, MỌI trạng thái (nháp đang chờ, đã xác nhận, đã huỷ) — CÙNG luật `laDonDaiLy` của `ghepGiaDaiLy` (bên đặt là đối tác HOẶC người lập là
+ * Đối tác thuần). Để route bỏ số bán lẻ của đơn đối tác khỏi phản hồi cho Kế toán thuần. HÀM CÔNG BỐ, không tự kiểm quyền; chỉ trả id.
+ */
+export async function donDaiLyTrongTap(db: D1Database, orderIds: readonly string[]): Promise<Set<string>> {
+  const don = await coDaiLyNhieuDon(db, orderIds);
+  const nguoiLap = [...new Set(don.filter((o) => o.la !== 1).map((o) => o.staff_id))];
+  const thuan = new Set((await Promise.all(nguoiLap.map(async (id) => [id, await nguoiLapDoiTacThuan(db, id)] as const))).filter(([, la]) => la).map(([id]) => id));
+  return new Set(don.filter((o) => o.la === 1 || thuan.has(o.staff_id)).map((o) => o.id));
 }
 
 /**

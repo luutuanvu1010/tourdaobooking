@@ -18,3 +18,16 @@ test("dấu Tắt (0): chỉ hồ sơ người lập; người khác ⇒ kenh_th
   assert.equal(CAU_KENH_THU_CHI_NGUOI_LAP, "Đơn này chỉ nhận tiền khách trả cho đối tác đã lập đơn. Công ty không nhận tiền khách của đơn này.");
   assert.equal(CAU_KENH_THU_CHUA_GAN_HO_SO, "Tài khoản lập đơn chưa gắn hồ sơ nên chưa ghi được khoản thu. Nhờ văn phòng gắn hồ sơ.");
 });
+
+test("ADR-0225 Đ2: đơn mang dấu chỉ tiền mặt — phía Tour Đảo (Công ty, nhân viên) chỉ nhận tiền mặt; đối tác và quầy nhà cung cấp không đổi; đơn không dấu không xét", async () => {
+  const { thuHoChiTienMat, CAU_CHI_TIEN_MAT } = await import("./kenh-thu-doi-tac.ts");
+  for (const role of ["COMPANY", "STAFF"] as const) {
+    assert.deepEqual(thuHoChiTienMat({ chiTienMat: true, collectorRole: role, method: "CASH", nguoiThuLaDoiTacLapDon: false }), { ok: true });
+    for (const m of ["BANK_TRANSFER", "OTHER", "VIETQR"]) assert.deepEqual(thuHoChiTienMat({ chiTienMat: true, collectorRole: role, method: m, nguoiThuLaDoiTacLapDon: false }), { ok: false, ma: "don_doi_tac_chi_tien_mat", cau: CAU_CHI_TIEN_MAT }, `${role} ${m}`);
+  }
+  for (const role of ["BOOKER", "SUPPLIER"] as const) assert.deepEqual(thuHoChiTienMat({ chiTienMat: true, collectorRole: role, method: "BANK_TRANSFER", nguoiThuLaDoiTacLapDon: false }), { ok: true });
+  assert.deepEqual(thuHoChiTienMat({ chiTienMat: false, collectorRole: "COMPANY", method: "BANK_TRANSFER", nguoiThuLaDoiTacLapDon: false }), { ok: true });
+  // Đối tác không hưởng hoa hồng tự ghi «Tôi thu» (vai STAFF): tiền vào tay đối tác ⇒ qua. Công ty thì không bao giờ được miễn kiểu này.
+  assert.deepEqual(thuHoChiTienMat({ chiTienMat: true, collectorRole: "STAFF", method: "BANK_TRANSFER", nguoiThuLaDoiTacLapDon: true }), { ok: true });
+  assert.equal(thuHoChiTienMat({ chiTienMat: true, collectorRole: "COMPANY", method: "BANK_TRANSFER", nguoiThuLaDoiTacLapDon: true }).ok, false);
+});

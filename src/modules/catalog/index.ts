@@ -25,6 +25,7 @@ import { coVeHienHanh } from "./co-ve-repo";
 import { coVeRoutes } from "./co-ve-route";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve";
 import { nguonVeHienHanh } from "./nguon-ve-repo";
+import { giaGocPhiDonTheoMa } from "./phi-don-goc-repo";
 import { nguonVeRoutes } from "./nguon-ve-route";
 import { soHoTroRoutes } from "./so-ho-tro-route";
 import { ngungBanNgayRoutes, trungDauTien } from "./ngung-ban-ngay-route";
@@ -57,6 +58,12 @@ export async function getEffectiveServices(db: D1Database, codes?: readonly stri
  * chặn của `orders` đọc view `v_ctl_service_transfer`, không dựa vào hàm này. Chưa phân loại / chưa gán: không có khoá.
  */
 /** ADR-0174 Đ2: mã nào trong `codes` đang Có vé. Một nguồn cho `orders` (giữ vé, báo thiếu) và `ve-dien-tu` (báo lúc xác nhận lô). KHÔNG tự kiểm quyền. */
+/** Giá gốc phí đưa đón hiện hành của các dịch vụ (ADR-0218 Đ1.3); mã không có dòng thì vắng khỏi bản đồ. `null` trong giá = ô trống = chưa có giá. */
+export async function giaGocPhiDon(db: D1Database, codes: readonly string[]): Promise<Map<string, { moiKhach: number | null; xeRieng: number | null }>> {
+  return giaGocPhiDonTheoMa(db, codes);
+}
+export { dichVuDuaDonChuaCoGiaGoc } from "./phi-don-goc-repo";
+
 export async function coVeTheoMa(db: D1Database, codes: readonly string[]): Promise<Map<string, boolean>> {
   if (codes.length === 0) return new Map();
   const [co, nhomCua] = await Promise.all([coVeHienHanh(db), nhomHienHanhTheoMa(db)]);
