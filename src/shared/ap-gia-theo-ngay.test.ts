@@ -74,3 +74,9 @@ test("dòng «Giá mùa vụ»: văn phòng thấy khi ngày trong mùa; ngoài 
   assert.equal(chuGiaMuaVu(dt, nhom), null);
   assert.equal(chuGiaMuaVu({ ...item, mucTang: { phanTram: 0, soTien: 5000 } }, nhom), "Giá mùa vụ: +5.000 đ");
 });
+
+test("nạp nháp: draftFromDto lấy giá danh mục của chính ngày đi đã lưu từ map for-order (giaTheoNgay)", () => {
+  const d = draftFromDto({ ...daLuu, departDate: "2027-02-05" }, new Map([["T3D", item]]), "k1") as CatalogDraft;
+  assert.equal(d.live?.prices.adult, 515000);
+  assert.equal(setPax(d, "adult", 3).unitPrices.adult, 515000); // đổi số khách ⇒ giá hiện tại của ngày đi, không phải giá gốc
+});

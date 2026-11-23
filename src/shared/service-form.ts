@@ -151,7 +151,7 @@ export function snapshotItem(dto: Pick<OrderServiceDto, "catalogCode" | "name" |
 
 /**
  * Thẻ của dịch vụ đã lưu (sửa nháp). `live` = danh mục hiện tại theo mã (chỉ dịch vụ đang hiện và được hỗ trợ).
- * Có bản chụp → giữ giá đã lưu (nhãn theo `catalogStatus`); danh mục không còn → thẻ khoá (`isLocked`).
+ * Có bản chụp → giữ giá đã lưu (nhãn theo `catalogStatus`); danh mục không còn → thẻ khoá (`isLocked`). Dịch vụ danh mục có `giaTheoNgay` → giá theo ngày đi đã lưu.
  */
 export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, CatalogService>, key: string): ServiceDraft {
   const base = { key, id: dto.id, trip: tripFromDto(dto), legs: dto.legs.map((l, i) => changTuDto(l, `${key}-l${i}`)), taoSan: null, pickupChoice: dto.pickupChoice ?? null };
@@ -161,7 +161,8 @@ export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, Cat
       lines: dto.items.map((it) => ({ description: it.description, detail: it.detail ?? "", quantity: it.quantity, unitPrice: it.unitPrice })),
     };
   }
-  const liveItem = live.get(dto.catalogCode) ?? null;
+  const liveGoc = live.get(dto.catalogCode);
+  const liveItem = liveGoc ? apGiaTheoNgay(liveGoc, dto.departDate ?? null) : null; // ADR-0229 Đ7: giá danh mục của chính ngày đi đã lưu (map từ for-order có `giaTheoNgay`)
   const saved: Partial<Record<PaxCode, number>> = {};
   for (const it of dto.items) if (it.paxCode !== null) saved[it.paxCode] = it.unitPrice;
   const pax = { ...dto.pax };

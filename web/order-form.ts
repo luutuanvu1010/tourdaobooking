@@ -188,7 +188,6 @@ let daCoDanhMuc = false;
 const veLaiOChon = (): void => {
   if (daCoDanhMuc) picker.setItems(danhMucGoc.map((c) => apGiaTheoNgay(c, orderDate || null))); // chưa tải được danh mục: giữ câu báo của ô chọn
 };
-const liveTheoNgay = (ngay: string): Map<string, CatalogServiceDto> => new Map([...live.keys()].map((k) => [k, liveNgay(k, ngay)!]));
 let orderUpdatedAt: string | null = null;
 let formLocked = false;
 /** ADR-0159 Đ1 mục 1: ô «Khách đặt cọc cho đối tác» (tên ADR-0197 Đ1) chỉ tài khoản giữ quyền Đối tác (hỏi DANH TÍNH, máy chủ kiểm lại). */
@@ -1081,7 +1080,7 @@ function fill(o: Api.OrderDetailDto): string[] {
   phiThieu = new Map((o.phiDuaDon?.thieu ?? []).map((t) => [t.legId, t] as const));
   phiDoi.clear();
   const ngayDv = new Set(o.services.map((s) => s.departDate ?? ""));
-  return napThe(o.services.map((s) => () => draftFromDto(s, liveTheoNgay(s.departDate ?? ""), newKey())), ngayDv.size === 1 ? [...ngayDv][0]! : "");
+  return napThe(o.services.map((s) => () => draftFromDto(s, live, newKey())), ngayDv.size === 1 ? [...ngayDv][0]! : "");
 }
 
 /**
