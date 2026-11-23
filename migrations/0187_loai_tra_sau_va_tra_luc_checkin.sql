@@ -12,7 +12,9 @@ ALTER TABLE orders ADD COLUMN credit_basis TEXT CHECK (credit_basis IS NULL OR c
 -- thì trigger mục 3 chặn chụp 'SERVICE' về sau). Gỡ khoá «Khách đã trả đủ» của 0184 TRƯỚC khi điền (bài học 0143, kiểm độc lập 2026-11-06): khoá cũ không biết cột mới nên
 -- chặn mọi UPDATE trên đơn đã giao ⇒ migration đỏ giữa chừng. Khoá mới (có credit_basis) dựng lại ở mục 4, vẫn trong cùng lần áp. Trigger mục 3 tạo SAU câu điền
 -- (câu điền không chụp hạn trả nên trigger sẽ chặn nó). Các trigger BEFORE UPDATE ON orders khác (0007 tiền, 0008/0034 lúc chuyển sang xác nhận) không vướng: câu điền
--- không đổi tiền, không đổi trạng thái.
+-- không đổi tiền, không đổi trạng thái. Riêng `orders_money_update` (0007) xét giá trị MỚI của dòng ở MỌI UPDATE: câu điền chỉ đỏ nếu một đơn Trả sau cũ đang vi phạm
+-- công thức tiền. Điều đó không xảy ra được: `orders_money_insert` (cùng công thức, 0007, chưa từng gỡ) canh lúc tạo, và mọi đơn CREDIT đều tạo sau 0141 (> 0007), mỗi lần
+-- sửa sau đó cũng qua `orders_money_update` (kiểm độc lập Việc 11, phát hiện I-1, 23/11/2026 — người điều phối đối chiếu 0007, ghi lập luận tại đây).
 DROP TRIGGER orders_delivered_lock;
 UPDATE orders SET credit_basis = 'LIMIT' WHERE payment_term = 'CREDIT' AND status <> 'draft';
 
