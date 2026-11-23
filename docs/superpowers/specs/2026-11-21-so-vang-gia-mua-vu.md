@@ -68,6 +68,8 @@ Hoa hồng theo % tính trên **cơ sở** = đơn giá trừ phần tăng mùa 
 | H9 | Dòng cũ trước giá mùa vụ | 450.000 | 450.000 | 10 % | 45.000 | 405.000 |
 | H10 | 2 người lớn 515.000 + 1 trẻ em 350.000 (gốc 300.000) | 1.380.000 | 1.200.000 | 10 % | 120.000 | 1.260.000 |
 | H11 | Xác nhận 2 người lớn, sau điều chỉnh còn 1 | 515.000 | 450.000 | 10 % | 45.000 | 470.000 |
+| H12 | Ví dụ của chủ 23/11, ngoài mùa: giá công bố 1.050.000, hoa hồng 70.000 mỗi khách | 1.050.000 | (không dùng) | 70.000/khách | 70.000 | 980.000 |
+| H13 | Cùng ví dụ, trong mùa +15 %: 1.207.500 làm tròn lên 1.208.000; hoa hồng vẫn 70.000 | 1.208.000 | (không dùng) | 70.000/khách | 70.000 | 1.138.000 |
 
 **Trần giảm giá của đại lý** bằng tổng hoa hồng của đơn (ADR-0079 điều 8), nên cũng thấp xuống theo: đơn H2 có trần **90.000 đ** (hôm nay sẽ là 103.000 đ); đơn H10 trần 120.000 đ.
 

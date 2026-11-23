@@ -683,6 +683,44 @@
         "coSoHoaHong": 450000,
         "hoaHong": 45000,
         "giaDaiLy": 470000
+      },
+      {
+        "ca": "H12",
+        "moTa": "Ví dụ của chủ dự án 23/11, ngoài mùa: giá công bố 1.050.000, hoa hồng 70.000 mỗi khách ⇒ công ty thu về 980.000",
+        "dong": [
+          {
+            "donGia": 1050000,
+            "soTang": 0,
+            "soLuong": 1
+          }
+        ],
+        "kieu": "PER_PAX",
+        "rateBp": null,
+        "perPax": 70000,
+        "soKhachTinh": 1,
+        "thanhTien": 1050000,
+        "coSoHoaHong": 1050000,
+        "hoaHong": 70000,
+        "giaDaiLy": 980000
+      },
+      {
+        "ca": "H13",
+        "moTa": "Ví dụ của chủ dự án 23/11, trong mùa +15%: 1.050.000 × 115% = 1.207.500, làm tròn lên 1.208.000; hoa hồng vẫn 70.000 ⇒ công ty thu về 1.138.000",
+        "dong": [
+          {
+            "donGia": 1208000,
+            "soTang": 158000,
+            "soLuong": 1
+          }
+        ],
+        "kieu": "PER_PAX",
+        "rateBp": null,
+        "perPax": 70000,
+        "soKhachTinh": 1,
+        "thanhTien": 1208000,
+        "coSoHoaHong": 1050000,
+        "hoaHong": 70000,
+        "giaDaiLy": 1138000
       }
     ]
   },
