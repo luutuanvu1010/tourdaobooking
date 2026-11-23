@@ -82,8 +82,15 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
         nut.disabled = false;
       }
     });
-    // Dùng lại khối dọc của «Vé do ai phát» (nhãn, ô, nút xếp chồng): không thêm luật bố cục riêng (ADR-0222 Đ7a).
-    return h("div", { class: "kv-nguon-ve" }, h("label", { class: "hint", for: id }, "Hotline trên vé"), o, nut);
+    // Dùng lại khối của «Vé do ai phát» và cùng khuôn nhãn (.kv-ten + chữ phụ) với ba nhãn vé kia: không thêm luật bố cục riêng (ADR-0222 Đ7a).
+    // Chữ phụ để aria-hidden: tên ô cho trình đọc màn hình vẫn là «Hotline trên vé».
+    return h(
+      "div",
+      { class: "kv-nguon-ve" },
+      h("label", { class: "kv-chu", for: id }, h("span", { class: "kv-ten" }, "Hotline trên vé"), h("span", { class: "hint", "aria-hidden": "true" }, dang ? NHAN_NGUON.SERVICE : "Hotline công ty")),
+      o,
+      nut,
+    );
   };
   /**
    * Hai lựa chọn «Vé hãng ngoài» / «Vé Tour Đảo» (radiogroup, phím ← → dời tiêu điểm) của một dịch vụ hoặc một nhóm. `dang` = giá trị đang hiệu lực.
