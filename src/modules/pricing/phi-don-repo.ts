@@ -72,6 +72,17 @@ export const cauDongMucPhiDon = (db: D1Database, v: { id: string; denNgay: strin
 export const cauDatBatDauAp = (db: D1Database, v: { id: string; ngay: string | null; tuLuc: string; tuLucDaDoc: string | null; at: string; by: string }): D1PreparedStatement =>
   db.prepare(AP_THEM).bind(v.id, v.ngay, v.tuLuc, v.at, v.by, v.tuLucDaDoc);
 
+/** Cấp của hồ sơ bên đặt tại ngày `ngay` (cùng nguồn với `docBangPhiDonChoDon`, không đọc bảng mức cũ) — dùng cho phí đưa đón tính từ giá gốc (ADR-0218 Đ1.4). `bookerPartyId` null ⇒ KHONG_CAP. */
+export async function capCuaBenDatNgay(db: D1Database, v: { bookerPartyId: string | null; ngay: string }): Promise<CapCuaHoSo> {
+  if (v.bookerPartyId === null) return { loai: "KHONG_CAP" };
+  const [vai, gan, ganRieng] = await Promise.all([openRolesOf(db, v.bookerPartyId), roleTiersOn(db, v.ngay), partyTiersOf(db, v.bookerPartyId)]);
+  return capCuaHoSoNgay({
+    partyId: v.bookerPartyId, vai: vai.map((r) => r.role_type_code), ngay: v.ngay,
+    gan: gan.map((r) => ({ roleTypeCode: r.role_type_code, tierCode: r.tier_code, validFrom: r.valid_from_date, validTo: r.valid_to_date })),
+    ganRieng: ganRieng.map((r) => ({ partyId: r.party_id, tierCode: r.tier_code, validFrom: r.valid_from_date, validTo: r.valid_to_date })),
+  });
+}
+
 export interface BangPhiDonChoDon { batDauAp: string | null; muc: MucPhiDon[]; cap: CapCuaHoSo }
 /**
  * Hàm công bố cho Đợt C (gốc lắp ráp / `orders` gọi qua `pricing/index.ts`): ngày bắt đầu áp hiện hành, các mức hiệu lực ngày `ngay` kèm điều kiện, và cấp của hồ sơ bên đặt tại ngày đó

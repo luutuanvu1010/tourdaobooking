@@ -117,7 +117,7 @@ export async function ghiKhoanNop(
   if (X > 0) {
     lt = await docLanThu(db, { soTien: X, hinhThuc: "OTHER", nguoiThu: "ben_dat" }, ai, congTyId, { phan: input.phan, receipts: (await receiptsOfOrder(db, don.id)).map(toReceiptRow), kemDaGiao: false });
     if (!lt.ok) return lt;
-    const kenh = await kiemNguoiThuKenh(db, don.id, lt.value.collectorPartyId);
+    const kenh = await kiemNguoiThuKenh(db, don.id, lt.value);
     if (kenh) return { ok: false, res: kenh };
   }
   // Ảnh biên lai BẮT BUỘC (Đ2 mục 4, 5 — khuôn ADR-0196): kiểm chữ ký thật / cỡ, kho, trần giờ TRƯỚC lô.

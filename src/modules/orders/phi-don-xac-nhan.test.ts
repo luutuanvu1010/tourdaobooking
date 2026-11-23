@@ -55,10 +55,10 @@ async function batPhi(w: W, ngay: string | null) {
   await ok(w.call("POST", "/api/pricing/phi-don/bat-dau-ap", { as: ADM, body: { ngay, tuLucDaDoc: tuLuc } }), 200, ngay === null ? "tắt phí" : "bật phí");
 }
 
-const DS = (soTien: number) => ({ loai: "DANH_SACH", soTien });
-const SK = (soTien: number) => ({ loai: "SO_KHAC", soTien });
-const OUT = (phiDon?: unknown, pickupTime = "06:30") => ({ direction: "OUT", pickupDate: "", pickupTime, pickupLocationId: null, pickupPlace: "Khách sạn A", dropoffLocationId: BEN, dropoffPlace: "", ...(phiDon === undefined ? {} : { phiDon }) });
-const RET = (phiDon?: unknown) => ({ direction: "RETURN", pickupDate: ngayVN(6), pickupTime: "16:00", pickupLocationId: BEN, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn A", ...(phiDon === undefined ? {} : { phiDon }) });
+const DS = (soTien: number) => ({ donGia: soTien, lyDo: "Văn phòng đổi" });
+const SK = (soTien: number) => ({ donGia: soTien, lyDo: "Văn phòng đổi" });
+const OUT = (doiPhi?: unknown, pickupTime = "06:30") => ({ direction: "OUT", pickupDate: "", pickupTime, pickupLocationId: null, pickupPlace: "Khách sạn A", dropoffLocationId: BEN, dropoffPlace: "", ...(doiPhi === undefined ? {} : { doiPhi }) });
+const RET = (doiPhi?: unknown) => ({ direction: "RETURN", pickupDate: ngayVN(6), pickupTime: "16:00", pickupLocationId: BEN, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn A", ...(doiPhi === undefined ? {} : { doiPhi }) });
 const svc = (pax: Record<string, number>, legs: unknown[]) => ({
   kind: "catalog", pickupChoice: legs.length > 0 ? "DON" : "KHONG_DON", catalogCode: "TOUR_LAN", pax: { adult: 0, child: 0, senior: 0, infant: 0, ...pax },
   catalogPriceSeen: { adult: 500000, child: 300000 }, departDate: D, legs,
@@ -67,7 +67,7 @@ const lap = async (w: W, legs: unknown[], extra: Record<string, unknown> = {}, a
   (await ok(w.call("POST", "/api/orders", { as, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc({ adult: 2 }, legs)], ...extra } }), 201, "lập đơn")).json.order;
 const xacNhan = (w: W, id: string) => w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } });
 const dongPhi = (w: W, id: string) =>
-  w.q("SELECT fee_source, fee_choice, fee_zone_code, quantity, unit_price, line_total FROM order_item WHERE order_id = ? AND line_kind = 'TRANSFER_FEE' ORDER BY sort_order", id).map((r: any) => ({ ...r }));
+  w.q("SELECT fee_calc_source, fee_zone_code, quantity, unit_price, line_total FROM order_item WHERE order_id = ? AND line_kind = 'TRANSFER_FEE' ORDER BY sort_order", id).map((r: any) => ({ ...r }));
 const moiDong = (w: W, id: string) => w.q("SELECT * FROM order_item WHERE order_id = ? ORDER BY sort_order, id", id).map((r: any) => ({ ...r }));
 const tien = (w: W, id: string) => ({ ...w.q("SELECT subtotal, discount, total, remaining_amount FROM orders WHERE id = ?", id)[0] });
 const trangThai = (w: W, id: string) => w.q("SELECT status FROM orders WHERE id = ?", id)[0].status as string;
@@ -75,13 +75,13 @@ const soNhatKy = (w: W, id: string) => Number(w.q("SELECT count(*) AS n FROM aud
 const soXacNhan = (w: W, id: string) => Number(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'confirmed'", id)[0].n);
 const nhatKyXacNhan = (w: W, id: string) => w.q("SELECT staff_id, detail FROM audit_log WHERE order_id = ? AND action = 'confirmed'", id).map((r: any) => ({ ...r }));
 const soChot = (w: W) => Number(w.q("SELECT count(*) AS n FROM ord_xac_nhan_phi_gac")[0].n);
-const CAU_DI = "Chọn phí đưa đón cho lượt đón chiều đi của dịch vụ Tour lặn biển trước khi xác nhận.";
-const CAU_VE = "Chọn phí đưa đón cho lượt đón chiều về của dịch vụ Tour lặn biển trước khi xác nhận.";
+const CAU_DI = "Dịch vụ Tour lặn biển chưa có giá gốc phí đưa đón cho lượt đón chiều đi. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.";
+const CAU_VE = "Dịch vụ Tour lặn biển chưa có giá gốc phí đưa đón cho lượt đón chiều về. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.";
 const thieuPhi = (r: Res, cau = CAU_DI) => {
   assert.equal(r.status, 409, r.text);
   assert.deepEqual([r.json.error.code, r.json.error.message], ["transfer_fee_missing", cau]);
 };
-const DONG_30K = { fee_source: "CHON", fee_choice: "DANH_SACH", fee_zone_code: null, quantity: 2, unit_price: 30_000, line_total: 60_000 };
+const DONG_30K = { fee_calc_source: "DOI_TAY", fee_zone_code: null, quantity: 2, unit_price: 30_000, line_total: 60_000 };
 
 /** Đơn Đối tác có lượt đón (nháp không mang mức), đã Gửi đơn ⇒ nhánh A. Trả đơn + hàm đọc lại + hàm bấm Còn vé (người bấm `as`, thân thêm `them`). */
 async function donChoCuaDoiTac(w: W, legs: unknown[] = [OUT()]) {
@@ -125,8 +125,8 @@ test("[ruling P6] nháp còn dòng phí theo bảng cũ (nguồn BANG_PHI hoặc
   // Giả lập nháp Đợt C: dòng do bảng phí sinh (mã mức + khu vực, không kiểu chọn — trigger 0173). Mức bảng gieo qua route pricing chỉ để có mã mức thật; bảng không còn tác dụng với đơn.
   await ok(w.call("POST", "/api/pricing/phi-don", { as: ADM, body: { kind: "PER_PAX", amount: 30_000, validFrom: "2026-01-01", validTo: null, note: null, dieuKien: [{ khoa: "ZONE", giaTri: "NGOAI_VUNG" }] } }), 201, "mức bảng cũ");
   const maMuc = (await ok(w.call("GET", "/api/pricing/phi-don", { as: ADM }), 200)).json.muc[0].id;
-  w.sqlite.prepare("UPDATE order_item SET fee_source = 'BANG_PHI', fee_choice = NULL, fee_rule_id = ?, fee_zone_code = 'NGOAI_VUNG' WHERE order_id = ? AND line_kind = 'TRANSFER_FEE'").run(maMuc, a.id);
-  w.sqlite.prepare("UPDATE order_item SET fee_source = NULL, fee_choice = NULL, fee_rule_id = ?, fee_zone_code = 'NGOAI_VUNG' WHERE order_id = ? AND line_kind = 'TRANSFER_FEE'").run(maMuc, b.id);
+  w.sqlite.prepare("UPDATE order_item SET fee_calc_source = NULL, fee_override_reason = NULL, fee_override_by = NULL, fee_source = 'BANG_PHI', fee_choice = NULL, fee_rule_id = ?, fee_zone_code = 'NGOAI_VUNG' WHERE order_id = ? AND line_kind = 'TRANSFER_FEE'").run(maMuc, a.id);
+  w.sqlite.prepare("UPDATE order_item SET fee_calc_source = NULL, fee_override_reason = NULL, fee_override_by = NULL, fee_source = NULL, fee_choice = NULL, fee_rule_id = ?, fee_zone_code = 'NGOAI_VUNG' WHERE order_id = ? AND line_kind = 'TRANSFER_FEE'").run(maMuc, b.id);
   thieuPhi(await xacNhan(w, a.id));
   thieuPhi(await xacNhan(w, b.id));
   assert.equal(trangThai(w, a.id), "draft");
@@ -195,7 +195,7 @@ test("[Review Focus 2] Còn vé kèm mức, lô thua (đơn vừa bị đổi gi
   w.chenTruocLo((s: { sql: string }[]) => s.some((x) => /status = 'confirmed'/.test(x.sql)), () => {
     w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(new Date(Date.now() + 5000).toISOString(), o.id);
   });
-  const r = await conVe({ phiDon: [{ legId: l0.id, muc: DS(30_000) }] });
+  const r = await conVe({ doiPhi: [{ legId: l0.id, ...DS(30_000) }] });
   assert.equal(r.status, 409, r.text);
   assert.equal(trangThai(w, o.id), "draft");
   assert.deepEqual(dongPhi(w, o.id), []);
@@ -229,7 +229,7 @@ test("[Review Focus 4] SV-PD-29: giảm giá không trừ vào phí — dịch v
   assert.equal((await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc({ adult: 2 }, [OUT(SK(70_000))])], discount: 1_000_001 } })).status, 400);
   await ok(xacNhan(w, o.id), 200);
   assert.deepEqual(tien(w, o.id), { subtotal: 1_140_000, discount: 100_000, total: 1_040_000, remaining_amount: 1_040_000 });
-  assert.deepEqual(dongPhi(w, o.id), [{ fee_source: "CHON", fee_choice: "SO_KHAC", fee_zone_code: null, quantity: 2, unit_price: 70_000, line_total: 140_000 }]);
+  assert.deepEqual(dongPhi(w, o.id), [{ fee_calc_source: "DOI_TAY", fee_zone_code: null, quantity: 2, unit_price: 70_000, line_total: 140_000 }]);
   await ok(xacNhan(w, toiDa.id), 200);
   assert.deepEqual(tien(w, toiDa.id), { subtotal: 1_140_000, discount: 1_000_000, total: 140_000, remaining_amount: 140_000 });
 });
@@ -252,13 +252,13 @@ test("[Điểm 3] SV-PC-10: Đối tác Gửi đơn ⇒ nhánh A (cờ thiếu p
   assert.deepEqual(cho.vi, ["PHI_DON"]);
   const x = await xem();
   assert.deepEqual(x.xacNhan.yeuCau.vi, ["PHI_DON"]);
-  assert.deepEqual(x.order.phiDuaDon.thieu.map((t: any) => [t.lyDo, t.serviceName, t.direction]), [["CHUA_CHON", "Tour lặn biển", "OUT"]]);
+  assert.deepEqual(x.order.phiDuaDon.thieu.map((t: any) => [t.lyDo, t.serviceName, t.direction]), [["O_TRONG", "Tour lặn biển", "OUT"]]);
   thieuPhi(await conVe());
   assert.equal(trangThai(w, o.id), "draft");
   const l0 = x.order.services[0].legs[0];
   let lo: { sql: string }[] = [];
   w.chenTruocLo((s: { sql: string }[]) => s.some((q) => /status = 'confirmed'/.test(q.sql)), (s: { sql: string }[]) => { lo = s; });
-  await ok(conVe({ phiDon: [{ legId: l0.id, muc: DS(30_000) }] }, SALES2), 200, "Còn vé kèm mức (Bán hàng không phải người lập)");
+  await ok(conVe({ doiPhi: [{ legId: l0.id, ...DS(30_000) }] }, SALES2), 200, "Còn vé kèm mức (Bán hàng không phải người lập)");
   assert.equal(trangThai(w, o.id), "confirmed");
   assert.deepEqual(dongPhi(w, o.id), [DONG_30K]);
   assert.deepEqual(tien(w, o.id), { subtotal: 1_060_000, discount: 0, total: 1_060_000, remaining_amount: 1_060_000 });
@@ -269,8 +269,8 @@ test("[Điểm 3] SV-PC-10: Đối tác Gửi đơn ⇒ nhánh A (cờ thiếu p
   const iChot = lo.findIndex((q) => /ord_xac_nhan_phi_gac/.test(q.sql));
   assert.ok(iPhi >= 0 && iPhi < iDoi && iDoi < iChot, `thứ tự lô: phí ${iPhi}, đổi trạng thái ${iDoi}, chốt ${iChot}`);
   const nk = nhatKyXacNhan(w, o.id);
-  assert.equal(nk[0].staff_id, SALES2, "người chọn = người bấm Còn vé");
-  assert.ok(String(nk[0].detail).includes("phí đưa đón chiều đi · Tour lặn biển: chưa chọn → 30.000 ₫ (trong danh sách)"), nk[0].detail);
+  assert.equal(nk[0].staff_id, SALES2, "người đổi = người bấm Còn vé");
+  assert.ok(String(nk[0].detail).includes("phí đưa đón chiều đi · Tour lặn biển: chưa có → 30.000 ₫ × 2 (đổi số: Văn phòng đổi)"), nk[0].detail);
   assert.doesNotMatch(String(nk[0].detail), /Khách Thử/);
 });
 
@@ -280,14 +280,14 @@ test("[Điểm 3] Còn vé: hai lượt mà chỉ gửi mức cho một ⇒ 409 
   const legs = (await xem()).order.services[0].legs;
   const di = legs.find((l: any) => l.direction === "OUT");
   const ve = legs.find((l: any) => l.direction === "RETURN");
-  thieuPhi(await conVe({ phiDon: [{ legId: di.id, muc: DS(30_000) }] }), CAU_VE);
+  thieuPhi(await conVe({ doiPhi: [{ legId: di.id, ...DS(30_000) }] }), CAU_VE);
   assert.deepEqual(dongPhi(w, o.id), []);
-  await ok(conVe({ phiDon: [{ legId: di.id, muc: DS(0) }, { legId: ve.id, muc: SK(25_000) }] }), 200);
-  assert.deepEqual(dongPhi(w, o.id).map((d: any) => [d.fee_choice, d.unit_price, d.line_total]), [["DANH_SACH", 0, 0], ["SO_KHAC", 25_000, 50_000]]);
+  await ok(conVe({ doiPhi: [{ legId: di.id, ...DS(0) }, { legId: ve.id, ...SK(25_000) }] }), 200);
+  assert.deepEqual(dongPhi(w, o.id).map((d: any) => [d.fee_calc_source, d.unit_price, d.line_total]), [["DOI_TAY", 0, 0], ["DOI_TAY", 25_000, 50_000]]);
   assert.equal(tien(w, o.id).total, 1_050_000);
 });
 
-test("[ruling P5] Còn vé: mức sai, lượt không thuộc đơn, nhắc hai lần, lượt đã có mức ⇒ 400, không đổi gì; tài khoản giữ quyền Đối tác gửi mức ⇒ 400 transfer_fee_not_allowed", async () => {
+test("[ADR-0218 Đ1.5] Còn vé: số sai, thiếu lý do, lượt không thuộc đơn, nhắc hai lần ⇒ 400, không đổi gì; lượt đã có số ĐỔI ĐƯỢC; tài khoản giữ quyền Đối tác gửi số ⇒ 400 transfer_fee_not_allowed", async () => {
   const w = await setup();
   const { o, xem, conVe } = await donChoCuaDoiTac(w);
   const khac = await lap(w, [OUT(DS(30_000))]);
@@ -299,35 +299,41 @@ test("[ruling P5] Còn vé: mức sai, lượt không thuộc đơn, nhắc hai 
     assert.equal(trangThai(w, o.id), "draft");
     assert.deepEqual(dongPhi(w, o.id), []);
   };
-  await bon({ phiDon: [{ legId: l0.id, muc: SK(6_000_000) }] }, "Mức phí tối đa 5.000.000 đ.");
-  await bon({ phiDon: [{ legId: l0.id, muc: DS(12_345) }] }, "Chọn phí đưa đón trong danh sách hoặc gõ số tiền hợp lệ.");
-  await bon({ phiDon: [{ legId: l0.id, muc: { loai: "SO_KHAC", soTien: "30000" } }] }, "Chọn phí đưa đón trong danh sách hoặc gõ số tiền hợp lệ.");
-  await bon({ phiDon: { [l0.id]: DS(30_000) } }, "Chọn phí đưa đón trong danh sách hoặc gõ số tiền hợp lệ.");
-  await bon({ phiDon: [{ legId: khac.services[0].legs[0].id, muc: DS(30_000) }] }, /không có trong đơn/);
-  await bon({ phiDon: [{ legId: l0.id, muc: DS(30_000) }, { legId: l0.id, muc: DS(30_000) }] }, /bị nhắc hai lần/);
+  const CAU_GIA = "Đơn giá phí đưa đón phải là số nguyên từ 0 đến 5.000.000 đ.";
+  await bon({ doiPhi: [{ legId: l0.id, ...SK(5_000_001) }] }, CAU_GIA);
+  await bon({ doiPhi: [{ legId: l0.id, ...SK(-1) }] }, CAU_GIA);
+  await bon({ doiPhi: [{ legId: l0.id, ...SK(1500.5) }] }, CAU_GIA);
+  await bon({ doiPhi: [{ legId: l0.id, donGia: "30000", lyDo: "x" }] }, CAU_GIA);
+  await bon({ doiPhi: [{ legId: l0.id, donGia: 30_000 }] }, "Nhập lý do đổi phí.");
+  await bon({ doiPhi: [{ legId: l0.id, donGia: 30_000, lyDo: "   " }] }, "Nhập lý do đổi phí.");
+  await bon({ doiPhi: [{ legId: l0.id, donGia: 30_000, lyDo: "x".repeat(301) }] }, "Lý do đổi phí tối đa 300 ký tự.");
+  await bon({ doiPhi: { [l0.id]: DS(30_000) } }, CAU_GIA);
+  await bon({ doiPhi: [{ legId: khac.services[0].legs[0].id, ...DS(30_000) }] }, /không có trong đơn/);
+  await bon({ doiPhi: [{ legId: l0.id, ...DS(30_000) }, { legId: l0.id, ...DS(30_000) }] }, /bị nhắc hai lần/);
   // tài khoản lai Đối tác + Bán hàng (được bấm Còn vé đơn người khác) gửi mức ⇒ 400 transfer_fee_not_allowed (kể cả Hết vé / Huỷ)
   for (const ketQua of ["CON_VE", "HUY"]) {
     const v = await xem();
-    const r = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: LAI, body: { ketQua, yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId: l0.id, muc: DS(30_000) }] } });
+    const r = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: LAI, body: { ketQua, yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, doiPhi: [{ legId: l0.id, ...DS(30_000) }] } });
     assert.equal(r.status, 400, r.text);
     assert.equal(r.json.error.code, "transfer_fee_not_allowed");
     assert.equal(trangThai(w, o.id), "draft");
   }
-  // lượt đã có mức (đơn văn phòng chờ kiểm vé) ⇒ 400, mức đã chọn giữ nguyên
+  // ADR-0218 Đ1.5: lượt ĐÃ CÓ số (đơn văn phòng chờ kiểm vé) nay đổi được ở Còn vé (chặn P5/P6 của ADR-0214 bỏ): số mới thay số cũ, người đổi = người bấm, nhật ký ghi cũ → mới
   const w2 = await setup({ coDichVuCanKiem: true });
   const k = await lap(w2, [OUT(DS(30_000))]);
   await ok(w2.call("POST", `/api/orders/${k.id}/gui-xac-nhan`, { as: SALES, body: {} }), 201);
   const v2 = (await ok(w2.call("GET", `/api/orders/${k.id}`, { as: ADM }), 200)).json;
-  const r2 = await w2.call("POST", `/api/orders/${k.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v2.xacNhan.yeuCau.id, updatedAt: v2.order.updatedAt, phiDon: [{ legId: k.services[0].legs[0].id, muc: DS(50_000) }] } });
-  assert.equal(r2.status, 400, r2.text);
-  assert.equal(r2.json.error.message, "Lượt đón này đã có phí đưa đón.");
-  assert.deepEqual(dongPhi(w2, k.id).map((d: any) => d.unit_price), [30_000]);
+  const r2 = await w2.call("POST", `/api/orders/${k.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v2.xacNhan.yeuCau.id, updatedAt: v2.order.updatedAt, doiPhi: [{ legId: k.services[0].legs[0].id, ...DS(50_000) }] } });
+  assert.equal(r2.status, 200, r2.text);
+  assert.deepEqual(dongPhi(w2, k.id).map((d: any) => [d.fee_calc_source, d.unit_price, d.line_total]), [["DOI_TAY", 50_000, 100_000]]);
+  assert.equal(w2.q("SELECT fee_override_by AS b FROM order_item WHERE order_id = ? AND line_kind = 'TRANSFER_FEE'", k.id)[0].b, ADM, "người đổi = người bấm Còn vé");
+  assert.match(String(nhatKyXacNhan(w2, k.id)[0].detail), /30\.000 ₫ × 2 \(đổi số: Văn phòng đổi\) → 50\.000 ₫ × 2 \(đổi số: Văn phòng đổi\)/, "nhật ký ghi số cũ → số mới");
 });
 
 test("Gửi đơn: Đối tác gửi kèm mức ⇒ 400 transfer_fee_not_allowed, không mở yêu cầu; Đối tác có lượt đón khi phí đang áp ⇒ luôn nhánh A (nháp Đối tác không mang mức); không lượt đón ⇒ nhánh B, không dòng phí", async () => {
   const w = await setup();
   const o = await lap(w, [OUT()], {}, DT);
-  const r = await w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: { phiDon: [{ legId: o.services[0].legs[0].id, muc: DS(30_000) }] } });
+  const r = await w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: { doiPhi: [{ legId: o.services[0].legs[0].id, ...DS(30_000) }] } });
   assert.equal(r.status, 400, r.text);
   assert.equal(r.json.error.code, "transfer_fee_not_allowed");
   assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ?", o.id)[0].n, 0);
@@ -355,7 +361,7 @@ test("Còn vé trước ngày áp: mức gửi kèm vẫn được kiểm, khôn
   const k = await lap(w2, [OUT()]);
   await ok(w2.call("POST", `/api/orders/${k.id}/gui-xac-nhan`, { as: SALES, body: {} }), 201);
   const v = (await ok(w2.call("GET", `/api/orders/${k.id}`, { as: ADM }), 200)).json;
-  const goi = (muc: unknown) => w2.call("POST", `/api/orders/${k.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId: k.services[0].legs[0].id, muc }] } });
+  const goi = (muc: { donGia: number; lyDo: string }) => w2.call("POST", `/api/orders/${k.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, doiPhi: [{ legId: k.services[0].legs[0].id, ...muc }] } });
   assert.equal((await goi(SK(6_000_000))).status, 400);
   await ok(goi(DS(30_000)), 200);
   assert.deepEqual(dongPhi(w2, k.id), []);
@@ -380,7 +386,7 @@ test("[vòng sửa 1a] Đối tác khai cọc, Còn vé kèm mức ⇒ xác nh�
   const o = await lap(w, [OUT()], { declaredDeposit: 300_000 }, DT);
   await ok(w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: {} }), 201, "gửi đơn");
   const v = (await ok(w.call("GET", `/api/orders/${o.id}`, { as: ADM }), 200)).json;
-  await ok(w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId: v.order.services[0].legs[0].id, muc: DS(30_000) }] } }), 200, "Còn vé");
+  await ok(w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, doiPhi: [{ legId: v.order.services[0].legs[0].id, ...DS(30_000) }] } }), 200, "Còn vé");
   assert.deepEqual(dongPhi(w, o.id), [DONG_30K]);
   // `remaining_amount` là cột cọc CŨ (NT-R9, chỉ theo tổng); lời khai cọc (ADR-0159) vào sổ thu — «còn phải thu» thật đọc từ sổ thu.
   assert.deepEqual(tien(w, o.id), { subtotal: 1_060_000, discount: 0, total: 1_060_000, remaining_amount: 1_060_000 });
@@ -416,7 +422,7 @@ test("[vòng sửa 1b] đơn Đối tác ĐANG CHỜ còn dòng bảng phí cũ,
   w.sqlite.exec(khoa);
   const truoc = { tien: tien(w, o.id), dong: moiDong(w, o.id) };
   const l0 = (await xem()).order.services[0].legs[0];
-  const r = await conVe({ phiDon: [{ legId: l0.id, muc: DS(30_000) }] });
+  const r = await conVe({ doiPhi: [{ legId: l0.id, ...DS(30_000) }] });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "declared_deposit_exceeds_total");
   // Câu của NGƯỜI XÉT (cổng route so với tổng mới, trước khi ghi) — không phải câu của lớp CSDL (trigger 0136 bắt khi câu tiền hạ tổng dưới lời khai, lớp lưới thứ hai).
@@ -431,11 +437,11 @@ test("[vòng sửa 1b] đơn Đối tác ĐANG CHỜ còn dòng bảng phí cũ,
   assert.deepEqual(moiDong(w, o.id), truoc.dong);
 });
 
-test("[vòng sửa 3 — V2] Đối tác Gửi đơn với nháp còn dòng bảng phí cũ (phí đang áp, không cọc) ⇒ nhánh A, cờ thiếu phí; dòng cũ không thành mức; Còn vé kèm mức ⇒ xác nhận chỉ với dòng CHON", async () => {
+test("[vòng sửa 3 — V2] Đối tác Gửi đơn với nháp còn dòng bảng phí cũ (phí đang áp, không cọc) ⇒ nhánh A, cờ thiếu phí; dòng cũ không thành số đổi; Còn vé kèm số đổi ⇒ xác nhận chỉ với dòng DOI_TAY", async () => {
   const w = await setup();
   const o = await lap(w, [OUT()], {}, DT);
   await chenDongBangCu(w, o.id);
-  assert.deepEqual(dongPhi(w, o.id).map((d: any) => [d.fee_source, d.line_total]), [["BANG_PHI", 200_000]]);
+  assert.deepEqual(dongPhi(w, o.id).map((d: any) => [d.fee_calc_source, d.line_total]), [[null, 200_000]]);
   const g = await ok(w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: {} }), 201, "gửi đơn");
   assert.equal(g.json.nhanh, "A");
   assert.deepEqual(g.json.yeuCau.vi, ["PHI_DON"]);
@@ -443,10 +449,10 @@ test("[vòng sửa 3 — V2] Đối tác Gửi đơn với nháp còn dòng bả
   assert.equal(trangThai(w, o.id), "draft");
   const v = (await ok(w.call("GET", `/api/orders/${o.id}`, { as: ADM }), 200)).json;
   const l0 = v.order.services[0].legs[0];
-  assert.deepEqual(v.order.phiDuaDon.thieu.map((t: any) => [t.legId, t.lyDo]), [[l0.id, "CHUA_CHON"]], "dòng bảng cũ không thành mức đã chọn (ruling P6)");
-  await ok(w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId: l0.id, muc: DS(30_000) }] } }), 200, "Còn vé");
+  assert.deepEqual(v.order.phiDuaDon.thieu.map((t: any) => [t.legId, t.lyDo]), [[l0.id, "O_TRONG"]], "dòng bảng cũ không thành mức đã chọn (ruling P6)");
+  await ok(w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, doiPhi: [{ legId: l0.id, ...DS(30_000) }] } }), 200, "Còn vé");
   assert.equal(trangThai(w, o.id), "confirmed");
-  assert.deepEqual(dongPhi(w, o.id), [DONG_30K], "dòng bảng cũ bị thay, chỉ còn dòng CHON");
+  assert.deepEqual(dongPhi(w, o.id), [DONG_30K], "dòng bảng cũ bị thay, chỉ còn dòng DOI_TAY");
   assert.deepEqual(tien(w, o.id), { subtotal: 1_060_000, discount: 0, total: 1_060_000, remaining_amount: 1_060_000 });
 });
 
@@ -457,9 +463,9 @@ test("[vòng sửa 2] Còn vé + Trả sau: mức văn phòng chọn đẩy tổ
   await ok(w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: {} }), 201, "gửi đơn (tổng dịch vụ 1.000.000 vừa hạn mức)");
   const xem = async () => (await ok(w.call("GET", `/api/orders/${o.id}`, { as: ADM }), 200)).json;
   const truoc = { tien: tien(w, o.id), dong: moiDong(w, o.id) };
-  const conVe = async (muc: unknown) => {
+  const conVe = async (muc: { donGia: number; lyDo: string }) => {
     const v = await xem();
-    return w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId: v.order.services[0].legs[0].id, muc }] } });
+    return w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, doiPhi: [{ legId: v.order.services[0].legs[0].id, ...muc }] } });
   };
   const r = await conVe(DS(100_000));
   assert.equal(r.status, 409, r.text);
@@ -480,16 +486,38 @@ test("[vòng sửa 3] Còn vé gửi mức cho chặng ĐÃ ĐÓNG của chính 
   w.sqlite.prepare("UPDATE ord_transfer_leg SET closed_at = ?, close_reason_code = 'WRONG_ENTRY' WHERE id = ?").run(new Date().toISOString(), ve.id);
   const di = (await xem()).order.services[0].legs;
   assert.deepEqual(di.map((l: any) => l.direction), ["OUT"], "chặng về đã đóng, đơn còn một chặng mở");
-  const r = await conVe({ phiDon: [{ legId: di[0].id, muc: DS(30_000) }, { legId: ve.id, muc: DS(30_000) }] });
+  const r = await conVe({ doiPhi: [{ legId: di[0].id, ...DS(30_000) }, { legId: ve.id, ...DS(30_000) }] });
   assert.equal(r.status, 400, r.text);
   assert.match(r.json.error.message, /không có trong đơn/);
   assert.equal(trangThai(w, o.id), "draft");
   assert.deepEqual(dongPhi(w, o.id), []);
 });
 
-test("câu báo thiếu phí (CHUA_CHON): đúng chữ ADR-0214 Đ3, chiều viết thường", () => {
+test("câu báo thiếu phí (O_TRONG): đúng chữ ADR-0214 Đ3, chiều viết thường", () => {
   assert.equal(cauThieuPhiDon({ direction: "OUT", tenDichVu: "Tour lặn biển" }), CAU_DI);
   assert.equal(cauThieuPhiDon({ direction: "RETURN", tenDichVu: "Tour lặn biển" }), CAU_VE);
+});
+
+test("[kiểm độc lập Đợt 2, thấp-1] Còn vé BỎ số đã đổi: `doiPhi: [{ legId, bo: true }]` ⇒ máy tính lại theo giá gốc Sheet (50.000 × 2), dòng GIA_GOC, nhật ký ghi số đã đổi → giá gốc; không gửi gì thì số đã đổi được giữ", async () => {
+  const w = await setup({ coDichVuCanKiem: true });
+  w.sqlite.prepare("INSERT INTO ctl_service_transfer_price (id, catalog_code, per_pax_price, private_price, valid_from_at, created_at, updated_at) VALUES (?, 'TOUR_LAN', 50000, NULL, ?, ?, ?)").run(crypto.randomUUID(), AT, AT, AT);
+  const mo = async () => {
+    const k = await lap(w, [OUT(DS(30_000))]);
+    await ok(w.call("POST", `/api/orders/${k.id}/gui-xac-nhan`, { as: SALES, body: {} }), 201);
+    const v = (await ok(w.call("GET", `/api/orders/${k.id}`, { as: ADM }), 200)).json;
+    return { k, conVe: (them: Record<string, unknown>) => w.call("POST", `/api/orders/${k.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, ...them } }), legId: k.services[0].legs[0].id };
+  };
+  const giu = await mo();
+  await ok(giu.conVe({}), 200, "Còn vé không kèm gì");
+  assert.deepEqual(dongPhi(w, giu.k.id).map((d: any) => [d.fee_calc_source, d.unit_price, d.line_total]), [["DOI_TAY", 30_000, 60_000]], "không gửi gì ⇒ giữ số đã đổi");
+  const bo = await mo();
+  await ok(bo.conVe({ doiPhi: [{ legId: bo.legId, bo: true }] }), 200, "Còn vé bỏ số đổi");
+  assert.deepEqual(dongPhi(w, bo.k.id).map((d: any) => [d.fee_calc_source, d.unit_price, d.line_total]), [["GIA_GOC", 50_000, 100_000]], "bỏ đổi ⇒ giá gốc");
+  assert.match(String(nhatKyXacNhan(w, bo.k.id)[0].detail), /30\.000 ₫ × 2 \(đổi số: Văn phòng đổi\) → 50\.000 ₫ × 2 \(giá gốc\)/);
+  assert.deepEqual(tien(w, bo.k.id).total, 1_100_000);
+  const sai = await mo();
+  const r = await sai.conVe({ doiPhi: [{ legId: sai.legId, bo: true }, { legId: sai.legId, bo: true }] });
+  assert.equal(r.status, 400, "nhắc hai lần ⇒ 400");
 });
 
 // ---- Lưới văn bản (canh): cửa không đi qua kiemCongXacNhan phải tự chốt; thứ tự cổng trong kiemCongXacNhan theo trang ghép §3 ----
@@ -517,12 +545,12 @@ test("canh: Gửi xác nhận tự chốt thiếu phí SAU cổng chọn Đón, 
 
 test("canh: Còn vé đọc mức văn phòng chọn TRƯỚC chốt thiếu phí; chốt thiếu phí ngay sau nhóm tắt đưa đón, TRƯỚC phần kiểm mốc / đặt gấp; cả hai lần tính phí dùng CÙNG mức chọn", () => {
   const than = thanRoute(doc("./xac-nhan-route.ts"), 'route("POST", "/api/orders/:id/quyet-dinh"');
-  truocSau(than, "kiemMucChon(", "congThieuPhiDon(", "quyet-dinh");
+  truocSau(than, "kiemDoiPhi(", "congThieuPhiDon(", "quyet-dinh");
   truocSau(than, "congNhomTatDuaDon(", "congThieuPhiDon(", "quyet-dinh");
   truocSau(than, "congThieuPhiDon(", "canhBaoMocCua(", "quyet-dinh");
   truocSau(than, "congThieuPhiDon(", "xetDatGap(", "quyet-dinh");
-  assert.match(than, /chuanBiPhiDonXacNhan\(env\.DB, order, homNay, mucPhiChon\)/);
-  assert.match(than, /mucPhiThem: mucPhiChon/);
+  assert.match(than, /chuanBiPhiDonXacNhan\(env\.DB, order, homNay, doiTayChon\)/);
+  assert.match(than, /doiTayThem: doiTayChon/);
 });
 
 test("canh: kiemCongXacNhan — phí tính ở đầu (trước cổng Trả sau), lỗi thiếu phí đứng sau cổng chọn Đón và trước cổng mốc", () => {

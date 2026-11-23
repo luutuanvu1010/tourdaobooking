@@ -758,7 +758,8 @@ test("ADR-0197 Đ1: tên ô mới ở ô nhập, hai dòng tóm tắt, dòng ch�
   const html = docTep("public/order-form.html");
   assert.ok(html.includes(`${TEN_MOI} (₫)`), "nhãn ô nhập");
   assert.equal(html.split(`<span class="muted">${TEN_MOI}</span>`).length - 1, 2, "hai dòng tóm tắt");
-  assert.ok(docTep("src/shared/huong-dan-doi-tac.ts").includes(`**${TEN_MOI}**`), "câu hướng dẫn Đối tác");
+  // Việc 5 (b1), ADR-0225 Đ1 (đề xuất 21/11): form Đối tác không còn ô đặt cọc ⇒ trang hướng dẫn Đối tác không còn chỉ cách nhập ô này (trước: đòi có `**${TEN_MOI}**`).
+  assert.ok(!docTep("src/shared/huong-dan-doi-tac.ts").includes(`**${TEN_MOI}**`), "hướng dẫn Đối tác không còn chỉ nhập ô đặt cọc");
   for (const tep of ["public/order-form.html", "web/order-form.ts", "web/order.ts", "src/shared/huong-dan-doi-tac.ts", "src/shared/dat-coc-truoc.ts"]) {
     assert.ok(!docTep(tep).includes("Khách đặt cọc trước"), `${tep} còn tên cũ`);
   }
