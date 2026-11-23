@@ -122,6 +122,7 @@ test("(4) TRAVEL_AGENCY, vai lạ, mở mà không loại nào, ô thừa ⇒ 40
 test("(5) Khoá lạc quan: dòng đã thấy cũ ⇒ 409; hai người đổi cùng lúc (người kia ghi NGAY TRƯỚC lô của mình) ⇒ 409, chỉ một dòng mới, một dòng nhật ký", async () => {
   const w = setup();
   const cu = moiNhat(w);
+  const truoc = soDong(w); // dòng gieo 0170 + dòng 12 tệp của 0191 (ADR-0233 Đ4)
   assert.equal((await doi(w, { nhanDangKy: true, loaiMo: ["COLLABORATOR"], dangHieuLuc: "khong-co" })).status, 409);
   w.chenTruocLo((stmts: any[]) => stmts.some((s) => /INSERT INTO dk_policy/.test(s.sql)), async () => {
     const r = await doi(w, { nhanDangKy: true, loaiMo: ["TAXI_DRIVER"], dangHieuLuc: cu.id });
@@ -130,7 +131,7 @@ test("(5) Khoá lạc quan: dòng đã thấy cũ ⇒ 409; hai người đổi c
   const r = await doi(w, { nhanDangKy: true, loaiMo: ["COLLABORATOR"], dangHieuLuc: cu.id });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "stale");
-  assert.equal(soDong(w), 2, "dòng gieo + đúng một dòng của người thắng");
+  assert.equal(soDong(w), truoc + 1, "các dòng gieo + đúng một dòng của người thắng");
   assert.equal(moiNhat(w).open_role_codes, "TAXI_DRIVER");
   assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'registration_policy_set'")[0].n), 1);
 });
