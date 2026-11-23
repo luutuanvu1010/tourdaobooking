@@ -594,7 +594,7 @@ export interface PhanChoNguoiThu {
   chuaChup: boolean;
   chup: readonly BanChup[];
   dichVu: readonly { id: string; thanhTien: number }[];
-  /** Công ty chủ — người bán nào khác hồ sơ này là nhà cung cấp (cùng luật nhóm của biên nhận, `nguoiBanCuaDong`). */
+  /** Công ty chủ hiện tại. KHÔNG dùng để chia phần (việc 15: phần nhà cung cấp đọc `supplierPartyId` của bản chụp — `nguoiBanCuaDong`), chỉ còn để đối chiếu. */
   congTyChuId: string | null;
   /** Giảm giá hiệu lực của đơn — trần phần của quầy tính SAU giảm (Ruling R-154). */
   giamGiaHieuLuc: number;
@@ -621,7 +621,7 @@ export function nhaCungCapCuaDon(phan: PhanChoNguoiThu | null): Map<string, numb
   if (!phan || phan.duKien || phan.chuaChup) return out;
   const chupCua = new Map(phan.chup.map((c) => [c.serviceId, c]));
   // Phí đưa đón 0 (Đợt C, Task 5): phí luôn thuộc phần Tour Đảo, không bao giờ vào phần quầy nhà cung cấp ⇒ trần «thu cho» quầy không tăng vì phí.
-  for (const p of chiaPhanNguoiBan(phan.dichVu, (d) => nguoiBanCuaDong(chupCua.get(d.id), phan.congTyChuId), (d) => d.thanhTien, phan.giamGiaHieuLuc, 0)) {
+  for (const p of chiaPhanNguoiBan(phan.dichVu, (d) => nguoiBanCuaDong(chupCua.get(d.id)), (d) => d.thanhTien, phan.giamGiaHieuLuc, 0)) {
     if (p.nguoiBan !== null) out.set(p.nguoiBan, p.tong);
   }
   return out;

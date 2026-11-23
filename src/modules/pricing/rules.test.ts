@@ -2,6 +2,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  cachNgungDieuKhoan,
+  ngaySau,
   chonDieuKhoan, chonMuc, chupDon, giaVonDong, hoaHongDong, kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, lamTronNuaLen, moTaMuc, nguoiHuongCua, soKhachTinhHoaHong, tinhDongDoiTac,
   type DongDieuKhoan, type DongMuc, type NguoiHuong,
 } from "./rules.ts";
@@ -346,4 +348,16 @@ test("moTaMuc: lời thường cho nhật ký, không SĐT, tỷ lệ bỏ số 
   assert.equal(moTaMuc({ doiTuong: "Công ty lữ hành", scope: "GROUP", catalogCode: null, groupCode: "DTH", kind: "RATE", rateBp: 1250, perPaxAmount: null }), "Công ty lữ hành · nhóm DTH · 12,5%");
   assert.equal(moTaMuc({ doiTuong: "đối tác pty-1", scope: "SERVICE", catalogCode: "HONTAM", groupCode: null, kind: "PER_PAX", rateBp: null, perPaxAmount: 50_000 }), "đối tác pty-1 · dịch vụ HONTAM · 50.000đ/khách");
   assert.equal(moTaMuc({ doiTuong: "Cộng tác viên", scope: "ALL", catalogCode: null, groupCode: null, kind: "RATE", rateBp: 1000, perPaxAmount: null }), "Cộng tác viên · mọi dịch vụ · 10%");
+});
+
+test("việc 15: cachNgungDieuKhoan — dòng thường NGUNG; đã có ngày kết thúc KHONG_NGUNG; «Mọi dịch vụ» của công ty chủ hiện tại KHONG_NGUNG; của công ty chủ cũ NGUNG_VA_THAY; không biết công ty chủ KHONG_NGUNG", () => {
+  const d = (o: Partial<{ scope: "SERVICE" | "GROUP" | "ALL"; sellerPartyId: string; validTo: string | null }>) => ({ scope: "ALL" as const, sellerPartyId: "ct", validTo: null, ...o });
+  assert.equal(cachNgungDieuKhoan(d({ scope: "SERVICE", sellerPartyId: "ncc" }), "ct"), "NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({ scope: "GROUP" }), "ct"), "NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({ scope: "SERVICE", validTo: "2026-12-31" }), "ct"), "KHONG_NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({}), "ct"), "KHONG_NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({ sellerPartyId: "ct-cu" }), "ct"), "NGUNG_VA_THAY");
+  assert.equal(cachNgungDieuKhoan(d({ sellerPartyId: "ct-cu", validTo: "2026-12-31" }), "ct"), "KHONG_NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({ sellerPartyId: "ct-cu" }), null), "KHONG_NGUNG");
+  assert.deepEqual([ngaySau("2026-11-23"), ngaySau("2026-12-31"), ngaySau("2028-02-28"), ngaySau("2027-02-28")], ["2026-11-24", "2027-01-01", "2028-02-29", "2027-03-01"]);
 });

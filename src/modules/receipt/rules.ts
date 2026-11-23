@@ -53,7 +53,7 @@ export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: 
   // Phí đưa đón (Đợt C, Task 5; SV-PD-26, SV-PD-29): vào phần Tour Đảo, không bị giảm giá; phần Tour Đảo ghi thêm tên «Phí đưa đón» khi đơn có dòng phí.
   const phiDong = order.phiDuaDon?.dong ?? [];
   const phi = phiDong.reduce((t, d) => t + d.lineTotal, 0);
-  const ds = chiaPhanNguoiBan(order.services, (s) => nguoiBanCuaDong(chupCua.get(s.id), ban?.congTyChuId ?? null), (s) => s.items.reduce((t, it) => t + it.lineTotal, 0), order.giamGiaHieuLuc, phi)
+  const ds = chiaPhanNguoiBan(order.services, (s) => nguoiBanCuaDong(chupCua.get(s.id)), (s) => s.items.reduce((t, it) => t + it.lineTotal, 0), order.giamGiaHieuLuc, phi)
     .map((p) => ({
       k: p.nguoiBan ?? TOUR_DAO, dichVu: [...p.dong.map((s) => s.name), ...(p.nguoiBan === null && phiDong.length > 0 ? (tenDongPhanTourDao ?? [TEN_DONG_PHI_DON]) : [])], // ADR-0218 Đ3: khách lẻ gộp ⇒ không chữ «Phí đưa đón», chỉ các dòng «<tên> — đưa đón» của nhà cung cấp khác
       giam: p.giamGia, tong: p.tong, da: 0, sauGiao: 0,

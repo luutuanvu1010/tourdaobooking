@@ -11,12 +11,16 @@ const ban = (serviceId: string, seller: string | null): BanChup => ({
   cungUng: seller === null ? { status: "MISSING" } : { status: "SET", termId: "t", sellerPartyId: seller, supplierPartyId: seller === CT ? null : seller, costRateBp: seller === CT ? null : 8000 },
 });
 
-test("nguoiBanCuaDong: nhà cung cấp ⇒ id; công ty chủ, thiếu người bán, không bản chụp, không biết công ty chủ ⇒ null (phần Tour Đảo)", () => {
-  assert.equal(nguoiBanCuaDong(ban("a", "ncc"), CT), "ncc");
-  assert.equal(nguoiBanCuaDong(ban("a", CT), CT), null);
-  assert.equal(nguoiBanCuaDong(ban("a", null), CT), null);
-  assert.equal(nguoiBanCuaDong(undefined, CT), null);
-  assert.equal(nguoiBanCuaDong(ban("a", "ncc"), null), null);
+test("nguoiBanCuaDong: nhà cung cấp mua lại ⇒ id; công ty tự cung cấp, thiếu nhà cung cấp, không bản chụp ⇒ null (phần Tour Đảo)", () => {
+  assert.equal(nguoiBanCuaDong(ban("a", "ncc")), "ncc");
+  assert.equal(nguoiBanCuaDong(ban("a", CT)), null);
+  assert.equal(nguoiBanCuaDong(ban("a", null)), null);
+  assert.equal(nguoiBanCuaDong(undefined), null);
+});
+
+test("việc 15: đọc nhà cung cấp mua lại trong bản chụp, không so với công ty chủ HÔM NAY — bản chụp người bán = công ty chủ CŨ, không nhà cung cấp ⇒ vẫn phần Tour Đảo", () => {
+  const cu: BanChup = { serviceId: "a", beneficiaryPartyId: null, hoaHong: { status: "NONE" }, cungUng: { status: "SET", termId: "prc-st-goc-all", sellerPartyId: "pty-cong-ty-cu", supplierPartyId: null, costRateBp: null } };
+  assert.equal(nguoiBanCuaDong(cu), null);
 });
 
 const dong = [{ id: "ht", ncc: null, tien: 1_000_000 }, { id: "ir", ncc: "ir", tien: 600_000 }, { id: "x", ncc: "x", tien: 300_000 }, { id: "ir2", ncc: "ir", tien: 100_000 }];

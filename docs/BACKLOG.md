@@ -855,3 +855,9 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **Ngày:** 2026-11-23 · **Nêu:** người đánh giá giao diện (lượt chấm lại sau sửa) · **Trạng thái:** `tạm gác` — chủ chưa quyết (phiên điều phối 23/11: «chủ chưa quyết, để vậy và ghi vào BACKLOG»).
 - **Hai nút Duyệt / Kết thúc trên điện thoại:** trong bảng trượt «Giá mùa vụ», khổ 390 hai nút dàn ra hai bên hàng, lệch với chữ dòng quy tắc canh trái; khổ 1280 canh trái. Hai khổ chưa cùng kiểu canh (`web/gia-mua-vu.ts`, hàm `dong`, hàng `.actions`). Không cản việc.
 - **Điểm nhỏ khác từ lượt chấm đầu (chưa sửa):** nhãn mùa vụ bị bóp nhiều dòng ở cột Dịch vụ của bảng khổ 1280; nút «Giá mùa vụ» rớt dòng ở màn hẹp khổ 390 khi dòng có nhãn; ô tìm ở màn hẹp ghi «Tìm vé» dù danh sách là dịch vụ (đổi tên qua bảng tham chiếu, chủ chọn); khối «Mức tăng tối đa» (cài đặt chung) nằm trong bảng của từng dịch vụ.
+
+## 80. Nhà cung cấp — việc để sau (Việc 15, 2026-11-23)
+
+- **Ngày:** 2026-11-23 · **Nêu:** báo cáo việc 15 (mục 6 của `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md`) · **Trạng thái:** `để sau` — phiên điều phối giao «KHÔNG làm trong đợt này».
+- **BL-NCC-HAI-COT** — bảng `prc_supply_term` và bản chụp `ord_service_terms` có hai cột lưu cùng một giá trị (`seller_party_id` và `supplier_party_id`; máy buộc bằng nhau hoặc nhà cung cấp để trống). Gộp theo cách hai lần phát hành (expand–contract). Lưu ý: từ việc 15, biên nhận đọc `supplier_party_id` để chia phần — gộp thì giữ được nghĩa «rỗng = Tour Đảo tự cung cấp».
+- **BL-NCC-MENU-TIEN** — mục «Nhà cung cấp» là điều khoản tiền (vào giá vốn, sổ) nhưng đang nằm trong nhóm Thiết lập; cân nhắc chuyển sang nhóm Tiền trên menu. Bán hàng hiện không xem được nhà cung cấp của dịch vụ mình bán.

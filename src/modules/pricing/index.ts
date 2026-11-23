@@ -20,7 +20,7 @@ import { ngayDayDu, vnToday } from "../../shared/vn-date";
 import { cauApCsDangKy, cauThemCsDangKy, coCapRiengTuNgay, csDangKyCuaLoai, csDangKyHieuLuc, cauThemGioiHanNhap, gioiHanNhapMoiNhat, type GioiHanNhapRow, cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, findBeneficiariesAmong, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
   insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, hoSoCapDaiLy, openBeneficiaryRolesAll, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suaMucTaStatement, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu , viecDoKhiThoiVai as viecDoKhiThoiVaiRepo } from "./repository";
-import { MA_RE, MUC_TA_RE, PARTY_RE, capHienHanhCuaHoSo, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
+import { CAU_KHONG_NGUNG_MOI_DICH_VU, MA_RE, MUC_TA_RE, PARTY_RE, cachNgungDieuKhoan, ngaySau, capHienHanhCuaHoSo, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
   type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type KieuMuc, type MucTheoLoai, type NguoiHuong, type PhamVi } from "./rules";
 
 import { coCacGiaTri, coGiaTri, danhSachLuatBan, demLuatBanChuaHetHan, giaTriDacDiemCua, ketThucLuatBanStatement, luatBanHieuLuc, luatBanTheoId, themLuatBanStatement, type LuatBanRow } from "./luat-ban-repo";
@@ -242,9 +242,11 @@ const dtoMuc = (r: RuleRow, tenVai: ReadonlyMap<string, string>, homNay: string)
 });
 const dtoDk = (r: TermRow, congTyId: string | null, homNay: string): SupplyTermDto => ({
   id: r.id, phamVi: r.scope, catalogCode: r.catalog_code, groupCode: r.group_code,
-  nguoiBan: { partyId: r.seller_party_id, ten: r.seller_name ?? "Hồ sơ không còn", laCongTy: congTyId !== null && r.seller_party_id === congTyId },
+  nguoiBan: { partyId: r.seller_party_id, ten: r.seller_name ?? "Hồ sơ không còn", laCongTy: r.supplier_party_id === null },
   tyLeMuaBp: r.cost_rate_bp, tuNgay: r.valid_from_date, denNgay: r.valid_to_date, ghiChu: r.note, conHieuLuc: hieuLuc({ validFrom: r.valid_from_date, validTo: r.valid_to_date }, homNay),
+  cachNgung: cachNgungDieuKhoan({ scope: r.scope, sellerPartyId: r.seller_party_id, validTo: r.valid_to_date }, congTyId),
 });
+
 /** Tên đối tượng của một dòng mức cho nhật ký: tên vai bằng tiếng Việt, "mức TA <tên mức>", hoặc "đối tác <mã hồ sơ>" (không tên riêng, không liên hệ). */
 const tenDoiTuongNhatKy = (r: { target_role_code: string | null; target_party_id: string | null; target_tier_code?: string | null; tier_name?: string | null }, tenVai: ReadonlyMap<string, string>): string =>
   r.target_role_code !== null ? tenVai.get(r.target_role_code) ?? r.target_role_code
@@ -1232,14 +1234,26 @@ export const pricingModule: AppModule = {
       // Mã dòng gieo sẵn (`prc-st-goc-all`) không phải UUID ⇒ chỉ kiểm dạng chữ-số-gạch, rồi tra.
       const row = PARTY_RE.test(id) ? await termById(env.DB, id) : null;
       if (!row) return error(404, "not_found", "Không tìm thấy điều khoản.");
+      const cty = await ownerCompany(env.DB);
+      // Việc 15 (đặc tả 2026-11-23-viec-15-nha-cung-cap.md B1): dòng «Mọi dịch vụ» không ngừng trơn được. Xét TRƯỚC thân yêu cầu: không ngày nào làm nó ngừng được.
+      const cach = cachNgungDieuKhoan({ scope: row.scope, sellerPartyId: row.seller_party_id, validTo: row.valid_to_date }, cty?.partyId ?? null);
+      if (row.scope === "ALL" && row.valid_to_date === null && cach === "KHONG_NGUNG") {
+        return cty ? error(409, "moi_dich_vu_bat_buoc", CAU_KHONG_NGUNG_MOI_DICH_VU) : error(503, "owner_company_missing", "Chưa có hồ sơ công ty chủ — báo người phụ trách hệ thống.");
+      }
       const den = kiemNgayDong(await readJson(request), row.valid_from_date);
       if (!den.ok) return error(400, "invalid_input", den.message);
-      const cty = await ownerCompany(env.DB);
       const at = new Date().toISOString();
       const phamVi = row.scope === "ALL" ? "mọi dịch vụ" : row.scope === "GROUP" ? `nhóm ${row.group_code}` : `dịch vụ ${row.catalog_code}`;
+      // Dòng của công ty chủ CŨ: cùng lô mở dòng thay cho công ty chủ hiện tại từ ngày hôm sau (không khe). Thua tranh chấp (người khác vừa ngừng cùng dòng): dòng cũ chỉ
+      // ngừng được qua chính nhánh này nên đã có một dòng «Mọi dịch vụ» thay còn mở ⇒ câu chèn chạm trigger `prc_supply_term_overlap`, CẢ LÔ rơi (D1 batch là một giao dịch),
+      // trả 409 `prc_overlap`, không ghi gì. (Câu chèn dạng `INSERT … SELECT … WHERE changes() > 0` bị bài ranh giới module bắt vì kế hoạch truy vấn đọc ord_service_terms.)
+      const thay = cach === "NGUNG_VA_THAY" && cty ? { id: crypto.randomUUID(), tuNgay: ngaySau(den.value) } : null;
       const res = await chayLo(env.DB, [
         closeTermStatement(env.DB, id, den.value, at, staff.id),
+        ...(thay && cty ? [insertTermStatement(env.DB, thay.id, { scope: "ALL", catalogCode: null, groupCode: null, sellerPartyId: cty.partyId, supplierPartyId: null, costRateBp: null,
+          validFrom: thay.tuNgay, validTo: null, note: "Thay dòng «Mọi dịch vụ» của công ty chủ cũ (việc 15)" }, at, staff.id)] : []),
         auditStatement(env.DB, { staffId: staff.id, action: "prc_supply_term_closed", at, detail: `${phamVi} · đến ${den.value}` }, "changes() > 0"),
+        ...(thay ? [auditStatement(env.DB, { staffId: staff.id, action: "prc_supply_term_added", at, detail: `mọi dịch vụ · nhà cung cấp Tour Đảo · từ ${thay.tuNgay} (thay dòng của công ty chủ cũ)` }, "changes() > 0")] : []),
       ]);
       if (res instanceof Response) return res;
       if (dongDaDong(res)) return error(409, "stale", "Điều khoản vừa được đóng — tải lại.");

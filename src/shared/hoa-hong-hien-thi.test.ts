@@ -29,6 +29,8 @@ import {
   tomTatMuc,
   xepLoai,
   canXacNhanDongDieuKhoan,
+  laDongMoiDichVuLuonGiu,
+  ngungDieuKhoanDuoc,
   nhanLoaiDoiTac,
   cauThuTra,
   thuTraThieuMuc,
@@ -57,7 +59,7 @@ const muc = (o: Partial<CommissionRuleDto>): CommissionRuleDto => ({
 });
 const dk = (o: Partial<SupplyTermDto>): SupplyTermDto => ({
   id: "d1", phamVi: "ALL", catalogCode: null, groupCode: null, nguoiBan: { partyId: "pty-cty", ten: "Công ty Tour Đảo", laCongTy: true }, tyLeMuaBp: null,
-  tuNgay: "2026-01-01", denNgay: null, ghiChu: null, conHieuLuc: true, ...o,
+  tuNgay: "2026-01-01", denNgay: null, ghiChu: null, conHieuLuc: true, cachNgung: "KHONG_NGUNG", ...o,
 });
 
 test("nhanPhamVi: có tên thì in tên, thiếu tên thì in mã, «Mọi dịch vụ» khi áp cho tất cả", () => {
@@ -155,10 +157,14 @@ test("người bán và tỷ lệ mua lại; dòng mặc định của công ty 
   assert.equal(nhanTyLeMua(null), "—");
   assert.equal(nhanTyLeMua(8000), "80%");
   assert.equal(nhanTyLeMua(7550), "75,5%");
-  assert.equal(canXacNhanDongDieuKhoan(dk({})), true);
-  assert.equal(canXacNhanDongDieuKhoan(dk({ phamVi: "GROUP", groupCode: "DTH" })), false, "công ty bán một nhóm: đóng thẳng");
-  assert.equal(canXacNhanDongDieuKhoan(dk({ nguoiBan: { partyId: "pty-ncc", ten: "i-resort", laCongTy: false } })), false, "nhà cung cấp bán mọi dịch vụ không phải dòng mặc định");
-  assert.equal(CAU_DONG_DONG_MAC_DINH, "Ngừng điều khoản mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu nhà cung cấp cho tới khi mở điều khoản mới. Vẫn ngừng?");
+  // Việc 15: máy chủ quyết qua `cachNgung`; trang chỉ dịch. Dòng «Mọi dịch vụ» của công ty chủ hiện tại: không nút, hiện câu «luôn giữ».
+  assert.equal(canXacNhanDongDieuKhoan(dk({})), false, "dòng «Mọi dịch vụ» của công ty chủ hiện tại không có hộp ngừng");
+  assert.deepEqual([ngungDieuKhoanDuoc(dk({})), laDongMoiDichVuLuonGiu(dk({}))], [false, true]);
+  assert.deepEqual([canXacNhanDongDieuKhoan(dk({ cachNgung: "NGUNG_VA_THAY" })), ngungDieuKhoanDuoc(dk({ cachNgung: "NGUNG_VA_THAY" })), laDongMoiDichVuLuonGiu(dk({ cachNgung: "NGUNG_VA_THAY" }))], [true, true, false], "dòng của công ty chủ cũ: ngừng kèm mở dòng thay, có hộp xác nhận");
+  const nhom = dk({ phamVi: "GROUP", groupCode: "DTH", cachNgung: "NGUNG" });
+  assert.deepEqual([canXacNhanDongDieuKhoan(nhom), ngungDieuKhoanDuoc(nhom), laDongMoiDichVuLuonGiu(nhom)], [false, true, false], "công ty cung cấp một nhóm: ngừng thẳng");
+  assert.equal(laDongMoiDichVuLuonGiu(dk({ denNgay: "2026-06-30" })), false, "dòng «Mọi dịch vụ» đã ngừng: không câu «luôn giữ»");
+  assert.equal(CAU_DONG_DONG_MAC_DINH, "Dòng «Mọi dịch vụ» này còn ghi công ty chủ cũ. Ngừng nó thì Nền tảng mở ngay dòng «Mọi dịch vụ» mới cho công ty chủ hiện tại, bắt đầu từ ngày hôm sau ngày kết thúc. Vẫn ngừng?");
 });
 
 test("coTheTimDoiTac giữ ĐÚNG cổng của route nguoi-huong (order.create hoặc partner.commission.write, không giữ quyền Đối tác)", () => {

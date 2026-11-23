@@ -5,7 +5,7 @@
 // Đối tác (403 ⇒ «Bạn không có quyền xem trang này.»). Điều khoản không sửa, không xoá — chỉ thêm và đóng. Luật nghiệp vụ nằm ở máy chủ (nhóm Thuê xe không ghi nhà cung cấp mua lại,
 // dòng «Mọi dịch vụ» chỉ của Tour Đảo, không trùng khoảng ngày): trang hiện đúng câu tiếng Việt máy chủ trả, không chép lại luật. Chữ ở src/shared/hoa-hong-hien-thi.ts, đọc ô ở
 // src/shared/so-dai-ly-nhap.ts (có bài kiểm); khối chung ở web/so-dai-ly-ui.ts.
-import { CAU_DONG_DONG_MAC_DINH, CAU_KHONG_CO_DIEU_KHOAN, CAU_KHONG_KHOP_LOC, NHAN_CONG_TY, NHAN_TRANG_THAI, canXacNhanDongDieuKhoan, dongDongDuoc, locDieuKhoan, nhanNguoiBan, nhanPhamVi, nhanTyLeMua, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
+import { CAU_DONG_DONG_MAC_DINH, CAU_MOI_DICH_VU_LUON_GIU, CAU_KHONG_CO_DIEU_KHOAN, CAU_KHONG_KHOP_LOC, NHAN_CONG_TY, NHAN_TRANG_THAI, canXacNhanDongDieuKhoan, laDongMoiDichVuLuonGiu, ngungDieuKhoanDuoc, locDieuKhoan, nhanNguoiBan, nhanPhamVi, nhanTyLeMua, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
 import { can } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { docThanDieuKhoan } from "../src/shared/so-dai-ly-nhap";
@@ -73,7 +73,10 @@ async function main(): Promise<void> {
   const huyHieu = (tt: ReturnType<typeof trangThaiDong>): HTMLElement =>
     h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
   const nutDong = (d: Api.SupplyTermDto, k: ReturnType<typeof khungDong>): HTMLElement | false => {
-    if (!duocGhi || !dongDongDuoc(d)) return false;
+    if (!duocGhi) return false;
+    // Việc 15: dòng «Mọi dịch vụ» của công ty chủ hiện tại không ngừng được (máy chủ 409) — hiện câu giải thích thay cho nút.
+    if (laDongMoiDichVuLuonGiu(d)) return h("span", { class: "hint" }, CAU_MOI_DICH_VU_LUON_GIU);
+    if (!ngungDieuKhoanDuoc(d)) return false;
     const nut = h("button", { type: "button", class: "btn", "data-dong": d.id, "aria-label": `Ngừng điều khoản: ${k.phamVi} · ${k.nguoiBan}` }, "Ngừng điều khoản");
     nut.addEventListener("click", () => moDong(d, k));
     return nut;

@@ -6,12 +6,14 @@
 import type { BanChup } from "./hoa-hong-dong.ts";
 
 /**
- * Người bán của MỘT dòng theo bản chụp: id hồ sơ nhà cung cấp, hoặc null = phần Tour Đảo (người bán là công ty chủ, thiếu người bán — MISSING, không đọc được công ty chủ).
- * Cùng luật nhóm biên nhận đã dùng từ Task 8 (`cungUng.sellerPartyId` khác công ty chủ).
+ * Nhà cung cấp của MỘT dòng theo bản chụp: id hồ sơ nhà cung cấp mua lại (`supplierPartyId`), hoặc null = phần Tour Đảo (chính công ty cung cấp; thiếu nhà cung cấp —
+ * MISSING; không có bản chụp). Việc 15 (2026-11-23): trước đây so «người bán ≠ công ty chủ HÔM NAY» nên đổi công ty chủ (ADR-0024 6.4) biến công ty CŨ thành «quầy nhà
+ * cung cấp» trên biên nhận của mọi đơn, kể cả đơn chụp trước khi đổi (bài src/doi-cong-ty-chu-nha-cung-cap.test.ts). Bản chụp đã mang câu trả lời đúng lúc chụp: bất biến
+ * ADR-0078 «có nhà cung cấp + tỷ lệ ⇔ người bán ≠ công ty chủ» (CHECK + trigger `prc_supply_term_supplier_iff`, ghi tay `apGhiTay`) — cùng cột sổ giá vốn dùng.
  */
-export function nguoiBanCuaDong(c: BanChup | undefined, congTyChuId: string | null): string | null {
-  if (!c || c.cungUng.status !== "SET" || congTyChuId === null || c.cungUng.sellerPartyId === congTyChuId) return null;
-  return c.cungUng.sellerPartyId;
+export function nguoiBanCuaDong(c: BanChup | undefined): string | null {
+  if (!c || c.cungUng.status !== "SET") return null;
+  return c.cungUng.supplierPartyId;
 }
 
 export interface PhanNguoiBan<T> {

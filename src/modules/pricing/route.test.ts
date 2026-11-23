@@ -3,6 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { CAU_KHONG_NGUNG_MOI_DICH_VU } from "./rules.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const HDV = "22222222-2222-4222-8222-222222222222";
@@ -102,9 +103,9 @@ test("điều khoản: mã dịch vụ không có trong danh mục ⇒ 400; dòn
   const sai = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "SERVICE", catalogCode: "KHONGCO", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 8000, tuNgay: "2026-10-01" } });
   assert.equal(sai.status, 400);
   assert.match(sai.json.error.message, /danh mục/);
-  // Đóng dòng gieo "mọi dịch vụ" của công ty chủ trước, để lỗi thấy được là luật "mọi dịch vụ chỉ cho Tour Đảo" chứ không phải lỗi trùng khoảng ngày.
-  assert.equal((await w.call("POST", "/api/pricing/cung-ung/prc-st-goc-all/dong", { as: KT, body: { denNgay: "2026-09-30" } })).status, 200);
-  const tatCa = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "ALL", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 8000, tuNgay: "2026-10-01" } });
+  // Khoảng ngày TRƯỚC dòng gieo «mọi dịch vụ» (từ 2025-01-01), để lỗi thấy được là luật «mọi dịch vụ chỉ cho Tour Đảo» chứ không phải lỗi trùng khoảng ngày.
+  // (Trước việc 15 bài này đóng dòng gieo trước; nay dòng «Mọi dịch vụ» của công ty chủ hiện tại không ngừng được — bài dưới.)
+  const tatCa = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "ALL", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 8000, tuNgay: "2024-06-01", denNgay: "2024-12-31" } });
   assert.equal(tatCa.status, 400, tatCa.text);
   assert.match(tatCa.json.error.message, /chỉ dành cho Tour Đảo/);
   const ct = await w.call("POST", "/api/pricing/cung-ung", { as: ADM, body: { phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: congTyChu(w), tuNgay: "2026-10-01" } });
@@ -113,16 +114,34 @@ test("điều khoản: mã dịch vụ không có trong danh mục ⇒ 400; dòn
   assert.equal(ct.json.dong.nguoiBan.laCongTy, true);
 });
 
-test("đóng điều khoản: dòng gieo sẵn \"công ty chủ bán mọi dịch vụ\" đóng được một lần; Bán hàng 403; id lạ 404; ngày kết thúc trước ngày bắt đầu 400", async () => {
+test("việc 15 B1: dòng «Mọi dịch vụ» của công ty chủ hiện tại không ngừng được — 409 câu tiếng Việt, mọi ngày, mọi người ghi; dòng vẫn mở, không nhật ký; danh sách báo KHONG_NGUNG", async () => {
   const w = setup();
-  assert.equal((await w.call("POST", "/api/pricing/cung-ung/prc-st-goc-all/dong", { as: SALES, body: { denNgay: "2026-12-31" } })).status, 403);
+  assert.equal((await w.call("POST", "/api/pricing/cung-ung/prc-st-goc-all/dong", { as: SALES, body: { denNgay: "2026-12-31" } })).status, 403, "quyền xét trước");
+  for (const [as, denNgay] of [[KT, "2026-12-31"], [ADM, "2026-09-30"], [SA, "2099-12-31"], [KT, "2024-12-31"]] as const) {
+    const r = await w.call("POST", "/api/pricing/cung-ung/prc-st-goc-all/dong", { as, body: { denNgay } });
+    assert.deepEqual([r.status, r.json.error.code, r.json.error.message], [409, "moi_dich_vu_bat_buoc", CAU_KHONG_NGUNG_MOI_DICH_VU], `${as} ${denNgay}`);
+  }
+  assert.equal(w.q("SELECT valid_to_date AS d FROM prc_supply_term WHERE id = 'prc-st-goc-all'")[0].d, null, "dòng gieo vẫn mở");
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'prc_supply_term_closed'")[0].n), 0);
+  const ds = await w.call("GET", "/api/pricing/cung-ung", { as: KT });
+  assert.deepEqual(ds.json.dong.map((d: { id: string; cachNgung: string; nguoiBan: { laCongTy: boolean } }) => [d.id, d.cachNgung, d.nguoiBan.laCongTy]), [["prc-st-goc-all", "KHONG_NGUNG", true]]);
+});
+
+test("đóng điều khoản (dòng thường): ngừng được một lần, lần hai 409; Bán hàng 403; id lạ 404; ngày kết thúc trước ngày bắt đầu 400", async () => {
+  const w = setup();
+  const ct = await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "SERVICE", catalogCode: "IRESORT", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 8000, tuNgay: "2026-10-01" } });
+  assert.equal(ct.status, 201, ct.text);
+  assert.equal(ct.json.dong.cachNgung, "NGUNG");
+  const id = ct.json.dong.id;
+  assert.equal((await w.call("POST", `/api/pricing/cung-ung/${id}/dong`, { as: SALES, body: { denNgay: "2026-12-31" } })).status, 403);
   assert.equal((await w.call("POST", "/api/pricing/cung-ung/prc-st-khong-co/dong", { as: KT, body: { denNgay: "2026-12-31" } })).status, 404);
-  assert.equal((await w.call("POST", "/api/pricing/cung-ung/prc-st-goc-all/dong", { as: KT, body: { denNgay: "2024-12-31" } })).status, 400, "dòng gieo bắt đầu 2025-01-01");
-  const r = await w.call("POST", "/api/pricing/cung-ung/prc-st-goc-all/dong", { as: KT, body: { denNgay: "2026-12-31" } });
+  assert.equal((await w.call("POST", `/api/pricing/cung-ung/${id}/dong`, { as: KT, body: { denNgay: "2026-09-30" } })).status, 400, "dòng bắt đầu 2026-10-01");
+  const r = await w.call("POST", `/api/pricing/cung-ung/${id}/dong`, { as: KT, body: { denNgay: "2026-12-31" } });
   assert.equal(r.status, 200, r.text);
-  assert.equal(r.json.dong.denNgay, "2026-12-31");
+  assert.deepEqual([r.json.dong.denNgay, r.json.dong.cachNgung], ["2026-12-31", "KHONG_NGUNG"]);
   assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'prc_supply_term_closed'")[0].n), 1);
-  assert.equal((await w.call("POST", "/api/pricing/cung-ung/prc-st-goc-all/dong", { as: KT, body: { denNgay: "2026-12-31" } })).status, 409);
+  assert.equal(Number(w.q("SELECT count(*) AS n FROM prc_supply_term")[0].n), 2, "ngừng dòng thường không mở dòng thay");
+  assert.equal((await w.call("POST", `/api/pricing/cung-ung/${id}/dong`, { as: KT, body: { denNgay: "2026-12-31" } })).status, 409);
 });
 
 test("danh sách hoa hồng: tên vai bằng tiếng Việt, đối tác có tên hồ sơ; còn hiệu lực theo ngày hôm nay; không lộ số điện thoại", async () => {

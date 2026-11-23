@@ -47,7 +47,7 @@ export function gopPhiDonVaoDichVu(order: OrderDetailDto, mau: MauBienNhan, hien
     const phiCua = dong.filter((d) => d.serviceId === s.id);
     if (phiCua.length === 0) continue;
     const tongPhi = phiCua.reduce((t, d) => t + d.lineTotal, 0);
-    if (nguoiBanCuaDong(chupCua.get(s.id), ban?.congTyChuId ?? null) !== null) {
+    if (nguoiBanCuaDong(chupCua.get(s.id)) !== null) {
       rieng.push({ description: `${s.name} — ${HAU_TO_DUA_DON}`, lineTotal: tongPhi });
       continue;
     }

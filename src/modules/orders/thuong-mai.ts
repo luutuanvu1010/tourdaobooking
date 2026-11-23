@@ -176,7 +176,7 @@ export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & P
           muc: h.status === "SET" ? nhanMuc({ kind: h.kind, rateBp: h.rateBp, perPax: h.perPax, theoLoai: h.theoLoai }) : null,
           hoaHong: t.hoaHong, giaDaiLy: t.giaDaiLy, ghiTay: v.ghiTay?.has(dv.id) ?? false,
           thieu: h.status === "MISSING" ? NHAN_LY_DO_THIEU[h.reason] : null,
-          nguoiBan: cu.status === "SET" ? { ten: v.ten.get(cu.sellerPartyId) ?? HO_SO_KHONG_CON, laCongTy: v.congTyChuId !== null && cu.sellerPartyId === v.congTyChuId } : null,
+          nguoiBan: cu.status === "SET" ? { ten: v.ten.get(cu.sellerPartyId) ?? HO_SO_KHONG_CON, laCongTy: cu.supplierPartyId === null } : null,
         };
         // Tỷ lệ mua lại và giá vốn của nhà cung cấp: chỉ người có `supply.terms.view` (Bán hàng KHÔNG).
         if (v.xemNguoiBan && cu.status === "SET" && cu.supplierPartyId !== null && cu.costRateBp !== null && t.giaVon !== null) d.nhaCungCap = { tyLeMua: nhanTyLeBp(cu.costRateBp), giaVon: t.giaVon };

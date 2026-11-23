@@ -3314,6 +3314,11 @@ export interface CommissionRuleListResponse { homNay: string; dong: CommissionRu
 export interface SupplyTermDto {
   id: string; phamVi: "SERVICE" | "GROUP" | "ALL"; catalogCode: string | null; groupCode: string | null; nguoiBan: { partyId: string; ten: string; laCongTy: boolean };
   tyLeMuaBp: number | null; tuNgay: string; denNgay: string | null; ghiChu: string | null; conHieuLuc: boolean;
+  /**
+   * Việc 15 (2026-11-23), máy chủ quyết: `NGUNG` — ngừng thường; `KHONG_NGUNG` — đã có ngày kết thúc, hoặc dòng «Mọi dịch vụ» của công ty chủ hiện tại (máy chủ trả 409);
+   * `NGUNG_VA_THAY` — dòng «Mọi dịch vụ» của công ty chủ CŨ: ngừng thì cùng lô mở dòng «Mọi dịch vụ» mới cho công ty chủ hiện tại từ ngày hôm sau.
+   */
+  cachNgung: "NGUNG" | "KHONG_NGUNG" | "NGUNG_VA_THAY";
 }
 export interface SupplyTermListResponse { homNay: string; dong: SupplyTermDto[]; nhaCungCap: { partyId: string; ten: string }[]; congTyChu: { partyId: string; ten: string } | null }
 /** Kết quả "thử tra": đối tác + dịch vụ + ngày ⇒ mức nào thắng, ở bậc nào. `lyDo` là câu tiếng Việt (không mã thô). */

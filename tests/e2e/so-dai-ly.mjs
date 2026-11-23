@@ -375,7 +375,21 @@ console.log("✓ 10) Hai lần Xác nhận cùng lúc ⇒ đúng [200, 409], m�
 }
 
 // ---- 11) Không đóng dòng điều khoản gieo sẵn, không đổi công ty chủ (D1 dùng chung — đặc tả §13)
+// Việc 15 B1 (đặc tả 2026-11-23-viec-15-nha-cung-cap.md): bấm ngừng dòng «Mọi dịch vụ» của công ty chủ hiện tại ⇒ 409 `moi_dich_vu_bat_buoc` câu tiếng Việt; dòng vẫn mở.
+// An toàn cho D1 dùng chung CHỈ khi chặn đang chạy — chặn hỏng thì dòng gieo bị đóng và các kịch bản sau cùng nhóm đỏ «thiếu nhà cung cấp» (dấu hiệu dễ thấy, không âm thầm).
+{
+  const nhatKyTruoc = (await sqlRows("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'prc_supply_term_closed'"))[0].n;
+  for (const [ai, nguoi] of [["Kế toán", ACC], ["Quản trị", ADM]]) {
+    const r = await call(nguoi, "POST", "/api/pricing/cung-ung/prc-st-goc-all/dong", { denNgay: HOM_NAY });
+    assert.equal(r.status, 409, `${ai} ngừng dòng «Mọi dịch vụ»: ${JSON.stringify(r.body)}`);
+    assert.equal(maLoi(r), "moi_dich_vu_bat_buoc");
+    assert.match(r.body.error.message, /^Không ngừng được dòng «Mọi dịch vụ»/);
+  }
+  assert.equal((await sqlRows("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'prc_supply_term_closed'"))[0].n, nhatKyTruoc, "bị chặn thì không ghi nhật ký");
+  const ds = await call(ACC, "GET", "/api/pricing/cung-ung");
+  assert.equal(ds.body.dong.find((d) => d.id === "prc-st-goc-all").cachNgung, "KHONG_NGUNG", "trang không hiện nút ngừng cho dòng này");
+}
 assert.equal((await sqlRows("SELECT valid_to_date AS d FROM prc_supply_term WHERE id = 'prc-st-goc-all'"))[0].d, null, "dòng điều khoản gieo sẵn còn mở");
 assert.deepEqual((await sqlRows("SELECT party_id FROM v_pty_owner_company")).map((x) => x.party_id), congTyTruoc, "công ty chủ không đổi");
-console.log("✓ 11) Dòng điều khoản gieo sẵn prc-st-goc-all còn mở; công ty chủ không đổi");
+console.log("✓ 11) Ngừng dòng «Mọi dịch vụ» ⇒ 409 (Kế toán, Quản trị), không nhật ký; dòng gieo sẵn prc-st-goc-all còn mở; công ty chủ không đổi");
 console.log("E2E OK");
