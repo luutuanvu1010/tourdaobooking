@@ -2,7 +2,25 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.30 ĐÃ LÊN PRODUCTION (ADR-0225 việc 5: form Đối tác bỏ ô đặt cọc; đơn đối tác xác nhận từ bản này chỉ thu hộ tiền mặt, không QR) — migration `0178`, `0179`, `0184` — triển khai 2026-11-23 08:57 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.35 ĐÃ LÊN PRODUCTION (ADR-0231 việc 12: hotline trên vé Tour Đảo theo dịch vụ, sửa được cho từng lô) — migration `0185` — triển khai 2026-11-23 13:55 giờ Việt Nam
+
+Bản trước trên production là 3.34 (việc 8 do phiên khác triển khai; dòng của các bản 3.31–3.34 nằm ở nhánh của các việc đó). Đầu ra `npm run trien-khai` (chép nguyên):
+
+- Ngày giờ: 2026-11-23 13:55 (giờ Việt Nam)
+- Commit: 6c5e59b48 Gộp main (việc 8, bản 3.34) vào nhánh Việc 12; nhật ký thay đổi thành 3.35
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-23T06:34:38Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45124208044
+- Tệp luật đã đổi — lý do của chủ: Thêm ADR-0231 hotline trên vé Tour Đảo, chủ duyệt 22/11 (docs/adr/ADR-0231-hotline-tren-ve-tour-dao.md; docs/adr/README.md)
+- Migration đã áp: 0185_hotline_tren_ve.sql
+- Điểm khôi phục Time Travel trước khi áp: 000031e2-00000000-0000512c-bce61cc10db090b08e5e95c067b93371
+- Worker Version ID: 47e05a22-5d73-49b6-9b27-4a825308d0f6
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (3 cảnh báo, gồm R-PRC-PD-3 đã có từ trước)
+- Phiên bản: 3.35; cổng phiên bản trước và sau deploy: ĐẠT
+- Thời gian: day-len 7 phút 45 giây; trien-khai 0 phút 52 giây; TỔNG 8 phút 37 giây
+- Kiểm sau triển khai (GET công khai, 23/11 ~14:00): route mới `/api/catalog/so-ho-tro` trả 401 khi chưa đăng nhập (có route, không phải 404); trang chủ 200.
+- Chưa làm: chưa ai đặt hotline riêng cho dịch vụ nào trên bản chạy thật, chưa tạo lô vé thật có số riêng, chưa thử trên iPhone thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.30 ĐÃ LÊN PRODUCTION (ADR-0225 việc 5: form Đối tác bỏ ô đặt cọc; đơn đối tác xác nhận từ bản này chỉ thu hộ tiền mặt, không QR) — migration `0178`, `0179`, `0184` — triển khai 2026-11-23 08:57 giờ Việt Nam
 
 Bản trước trên production là 3.26, nên lần này mang lên cùng lúc mọi thứ đã vào main sau 3.26: các mục nhật ký 3.27–3.29 (gồm việc 3 tìm đối tác theo số, việc 2 Trả sau ADR-0224) và phí đưa đón từ giá gốc Sheet (ADR-0218, migration 0178–0179). Đầu ra `npm run trien-khai` (chép nguyên):
 
