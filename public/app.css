@@ -1684,11 +1684,14 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .order-summary-band .value.due { color: var(--c-summary-due); }
 .order-summary-band .sub { font-size: var(--fs-label); opacity: .72; }
 .order-summary-band .sep { align-self: stretch; width: 1px; background: var(--c-on-summary); opacity: .18; } /* chiều cao tự khớp hàng flex (align-self: stretch) — không cần số px cứng */
-.order-summary-band .grid4 { flex: 1; display: grid; grid-template-columns: repeat(4, auto); gap: var(--s5) var(--s6); }
+.order-summary-band .grid4 { flex: 1; display: grid; grid-template-columns: repeat(3, auto); gap: var(--s5) var(--s6); } /* việc 8: dải còn ba ô (Đón, Số khách, tiền) — tên lớp giữ nguyên */
 @media (max-width: 899px) {
   .order-summary-band { flex-direction: column; align-items: stretch; gap: var(--s3); padding: var(--s4); }
   .order-summary-band .sep { display: none; }
   .order-summary-band .grid4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .order-summary-band .grid4 > :last-child:nth-child(odd) { grid-column: 1 / -1; } /* việc 8: lưới hai cột, ô lẻ cuối trải hết hàng (từ 641px lưới ba cột — khối min-width 641px) */
 }
 @media (min-width: 900px) {
   .cot-phu .pay-form .grid.two { grid-template-columns: minmax(0, 1fr); } /* hàng Kế toán (Công ty đã nhận / Thay / Ghi lần thu / Ghi bù) nằm trong cột phụ hẹp của khuôn Chi tiết (khung gốc): `.grid.two` chia theo KHUNG NHÌN nên ô mã bị bóp còn vài ký tự — trong cột hẹp xếp một cột */
@@ -4540,7 +4543,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .order-summary-band > div:first-child { flex: 1 1 100%; }
   .order-summary-band > div:first-child > .label { display: none; }
   .order-summary-band .sep { display: none; }
-  .order-summary-band .grid4 { flex: 1 1 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .order-summary-band .grid4 { flex: 1 1 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* [2] Thẻ đơn (mọi nơi dùng `web/order-card.ts`: danh sách Đơn hàng khi vùng chứa hẹp hơn mốc bảng của khối [14], «Việc của tôi», ô xem trước của màn Giao diện): ba hàng — (số thứ tự) ngày ·

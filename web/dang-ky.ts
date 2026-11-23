@@ -7,7 +7,8 @@ import type { PhieuDangKyDto } from "../src/shared/contracts";
 import { nhanLoaiTep } from "../src/shared/tep-dinh-kem";
 import { maBase64 } from "../src/shared/tep-hien-thi";
 import { KHU_TO_CHUC, NHOM_TO_CHUC, dungThanGui, giaTriTruoc, giaTriTruocToChuc, goiYTruoc, goiYTruocToChuc, oCuaKhu, type KhuO, type ODung } from "../src/shared/dang-ky-truong";
-import { CAU_DONG_DANG_KY, CHU_DANG_KY, NHAN_O_TEP, NHAN_O_TEP_TO_CHUC, O_TEP_CUA_KHU, TIEU_DE_KHU_TO_CHUC, anhToChucConLai } from "../src/shared/dang-ky-giao-dien";
+import { CAU_DONG_DANG_KY, CHU_DANG_KY, O_TEP_CUA_KHU, TIEU_DE_KHU_TO_CHUC, anhToChucConLai } from "../src/shared/dang-ky-giao-dien";
+import { CAU_TEP_WORD, O_TEP, giongTepWord, nhanOTep, oTheoVai, phanCuaO, type DongOTep } from "../src/shared/dang-ky-o-tep";
 import { ApiError, api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { ACCEPT_ANH_PDF, thuNhoAnh } from "./thu-nho-anh";
@@ -16,6 +17,8 @@ type CauHinh = {
   nhanDangKy: boolean; loaiMo: { ma: string; ten: string; phan: string }[]; mucBatBuoc: { ma: string; nhan: string }[]; chinhSachRiengTu: number | null;
   /** Phần tổ chức mở được (chính sách riêng tư đang hiệu lực có dấu thu thông tin tổ chức); loại giấy phép thêm chọn được. */
   phanToChucMo: boolean; giayPhepThem: { ma: string; ten: string; coHan: boolean }[];
+  /** Ô tệp theo vai (ADR-0233): dòng hiệu lực của bảng; ô hiện ra chọn bằng `oTheoVai` (cùng hàm với máy chủ). «Tệp khác» chỉ khi `tepKhacMo`. */
+  oTep: DongOTep[]; tepKhacMo: boolean;
 };
 class Loi extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
@@ -41,7 +44,7 @@ const hienLoi = (m: string | null) => { loiEl.hidden = m === null; loiEl.textCon
 const hienBao = (m: string | null) => { baoEl.hidden = m === null; baoEl.textContent = m ?? ""; };
 const cauCua = (e: unknown) => (e instanceof Loi ? e.message : CAU_MANG);
 
-let cauHinh: CauHinh = { nhanDangKy: false, loaiMo: [], mucBatBuoc: [], chinhSachRiengTu: null, phanToChucMo: false, giayPhepThem: [] };
+let cauHinh: CauHinh = { nhanDangKy: false, loaiMo: [], mucBatBuoc: [], chinhSachRiengTu: null, phanToChucMo: false, giayPhepThem: [], oTep: [], tepKhacMo: false };
 let siteKey: string | null = null;
 let emailDaNhap = "";
 
@@ -184,13 +187,14 @@ function vePhieu(p: PhieuDangKyDto): void {
   if (p.trangThai === "DA_DUYET") { veDatPin(p); return; }
   const rut = p.trangThai === "CHO_XAC_MINH" || p.trangThai === "CHO_DUYET" ? nutRut() : null;
   replaceChildren(goc, dauPhieu(p),
-    h("section", { class: "the" }, h("h2", null, "Ảnh căn cước"), ...dongTep(p)),
+    h("section", { class: "the" }, h("h2", null, "Ảnh và tệp đã gửi"), ...dongTep(p)),
     p.trangThai === "CHO_XAC_MINH" || p.trangThai === "CHO_DUYET" ? h("p", { class: "muted" }, CHU_DANG_KY.choXuLy) : null,
     rut);
 }
-const dongTep = (p: PhieuDangKyDto) => [...Object.entries(NHAN_O_TEP), ...Object.entries(NHAN_O_TEP_TO_CHUC).filter(([ma]) => p.tep.some((x) => x.o === ma))].map(([ma, nhan]) => {
+// Hai ô căn cước luôn có dòng (như trước ADR-0233); ô khác chỉ khi có tệp.
+const dongTep = (p: PhieuDangKyDto) => [...new Set(["CCCD_MAT_TRUOC", "CCCD_MAT_SAU", ...p.tep.map((x) => x.o)])].map((ma) => {
   const t = p.tep.find((x) => x.o === ma);
-  return h("p", { "data-o-tep": ma }, h("span", { class: "muted" }, `${nhan}: `), t ? (t.trangThai === "DA_GUI" ? "Đã gửi" : "Chưa tải xong, hãy gửi lại") : "Chưa gửi");
+  return h("p", { "data-o-tep": ma }, h("span", { class: "muted" }, `${nhanOTep(ma)}: `), t ? (t.trangThai === "DA_GUI" ? "Đã gửi" : "Chưa tải xong, hãy gửi lại") : "Chưa gửi");
 });
 function nutRut(): HTMLElement {
   const xacNhan = h("div", { class: "dk-hoi", hidden: true });
@@ -217,7 +221,7 @@ function veBieuMau(p: PhieuDangKyDto): void {
     ...tuyChonVai(cauHinh.loaiMo.filter((l) => l.phan !== "CA_NHAN"), p.loaiToChuc).map((l) => h("option", { value: l.ma, selected: p.loaiToChuc?.ma === l.ma }, l.ten))) as HTMLSelectElement;
   // Công tắc phần tổ chức: ẩn hẳn khi chính sách chưa mở phần này; sau lần gửi đầu chỉ còn khi phiếu ĐÃ có phần tổ chức (khoá bật — máy chủ không cho bỏ).
   const coCongTac = cauHinh.phanToChucMo && (!khoaVai || p.loaiToChuc !== null);
-  const oCongTac = h("input", { type: "checkbox", id: "dk-cong-tac-to-chuc", class: "o-tick", disabled: khoaVai, checked: p.loaiToChuc !== null || p.tep.some((t) => t.o in NHAN_O_TEP_TO_CHUC) }) as HTMLInputElement;
+  const oCongTac = h("input", { type: "checkbox", id: "dk-cong-tac-to-chuc", class: "o-tick", disabled: khoaVai, checked: p.loaiToChuc !== null || p.tep.some((t) => phanCuaO(t.o) === "TO_CHUC") }) as HTMLInputElement;
   const congTac = coCongTac ? oCongTac : null;
   const toChucBat = (): boolean => congTac !== null && congTac.checked;
   // Lưu nháp vai (ADR-0212 Đ4): vai cá nhân bắt buộc, TRỪ phiếu «chỉ tổ chức» (công tắc bật + vai của tổ chức đã chọn — Task 13); tắt công tắc ⇒ xoá vai tổ chức đã lưu. Chỉ gọi khi có đổi.
@@ -276,16 +280,42 @@ function veBieuMau(p: PhieuDangKyDto): void {
     } catch (e) { replaceChildren(chinhSach, h("p", { class: "o-loi" }, cauCua(e))); }
   })());
 
-  const tepKhoi = h("div", { class: "dk-tep" }, ...Object.entries(NHAN_O_TEP).map(([ma, nhan]) => oTep(ma, nhan, p).el));
-  // Phần tổ chức (ADR-0212 Đ4): mọi khu dựng từ tệp ánh xạ; ô ảnh nằm ở khu của nó.
-  const anhToChuc: OTep[] = [];
+  // Ô tệp theo vai (ADR-0233): dựng MỘT lần mọi ô máy biết, rồi `capNhatOTep` chọn ô hiện theo vai đang chọn (cùng hàm `oTheoVai` với máy chủ). Ô không thuộc vai mà còn tệp
+  // vẫn hiện kèm «Bỏ ảnh này» — nếu không, máy chủ báo `file_slot_not_allowed` mà không có lối ra. Ô căn cước ở khu «Căn cước công dân»; ô «Tệp khác» ở khu riêng.
+  const oCaNhan = new Map(Object.keys(O_TEP).filter((ma) => phanCuaO(ma) === "CA_NHAN").map((ma) => [ma, oTep(ma, nhanOTep(ma), p, O_TEP[ma]!.tepKhac, O_TEP[ma]!.tepKhac)] as const)); // ô «Tệp khác»: tên đã là tiêu đề khu ⇒ chỉ giữ cho máy đọc màn hình
+  const tepKhoi = h("div", { class: "dk-tep" });
+  const tepKhacKhoi = h("div", { class: "dk-tep" });
+  const khuTepKhac = h("section", { class: "the dk-buoc", "data-khu": "tepKhac" }, h("h2", null, nhanOTep("TEP_KHAC")), h("p", { class: "muted" }, CHU_DANG_KY.giaiThichTepKhac), tepKhacKhoi);
+  // Phần tổ chức (ADR-0212 Đ4): mọi khu dựng từ tệp ánh xạ; ô ảnh nằm ở khu của nó. «Tệp khác của tổ chức» ở khu riêng cuối phần (ADR-0233 Đ2).
+  const anhToChuc = new Map<string, OTep>();
   const khuToChuc: HTMLElement[] = [];
   for (const khu of KHU_TO_CHUC) { const dsO = oCuaKhu("TO_CHUC", khu).map(dungO);
     const maAnh = O_TEP_CUA_KHU[khu];
-    const anh = maAnh ? oTep(maAnh, NHAN_O_TEP_TO_CHUC[maAnh] ?? maAnh, p, true) : null;
-    if (anh) anhToChuc.push(anh);
+    const anh = maAnh ? oTep(maAnh, nhanOTep(maAnh), p, true) : null;
+    if (anh && maAnh) anhToChuc.set(maAnh, anh);
     khuToChuc.push(h("section", { class: "the dk-buoc", "data-khu": khu }, h("h2", null, TIEU_DE_KHU_TO_CHUC[khu]), ...dsO, maAnh === "GPKD" ? h("p", { class: "muted" }, CHU_DANG_KY.giaiThichAnhToChuc) : null, anh?.el ?? null));
   }
+  const anhKhacTC = oTep("TEP_KHAC_TO_CHUC", nhanOTep("TEP_KHAC_TO_CHUC"), p, true, true);
+  anhToChuc.set("TEP_KHAC_TO_CHUC", anhKhacTC);
+  const khuTepKhacTC = h("section", { class: "the dk-buoc", "data-khu": "tepKhacToChuc" }, h("h2", null, nhanOTep("TEP_KHAC_TO_CHUC")), h("p", { class: "muted" }, CHU_DANG_KY.giaiThichTepKhac), anhKhacTC.el);
+  // Trước khu «Xác nhận» (uỷ quyền) để xác nhận vẫn là bước cuối của phần tổ chức (người chấm giao diện 22/11, S4).
+  const viTriXacNhan = khuToChuc.findIndex((el) => el.dataset.khu === "uyQuyen");
+  khuToChuc.splice(viTriXacNhan < 0 ? khuToChuc.length : viTriXacNhan, 0, khuTepKhacTC);
+  const capNhatOTep = (): void => {
+    const dk = { tepKhacMo: cauHinh.tepKhacMo };
+    const caNhan = oTheoVai(cauHinh.oTep, "CA_NHAN", chonVai.value, dk).map((x) => x.o);
+    const hien = [...caNhan, ...[...oCaNhan.keys()].filter((ma) => !caNhan.includes(ma) && oCaNhan.get(ma)!.coTep())];
+    for (const [ma, t] of oCaNhan) t.datNgoai(!caNhan.includes(ma));
+    replaceChildren(tepKhoi, ...hien.filter((ma) => !O_TEP[ma]!.tepKhac).map((ma) => oCaNhan.get(ma)!.el));
+    replaceChildren(tepKhacKhoi, ...hien.filter((ma) => O_TEP[ma]!.tepKhac).map((ma) => oCaNhan.get(ma)!.el));
+    khuTepKhac.hidden = tepKhacKhoi.childElementCount === 0;
+    const toChuc = oTheoVai(cauHinh.oTep, "TO_CHUC", chonVaiTc.value, dk).map((x) => x.o);
+    for (const [ma, t] of anhToChuc) { t.datNgoai(!toChuc.includes(ma)); t.el.hidden = !toChuc.includes(ma) && !t.coTep(); }
+    khuTepKhacTC.hidden = anhKhacTC.el.hidden;
+  };
+  chonVai.addEventListener("change", capNhatOTep);
+  chonVaiTc.addEventListener("change", capNhatOTep);
+  capNhatOTep();
   capNhatHien();
   // Câu «Hãy chọn vai… hoặc nhập mã» hết đúng khi ô mã có chữ: tắt ngay, không đợi bấm gửi lại.
   // Nghe ở khung gốc vì ô mã dựng SAU đoạn này (khuO("maVao") nằm ở replaceChildren bên dưới).
@@ -298,7 +328,7 @@ function veBieuMau(p: PhieuDangKyDto): void {
   const hoiBo = h("div", { class: "dk-hoi", id: "dk-hoi-bo-to-chuc", hidden: true });
   const tatToChuc = () => { phanToChuc.hidden = true; hoiBo.hidden = true; luuVaiBaoLoi(); };
   const goAnhVaBo = nut(h("button", B("chinh", { "data-tong": "nguy-hiem", id: "dk-go-anh-bo-to-chuc" }), "Bỏ ảnh và phần tổ chức") as HTMLButtonElement, () => void bamNutDk(goAnhVaBo, async () => {
-    for (const a of anhToChuc) await a.go();
+    for (const a of anhToChuc.values()) await a.go();
     if (congTac) congTac.checked = false;
     tatToChuc();
   }));
@@ -307,7 +337,7 @@ function veBieuMau(p: PhieuDangKyDto): void {
   congTac?.addEventListener("change", () => {
     hienLoi(null);
     if (congTac.checked) { phanToChuc.hidden = false; luuVaiBaoLoi(); return; }
-    if (anhToChuc.some((a) => a.coTep())) { congTac.checked = true; hoiBo.hidden = false; return; }
+    if ([...anhToChuc.values()].some((a) => a.coTep())) { congTac.checked = true; hoiBo.hidden = false; return; }
     tatToChuc();
   });
 
@@ -336,12 +366,13 @@ function veBieuMau(p: PhieuDangKyDto): void {
       h("h2", null, "Căn cước công dân"),
       ...khuO("canCuoc"),
       h("p", { class: "muted" }, CHU_DANG_KY.giaiThichAnh), tepKhoi),
+    khuTepKhac,
     congTac
       ? h("section", { class: "the dk-buoc" }, h("label", { class: "check" }, oCongTac, h("span", null, CHU_DANG_KY.congTacToChuc)), h("p", { class: "muted" }, CHU_DANG_KY.giaiThichToChuc), hoiBo)
       : (p.loaiToChuc !== null || anhToChucConLai(p.tep).length > 0
         // Công tắc ẩn (chính sách đã mất dấu tổ chức) mà phiếu còn ảnh tổ chức: vẫn cho bỏ ảnh, nếu không phiếu kẹt ở `org_photo_without_org`.
         ? h("section", { class: "the dk-buoc", id: "dk-to-chuc-dong" }, h("p", { class: "alert warn", role: "status" }, CHU_DANG_KY.toChucDangDong),
-          ...anhToChucConLai(p.tep).map((ma) => oTep(ma, NHAN_O_TEP_TO_CHUC[ma] ?? ma, p, true).el))
+          ...anhToChucConLai(p.tep).map((ma) => oTep(ma, nhanOTep(ma), p, true).el))
         : null),
     phanToChuc,
     h("section", { class: "the dk-buoc" },
@@ -352,47 +383,54 @@ function veBieuMau(p: PhieuDangKyDto): void {
     p.phienBan > 0 || p.trangThai === "DANG_DIEN" ? nutRut() : null);
 }
 
-type OTep = { el: HTMLElement; coTep: () => boolean; go: () => Promise<void> };
-/** Một ô ảnh: chọn tệp → thu nhỏ (ảnh mở được) → gửi base64. Trạng thái do máy chủ trả theo ô. `goDuoc`: có nút «Gỡ ảnh» (ô của phần tổ chức — lối thoát khi bỏ phần tổ chức). */
-function oTep(ma: string, nhan: string, p: PhieuDangKyDto, goDuoc = false): OTep {
+type OTep = { el: HTMLElement; coTep: () => boolean; go: () => Promise<void>; datNgoai: (b: boolean) => void };
+/** Một ô ảnh: chọn tệp → thu nhỏ (ảnh mở được) → gửi base64. Trạng thái do máy chủ trả theo ô. `goDuoc`: có nút «Bỏ ảnh này» (ô của phần tổ chức, «Tệp khác» — lối thoát).
+ *  `datNgoai(true)`: ô không thuộc vai đang chọn (ADR-0233) — hiện nút «Bỏ ảnh này» kể cả ô căn cước, để gỡ được tệp đã tải. */
+function oTep(ma: string, nhan: string, p: PhieuDangKyDto, goDuoc = false, anNhan = false): OTep {
   const t = p.tep.find((x) => x.o === ma);
   let co = t !== undefined;
   const trangThai = h("span", { class: "muted", "data-trang-thai-tep": ma }, t ? (t.trangThai === "DA_GUI" ? "Đã gửi" : "Chưa tải xong, hãy gửi lại") : "Chưa gửi");
   const chon = h("input", { type: "file", accept: ACCEPT_ANH_PDF, id: `dk-tep-${ma}`, class: "o" }) as HTMLInputElement;
-  const goNut = goDuoc ? h("button", { ...B("loi", { id: `dk-go-tep-${ma}`, hidden: !co }) }, "Bỏ ảnh này") as HTMLButtonElement : null;
+  let ngoai = false;
+  // Câu lỗi của ô nằm NGAY trong ô (người chấm giao diện 22/11, S10: dải lỗi đầu trang cách ô sai nhiều màn cuộn).
+  const loiO = h("p", { class: "o-loi", role: "alert", id: `dk-loi-tep-${ma}`, hidden: true });
+  const datLoiO = (m: string | null) => { loiO.hidden = m === null; loiO.textContent = m ?? ""; };
+  const goNut = h("button", { ...B("loi", { id: `dk-go-tep-${ma}`, hidden: !(co && goDuoc) }) }, "Bỏ ảnh này") as HTMLButtonElement;
+  const hienGo = () => { goNut.hidden = !(co && (goDuoc || ngoai)); };
   const go = async (): Promise<void> => {
     if (!co) return;
     await goiDk<{ tep: { o: string }[] }>("/api/dang-ky/phieu/tep", "POST", { o: ma, go: true }); // cùng route tải tệp, nhánh gỡ (không thêm route: gói Đơn hàng hết khoảng dư)
     co = false;
     trangThai.textContent = "Chưa gửi";
-    if (goNut) goNut.hidden = true;
+    hienGo();
   };
-  if (goNut) nut(goNut, () => void bamNutDk(goNut, async () => { await go(); hienBao(CHU_DANG_KY.daGoAnh); }));
+  nut(goNut, () => void bamNutDk(goNut, async () => { await go(); hienBao(CHU_DANG_KY.daGoAnh); }));
   chon.addEventListener("change", () => void (async () => {
     const f = chon.files?.[0];
     if (!f) return;
     hienLoi(null);
+    datLoiO(null);
     trangThai.textContent = "Đang gửi…";
     try {
       const dau = new Uint8Array(await f.slice(0, 16).arrayBuffer());
       const loai = nhanLoaiTep(dau);
-      if (!loai) throw new Loi(415, "loai", "Chỉ nhận ảnh JPG, PNG, HEIC hoặc tệp PDF.");
+      if (!loai) throw new Loi(415, "loai", giongTepWord(dau) || /\.docx?$/i.test(f.name) ? CAU_TEP_WORD : "Chỉ nhận ảnh JPG, PNG, HEIC hoặc tệp PDF.");
       const nho = loai === "pdf" ? null : await thuNhoAnh(f);
       const bytes = nho ?? new Uint8Array(await f.arrayBuffer());
       const r = await goiDk<{ tep: { o: string; trangThai: "DA_GUI" | "CHUA_TAI_XONG" }[] }>("/api/dang-ky/phieu/tep", "POST", { o: ma, noiDung: maBase64(bytes) }, 120_000); // ảnh gửi nguyên (HEIC, PDF) tới 5 MB ⇒ thân ~6,7 MB: hạn chờ dài như tệp kèm hỗ trợ (ADR-0144 đ7)
       const moi = r.tep.find((x) => x.o === ma);
       co = moi !== undefined;
-      if (goNut) goNut.hidden = !co;
+      hienGo();
       trangThai.textContent = moi?.trangThai === "DA_GUI" ? "Đã gửi" : "Chưa tải xong, hãy gửi lại";
     } catch (e) {
       trangThai.textContent = co ? "Đã gửi" : "Chưa gửi";
       if (e instanceof Loi && e.status === 401 && e.code === "registration_session_required") { buocEmail(e.message); return; }
-      hienLoi(cauCua(e)); // 413 nói rõ trần MB theo chính sách; 415 sai loại; 409 phần tổ chức đóng
+      datLoiO(cauCua(e)); // 413 nói rõ trần MB theo chính sách; 415 sai loại (tệp Word có câu riêng); 409 phần tổ chức đóng
     } finally {
       chon.value = "";
     }
   })());
-  return { el: h("label", { class: "dk-o-tep" }, h("span", { class: "nhan" }, nhan), trangThai, chon, goNut), coTep: () => co, go };
+  return { el: h("label", { class: "dk-o-tep" }, h("span", { class: anNhan ? "nhan visually-hidden" : "nhan" }, nhan), trangThai, chon, loiO, goNut), coTep: () => co, go, datNgoai: (b) => { ngoai = b; hienGo(); } };
 }
 
 // ---- Phiếu đã duyệt: xin mã MỚI rồi đặt PIN (ADR-0207 Đ7) ----

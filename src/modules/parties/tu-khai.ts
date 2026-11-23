@@ -47,8 +47,9 @@ function kiemSoNgay(v: unknown, ten: string): Result<number | null> {
  * Thân POST /api/parties/chinh-sach-rieng-tu: `{ mucDich, noiDung, hanXuLyXoaNgay?, hanGiuPhienNgay?, coPhanToChuc? }` — trần = CHECK của pty_privacy_policy (0103). Hai số ngày (ADR-0126 đ2, đ8;
  * migration 0108) tuỳ chọn: số nguyên ≥ 1, hoặc vắng / null = chưa có số (không hạn). Mã KHÔNG gieo con số nào.
  * `coPhanToChuc` (ADR-0212 Đ7, migration 0174): bản này đã nêu việc thu thông tin tổ chức; vắng / null = false, chỉ nhận đúng / sai.
+ * `coTepKhac` (ADR-0233 Đ3, migration 0191): bản này đã nêu việc thu «Tệp khác» người đăng ký tự gửi; cùng luật như `coPhanToChuc`.
  */
-export function kiemChinhSach(body: Record<string, unknown> | null): Result<{ mucDich: string; noiDung: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null; coPhanToChuc: boolean }> {
+export function kiemChinhSach(body: Record<string, unknown> | null): Result<{ mucDich: string; noiDung: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null; coPhanToChuc: boolean; coTepKhac: boolean }> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   const mucDich = typeof body.mucDich === "string" ? body.mucDich.normalize("NFC").trim() : "";
   const noiDung = typeof body.noiDung === "string" ? body.noiDung.normalize("NFC").trim() : "";
@@ -60,7 +61,9 @@ export function kiemChinhSach(body: Record<string, unknown> | null): Result<{ mu
   if (!phien.ok) return phien;
   const cx = body.coPhanToChuc;
   if (cx !== undefined && cx !== null && typeof cx !== "boolean") return fail("Dấu «Bản này có phần thu thông tin tổ chức» chỉ nhận đúng hoặc sai.");
-  return { ok: true, value: { mucDich, noiDung, hanXuLyXoaNgay: xoa.value, hanGiuPhienNgay: phien.value, coPhanToChuc: cx === true } };
+  const tk = body.coTepKhac;
+  if (tk !== undefined && tk !== null && typeof tk !== "boolean") return fail("Dấu «Bản này nêu việc thu tệp khác» chỉ nhận đúng hoặc sai.");
+  return { ok: true, value: { mucDich, noiDung, hanXuLyXoaNgay: xoa.value, hanGiuPhienNgay: phien.value, coPhanToChuc: cx === true, coTepKhac: tk === true } };
 }
 
 export interface TinhTrangTuKhai { coHoSo: boolean; laCaNhan: boolean; daGop: boolean; coChinhSach: boolean; daDongY: boolean }

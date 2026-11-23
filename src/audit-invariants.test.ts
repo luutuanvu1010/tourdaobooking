@@ -4640,6 +4640,25 @@ test("R-ORD-17w (ADR-0193 mục 6): chỉ đếm đơn xác nhận khi công t�
   assert.equal(violations(db, c), 3, "xác nhận trước ngày gieo (không dòng nào hiệu lực) ⇒ coi là Bật, vẫn đếm (khớp docBatBuocGioDon)");
 });
 
+test("R-ORD-17w (ADR-0228 Đ3): KHÔNG đếm đơn xác nhận lúc công tắc «Đơn đối tác không cần giờ đón» BẬT — dòng hiệu lực tại confirmed_at; Tắt lại ⇒ đếm; không có dòng ⇒ coi là Tắt", () => {
+  const c = one("R-ORD-17w");
+  assert.match(c.sql, /ord_partner_pickup_time_optional_policy/);
+  const db = build17w();
+  const D = "2026-10-05";
+  const sau = (phut: number) => new Date(Date.now() + phut * 60_000).toISOString();
+  const thieuGio = (xacNhanLuc: string) => don17w(db, { staff: "s-lai", dvs: [[{ direction: "OUT", ngay: D, gio: null }]], xacNhanLuc });
+  db.prepare("INSERT INTO ord_partner_pickup_time_optional_policy (id, khong_can, valid_from_at, created_at, updated_at) VALUES ('bat', 1, ?1, ?1, ?1)").run(sau(10));
+  db.prepare("INSERT INTO ord_partner_pickup_time_optional_policy (id, khong_can, valid_from_at, created_at, updated_at) VALUES ('tat-lai', 0, ?1, ?1, ?1)").run(sau(30));
+  thieuGio(sau(5));
+  assert.equal(violations(db, c), 1, "xác nhận khi còn dòng gieo Tắt ⇒ đếm như hôm nay");
+  thieuGio(sau(20));
+  assert.equal(violations(db, c), 1, "xác nhận khi Bật ⇒ cố ý, không đếm");
+  thieuGio(sau(40));
+  assert.equal(violations(db, c), 2, "Tắt lại ⇒ đếm");
+  thieuGio("2000-01-01T00:00:00.000Z");
+  assert.equal(violations(db, c), 3, "không dòng nào hiệu lực ⇒ coi là Tắt (khớp docKhongCanGioDon)");
+});
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0141): hình thức thanh toán và hạn trả đi cùng nhau.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------

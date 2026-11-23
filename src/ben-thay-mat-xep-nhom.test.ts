@@ -30,7 +30,7 @@ const XEP: Record<string, Muc[]> = {
     { doan: "benDatDoiTacBiCam({ laDoiTac, benThayMat: staff.partyId", nhom: "THAY_MAT", so: 1 }, // K1 ở đường «không tư cách» (bên đang thay mặt = chính mình)
     { doan: "if (staff.partyId === null && guiLaHuong) return { ok: false, res: PARTNER_NO_PARTY() };", nhom: "THAY_MAT", so: 1 }, // bên đặt khi lập, đường không tư cách
     { doan: "if (giaTri !== null && staff.partyId === null) return { loi: error(409, \"partner_no_party\"", nhom: "CHINH_NGUOI", so: 1 }, // lời khai cọc: tài khoản chưa gắn hồ sơ
-    { doan: "if (an && staff.partyId === null) return PARTNER_NO_PARTY();", nhom: "CHINH_NGUOI", so: 1 }, // «Ẩn thông tin khách»: tên của chính người lập trên biên nhận
+    { doan: "if (an.ten && staff.partyId === null) return PARTNER_NO_PARTY();", nhom: "CHINH_NGUOI", so: 1 }, // «Đối tác không nhập tên, SĐT khách» (ADR-0228 Đ1): tên của chính người lập trên biên nhận
     { doan: "chiXemDonDuocGiao: seesOnlyAssignedOrders(staff), partyId: staff.partyId,", nhom: "CHINH_NGUOI", so: 2 }, // Hướng dẫn viên: đơn mình phụ trách
     { doan: "nguoiLap: { id: staff.id, partyId: staff.partyId }", nhom: "CHINH_NGUOI", so: 1 }, // Bán hàng tự nhận phụ trách
   ],

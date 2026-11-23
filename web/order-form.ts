@@ -301,9 +301,12 @@ function chuMayCua(l: ChangNhap): string | null {
 const coOChonPhi = (): boolean => phiDangAp && !formGon;
 /**
  * ADR-0154 Đ2.2: công tắc «Ẩn thông tin khách khi đối tác đặt vé» đang ÁP cho tài khoản này (`apChoToi` của GET /api/cai-dat/an-thong-tin-khach — máy chủ quyết, giao diện không suy từ mã quyền).
- * Áp thì khối Khách hàng (trừ Ngày khởi hành) và khối Hành khách ẩn, và thân gửi lên không có các khoá khách (máy chủ điền lại). Chỉ ẩn / hiện: máy chủ viết lại thân theo công tắc HIỆN HÀNH.
+ * Áp thì khối Khách hàng (trừ Ngày khởi hành) ẩn, và thân gửi lên không có các khoá khách (máy chủ điền lại). Chỉ ẩn / hiện: máy chủ viết lại thân theo công tắc HIỆN HÀNH.
+ * ADR-0228 Đ1: từ nay công tắc này chỉ nói về tên, SĐT; khối Hành khách theo công tắc riêng `anDs`.
  */
 let anKhach = false;
+/** ADR-0228 Đ1: công tắc «Đối tác không nhập danh sách hành khách» đang áp cho tài khoản này (`apChoToi` của GET /api/cai-dat/hanh-khach-doi-tac). Áp thì không dựng khối Hành khách, không gửi `passengers`. */
+let anDs = false;
 /**
  * ADR-0221 Đ2: công tắc «Đối tác không nhập nơi đón» đang áp cho CHÍNH người lập (`apChoToi` của GET /api/cai-dat/noi-don-doi-tac — máy chủ chỉ trả true cho tài khoản giữ quyền Đối tác lúc công tắc bật).
  * Đọc một lần lúc mở form; máy chủ từ chối 400 thì đọc lại (`hienLaiNoiDonNeuCan`). false = form không đổi một ký tự.
@@ -727,8 +730,8 @@ function validate(guiDon: boolean): { banner: Banner; focus: HTMLElement; cacO: 
   return { banner: banner("danger", "Chưa lưu được — kiểm tra lại:", { lines: lines.map((text) => ({ text })) }), focus: focusables[0] ?? saveErrorEl, cacO: focusables };
 }
 
-/** Thân gửi lên khi khối khách đang ẩn: KHÔNG có tên, SĐT, email, ghi chú khách, danh sách hành khách, hồ sơ khách (`bookerPartyId`, `newBooker`) — máy chủ điền lại / giữ bản đang lưu (ADR-0154 Đ2.3). */
-type OrderInputAn = Omit<OrderInput, "customerName" | "customerPhone" | "customerEmail" | "customerNote" | "passengers" | "bookerPartyId" | "newBooker">;
+/** Thân gửi lên khi khối khách đang ẩn: KHÔNG có tên, SĐT, email, ghi chú khách, hồ sơ khách (`bookerPartyId`, `newBooker`) — máy chủ điền lại / giữ bản đang lưu (ADR-0154 Đ2.3). Danh sách hành khách theo công tắc riêng (ADR-0228 Đ1). */
+type OrderInputAn = Omit<OrderInput, "customerName" | "customerPhone" | "customerEmail" | "customerNote" | "passengers" | "bookerPartyId" | "newBooker"> & Pick<OrderInput, "passengers">;
 
 /**
  * ADR-0218 (Task 9): có khối đổi phí ⇒ MỌI lượt gửi khoá `doiPhi` — số đổi, hoặc `null` khi người lập không đổi / bỏ đổi (máy chủ hiểu khoá vắng là «giữ số đổi đã lưu», nên không được để vắng khi
@@ -762,15 +765,16 @@ function collect(): OrderInput | OrderInputAn {
     // ADR-0142 L1: lập mới chỉ gửi khi đã mời; sửa nháp chỉ gửi khi người dùng đã đổi (vắng khoá = giữ lời mời đang lưu; null = bỏ lời mời).
     ...(banHangDaDoi && !banHangEl.hidden ? { banHangMoiStaffId: banHangPick ? banHangPick.staffId : null } : {}),
   };
-  if (anKhach) return chung; // ADR-0154 Đ2.2, Đ2.3: khối khách đang ẩn
+  // ADR-0047 R1: khoá `passengers` CHỈ khi khối hành khách đang dựng (có ô + đã tải được danh sách, công tắc danh sách không áp — ADR-0228 Đ1) — vắng = máy chủ giữ danh sách đang lưu.
+  const ds = hk ? { passengers: passengersNhap(hk.rows()) } : {};
+  if (anKhach) return { ...chung, ...ds }; // ADR-0154 Đ2.2, Đ2.3: khối khách đang ẩn
   return {
     ...chung,
     customerName: field("customerName").value,
     customerPhone: field("customerPhone").value,
     customerEmail: field("customerEmail").value,
     customerNote: field("customerNote").value,
-    // ADR-0047 R1: khoá `passengers` CHỈ khi khối hành khách đang dựng (có ô + đã tải được danh sách) — vắng = máy chủ giữ danh sách đang lưu.
-    ...(hk ? { passengers: passengersNhap(hk.rows()) } : {}),
+    ...ds,
     // Bên đặt (sổ đại lý đợt 1, Task 11): dòng chỉ đọc của Đối tác hoặc đại lý đã chọn ở ô "Đặt qua đối tác" thắng ô tra SĐT; không thì như hôm nay.
     ...gopBenDat({ chiDoc: khoiBenDat.kieu === "chi-doc" ? khoiBenDat.benDat : null, daChon: daChonBenDat, tra: bookerPicker.payload() }),
   };
@@ -1167,7 +1171,7 @@ async function loadOrder(): Promise<void> {
     // Lời mời chỉ của người lập (máy chủ trả `banHangMoi` cho người lập nháp); người khác sửa hộ nháp thì khối ẩn và không gửi khoá.
     banHangEl.hidden = banHangAn || order.staffId !== staff.id;
     if (!banHangEl.hidden) { banHangPick = banHangMoi ? { staffId: banHangMoi.staffId, partyId: "", name: banHangMoi.name, roleLabel: "Bán hàng" } : null; renderBanHang(); }
-    if (suaKhachCuaNhap && !anKhach) {
+    if (suaKhachCuaNhap && !anDs) {
       try {
         const ds = await api<Api.PassengerListResponse>(`/api/orders/${encodeURIComponent(order.id)}/passengers`);
         dungKhoiKhach(ds.passengers.map((x) => dongTuDto(x, newKey(), false)));
@@ -1186,6 +1190,7 @@ const soKhachForm = (): number => soKhachDoan(drafts().map((d) => (d.kind === "c
 /** Dựng khối "Hành khách" (M2) ở `#hk-card`: từ 20/11/2026 nằm trong cột chính ngay sau Dịch vụ ở mọi khổ; dạng bảng chỉ từ 1440px (`bangKhachQuery`), dưới đó dạng thẻ. */
 function dungKhoiKhach(rows: DongKhach[]): void {
   if (anTruong("passengers")) return; // ADR-0194: chính sách ẩn khối hành khách (không dựng; không gửi khoá `passengers` ⇒ máy chủ giữ danh sách đang lưu)
+  if (anDs) return; // ADR-0228 Đ1: công tắc danh sách hành khách đang áp
   hk = taoKhoiHanhKhach({ rows, che: "form", soKhach: soKhachForm, today, bang: () => bangKhachQuery.matches, newKey, ma: "hk", onChange: () => recompute(), tenGoiY: () => (anKhach ? "" : field("customerName").value) });
   replaceChildren(hkCard, h("h2", null, "Hành khách"), hk.root);
   hkCard.hidden = false;
@@ -1208,6 +1213,16 @@ function datViTriKhoiKhach(): void {
 const khoiKhach = document.querySelector<HTMLElement>('[data-buoc-khoi="khach"]')!;
 /** Đơn nháp đang sửa: người xem có ô sửa danh sách hành khách của nó không (lúc `loadOrder`) — để dựng lại khối «Hành khách» khi hiện lại khối khách. */
 let suaKhachCuaNhap = false;
+/** ADR-0228 Đ1: đọc công tắc danh sách hành khách — `apChoToi`; lỗi mạng → null (không ẩn; máy chủ vẫn quyết lại ở lần lưu). */
+const docCongTacDs = (): Promise<boolean | null> => api<Api.HanhKhachDoiTacResponse>("/api/cai-dat/hanh-khach-doi-tac").then((r) => r.apChoToi, () => null);
+/** ADR-0228 Đ1: ẩn khối Hành khách (không dựng, không gửi `passengers`). Gọi TRƯỚC khi dựng khối / nạp đơn. */
+function datAnDs(an: boolean): void {
+  anDs = an;
+  if (an) {
+    hk = null;
+    hkCard.hidden = true;
+  }
+}
 /** Đọc công tắc từ máy chủ: `apChoToi` (đang áp cho CHÍNH người gọi); lỗi mạng → null (không đoán). */
 const docCongTacAnKhach = (): Promise<boolean | null> => api<Api.AnThongTinKhachResponse>("/api/cai-dat/an-thong-tin-khach").then((r) => r.apChoToi, () => null);
 /**
@@ -1217,7 +1232,6 @@ const docCongTacAnKhach = (): Promise<boolean | null> => api<Api.AnThongTinKhach
 function datAnKhach(an: boolean): void {
   anKhach = an;
   khoiKhach.toggleAttribute("data-an-khach", an);
-  if (an) hkCard.hidden = true;
   apChinhSach();
   capNhatBuoc();
 }
@@ -1634,14 +1648,16 @@ const layKhung = can(staff, "order.create") && !formGon // form gọn của Đ�
 const layAnKhach = formGon ? docCongTacAnKhach() : Promise.resolve(null);
 // ADR-0221 Đ2: cùng lý do — `apChoToi` chỉ đúng cho tài khoản giữ quyền Đối tác nên người khác không hỏi. Lỗi mạng → không ẩn (form như cũ; máy chủ vẫn quyết lại ở lần lưu).
 const layNoiDon = formGon ? docCongTacNoiDon() : Promise.resolve(null);
+const layDs = formGon ? docCongTacDs() : Promise.resolve(null); // ADR-0228 Đ1: cùng lý do (chỉ Đối tác thuần bị áp)
 const layChinhSach = taiChinhSach(); // ADR-0194: gửi song song
 // ADR-0214 (Task 6): công tắc phí đưa đón — chỉ người lập đơn (máy chủ hỏi order.create). Lỗi → coi như chưa áp (không ô chọn, không gửi khoá; máy chủ vẫn chặn lúc xác nhận).
 const layPhiAp = can(staff, "order.create") ? api<Api.PhiDonApResponse>("/api/orders/phi-don-ap").then((r) => r.dangAp, () => false) : Promise.resolve(false);
-const [viTri, mauVe, khungVe, anKhachMay, phiApMay, noiDonMay] = await Promise.all([layDiem, layMau, layKhung, layAnKhach, layPhiAp, layNoiDon]);
+const [viTri, mauVe, khungVe, anKhachMay, phiApMay, noiDonMay, anDsMay] = await Promise.all([layDiem, layMau, layKhung, layAnKhach, layPhiAp, layNoiDon, layDs]);
 khongNhapNoiDon = noiDonMay === true; // TRƯỚC khi dựng thẻ: khối Đưa đón hỏi cờ này lúc dựng
 phiDangAp = phiApMay;
 chinhSach = await layChinhSach; // ADR-0194: trước khi dựng khối / nạp đơn; lỗi tải đã thành mặc định đầy đủ
 datAnKhach(anKhachMay === true);
+datAnDs(anDsMay === true);
 diem = viTri.diem;
 diemNhanh = viTri.nhanh;
 mauChang = mauVe;
@@ -1660,7 +1676,7 @@ if (editId) {
 } else {
   // Lập đơn mới: người lập là chủ đơn (phạm vi "own").
   suaSoVe = can(staff, "order.trip.edit", { ownerId: staff.id, assigned: false });
-  if (!anKhach && can(staff, "order.passenger.write", { ownerId: staff.id, assigned: false })) dungKhoiKhach([]); // khối khách ẩn (ADR-0154 Đ2.2): không dựng khối Hành khách
+  if (!anDs && can(staff, "order.passenger.write", { ownerId: staff.id, assigned: false })) dungKhoiKhach([]); // công tắc danh sách hành khách đang áp (ADR-0228 Đ1): không dựng khối Hành khách
 }
 if (banChup) {
   const kq = quyetKhoiPhuc(banChup, staff.id, Date.now(), editId, orderUpdatedAt); // sửa đơn: `orderUpdatedAt` = updatedAt máy chủ vừa trả (fill trong loadOrder)

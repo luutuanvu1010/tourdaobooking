@@ -779,6 +779,28 @@ test("(27) «Lưu vai» với danh sách vai RỖNG bị route từ chối (400)
 
 // ===== Lô duyệt có phần tổ chức (ADR-0212 Đ6; đợt 2 Task 7) =====
 
+test("(28b) ADR-0233 Đ2: «Tệp khác» về hồ sơ NGƯỜI nối dòng căn cước; «Tệp khác của tổ chức» về hồ sơ TỔ CHỨC nối dòng GPKD — không bao giờ về hồ sơ người", async () => {
+  const w = setup();
+  const id = phieu(w, { toChuc: {} });
+  const cccd = await tep(w, id);
+  const khac = await tep(w, id, "TEP_KHAC");
+  const gpkd = await tep(w, id, "GPKD");
+  const khacTC = await tep(w, id, "TEP_KHAC_TO_CHUC");
+  await xacMinhTC(w, id);
+  const r = await duyet(w, HR, id);
+  assert.equal(r.status, 200, r.text);
+  const tk = taiKhoanMoi(w);
+  const noi = (tepId: string) => ({ ...w.q("SELECT a.party_id, l.target_kind, l.target_id FROM pty_attachment a JOIN pty_attachment_link l ON l.attachment_id = a.id WHERE a.id = ?", tepId)[0] });
+  const nCccd = noi(cccd.id);
+  assert.deepEqual(noi(khac.id), nCccd, "tệp khác cùng hồ sơ người, cùng dòng căn cước");
+  assert.equal(nCccd.party_id, tk.party_id);
+  const nGpkd = noi(gpkd.id);
+  assert.equal(nGpkd.target_kind, "ORG_DOCUMENT");
+  assert.deepEqual(noi(khacTC.id), nGpkd, "tệp khác của tổ chức cùng hồ sơ tổ chức, cùng dòng GPKD");
+  assert.notEqual(nGpkd.party_id, tk.party_id);
+  assert.equal(dem1(w, "SELECT count(*) n FROM pty_registration_attachment WHERE registration_id = ? AND transferred_at IS NULL AND purged_at IS NULL", id), 0, "không tệp chờ nào còn sót");
+});
+
 test("(28) Duyệt phiếu có phần tổ chức MỚI: đúng một hồ sơ tổ chức (giá trị pháp lý), vai của tổ chức, dòng GPKD, liên hệ điện thoại của tổ chức, dòng xác minh tổ chức (người + giờ xác minh), đúng một «Người quản lý của» (Task 13), không «Người liên hệ của»; hồ sơ người không có dòng xác minh mục tổ chức (PF5); ảnh GPKD về hồ sơ tổ chức, không bao giờ về hồ sơ người", async () => {
   const w = setup();
   const id = phieu(w, { toChuc: {} });

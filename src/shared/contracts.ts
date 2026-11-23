@@ -312,6 +312,22 @@ export interface NoiDonDoiTacResponse { bat: boolean; apChoToi: boolean; doiDuoc
 /** Thân `POST /api/cai-dat/noi-don-doi-tac` (chỉ Toàn quyền). */
 export interface NoiDonDoiTacRequest { bat: boolean }
 
+/**
+ * `GET`/`POST /api/cai-dat/hanh-khach-doi-tac` (ADR-0228 Đ1): `bat` = công tắc «Đối tác không nhập danh sách hành khách» đang BẬT; `apChoToi` = `bat` VÀ người gọi là Đối tác thuần
+ * (`apCongTacAnKhach`, cùng luật C2 với công tắc tên, SĐT) — form Tạo đơn ẩn khối Hành khách đúng khi `apChoToi`; `doiDuoc` = ô `settings.ops` (chỉ Toàn quyền).
+ */
+export interface HanhKhachDoiTacResponse { bat: boolean; apChoToi: boolean; doiDuoc: boolean }
+/**
+ * `GET`/`POST /api/cai-dat/khong-can-gio-don` (ADR-0228 Đ3): `bat` = công tắc «Đơn đối tác không cần giờ đón» đang BẬT (gieo TẮT); `doiDuoc` = ô `settings.ops`. Bật thì lúc Gửi đơn,
+ * lượt đầu có Đón chưa giờ không còn đưa đơn sang văn phòng xét (trừ lượt đã vào hạn chốt).
+ */
+export interface KhongCanGioDonResponse { bat: boolean; doiDuoc: boolean }
+/**
+ * `GET`/`POST /api/cai-dat/mien-du-ten-doi-tac` (ADR-0228 Đ2): `bat` = công tắc «Đơn đối tác không cần đủ tên khách» đang BẬT (gieo BẬT — chủ 22/11); `doiDuoc` = ô `settings.ops`.
+ * Bật thì đơn do tài khoản Đối tác thuần lập lúc đó mang dấu miễn danh sách (`manifestExempt`, chụp lúc lập).
+ */
+export interface MienDuTenDoiTacResponse { bat: boolean; doiDuoc: boolean }
+
 // ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
 /** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
 export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }

@@ -7,7 +7,8 @@
 // (mất khi đóng), không lưu ở đâu. Không ô chữ tự do: lý do chọn trong danh sách đóng. Chỉ dựng DOM bằng h().
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
-import { NHAN_O_TEP, NHAN_O_TEP_TO_CHUC, CHU_HANG_CHO_DK, NHAN_LOAI_THU, cauBuocKhac } from "../src/shared/dang-ky-giao-dien";
+import { CHU_HANG_CHO_DK, NHAN_LOAI_THU, cauBuocKhac } from "../src/shared/dang-ky-giao-dien";
+import { nhanOTep } from "../src/shared/dang-ky-o-tep";
 import { LY_DO_PHIEU, nhanTrangThaiPhieu, type MaLyDoPhieu } from "../src/shared/dang-ky-hien-thi";
 import { CAU_LOAI_DA_TAT, canhBaoDoiVai, cauNguoiXacMinh, maDuyetGui, trangThaiChonVai, tuDuyetBiChan } from "../src/shared/dang-ky-chon-vai";
 import { CAU_DOI_VAI_CAP, type KetQuaCapDto } from "../src/shared/cap-se-ap-hien-thi";
@@ -189,7 +190,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     hienSo?.addEventListener("click", async () => {
       try { soEl.textContent = (await api<{ so: string }>(`/api/dang-ky/phieu/${d.id}/xem-so`, { method: "POST" })).so; hienSo.hidden = true; } catch (e) { hienLoi(cauLoi(e)); }
     });
-    const anh = xemTep ? (d.tep ?? []).map((t) => h("a", { href: `/api/dang-ky/phieu/${d.id}/tep/${t.id}`, target: "_blank", rel: "noopener", class: "btn btn-link", "data-tep": t.o }, NHAN_O_TEP[t.o] ?? NHAN_O_TEP_TO_CHUC[t.o] ?? t.o)) : [];
+    const anh = xemTep ? (d.tep ?? []).map((t) => h("a", { href: `/api/dang-ky/phieu/${d.id}/tep/${t.id}`, target: "_blank", rel: "noopener", class: "btn btn-link", "data-tep": t.o }, nhanOTep(t.o))) : [];
     // Kết luận từng mục: «Đạt» hoặc «Không đạt» + lý do; mỗi lần bấm ghi một dòng (chỉ thêm), máy chủ trả lại HAI nhóm mục (cá nhân, tổ chức) — vẽ lại cả hai.
     const khoiMuc = h("div", { class: "dk-hc-muc-ds" });
     const khoiMucTc = h("div", { class: "dk-hc-muc-ds", id: "dk-hc-muc-to-chuc" });

@@ -76,6 +76,10 @@ export const CAU_PHIEU = {
   // Task 5 vòng sửa 1 (ruling điều phối 16/11): vai của tổ chức khoá sau lần gửi đầu, nên phải chọn TRƯỚC lần gửi đầu.
   chonVaiToChuc: "Muốn khai thông tin tổ chức, bạn cần chọn vai người dùng của tổ chức trước lần gửi đầu. Phiếu đã gửi một lần mà chưa chọn thì không thêm phần tổ chức được nữa.",
   anhToChucKhongPhan: "Hãy gỡ ảnh giấy phép hoặc khai phần tổ chức.",
+  // ADR-0233 (ô tệp theo vai). Chữ AI viết, chờ chủ chọn.
+  oKhongThuocVai: "Ô tệp này không dùng cho vai người dùng đã chọn.",
+  tepNgoaiPhieu: "Phiếu còn tệp ở ô không dùng cho vai người dùng đã chọn. Hãy gỡ tệp đó rồi gửi lại.",
+  thieuTepBatBuoc: (nhan: string) => `Cần tải xong «${nhan}» trước khi gửi.`,
 } as const;
 
 /** Tên mục khi NÓI VỚI NGƯỜI ĐĂNG KÝ về điều còn thiếu (chữ AI viết, chờ chủ chọn — BANG-THAM-CHIEU «Tên mục của phiếu đăng ký (người đăng ký thấy)»). Khác `NHAN_MUC_XAC_MINH` viết cho người xác minh («Đã gọi số điện thoại đã khai» là việc của họ). */
