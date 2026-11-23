@@ -1031,6 +1031,9 @@ export interface CatalogCoVeInput { pham: "SERVICE" | "GROUP"; ma: string; coVe:
 export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO"; theo: "SERVICE" | "GROUP" | "CHUA_KHAI" }[]; nhom: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
 /** Gửi `ma` (một dịch vụ) HOẶC `nhom` (một nhóm đang hoạt động), không cả hai. */
 export type CatalogNguonVeInput = { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" } | { nhom: string; nguon: "HANG_NGOAI" | "TOUR_DAO" };
+/** ADR-0231: ô «Hotline trên vé». Chỉ dịch vụ đã đặt số; `so` dạng chuẩn chỉ chữ số. Gửi `so` null hoặc chuỗi rỗng = dùng hotline công ty. */
+export interface CatalogSoHoTroResponse { dichVu: { ma: string; so: string }[] }
+export interface CatalogSoHoTroInput { ma: string; so: string | null }
 export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
 /** ADR-0220: một khoảng «Ngừng bán theo ngày» còn chặn. `ma` = mã dịch vụ hoặc mã nhóm theo `phamVi`; `ten` = tên dịch vụ / tên nhóm để hiện. Ngày "YYYY-MM-DD", gồm cả hai đầu. */
 export interface CatalogNgungBanNgayDto { id: string; phamVi: "SERVICE" | "GROUP"; ma: string; ten: string; tuNgay: string; denNgay: string; ghiChu: string | null; taoLuc: string }
@@ -1404,7 +1407,7 @@ export interface GiayToCuaToiDto { loai: string; soChe: string | null; hetHan: s
 /** `daXoa` (ADR-0126, Review Focus 1): hồ sơ đã ẩn danh hoá theo yêu cầu xoá — ngày sinh null, liên hệ / giấy tờ rỗng; giao diện hiện "Đã xoá", không bao giờ hiện dấu ẩn danh như dữ liệu. */
 export interface HoSoCuaToiDto { loai: "PERSON" | "ORGANIZATION"; hoTen: string; ngaySinh: string | null; diaChi: string[]; dienThoai: string[]; email: string[]; giayTo: GiayToCuaToiDto[]; daXoa: boolean; dauXacMinh: DauXacMinh | null }
 /** `hanXuLyXoaNgay` / `hanGiuPhienNgay`: số ngày do chính sách quy định (ADR-0126 đ2, đ8); null = chưa có số (không hạn). */
-export interface ChinhSachRiengTuDto { id: string; phienBan: number; mucDich: string; noiDung: string; hieuLucTu: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null }
+export interface ChinhSachRiengTuDto { id: string; phienBan: number; mucDich: string; noiDung: string; hieuLucTu: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null; /** ADR-0232 Đ10: số năm giữ Ảnh bàn giao; null = bản này chưa có mục ảnh. */ soNamGiuAnh: number | null }
 export interface PhieuTuKhaiGiayToDto { loai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null }
 /** Giá trị ĐỀ XUẤT của chính người xem (5.23) — chưa dùng ở đâu cho tới khi được xác minh. */
 export interface PhieuTuKhaiDto { id: string; loai: LoaiPhieuTuKhai; trangThai: TrangThaiPhieuTuKhai; guiLuc: string; xuLyLuc: string | null; ngaySinh: string | null; diaChi: string | null; giayTo: PhieuTuKhaiGiayToDto | null; daXoa: boolean }
@@ -2437,6 +2440,8 @@ export interface CuocChiTietResponse {
     sdtNguoiDiKem?: string;
     /** ADR-0139: tên dịch vụ của chặng của suất KHÁCH — cùng điều kiện với `sdtNguoiDiKem`; không giá, không dịch vụ khác của đơn. */
     tenDichVu?: string;
+    /** ADR-0232 Đ4: mã đơn + mã lượt đón để gửi Ảnh bàn giao — cùng điều kiện với `tenDichVu` (tài xế công ty, trong ngày chạy, GET chi tiết). */
+    anhBanGiao?: { donId: string; changId: string };
   }[];
   lienHe?: { maDon: string; tenLienHe: string; sdtLienHe: string }[];
   dieuKienConThieu: DieuKienConThieuDto[];

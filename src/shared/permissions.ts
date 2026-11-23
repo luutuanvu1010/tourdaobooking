@@ -155,6 +155,13 @@ export const MATRIX = {
   // ADR-0196 Đ7, Đ2: GỠ ảnh biên lai gửi nhầm và xem / chạy lại hàng chờ dọn kho ảnh — chỉ Toàn quyền. Ô riêng (giả định của người thi công 6A, ghi ở nhật ký
   // thi công 2026-11-11-dot-6a): ADR chỉ nói «chỉ Toàn quyền», không có ô sẵn mang đúng nghĩa đó; ô này không nới ai.
   "payment.proof.purge": chiToanQuyen(),
+  // ADR-0232 Đ4 — «Ảnh bàn giao» (module anh-ban-giao, route /api/anh-ban-giao/*, NGOÀI cổng đơn). Bốn ô KHÔNG theo luật «⊆ order.view» (cột tài xế): FIELD assigned = người
+  // phụ trách đơn (ctx.isAssigned); DRIVER assigned = đang lái chuyến chở lượt đón của đơn (ctx.taiXeLaiChang, tính ở van-chuyen). view own = ảnh do chính mình tải.
+  // Cột SALES_MANAGER để mặc định none: Quản lý bán hàng luôn kèm SALES (ADR-0169 Đ1) nên đã có quyền qua cột SALES — cột này chỉ chứa phần THÊM (bài quan-ly-ban-hang.test.ts).
+  "order.photo.upload": row("any", "none", "any", "assigned", "none", "any", "none", "assigned", "none", "none"),
+  "order.photo.view": row("any", "any", "any", "own", "none", "any", "none", "own", "none", "none"),
+  "order.photo.hide": chiToanQuyen(),
+  "order.photo.purge": chiToanQuyen(),
   // ADR-0182 Đ3 (phần B, accepted 2026-11-13): khoản nộp của đại lý. Ghi + tải biên lai — Đối tác own (route còn đòi tài khoản Đối tác, hồ sơ phiên = bên đặt, ADR Đ2 mục 11);
   // xác nhận / từ chối — Kế toán, Toàn quyền (khuôn ADR-0090; Quản trị KHÔNG); xem khoản và biên lai — Kế toán, Quản trị, Toàn quyền, Đối tác own. Viết gọn (trần gói Đơn hàng).
   "dai-ly.nop.ghi": { ...chiToanQuyen(), PARTNER: "own" }, // Toàn quyền `any` theo luật ADR-0014 điều 2 (không ngoại lệ); route vẫn chỉ cho tài khoản Đối tác bên đặt (`coPhieuNopTien`)

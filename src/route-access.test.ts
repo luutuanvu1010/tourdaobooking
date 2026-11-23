@@ -45,6 +45,7 @@ async function loadModule(entry: string): Promise<Record<string, AppModule>> {
 /** 17 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
 const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/accounts/index.ts", exportName: "accountsModule" },
+  { entry: "./modules/anh-ban-giao/index.ts", exportName: "anhBanGiaoModule" },
   { entry: "./modules/audit/index.ts", exportName: "auditModule" },
   { entry: "./modules/auth/index.ts", exportName: "authModule" },
   { entry: "./modules/bangtin/index.ts", exportName: "bangtinModule" },
@@ -156,6 +157,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/catalog/co-ve", access: "office" },
   { method: "GET", path: "/api/catalog/nguon-ve", access: "office" }, // ADR-0175 Đ1.2; thân hỏi catalog.ticket_flag.write, chặn Đối tác
   { method: "POST", path: "/api/catalog/nguon-ve", access: "office" },
+  { method: "GET", path: "/api/catalog/so-ho-tro", access: "office" }, // ADR-0231; thân hỏi catalog.ticket_flag.write hoặc ve.phat-hanh, chặn Đối tác
+  { method: "POST", path: "/api/catalog/so-ho-tro", access: "office" }, // ADR-0231; thân hỏi catalog.ticket_flag.write, chặn Đối tác
   { method: "GET", path: "/api/catalog/ngung-ban-ngay", access: "office" }, // ADR-0220 Đ4; thân hỏi catalog.hidden.write, chặn tài khoản giữ Đối tác
   { method: "POST", path: "/api/catalog/ngung-ban-ngay", access: "office" },
   { method: "POST", path: "/api/catalog/ngung-ban-ngay/:id/ket-thuc", access: "office" },
@@ -163,6 +166,16 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/catalog/:code/chi-tiet", access: "admin" },
   { method: "PUT", path: "/api/catalog/:code/anh", access: "admin" }, // ADR-0201 Đ3; thân hỏi admin.manage
   { method: "GET", path: "/api/catalog/:code/anh", access: "office" }, // ADR-0201 Đ3; thân hỏi money.view (như GET /api/catalog)
+  // ADR-0232 (Ảnh bàn giao): NGOÀI cổng đơn — cổng staff vì Hướng dẫn viên, tài xế công ty cũng tải / xem; thân hỏi order.photo.upload / order.photo.view (phạm vi
+  // assigned / own). Ẩn, xoá, hàng chờ: cổng office, thân hỏi order.photo.hide / order.photo.purge (chỉ Toàn quyền).
+  { method: "POST", path: "/api/anh-ban-giao/don/:orderId", access: "staff" },
+  { method: "GET", path: "/api/anh-ban-giao/don/:orderId/tom-tat", access: "staff" },
+  { method: "GET", path: "/api/anh-ban-giao/don/:orderId", access: "staff" },
+  { method: "GET", path: "/api/anh-ban-giao/anh/:anhId", access: "staff" },
+  { method: "POST", path: "/api/anh-ban-giao/anh/:anhId/an", access: "office" },
+  { method: "POST", path: "/api/anh-ban-giao/anh/:anhId/xoa", access: "office" },
+  { method: "GET", path: "/api/anh-ban-giao/cho-xoa", access: "office" },
+  { method: "POST", path: "/api/anh-ban-giao/cho-xoa/chay-lai", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem/dem-chua-khai", access: "office" },
   { method: "POST", path: "/api/catalog/dac-diem", access: "admin" },
@@ -925,7 +938,8 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // Gộp main vào nhánh ADR-0218 (22/11/2026): 574 của nhánh + 5 route của main (ngừng bán theo ngày 3, nơi đón đối tác 2) = 579.
   // Gộp main vào nhánh việc 7 (23/11/2026, ADR-0227): + GET (orders), POST (admin) /api/cai-dat/chan-chua-gio-sat-ngay = 581.
   // Gộp main vào nhánh việc 8 (23/11/2026, ADR-0228): + GET (orders), POST (admin) /api/cai-dat/hanh-khach-doi-tac, /api/cai-dat/khong-can-gio-don, /api/cai-dat/mien-du-ten-doi-tac = 587.
-  // Gộp main vào nhánh Việc 11 (23/11/2026, ADR-0230 Đ1): + GET, POST /api/tra-sau/dich-vu, POST /api/tra-sau/dich-vu/go (office; billing) = 590.
-  assert.equal(actual.length, 590, "số route thực tế lệch 590 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 590, "SNAPSHOT phải có đúng 590 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // Gộp main vào nhánh Việc 13 (23/11/2026, ADR-0232 Ảnh bàn giao): 589 (main sau việc 12, ADR-0231) + 8 route /api/anh-ban-giao/* (4 staff, 4 office) = 597.
+  // Gộp main vào nhánh Việc 11 (23/11/2026, ADR-0230 Đ1): 597 (main sau Việc 12, 13) + GET, POST /api/tra-sau/dich-vu, POST /api/tra-sau/dich-vu/go (office; billing) = 600.
+  assert.equal(actual.length, 600, "số route thực tế lệch 600 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 600, "SNAPSHOT phải có đúng 600 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

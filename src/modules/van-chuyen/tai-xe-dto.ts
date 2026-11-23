@@ -78,7 +78,7 @@ export function cuocChiTietDto(v: {
   lyDoTuChoi: readonly { code: string; label: string }[];
   sdtVanPhong: string | null;
   /** ADR-0139: id suất → SĐT người đi kèm / tên dịch vụ — `null` trừ tài xế công ty, trong ngày chạy, GET chi tiết (route quyết, DTO chỉ chép). */
-  themCongTy: { sdtDiKem: ReadonlyMap<string, string>; tenDichVu: ReadonlyMap<string, string> } | null;
+  themCongTy: { sdtDiKem: ReadonlyMap<string, string>; tenDichVu: ReadonlyMap<string, string>; anhBanGiao?: ReadonlyMap<string, { donId: string; changId: string }> } | null;
 }): CuocChiTietResponse {
   const t = v.trip;
   const anMaDon = v.khung.han !== undefined && !v.khung.trongKhung; // G-A4-7: mã đơn theo khung với người có vế hạn
@@ -108,6 +108,7 @@ export function cuocChiTietDto(v: {
       ...(s.tenNguoiDiKem !== undefined ? { tenNguoiDiKem: s.tenNguoiDiKem } : {}), // tên HDV đi kèm — mọi lúc, chỉ tên (lời chủ 2026-10-01; T-5)
       ...(v.themCongTy?.sdtDiKem.has(s.id) ? { sdtNguoiDiKem: v.themCongTy.sdtDiKem.get(s.id)! } : {}), // ADR-0139
       ...(v.themCongTy?.tenDichVu.has(s.id) ? { tenDichVu: v.themCongTy.tenDichVu.get(s.id)! } : {}), // ADR-0139
+      ...(v.themCongTy?.anhBanGiao?.has(s.id) ? { anhBanGiao: v.themCongTy.anhBanGiao.get(s.id)! } : {}), // ADR-0232 Đ4
     })),
     ...(v.trongNgay && v.lienHe !== null
       ? { lienHe: v.lienHe.filter((x) => maDonCuaSuat.has(x.orderCode)).map((x) => ({ maDon: x.orderCode, tenLienHe: x.tenLienHe, sdtLienHe: x.sdtLienHe })) }

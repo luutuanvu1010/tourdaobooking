@@ -231,7 +231,10 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // 15 / 9 / 50 (49 → 50, câu lập đơn thêm một đoạn chứa «lập đơn»). Số đo, luật không đổi, trần 12 vẫn cắt.
   // 2026-11-23 (Việc 11, ADR-0230, gộp main 3.34): bảng tham chiếu thêm «Trả lúc check-in», «Trả sau theo dịch vụ», việc đặt dấu ở Dịch vụ & giá, bài «Cấp hạn mức trả sau» thêm câu
   // «Chưa cấp hạn mức», bài «Xem đối tác đang nợ Trả sau» thêm câu hai dòng nợ ⇒ đo lại bằng chính bài này trên bản gộp: 14 / 9 / 50 (15 → 14, một đoạn sát ngưỡng của câu than phiền rơi xuống). Số đo, luật không đổi, trần 12 vẫn cắt.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [14, 9, 50]);
+  // 2026-11-23 (gộp main vào nhánh Việc 13, ADR-0232 Ảnh bàn giao): bảng tên kho cấu trúc thêm phân hệ «Ảnh bàn giao» và bốn ô «gửi / xem / ẩn / xoá ảnh bàn giao» ⇒ đo lại bằng
+  // chính bài này trên bản gộp: 12 / 9 / 50 (15 → 12, các đoạn sát ngưỡng của câu than phiền rơi xuống; bằng trần 12). Số đo, luật không đổi.
+  // 2026-11-23 (gộp main vào nhánh Việc 11, ADR-0230; main mang Việc 12 ADR-0231, Việc 13 ADR-0232, bản 3.36): đo lại bằng chính bài này trên bản gộp: 12 / 9 / 50 (bằng số của main; bằng trần 12). Số đo, luật không đổi, trần 12 vẫn cắt.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [12, 9, 50]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA); // số khớp mạnh đo ở trên (17) vượt trần nên đoạn chọn bị cắt đúng bằng trần (2026-11-15)

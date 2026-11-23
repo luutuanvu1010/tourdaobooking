@@ -2,6 +2,13 @@
 
 > **Sinh tự động** từ `docs/data-dictionary.json` bằng `npm run dict` — không sửa tay. Bài kiểm `src/architecture.test.ts` báo lỗi nếu tệp này lệch.
 
+## anh-ban-giao
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `abg_photo` | bảng | Ảnh bàn giao — ảnh chụp lúc làm việc gắn vào đơn (ADR-0232; migration 0192), ở kho R2 riêng ANH_BAN_GIAO, CHỈ-THÊM. Hai bản JPEG (ảnh nhỏ ≤ 100 KB, ảnh xem ≤ 600 KB) đã nén ở trình duyệt; khoá kho ngẫu nhiên abg/<32 hex>; KHÔNG tên tệp gốc, toạ độ, giờ chụp của máy. Gắn bắt buộc một đơn đã xác nhận, tuỳ chọn một dịch vụ HOẶC một lượt đón của đúng đơn (trigger đọc v_ord_order_state, v_ord_service_key, v_ord_leg_key). Loại việc GIAO_KHACH / GIAO_TAI_XE / KHAC; ghi chú ≤ 200 ký tự. retain_until = giờ tải + số năm của chính sách riêng tư đang hiệu lực (máy chủ tính). Không xoá dòng — mốc một chiều stored_at / purged_at (+ lý do, băm và ghi chú về rỗng) / r2_deleted_at; erasure_request_id (đánh dấu yêu cầu xoá) và bộ cột ẩn (hidden_at/by/reason) cũng một chiều. Trigger hạn giữ abg_photo_retention_hold so GIỜ HỆ THỐNG với retain_until: trước hạn chỉ qua TAI_LEN_LOI (chưa lưu xong), GIAY_TO_CHUP_NHAM, XOA_THEO_YEU_CAU kèm yêu cầu có thật; HET_HAN chỉ sau hạn. Trần 20 ảnh / giờ / tài khoản và 30 ảnh còn hiện mỗi đơn.; tham chiếu logic `order_id` → `orders` qua view `v_ord_order_state`, không khoá ngoại (trigger abg_photo_order_ins — đơn phải đã xác nhận); tham chiếu logic `order_service_id` → `order_service` qua view `v_ord_service_key`, không khoá ngoại (trigger abg_photo_target_ins — dịch vụ thuộc đúng đơn); tham chiếu logic `transfer_leg_id` → `ord_transfer_leg` qua view `v_ord_leg_key`, không khoá ngoại (trigger abg_photo_target_ins — lượt đón thuộc đúng đơn) |
+| `abg_erasure_request` | bảng | yêu cầu xoá Ảnh bàn giao (ADR-0232 Đ7, biến thể 7B; migration 0192), CHỈ-THÊM. Nguồn PHIEU = phiếu xoá của người có tài khoản (phieu_id, ADR-0126; ảnh được gỡ trong lô Thực hiện phiếu của parties, lính gác đọc v_pty_erasure_decision); nguồn KHACH = khách không tài khoản báo qua kênh liên hệ (channel_note — kênh và cách xác minh, hạng N2; ảnh được gỡ ngay). executed_at đặt một lần.; tham chiếu logic `phieu_id` → `pty_erasure_request` qua view `v_pty_erasure_decision`, không khoá ngoại (đánh dấu chỉ cho phiếu còn chờ; câu gỡ theo phiếu gác bằng người + lúc quyết của phiếu) |
+
 ## audit
 
 | Đối tượng | Loại | Ghi chú |
@@ -87,12 +94,14 @@
 | `ctl_sales_pause` | bảng | khoảng «Ngừng bán theo ngày» (ADR-0220 Đ1, migration 0180), CHỈ-THÊM: dịch vụ (scope SERVICE, catalog_code) hoặc mọi dịch vụ đang thuộc nhóm (scope GROUP, group_code) không bán cho ngày khởi hành trong [from_date, to_date] (ngày dân sự Việt Nam, gồm hai đầu); còn chặn khi ended_at IS NULL; chỉ được đặt ended_at một lần, kèm updated_at / updated_by = lúc và người kết thúc (trigger); luật xét ở src/modules/catalog/ngung-ban-ngay-rules.ts |
 | `ctl_service_ticket_source` | bảng | ô «Vé do ai phát» theo từng dịch vụ (code = mã dịch vụ) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; dòng riêng của dịch vụ thắng dòng của nhóm ở ctl_group_ticket_source (ADR-0230 Đ3); không có cả hai là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts |
 | `ctl_group_ticket_source` | bảng | ô «Vé do ai phát» theo NHÓM (ADR-0230 Đ3, migration 0186), CHỈ-THÊM; source HANG_NGOAI / TOUR_DAO; dòng hiệu lực = valid_from_at lớn nhất; giá trị của một dịch vụ = dòng riêng ở ctl_service_ticket_source, không thì dòng nhóm hiện tại, không thì HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts |
+| `ctl_service_support_phone` | bảng | ô «Hotline trên vé» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0231, migration 0185), CHỈ-THÊM; phone = số dạng chuẩn chỉ chữ số (di động, số bàn 02…, tổng đài 1900/1800), NULL = đã xoá số, vé in hotline công ty chủ; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng như NULL; số không vào nhật ký; luật kiểm ở src/shared/so-ho-tro.ts |
 | `ctl_service_detail` | bảng | chi tiết dịch vụ do Nền tảng giữ (ADR-0201 Đ1, migration 0160), CHỈ-THÊM; display_name = tên hiển thị thắng tên Sheet ở danh mục (NULL = dùng tên Sheet), description = mô tả, image_key = khoá ảnh (bước sau), sheet_name_at = tên Sheet lúc ghi (báo Sheet đổi tên); dòng hiệu lực = valid_from_at lớn nhất; đồng bộ Sheet không chạm; luật ở src/shared/chi-tiet-dich-vu.ts |
 | `ctl_service_transfer_price` | bảng | giá gốc phí đưa đón đọc từ hai cột Sheet «Phí đưa đón» (per_pax_price, mỗi khách đi chung, ≤ 500.000 đ) và «Phí đưa đón xe riêng» (private_price, cả chuyến, ≤ 5.000.000 đ) (ADR-0218 Đ1.3, migration 0178), CHỈ-THÊM; NULL = ô trống = chưa có giá, không bao giờ thành 0, số 0 = miễn phí; dòng hiệu lực = valid_from_at lớn nhất; chỉ ghi khi cặp giá đổi |
 | `v_ctl_service_ticket_flag` | view công bố | cột: scope, code, has_ticket |
 | `v_ctl_service_detail` | view công bố | cột: code, display_name, description, image_key, sheet_name_at, valid_from_at |
 | `v_ctl_service_ticket_source` | view công bố | cột: code, source |
 | `v_ctl_group_ticket_source` | view công bố | cột: group_code, source |
+| `v_ctl_service_support_phone` | view công bố | cột: code, phone |
 | `v_ctl_service_transfer_price` | view công bố | cột: catalog_code, per_pax_price, private_price, valid_from_at |
 | `v_ctl_service_group` | view công bố | cột: catalog_code, group_code |
 | `v_ctl_service_transfer` | view công bố | cột: catalog_code, transfer_enabled |
@@ -206,6 +215,7 @@
 | `v_ord_order_state` | view công bố | cột: id, status, delivered_at, completed_at |
 | `v_ord_cancel_state` | view công bố | cột: order_id, group_code, reason_code, cancelled_date, legacy, depart_last_date, refund_deadline |
 | `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
+| `v_ord_service_key` | view công bố | cột: id, order_id |
 | `v_ord_leg_commit` | view công bố | cột: id, order_id, exclusive_vehicle, min_vehicle_seats |
 | `v_ord_passenger_key` | view công bố | cột: person_key, order_id, has_current_row |
 | `v_ord_passenger_row` | view công bố | cột: id, person_key, order_id, is_current |
@@ -259,6 +269,7 @@
 | `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
 | `v_pty_org_link` | view công bố | cột: relationship_id, person_party_id, org_party_id, kind, valid_from_date |
 | `v_pty_person_xung_ho` | view công bố | cột: party_id, given_name, gender |
+| `v_pty_erasure_decision` | view công bố | cột: id, status, decided_by, decided_at |
 | `v_pty_open_role` | view công bố | cột: party_id, role_type_code, role_group |
 | `v_pty_role_type` | view công bố | cột: code, role_group, is_partner_label, active |
 | `v_pty_party_partner_label` | view công bố | cột: party_id |
@@ -378,7 +389,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `vdt_batch` | bảng | `source` = nguồn vé của lô: `HANG_NGOAI` (vé hãng ngoài, mặc định, mọi lô cũ) hoặc `TOUR_DAO` (vé Tour Đảo), chọn lúc tạo, không đổi (trigger vdt_batch_source_locked; ADR-0175 Đ1.1, `0151`). `pax_group` nhận thêm `ALL` = lô «Mọi loại khách» cho vé không phân biệt loại khách (ADR-0157, `0134`); `vdt_allocation.pax_group` không nhận `ALL`. `last_cmd_id` = dấu lệnh của lần Huỷ lô thắng (ADR-0156). Lô VOID: `updated_at`, `updated_by` là lúc huỷ và người huỷ, vì không còn câu nào ghi lô đó. Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu |
+| `vdt_batch` | bảng | `support_phone` (ADR-0231, `0185`) = bản chụp hotline in trên vé của lô Tour Đảo, dạng chuẩn chỉ chữ số, chụp lúc mở lô, không đổi (trigger vdt_batch_support_phone_locked); NULL = lô cũ hoặc lô hãng ngoài; không vào nhật ký. `source` = nguồn vé của lô: `HANG_NGOAI` (vé hãng ngoài, mặc định, mọi lô cũ) hoặc `TOUR_DAO` (vé Tour Đảo), chọn lúc tạo, không đổi (trigger vdt_batch_source_locked; ADR-0175 Đ1.1, `0151`). `pax_group` nhận thêm `ALL` = lô «Mọi loại khách» cho vé không phân biệt loại khách (ADR-0157, `0134`); `vdt_allocation.pax_group` không nhận `ALL`. `last_cmd_id` = dấu lệnh của lần Huỷ lô thắng (ADR-0156). Lô VOID: `updated_at`, `updated_by` là lúc huỷ và người huỷ, vì không còn câu nào ghi lô đó. Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu |
 | `vdt_ticket` | bảng | Vé điện tử (ADR-0153 Đ1, 0131): một dòng một ảnh vé; KHÔNG chứa tên khách. `ticket_code` (mã vé nhà cung cấp, duy nhất) và `storage_key` (khoá kho R2 ngẫu nhiên) là bí mật vận hành — không bao giờ vào nhật ký, DTO ghi, câu lỗi. Không xoá; status AVAILABLE→ALLOCATED→VOID một chiều (trigger vdt_ticket_one_way); vé từng được đọc/giao (revealed_at) không về kho `withdrawn_at` (ADR-0156 Đ2, 0132): dấu rút khỏi kho khi chưa từng phát ra (lưu kho hỏng hoặc Huỷ lô), ghi một lần; ảnh của lô đã huỷ lưu thêm 3 ngày tính từ `purged_at` rồi việc định kỳ xoá và ghi `r2_deleted_at`; `opened_at`, `opened_by` (chủ quyết 2/11/2026): lúc và người mở ảnh vé của lô đã huỷ, ghi một lần; vé mang dấu này khoá hẳn, mã, băm và số S/N (12 số cuối của chuỗi đúng 36 chữ số) không nhập lại được dù ảnh đã xoá; hai chỉ mục duy nhất theo mã vé và băm chỉ áp cho vé không mang dấu nên vé đó nhập lại được. `ticket_code` từ 0156 là chuỗi QR do máy đọc. `serial` (ADR-0217, 0177): số sê-ri `VE_` + 8 chữ hoa, duy nhất, không bí mật, không đổi (trigger vdt_ticket_serial_keep), luôn có trong sổ `vdt_serial` (vé chèn không mang số thì trigger cấp). `voided_at`, `voided_by`, `void_reason`: dấu huỷ vé (huỷ vé lẻ hoặc huỷ phần còn lại của lô đã cấp), ghi MỘT lần cùng lúc `status` sang VOID, lý do 5–300 ký tự (trigger vdt_ticket_void_stamp); vé huỷ không về kho, không bật lại. |
 | `vdt_allocation` | bảng | Phân bổ vé (ADR-0153 Đ1, 0131): vé nào giữ cho dòng dịch vụ (`order_service_id`) nào của đơn nào; `order_id`/`order_service_id` là tham chiếu logic. Chỉ thêm; chỉ `revealed_at` (lần đầu ảnh được đọc/giao) và `released_at`+`release_reason` (trả vé) ghi một lần. Chỉ mục duy nhất một phần chặn một vé hai chỗ và một vị trí hai vé |
 | `vdt_delivery` | bảng | Lần giao vé (ADR-0153 Đ1, 0131): ai giao, kênh ZALO hay LINK, lúc nào — thay dấu «like». Chỉ thêm, không sửa, không xoá |
@@ -433,6 +444,8 @@
 | `bil_payment_receipt` |  | `note` |  |  |
 | `bil_posting` |  | `reason` |  |  |
 | `bil_remittance_proof` |  |  | `storage_key`, `content_hash` |  |
+| `abg_photo` |  | `note` | `thumb_key`, `view_key`, `content_hash`, `purge_note`, `hidden_reason` |  |
+| `abg_erasure_request` |  | `channel_note` |  |  |
 | `bil_receipt_proof` |  |  | `storage_key`, `content_hash` |  |
 | `dsp_assignment` |  | `place_text` |  |  |
 | `fbk_attachment` |  |  | `storage_key`, `content_hash` |  |
@@ -446,6 +459,7 @@
 | `ord_cancel_reason` |  | `note` |  |  |
 | `ord_confirm_request` |  | `note` |  |  |
 | `ctl_sales_pause` |  | `note` |  |  |
+| `ctl_service_support_phone` |  | `phone` |  |  |
 | `ord_passenger` |  | `full_name`, `birth_year`, `person_key` |  |  |
 | `ord_service_terms` |  | `reason` |  |  |
 | `ord_transfer_leg` |  | `pickup_place`, `dropoff_place`, `short_notice_note` |  |  |
@@ -472,6 +486,7 @@
 | `stf_permission_adjustment` |  | `reason` |  |  |
 | `tl_hoi_dap` |  | `cau_hoi`, `tra_loi` |  |  |
 | `v_aud_order_change` |  | `detail` |  |  |
+| `v_ctl_service_support_phone` |  | `phone` |  |  |
 | `v_dsp_order_handler` |  | `label` |  |  |
 | `v_dsp_sales_owner` |  | `name` |  |  |
 | `v_dsp_sales_invite_open` |  | `name` |  |  |
@@ -487,6 +502,7 @@
 | `vc_trip_cost_line` |  | `note` |  |  |
 | `vc_trip_departure_waiver` |  | `note` |  |  |
 | `vc_trip_stop` |  | `place_text` |  |  |
+| `vdt_batch` |  | `support_phone` |  |  |
 | `vdt_guest_link` |  | `token_hash` |  |  |
 | `vdt_ticket` |  | `ticket_code`, `storage_key`, `content_hash` |  |  |
 | `dk_identity` |  | `subject`, `contact_email` |  |  |

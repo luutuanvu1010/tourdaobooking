@@ -78,6 +78,7 @@ import type { PersonName } from "./rules";
 export { kiemTenLoaiDoiTac, maLoaiDoiTac } from "./rules";
 /** ADR-0126 đ8 — số ngày giữ IP / User-Agent của phiên đã kết thúc, theo chính sách riêng tư phiên bản lớn nhất; null = chưa có số. Gốc lắp ráp tiêm cho nơi cần (auth/accounts không import parties). */
 export { hanGiuPhienNgay } from "./repository";
+export { soNamGiuAnh } from "./repository"; // ADR-0232 Đ10: số năm giữ Ảnh bàn giao — gốc lắp ráp tiêm vào ctx.soNamGiuAnh
 // Dấu xác minh của hồ sơ (ADR-0210): `staff` (Quản lý tài khoản) gọi hàm này; ba màn của Đ3 là chỗ DUY NHẤT đọc.
 export { dauXacMinhTheoHoSo };
 // Người quản lý có hiệu lực (ADR-0213 Đ2.8): gốc lắp ráp ghép phần của parties (liên kết mở, hồ sơ chưa gộp, tổ chức còn vai) với phần tài khoản của staff.
@@ -1192,7 +1193,7 @@ export const partiesModule: AppModule = {
       const version = (await phienBanLonNhat(env.DB)) + 1;
       try {
         await env.DB.batch([
-          dangChinhSachStatement(env.DB, { id: crypto.randomUUID(), version, mucDich: k.value.mucDich, noiDung: k.value.noiDung, at, actorId: staff.id, hanXuLyXoaNgay: k.value.hanXuLyXoaNgay, hanGiuPhienNgay: k.value.hanGiuPhienNgay, coPhanToChuc: k.value.coPhanToChuc, coTepKhac: k.value.coTepKhac }),
+          dangChinhSachStatement(env.DB, { id: crypto.randomUUID(), version, mucDich: k.value.mucDich, noiDung: k.value.noiDung, at, actorId: staff.id, hanXuLyXoaNgay: k.value.hanXuLyXoaNgay, hanGiuPhienNgay: k.value.hanGiuPhienNgay, coPhanToChuc: k.value.coPhanToChuc, coTepKhac: k.value.coTepKhac, soNamGiuAnh: k.value.soNamGiuAnh }),
           auditStatement(env.DB, { staffId: staff.id, action: "privacy_policy_published", at, targetType: "system", targetId: "chinh-sach-rieng-tu", detail: `phiên bản ${version}` }),
         ]);
       } catch (e) {
@@ -1222,7 +1223,7 @@ export const partiesModule: AppModule = {
         chinhSach: chinhSach
           ? {
               id: chinhSach.id, phienBan: chinhSach.version, mucDich: chinhSach.purposes, noiDung: chinhSach.body, hieuLucTu: chinhSach.valid_from_at,
-              hanXuLyXoaNgay: chinhSach.erasure_days, hanGiuPhienNgay: chinhSach.session_retention_days,
+              hanXuLyXoaNgay: chinhSach.erasure_days, hanGiuPhienNgay: chinhSach.session_retention_days, soNamGiuAnh: chinhSach.photo_retention_years,
             }
           : null,
         dongY: tt.daDongY,
@@ -1611,7 +1612,7 @@ export const partiesModule: AppModule = {
     // → MỘT lô: quyết (câu ĐẦU, lính gác) → nhật ký (changes() > 0) → tám câu ẩn danh (mỗi câu mang DA_THANG_XOA) → câu sổ phiên của auth. SAU lô: xoá kho R2 rồi chép bản ngoài D1 (5.16) — lỗi không làm
     // hỏng kết quả, để lại hàng "chờ xoá" / cờ bản ngoài thấy được và chạy lại ở …/chay-lai. Câu sổ phiên (do auth cấp) KHÔNG mang lính gác: lô thua cuộc đua thì sổ phiên vẫn bị làm rỗng IP / User-Agent
     // (chấp nhận có tên — việc làm rỗng tự lặp an toàn, không lộ thêm dữ liệu).
-    route("POST", "/api/parties/phieu-xoa/:pid/thuc-hien", "admin", async ({ request, env, staff, params, taiKhoanXacMinh, gopHoSo, cauAnDanhPhien }) => {
+    route("POST", "/api/parties/phieu-xoa/:pid/thuc-hien", "admin", async ({ request, env, staff, params, taiKhoanXacMinh, gopHoSo, cauAnDanhPhien, cauXoaAnhTheoPhieu, xoaKhoAnhTheoPhieu }) => {
       if (!can(staff, "admin.manage")) return ADMIN_ONLY();
       if (!can(staff, "party.erasure.process")) return ERASURE_FORBIDDEN();
       if ((await readJson(request))?.xacNhan !== true) return error(400, "invalid_input", "Cần xác nhận trước khi thực hiện.");
@@ -1640,6 +1641,8 @@ export const partiesModule: AppModule = {
         chanLoNeuThuaXoaStatement(env.DB, { id: p.id, actorId: staff.id, at }), // thua cuộc đua ⇒ trigger ABORT ⇒ D1 huỷ cả lô, câu sổ phiên của auth không chạy (vòng sửa 1, I-1)
         ...anDanhStatements(env.DB, { id: p.id, partyId: p.party_id, actorId: staff.id, at, homNay: vnToday(new Date(at)) }),
         ...(cauPhien ? [cauPhien] : []),
+        // ADR-0232 Đ7 (biến thể 7B): Ảnh bàn giao đã đánh dấu vào phiếu này — câu CHƯA CHẠY của anh-ban-giao do gốc lắp ráp tiêm, có lính gác cùng lô (người + lúc quyết).
+        ...cauXoaAnhTheoPhieu(p.id, at, staff.id),
       ];
       let kq: D1Result[];
       try {
@@ -1661,6 +1664,7 @@ export const partiesModule: AppModule = {
           console.error(JSON.stringify({ level: "error", event: "xoa_sau_lo_loi", phieuId: p.id, loi: e instanceof Error ? e.name : "unknown" }));
         }
       }
+      await xoaKhoAnhTheoPhieu(p.id); // ADR-0232 Đ7: xoá đối tượng R2 của ảnh vừa quyết gỡ — không ném (dòng còn «chờ xoá» ở hàng chờ Ảnh bàn giao)
       return json({ ok: true, conChoXoaKho, chuaChepNgoai } satisfies PhieuXoaThucHienResponse);
     }),
 

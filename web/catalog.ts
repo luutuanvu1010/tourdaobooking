@@ -141,8 +141,8 @@ function priceCell(it: CatalogAdminItem, code: PaxCode): HTMLElement {
 }
 
 /**
- * Dòng phụ dưới hàng dịch vụ ở bảng máy tính (người chấm giao diện, Việc 11): huy hiệu «Trả sau theo dịch vụ» và ba ô vé («Cần kiểm vé», «Có vé»,
- * «Vé do ai phát») xếp NGANG trải từ cột Mã tới hết bảng, thay vì chồng trong cột «Dịch vụ» hẹp. Không có gì để hiện thì không có dòng.
+ * Dòng phụ dưới hàng dịch vụ ở bảng máy tính (người chấm giao diện, Việc 11): huy hiệu «Trả sau theo dịch vụ» và các ô vé («Cần kiểm vé», «Có vé»,
+ * «Vé do ai phát», «Hotline trên vé» của ADR-0231 khi là vé Tour Đảo) xếp NGANG trải từ cột Mã tới hết bảng, thay vì chồng trong cột «Dịch vụ» hẹp. Không có gì để hiện thì không có dòng.
  */
 function dongPhu(it: CatalogAdminItem): HTMLElement | null {
   const nhan = traSauDv.nhanDichVu(it.code, it.groupCode);

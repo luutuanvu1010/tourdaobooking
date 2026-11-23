@@ -2,14 +2,17 @@
 // Ẩn/hiện hỏi `can()`; máy chủ kiểm lại. Luật xét ở src/shared/co-ve.ts (máy chủ tính sẵn `nguon`). Không innerHTML.
 // Ô «Vé do ai phát» (ADR-0175 Đ1.2; theo nhóm ADR-0230 Đ3): GET, POST /api/catalog/nguon-ve { ma, nguon } hoặc { nhom, nguon }, cùng ô quyền. Ở dịch vụ chỉ hiện dưới
 // dịch vụ đang «Có vé» (kèm «Đặt riêng / Theo nhóm / Chưa đặt»); ở nhóm luôn hiện, vì dịch vụ đặt riêng «Có vé» trong nhóm vẫn theo ô này của nhóm.
+// Ô «Hotline trên vé» (ADR-0231): GET, POST /api/catalog/so-ho-tro { ma, so }, cùng ô quyền; chỉ hiện dưới dịch vụ đang «Vé Tour Đảo». Trống = vé in hotline công ty.
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
 import { h } from "./dom";
 import { showError } from "./shell";
 import { hienBaoNgan } from "./toast";
+import { chuanHoaSoHoTro, inSoHoTro } from "../src/shared/so-ho-tro";
 
 const URL_CO_VE = "/api/catalog/co-ve";
 const URL_NGUON_VE = "/api/catalog/nguon-ve";
+const URL_SO_HO_TRO = "/api/catalog/so-ho-tro";
 const NHAN_NGUON_VE = { HANG_NGOAI: "Vé hãng ngoài", TOUR_DAO: "Vé Tour Đảo" } as const;
 const NHAN_NGUON = { SERVICE: "Đặt riêng", GROUP: "Theo nhóm", CHUA_KHAI: "Chưa đặt" } as const;
 
@@ -26,6 +29,8 @@ export interface CoVe {
 export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () => void): CoVe {
   let duLieu: Api.CatalogCoVeResponse = { dichVu: [], nhom: [] };
   let nguonVe: Api.CatalogNguonVeResponse = { dichVu: [], nhom: [] };
+  let soHoTro: Api.CatalogSoHoTroResponse = { dichVu: [] };
+  let demO = 0; // mỗi lần dựng ô một id riêng: cùng dịch vụ được dựng hai lần (bảng và danh sách thẻ), id trùng làm nhãn gắn nhầm ô ẩn (người chấm giao diện M3, 22/11/2026)
 
   const luuCoVe = async (nut: HTMLButtonElement, than: Api.CatalogCoVeInput, cauBao: string): Promise<void> => {
     errorEl.hidden = true;
@@ -52,6 +57,33 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
       errorEl.scrollIntoView({ block: "nearest" });
       nut.disabled = false;
     }
+  };
+  /** Ô «Hotline trên vé» của một dịch vụ vé Tour Đảo: gõ số rồi bấm «Lưu hotline»; để trống rồi lưu = dùng hotline công ty. Lô vé đã tạo không đổi. */
+  const oHotline = (ma: string, ten: string): HTMLElement => {
+    const dang = soHoTro.dichVu.find((x) => x.ma === ma)?.so ?? null;
+    const id = `kv-hotline-${++demO}`;
+    const o = h("input", { type: "tel", class: "o", id, inputMode: "tel", autocomplete: "off", maxLength: 20, value: dang ? inSoHoTro(dang) : "", placeholder: "Trống = hotline công ty" }) as HTMLInputElement;
+    const nut = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "luu-hotline-ve" }, "Lưu hotline") as HTMLButtonElement;
+    nut.addEventListener("click", async () => {
+      errorEl.hidden = true;
+      const go = o.value.trim();
+      if (go !== "") {
+        const c = chuanHoaSoHoTro(go);
+        if (!c.ok) { showError(errorEl, c.cau); errorEl.scrollIntoView({ block: "nearest" }); o.focus(); return; }
+      }
+      nut.disabled = true;
+      try {
+        soHoTro = await api<Api.CatalogSoHoTroResponse>(URL_SO_HO_TRO, { method: "POST", body: { ma, so: go === "" ? null : go } satisfies Api.CatalogSoHoTroInput });
+        hienBaoNgan(go === "" ? `${ten}: vé in hotline công ty.` : `${ten}: đã lưu hotline trên vé.`);
+        sauKhiDoi();
+      } catch (err) {
+        showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+        errorEl.scrollIntoView({ block: "nearest" });
+        nut.disabled = false;
+      }
+    });
+    // Dùng lại khối dọc của «Vé do ai phát» (nhãn, ô, nút xếp chồng): không thêm luật bố cục riêng (ADR-0222 Đ7a).
+    return h("div", { class: "kv-nguon-ve" }, h("label", { class: "hint", for: id }, "Hotline trên vé"), o, nut);
   };
   /**
    * Hai lựa chọn «Vé hãng ngoài» / «Vé Tour Đảo» (radiogroup, phím ← → dời tiêu điểm) của một dịch vụ hoặc một nhóm. `dang` = giá trị đang hiệu lực.
@@ -99,7 +131,7 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
 
   return {
     tai: async () => {
-      if (coQuyen) [duLieu, nguonVe] = await Promise.all([api<Api.CatalogCoVeResponse>(URL_CO_VE), api<Api.CatalogNguonVeResponse>(URL_NGUON_VE)]);
+      if (coQuyen) [duLieu, nguonVe, soHoTro] = await Promise.all([api<Api.CatalogCoVeResponse>(URL_CO_VE), api<Api.CatalogNguonVeResponse>(URL_NGUON_VE), api<Api.CatalogSoHoTroResponse>(URL_SO_HO_TRO)]);
     },
     oDichVu: (ma, ten) => {
       if (!coQuyen) return null;
@@ -111,6 +143,7 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
         h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, "Có vé"), h("span", { class: "hint" }, NHAN_NGUON[d?.nguon ?? "CHUA_KHAI"])),
         congTac(`Có vé: ${ten}`, bat, "co-ve", (nut) => void luuCoVe(nut, { pham: "SERVICE", ma, coVe: !bat }, bat ? `${ten}: không vé.` : `${ten}: có vé.`)),
         bat && oNguonVe(ma, ten), // ADR-0175 Đ1.2: dịch vụ «Không vé» thì ô này vô nghĩa nên ẩn
+        bat && nguonVe.dichVu.find((x) => x.ma === ma)?.nguon === "TOUR_DAO" && oHotline(ma, ten), // ADR-0231: chỉ vé Tour Đảo in số lên vé
       );
     },
     oNhom: (ma, ten) => {

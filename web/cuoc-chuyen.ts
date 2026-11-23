@@ -32,6 +32,7 @@
 //   trip.refuse, cùng điều kiện máy chủ dựng phần chỉ tài xế công ty), trong khung xem khách, thấy tên + năm sinh từng khách và dòng "Liên hệ" ngay TRƯỚC khi cho xe
 //   chạy (`khachTruocChay`); tài xế đối tác như cũ. Chuyến có từ hai điểm trả: chữ "Trả khách ở: <nơi>" dưới tên mỗi khách, trước và trong khi chạy (`chuTraCuaKhach`, qua móc
 //   `phuKhach` riêng của màn này — màn văn phòng web/chuyen.ts không truyền nên không đổi). Khối "Suất của khách" đếm "Điểm M · Khách i" như dòng khách.
+import { formGuiAnh } from "./anh-ban-giao";
 import {
   CAU_THU_TU_DAO, buocDiem, doiThuTuDuoc, giuTenKhach, chiSuatKhach, soHieuTaiDiemDon, tenNguoiDiKemCuaChuyen, sdtNguoiDiKemCuaChuyen, dichVuTaiDiemDon, viecNguoiDiKem, khachTruocChay, chuTraCuaKhach,
   type BuocDiem, type KhachDiem,
@@ -515,7 +516,7 @@ function ve(): void {
     nhanVangChoChay(r),
   );
   const chayDuoc = c.trangThai === "RUNNING";
-  const phuDiem = (b: BuocDiem) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...dichVuCua(b), ...lienHeCua(b), ...chiDuongCua(b, r), ...nutNhoDon(b)] });
+  const phuDiem = (b: BuocDiem) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...dichVuCua(b), ...lienHeCua(b), ...chiDuongCua(b, r), ...nutNhoDon(b), ...anhCua(b)] });
   const buoc = buocDiem(r.diem, r.suat, c.trangThai, ngay);
   // C54: khi chạy, "Điểm kế tiếp" + "Các điểm sau" + "Đã xong" (thu gọn) và MỘT nút chính dính đáy; không chạy (đã kết thúc…) thì danh sách đủ như cũ.
   const nhom = nhomDiemChay(buoc);
@@ -678,6 +679,18 @@ function dichVuCua(b: BuocDiem): Child[] {
   if (b.diem.loai !== "PICKUP") return [];
   const ds = dichVuTaiDiemDon(duLieu!.suat, b.diem.id);
   return ds.length ? [h("div", { class: "dp-note", "data-dich-vu": "" }, `Dịch vụ: ${ds.join(", ")}`)] : [];
+}
+
+/**
+ * ADR-0232 Đ4: «Gửi ảnh bàn giao» cho từng lượt đón có khách lên ở điểm đón này — chỉ khi máy chủ gửi `anhBanGiao` (tài xế công ty, trong ngày chạy, GET chi tiết).
+ * Mở bằng <details> để màn chạy không dài thêm khi không dùng. Máy chủ kiểm lại: người gửi phải đang lái chuyến chở lượt đón đó.
+ */
+function anhCua(b: BuocDiem): Child[] {
+  if (b.diem.loai !== "PICKUP") return [];
+  const da = new Set<string>();
+  const ds = duLieu!.suat.flatMap((s) => (s.diemLen === b.diem.id && s.anhBanGiao && !da.has(s.anhBanGiao.changId) ? (da.add(s.anhBanGiao.changId), [{ ...s.anhBanGiao, maDon: s.maDon ?? "" }]) : []));
+  return ds.map((x) => h("details", { class: "abg-tai-xe" }, h("summary", null, `Gửi ảnh bàn giao${x.maDon ? ` · ${x.maDon}` : ""}`),
+    formGuiAnh({ orderId: x.donId, changId: x.changId, xong: () => {} })));
 }
 
 /** Liên hệ của đơn có khách lên ở điểm đón này (chỉ trong ngày chạy — DTO có `lienHe`). `ds`: màn trước khi chạy truyền danh sách đã qua `khachTruocChay`. */
