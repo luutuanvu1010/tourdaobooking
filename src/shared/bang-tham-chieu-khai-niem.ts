@@ -892,6 +892,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "2026-11-20 (ADR-0220 Đ5, chủ chọn tên theo khuyến nghị)",
   }),
   KN({
+    ten: "Giá mùa vụ",
+    giaiNghia: "Quy tắc tăng giá theo ngày đi cho một dịch vụ hoặc cả một nhóm: tăng phần trăm và/hoặc cộng số tiền, làm tròn lên 1.000 đ. Chỉ áp sau khi người thứ hai duyệt. Đơn đã xác nhận giữ nguyên giá; phí đưa đón không tăng.",
+    khacVoi: "«Ghi đè giá» đổi giá gốc của dịch vụ cho mọi ngày; giá mùa vụ cộng thêm trên giá đó cho các ngày đi trong khoảng. Đối tác chỉ thấy giá cuối.",
+    chuDaLoai: [],
+    maNoiBo: ["ctl_seasonal_price", "catalog_seasonal_added", "catalog_seasonal_approved", "catalog_seasonal_ended", "catalog_seasonal_cap_set", "seasonal_overlap", "seasonal_date_changed"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-22 (ADR-0229 Đ9, chủ duyệt 22/11, tên đề xuất trong ADR)",
+  }),
+  KN({
     ten: "Lượt đưa đón",
     giaiNghia: "Một chiều đưa đón của một dịch vụ trong đơn (ví dụ chiều đi), có giờ đón và nơi đón riêng. Gọi tắt «lượt» khi đã rõ.",
     khacVoi: "",
