@@ -839,3 +839,9 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-ABG-HANG-CHO** — màn hàng chờ cho Toàn quyền (ảnh tải dở dang, chờ xoá kho, quá hạn giữ) và nút «Chạy lại»: đường `GET /api/anh-ban-giao/cho-xoa`, `POST …/chay-lai` đã có; hôm nay chỉ thấy qua cảnh báo `R-ABG-1`, `R-ABG-2` của `audit-invariants`. Quá hạn giữ sớm nhất sau 5 năm, nên chưa gấp.
 - **BL-ABG-CUA-SO-TAI-XE** — tài xế còn dòng lái mở gửi được ảnh cho lượt đón của chuyến đã kết thúc bất kỳ lúc nào (ADR không nêu hạn). Cân nhắc cửa sổ vài ngày sau ngày chạy.
 - **BL-ABG-IPHONE** — chưa đo cỡ ảnh thật sau nén trên iPhone (trần 600 KB) và Safari có mở được HEIC để thu nhỏ không; nợ mang theo từ khuôn biên lai: `BL-TEP-THAN-HAI-LAN`, `BL-BL-THU-THAT`.
+
+## 78. Giá mùa vụ — việc để sau (ADR-0229, Việc 10, 2026-11-23)
+
+- **Ngày:** 2026-11-23 · **Nêu:** người đánh giá giao diện (lượt chấm lại sau sửa) · **Trạng thái:** `tạm gác` — chủ chưa quyết (phiên điều phối 23/11: «chủ chưa quyết, để vậy và ghi vào BACKLOG»).
+- **Hai nút Duyệt / Kết thúc trên điện thoại:** trong bảng trượt «Giá mùa vụ», khổ 390 hai nút dàn ra hai bên hàng, lệch với chữ dòng quy tắc canh trái; khổ 1280 canh trái. Hai khổ chưa cùng kiểu canh (`web/gia-mua-vu.ts`, hàm `dong`, hàng `.actions`). Không cản việc.
+- **Điểm nhỏ khác từ lượt chấm đầu (chưa sửa):** nhãn mùa vụ bị bóp nhiều dòng ở cột Dịch vụ của bảng khổ 1280; nút «Giá mùa vụ» rớt dòng ở màn hẹp khổ 390 khi dòng có nhãn; ô tìm ở màn hẹp ghi «Tìm vé» dù danh sách là dịch vụ (đổi tên qua bảng tham chiếu, chủ chọn); khối «Mức tăng tối đa» (cài đặt chung) nằm trong bảng của từng dịch vụ.
