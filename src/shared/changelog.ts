@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Nhà cung cấp (kế hoạch 16 việc 21/11, Việc 15; chủ chọn tên 23/11; đặc tả docs/superpowers/specs/2026-11-23-viec-15-nha-cung-cap.md). Nhánh claude/viec-15-nha-cung-cap-8c79d1.
+    // Không migration. Số 3.42 = số trống kế tiếp sau 3.41 (việc 9d, chưa nhập) trên main 3.40 lúc báo sẵn sàng 23/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.42",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Màn «Người bán dịch vụ» đổi tên thành «Nhà cung cấp»; mọi chữ «người bán» theo nghĩa bên cung cấp dịch vụ cũng đổi theo." },
+      { kind: "doi", text: "Nhà cung cấp: dòng «Mọi dịch vụ» không còn nút ngừng, vì ngừng nó thì đơn mới bị giữ lại. Muốn đổi cho một nhóm hay dịch vụ, thêm điều khoản riêng." },
+      { kind: "sua", text: "Biên nhận: dịch vụ do chính công ty cung cấp luôn ở phần của công ty, kể cả khi đổi hồ sơ công ty chủ; không còn ghi «thanh toán tại quầy» công ty cũ." },
+    ],
+  },
+  {
     // Giá mùa vụ (kế hoạch 16 việc 21/11, Việc 10; ADR-0229 chủ duyệt 22/11). Nhánh claude/modest-goldstine-a52295. CÓ migration 0188, 0189.
     // Số 3.40 = số trống kế tiếp sau 3.39 (việc 1) trên main lúc gộp lần ba 23/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0229.
     version: "3.40",
