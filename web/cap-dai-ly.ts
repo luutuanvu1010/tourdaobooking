@@ -3,6 +3,7 @@
 // Cột «Trả sau», khối «Hạn mức trả sau» (ADR-0172 Đ1, Đ2) và thẻ công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 1): web/o-tra-sau.ts, nạp một lần cho cả màn (GET /api/tra-sau/han-muc, /api/tra-sau/goi-y); lỗi ⇒ ô hiện «—», bảng cấp vẫn dùng được.
 // Máy chủ hỏi lại cổng ở mọi lời gọi; hỏi ở đây chỉ để không gọi và nói câu rõ ràng.
 import { ApiError, api, type Api } from "./api";
+import { khoiGiamPhiDon } from "./giam-phi-don";
 import { datTieuDiemODongCap, oCapHoSo } from "./cot-cap-dai-ly";
 import { byId, h, replaceChildren } from "./dom";
 import { datTieuDiemOTraSau, khoiCaiDatTraSau, khoiKenhThuDoiTac, oTraSau, taiTraSau, type BoiCanhTraSau } from "./o-tra-sau";
@@ -22,6 +23,7 @@ const rongEl = byId("cdl-rong");
 const themEl = byId<HTMLButtonElement>("cdl-them");
 const khungEl = byId("cdl-khung");
 const traSauEl = byId("cdl-tra-sau");
+const giamPhiDonEl = byId("cdl-giam-phi-don");
 
 let tatCa: Api.CapDaiLyDongDto[] = [];
 let traSau: BoiCanhTraSau | null = null;
@@ -120,9 +122,9 @@ if (!coQuyenSua(staff)) {
 } else {
   replaceChildren(baoCapEl, CHU_MAN.khongCoCap, " ", h("a", { href: "/hoa-hong" }, CHU_MAN.trangHoaHong), ".");
   const nhacPhiDonEl = byId("cdl-nhac-phi-don");
-  // ADR-0214 (Task 6): cấp độ đại lý không còn quyết định phí đưa đón (văn phòng chọn mức trên đơn) — câu nhắc của Đợt C đã sai nên không hiện nữa; giữ phần tử để bật lại nếu cần.
+  // ADR-0218 Đ1 (Task 11): cấp độ đại lý quyết định mức giảm phí đưa đón của đơn chưa xác nhận — bật lại câu nhắc (ADR-0214 đã tắt vì phí khi đó do văn phòng chọn).
   nhacPhiDonEl.textContent = CHU_MAN.nhacPhiDon;
-  nhacPhiDonEl.hidden = true;
+  nhacPhiDonEl.hidden = false;
   timEl.addEventListener("input", () => {
     if (tre !== undefined) clearTimeout(tre);
     tre = setTimeout(() => {
@@ -144,5 +146,6 @@ if (!coQuyenSua(staff)) {
     khungEl.hidden = false;
     ve();
     await veCaiDat();
+    await khoiGiamPhiDon(giamPhiDonEl); // ADR-0218 Đ1.4: lỗi ⇒ khối ẩn, phần còn lại của màn dùng được
   }
 }

@@ -792,11 +792,14 @@ export const CHECKS = [
     // Phí đưa đón trên đơn (Đợt C, ADR-0147 / ADR-0203; migration 0169): mỗi dòng phí (`line_kind = 'TRANSFER_FEE'`) trỏ chặng CÙNG ĐƠN, mã mức còn tồn tại (cột `fee_rule_id` không có khoá ngoại — xem 0169), thành tiền = số lượng × đơn giá, và mức phí
     // «theo chuyến» luôn có số lượng 1. Lưới thứ hai của trigger 0007 (thành tiền) và 0169 (cột phí); chặng cùng đơn là luật chỉ máy chủ giữ nên kiểm ở đây. Chỉ đọc; R-ORD-15 giữ nguyên.
     code: "R-ORD-PD-1",
-    what: "dòng phí đưa đón trỏ chặng của đơn khác (hoặc chặng không còn), trỏ mức phí không còn, thành tiền khác số lượng × đơn giá, hoặc mức theo chuyến có số lượng khác 1",
+    what: "dòng phí đưa đón trỏ chặng của đơn khác (hoặc chặng không còn), dòng cũ trỏ mức phí không còn, dòng nguồn mới (0179) sai công thức giá gốc / thiếu mã chương trình / thiếu lý do đổi hoặc đơn giá đổi tay ngoài 0–5.000.000, thành tiền khác số lượng × đơn giá, hoặc mức theo chuyến có số lượng khác 1",
     sql: `SELECT count(*) FROM order_item i
        WHERE i.line_kind = 'TRANSFER_FEE'
          AND (NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = i.transfer_leg_id AND l.order_id = i.order_id)
-           OR (i.fee_source IS NOT 'CHON' AND NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r WHERE r.id = i.fee_rule_id))
+           OR (i.fee_calc_source IS NULL AND i.fee_source IS NOT 'CHON' AND NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r WHERE r.id = i.fee_rule_id))
+           OR (i.fee_calc_source = 'GIA_GOC' AND (i.fee_base_price IS NULL OR (i.fee_kind IS 'PER_TRIP' AND i.unit_price <> i.fee_base_price) OR (i.fee_kind IS NOT 'PER_TRIP' AND i.unit_price <> max(0, i.fee_base_price - COALESCE(i.fee_tier_discount, 0)))))
+           OR (i.fee_calc_source = 'CHUONG_TRINH' AND (i.fee_program_id IS NULL OR i.unit_price <> 0))
+           OR (i.fee_calc_source = 'DOI_TAY' AND (i.fee_override_reason IS NULL OR trim(i.fee_override_reason) = '' OR i.fee_override_by IS NULL OR i.unit_price < 0 OR i.unit_price > 5000000))
            OR i.line_total <> i.quantity * i.unit_price
            OR (i.fee_kind = 'PER_TRIP' AND i.quantity <> 1))`,
     level: "fail",

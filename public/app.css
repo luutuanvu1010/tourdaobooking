@@ -683,7 +683,9 @@ body[data-rong="hep"] main { max-width: calc(var(--luoi-rong-hep) + 2 * var(--lu
 body[data-rong="vua"] main { max-width: calc(var(--luoi-rong-vua) + 2 * var(--luoi-le)); }
 :where(body:not(.trang-chu)) main > p { margin: 0 0 var(--luoi-nhip); }
 .card { background: var(--c-bg); border-radius: var(--radius-md); padding: var(--s4); margin-bottom: var(--s4); box-shadow: var(--ring-card), var(--shadow-card); } /* 1.70: viền bằng bóng + bóng mềm (trước: thẻ phẳng) — không đổi kích thước thẻ */
-.card h2 { margin-bottom: var(--s3); }
+.card h2, .nhom-cai-dat > .card > h3 { margin: 0 0 var(--s3); } /* ADR-0227: thẻ con trong nhóm «Cài đặt lập đơn» mở đầu bằng h3, cùng khoảng như h2 của thẻ thường (không thêm luật khoảng cách — trần ADR-0222 Đ7a) */
+/* Nhóm «Cài đặt lập đơn» ở trang Tôi (ADR-0227, việc 7): tên nhóm (h2) rồi các thẻ công tắc con. Nhóm tự ẩn khi không thẻ con nào hiện (tài khoản không phải Toàn quyền). */
+.nhom-cai-dat:not(:has(> section:not([hidden]))) { display: none; }
 
 label { display: block; font-size: var(--fs-old-label); color: var(--c-muted); }
 input, select, textarea { display: block; width: 100%; margin-top: var(--s1); padding: 10px 12px; font: inherit; font-size: var(--fs-ui); color: var(--c-text); background: #fff; border: 1px solid var(--c-input-border); border-radius: var(--radius-sm); transition: border-color var(--m-fast) var(--ease-out), box-shadow var(--m-fast) var(--ease-out); }
@@ -3435,8 +3437,9 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-luoi2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s3); }
 .dd-luoi-noi { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-noi), 1fr)); gap: var(--s3); }
 .dd-luoi-phu { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-phu), 1fr)); gap: var(--s3); }
-.dd-phi { display: grid; gap: var(--s2); align-content: start; } /* ADR-0214: ô «Phí đưa đón» + ô «Số khác» + câu lỗi của một lượt */
+.dd-phi { display: grid; gap: var(--s2); align-content: start; } /* ADR-0218: số máy tính + nút «Đổi phí» + hai ô (số tiền, lý do) + câu lỗi của một lượt */
 .dd-phi-nhac { margin: 0; }
+.dd-phi-nut { justify-self: start; }
 .dd-cot { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
 .dd-chang label, .hk label { min-width: 0; }
 .dd-gio { position: relative; display: block; }

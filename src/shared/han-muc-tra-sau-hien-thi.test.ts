@@ -1,7 +1,7 @@
 // Luật hiển thị của màn «Hạn mức trả sau» và khối Thanh toán trên đơn (ADR-0168; kế hoạch Task 6). Thay R-CRD-3 (bộ kiểm dữ liệu không tính được phải thu).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CAU_TRA_SAU_DOI_TAC, CAU_VE_TRA_TRUOC, NHAN_TRANG_THAI_HAN, cauChonTraSau, dongTraSauCuaToi, duocChonSanTraSau, cauDonNo, cauGoiYDienSan, cauMucToiDa, cauGio, cauHanMuc, canhBaoVuotHanMuc, goiYCuaCap, giaTriOGioVn, locHoSoTraSau, docGio, docHanMuc, docHanMoi, nhanAnHan, nhanHinhThucDon, nhanQuaHan, quyetHinhThuc } from "./han-muc-tra-sau-hien-thi.ts";
+import { CAU_CHUYEN_TRA_SAU, CAU_TRA_SAU_BAT_BUOC_DOI_TAC, CAU_TRA_SAU_DOI_TAC, CAU_VE_TRA_TRUOC, hinhThucDuocNhan, trangThaiTuKetQua, NHAN_TRANG_THAI_HAN, cauChonTraSau, dongTraSauCuaToi, duocChonSanTraSau, cauDonNo, cauGoiYDienSan, cauMucToiDa, cauGio, cauHanMuc, canhBaoVuotHanMuc, goiYCuaCap, giaTriOGioVn, locHoSoTraSau, docGio, docHanMuc, docHanMoi, nhanAnHan, nhanHinhThucDon, nhanQuaHan, quyetHinhThuc } from "./han-muc-tra-sau-hien-thi.ts";
 import { cauKhongTraSauChoNguoiGui, dongTien, laDoiTacTraSau, lyDoKhongTraSau } from "./tra-sau.ts";
 
 test("cảnh báo khi nợ vượt hạn mức hiện hành; vừa bằng thì chưa cảnh báo", () => {
@@ -213,4 +213,40 @@ test("ADR-0198 Đ1.4 và Đ1 mục 1: câu vượt hạn mức đổi chữ ch�
   assert.equal(laDoiTacTraSau({ permissions: ["PARTNER", "ACCOUNTING"] }), false);
   assert.equal(laDoiTacTraSau({ permissions: ["SALES"] }), false);
   assert.equal(laDoiTacTraSau({ permissions: ["ADMIN", "PARTNER"] }), true, "giữ Đối tác mà không giữ Kế toán thì vẫn là đối tác (ADR-0196 mục 1)");
+});
+
+// ---- ADR-0224 Đ2.4, Đ3: luật «hình thức được nhận» và chọn lại khi lựa chọn đang có không còn được nhận ----
+
+test("ADR-0224: trangThaiTuKetQua ánh xạ đủ năm trạng thái", () => {
+  const hm = { hanMuc: 1, gioTra: 1, gioAnHan: 0, tuNgay: "2026-11-01", denNgay: null };
+  assert.equal(trangThaiTuKetQua(null), "chua_biet");
+  assert.equal(trangThaiTuKetQua({ ok: true, hanMuc: hm, version: 1 }), "dung_duoc");
+  assert.equal(trangThaiTuKetQua({ ok: false, ma: "co_don_qua_han", cau: "" }), "qua_han");
+  assert.equal(trangThaiTuKetQua({ ok: false, ma: "vuot_han_muc", cau: "" }), "vuot");
+  assert.equal(trangThaiTuKetQua({ ok: false, ma: "khong_co_han_muc", cau: "" }), "khong_co");
+});
+
+test("ADR-0224: đối tác không hạn mức / không đọc được ⇒ Thanh toán ngay nhận được; văn phòng quá hạn ⇒ chỉ Thanh toán ngay, không câu (câu khoá do cauChonTraSau)", () => {
+  assert.deepEqual(hinhThucDuocNhan({ laDoiTac: true, traSau: "khong_co" }), { chonDuoc: ["PREPAID"], lyDo: null });
+  assert.ok(hinhThucDuocNhan({ laDoiTac: true, traSau: "chua_biet" }).chonDuoc.includes("PREPAID"));
+  assert.deepEqual(hinhThucDuocNhan({ laDoiTac: false, traSau: "qua_han" }), { chonDuoc: ["PREPAID"], lyDo: null });
+});
+
+test("ADR-0224 Đ3: nháp cũ «Thanh toán ngay» của đối tác, Trả sau dùng được ⇒ chuyển sang Trả sau KÈM câu báo; đơn mới chọn sẵn ⇒ Trả sau, không câu", () => {
+  const c = cauChonTraSau({ coHanMuc: true, conDuocDung: 1, coDonQuaHan: false, laDoiTac: true });
+  const chonDuoc = hinhThucDuocNhan({ laDoiTac: true, traSau: "dung_duoc" }).chonDuoc;
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c, chonDuoc }), { chon: "CREDIT", bao: CAU_CHUYEN_TRA_SAU });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c, chonDuoc, chonSan: true }), { chon: "CREDIT", bao: null });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c, chonDuoc, benDatChuaNap: true }), { chon: "PREPAID", bao: null }, "bên đặt chưa nạp: không đổi");
+});
+
+test("ADR-0224 Đ3: đối tác quá hạn đang chọn Trả sau ⇒ về Thanh toán ngay kèm câu báo; văn phòng không truyền chonDuoc ⇒ như cũ", () => {
+  const c = cauChonTraSau({ coHanMuc: true, conDuocDung: 1, coDonQuaHan: true, laDoiTac: true });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c, chonDuoc: ["PREPAID"] }), { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC });
+  const vp = cauChonTraSau({ coHanMuc: true, conDuocDung: 1, coDonQuaHan: false });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: vp }), { chon: "PREPAID", bao: null });
+});
+
+test("ADR-0224: hai câu mới cho đối tác không có số tiền", () => {
+  for (const cau of [CAU_CHUYEN_TRA_SAU, CAU_TRA_SAU_BAT_BUOC_DOI_TAC]) assert.doesNotMatch(cau, /₫|\d/);
 });

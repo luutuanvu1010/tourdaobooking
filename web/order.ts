@@ -54,7 +54,7 @@ import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../
 import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { cauNhacKhoan, quaHanDoiChieu, soNgayCho } from "../src/shared/doi-chieu-hien-thi";
-import { CAU_DOI_TAC_TU_GHI, NHAN_O_THU_CHO, luaChonNguoiThuSoKeToan, cauBenKiaDaNhan, cauCanhBaoGiamGia, cauChoKeToan, laBenKia, luaChonNguoiThu, luaChonThuCho, lyDoCanTaiLai, nguoiThuTuGiaTri, oThuCho } from "../src/shared/ben-kia-hien-thi";
+import { CAU_DOI_TAC_TU_GHI, NHAN_O_THU_CHO, hinhThucChoPhep, luaChonNguoiThuSoKeToan, cauBenKiaDaNhan, cauCanhBaoGiamGia, cauChoKeToan, laBenKia, luaChonNguoiThu, luaChonThuCho, lyDoCanTaiLai, nguoiThuTuGiaTri, oThuCho } from "../src/shared/ben-kia-hien-thi";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_VALUE } from "../src/shared/booker";
 import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat, traDoiTacTheoSo } from "../src/shared/phan-doi-tac-hien-thi";
@@ -726,10 +726,10 @@ function tienCard(order: Order): HTMLElement {
   // ADR-0108 đ3 (đặc tả §4.2): QR khi đọc được tiền của đơn (route payments đã hỏi order.view + money.view), đơn chưa Đã giao, còn lại > 0. ADR-0135 Đ8: chỉ đơn ĐÃ XÁC NHẬN. Máy chủ kiểm lại.
   // ADR-0178 Đ1 mục 2: đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt ⇒ không QR vào tài khoản công ty (máy chủ cũng trả «không có QR»).
   // ADR-0182 Đ2 mục 3: tài khoản Đối tác không có nút này (QR giá bán lẻ); máy chủ cũng trả «không có QR».
-  if (t && !t.coc && !t.deliveredAt && t.conLai > 0 && order.status === "confirmed" && t.kenhThu?.congTyThu !== false && !laTaiKhoanDoiTac(staff!)) nut.push(nutQr(order, t));
+  if (t && !t.coc && !t.deliveredAt && t.conLai > 0 && order.status === "confirmed" && t.kenhThu?.congTyThu !== false && !t.chiTienMat && !laTaiKhoanDoiTac(staff!)) nut.push(nutQr(order, t)); // ADR-0225 Đ2: đơn đối tác chỉ thu hộ tiền mặt ⇒ không QR
   // Cùng luật: người thu chỉ là hồ sơ người lập — Đối tác chỉ «Tôi thu»; văn phòng chỉ «Khách trả cho đại lý ‹tên›» hoặc không lựa chọn nào (khi đó KHÔNG dựng form: ô chọn
   // rỗng sẽ gửi «Công ty» và nhận 409 — thay bằng câu đối tác tự ghi).
-  const luaChon = t ? luaChonNguoiThu(t.benKia, t.kenhThu, holdsPartner(staff!)) : [];
+  const luaChon = t ? luaChonNguoiThu(t.benKia, t.kenhThu, holdsPartner(staff!), t.chiTienMat) : [];
   const doiTacTuGhi = t?.coTheGhiThu && luaChon.length === 0 ? h("p", { class: "muted", "data-khoi": "doi-tac-tu-ghi" }, CAU_DOI_TAC_TU_GHI) : null;
   const laDoiTac = laTaiKhoanDoiTac(staff!);
   if (t?.coTheGhiThu && luaChon.length > 0) {
@@ -1045,6 +1045,8 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
     so.addEventListener("input", () => regroupMoney(so));
     // Kiểm độc lập vòng 3: mặc định ĐÚNG hình thức và người thu của khoản thu cũ — chỉ sửa số tiền thì không vô tình đổi người thu (đổi sang "Công ty" xoá khoản
     // nhân viên đang giữ).
+    // ADR-0225 Đ2: KHÔNG lọc hình thức ở đây (kiểm độc lập 21/11, I1): ô người thu chỉ mang id hồ sơ nên giao diện không biết là đại lý hay nhân viên; lọc sẽ đổi âm thầm hình thức
+    // của khoản đại lý chuyển khoản. Máy chủ chặn đúng ca (409 don_doi_tac_chi_tien_mat, câu lời thường).
     const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m, selected: METHOD_LABEL[m] === l.hinhThuc }, METHOD_LABEL[m]))) as HTMLSelectElement;
     const macDinh = laCongTy ? "cong_ty" : (l.nguoiThuPartyId ?? "");
     const nguoiThu = h("select", { "data-khoi": "sua-nguoi-thu" }, ...chonSua.map((c) => h("option", { value: c.value, selected: c.value === macDinh }, c.nhan))) as HTMLSelectElement;
@@ -1164,7 +1166,7 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(t.conLai) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));
-    const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
+    const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement; // ADR-0225 Đ2: không lọc, như «Sửa khoản thu đã ghi»
     const nguoiThu = h("select", { "data-khoi": "bu-nguoi-thu" }, ...chonBu.map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement;
     const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao thiếu (ít nhất 10 ký tự)" }) as HTMLInputElement;
     // ADR-0092 Đ6: khoản thu bù CK – Công ty thu cũng cần mã (cùng đường Thay, không có khoản thu cũ để điền sẵn).
@@ -1257,7 +1259,14 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
     const dienSan = soTienDienSan(t.conLai, soTienSan);
     if (dienSan !== null) setMoneyValue(soTien, dienSan);
     capNhatLech();
-    const hinhThuc = h("select", null, ...(["BANK_TRANSFER", "CASH", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
+    const hinhThuc = h("select", null) as HTMLSelectElement;
+    // ADR-0225 Đ2 (đề xuất): ô «Hình thức» dựng theo luật thuần — đơn đối tác chỉ thu hộ tiền mặt ⇒ người thu phía Tour Đảo chỉ có «Tiền mặt». Giữ lựa chọn đang có nếu còn hợp lệ.
+    const datHinhThuc = (): void => {
+      const ds = hinhThucChoPhep({ chiTienMat: t.chiTienMat, laDoiTac: holdsPartner(staff!), nguoiThu: nguoi.value });
+      const cu = hinhThuc.value;
+      hinhThuc.replaceChildren(...ds.map((m) => h("option", { value: m }, METHOD_LABEL[m])));
+      if (ds.includes(cu as (typeof ds)[number])) hinhThuc.value = cu;
+    };
     // Sổ đại lý đợt 2 (ADR-0132; đặc tả P4): hai lựa chọn mới chỉ khi máy chủ gửi `benKia` (đơn có đại lý được hưởng / quầy nhà cung cấp; không bao giờ với Đối tác).
     const nguoi = h("select", { id: "lan-thu-nguoi-thu" }, ...luaChon.map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement;
     const thuCho = t.benKia ? (h("select", { id: "lan-thu-thu-cho" }, ...luaChonThuCho(t.benKia).map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement) : null;
@@ -1270,6 +1279,7 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
     const oBienLai = anhBl ? h("label", { "data-khoi": "bien-lai", hidden: true }, NHAN_O_BIEN_LAI, anhBl) : null;
     const canAnh = () => canBienLai({ laDoiTac: t.bienLaiKhiCongTyCk, laKeToan: false, collectorRole: nguoi.value === "cong_ty" ? "COMPANY" : "", method: hinhThuc.value, canDoiChieu: true });
     const capNhatMa = () => {
+      datHinhThuc();
       ma?.hien(hinhThuc.value === "BANK_TRANSFER" && nguoi.value === "cong_ty");
       if (oBienLai) oBienLai.hidden = !canAnh();
       const o = oThuCho(t.benKia, nguoi.value);

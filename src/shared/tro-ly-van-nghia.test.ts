@@ -223,8 +223,14 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // bài Hướng dẫn và bảng tên kho cấu trúc của đăng ký đối tác đổi thống kê kho, hai đoạn sát ngưỡng của câu than phiền rơi xuống. Số đo, luật không đổi, trần 12 vẫn cắt.
   // 2026-11-16 (Đợt 2 sau kiểm toán): bảng tên kho cấu trúc thêm ô «soát tiền hằng ngày (Nền tảng tự làm)» ⇒ đo lại bằng chính bài này: 16 / 9 / 50 (15 → 16, câu than phiền
   // thêm một đoạn sát ngưỡng). Số đo, luật không đổi, trần 12 vẫn cắt.
-  // 2026-11-22 (ADR-0232 Ảnh bàn giao): bảng tên kho cấu trúc thêm phân hệ «Ảnh bàn giao» và bốn ô «gửi / xem / ẩn / xoá ảnh bàn giao» (chữ «ảnh», «giao» đổi thống kê kho) ⇒ đo lại bằng
-  // chính bài này: 12 / 9 / 50 (16 → 12, bốn đoạn sát ngưỡng của câu than phiền rơi xuống; vẫn bằng trần 12 nên khối tài liệu không đổi số đoạn). Số đo, luật không đổi.
+  // 2026-11-22 (Việc 2, ADR-0224): bài hướng dẫn «Cấp hạn mức trả sau cho đối tác» đổi câu về đối tác (bỏ «Đơn mới đối tác lập được chọn sẵn», thêm «chỉ thấy lựa chọn
+  // «Trả sau»… văn phòng lập hộ») ⇒ đo lại bằng chính bài này: 16 / 9 / 49 (câu lập đơn bớt MỘT đoạn sát ngưỡng). Số đo, luật không đổi, trần 12 vẫn cắt.
+  // 2026-11-22 (gộp main vào nhánh ADR-0218): bài Hướng dẫn «Bật phí đưa đón trên đơn» và mô tả màn Phí đưa đón viết lại theo giá gốc Sheet (bỏ chữ «ô chọn phí») ⇒ đo lại bằng chính bài này
+  // trên bản gộp: 15 / 9 / 50 (16 → 15, một đoạn rơi khỏi ngưỡng tương đối của câu than phiền). Số đo, luật không đổi, trần 12 vẫn cắt.
+  // 2026-11-23 (gộp main vào nhánh việc 7, ADR-0227): trang Tôi có nhóm «Cài đặt lập đơn» và việc «Tắt/Bật chặn chưa có giờ đón» ⇒ đo lại bằng chính bài này trên bản gộp:
+  // 15 / 9 / 50 (49 → 50, câu lập đơn thêm một đoạn chứa «lập đơn»). Số đo, luật không đổi, trần 12 vẫn cắt.
+  // 2026-11-23 (gộp main vào nhánh Việc 13, ADR-0232 Ảnh bàn giao): bảng tên kho cấu trúc thêm phân hệ «Ảnh bàn giao» và bốn ô «gửi / xem / ẩn / xoá ảnh bàn giao» ⇒ đo lại bằng
+  // chính bài này trên bản gộp: 12 / 9 / 50 (15 → 12, các đoạn sát ngưỡng của câu than phiền rơi xuống; bằng trần 12). Số đo, luật không đổi.
   assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [12, 9, 50]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);

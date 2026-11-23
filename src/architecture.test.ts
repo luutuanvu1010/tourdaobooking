@@ -118,6 +118,8 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "pricing", file: "modules/pricing/repository.ts" }, // ADR-0077 — sổ đại lý đợt 1: bảng mức, điều khoản người bán
   { module: "pricing", file: "modules/pricing/phi-don-repo.ts" }, // ADR-0147 Đ2: bảng phí đưa đón — nghiêm từ ngày đầu (defineSql)
+  { module: "pricing", file: "modules/pricing/giam-phi-don-repo.ts" }, // ADR-0218 Đ1.4: mức giảm phí đưa đón theo cấp — nghiêm từ ngày đầu (defineSql)
+  { module: "pricing", file: "modules/pricing/chuong-trinh-phi-don-repo.ts" }, // ADR-0218 Đ2: chương trình miễn phí đưa đón — nghiêm từ ngày đầu (defineSql)
   { module: "pricing", file: "modules/pricing/luat-ban-repo.ts" }, // ADR-0146 Đ6 (a) — luật bán theo loại đối tác: tệp DUY NHẤT nhắc prc_sales_block
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
@@ -193,6 +195,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "catalog", file: "modules/catalog/ngung-ban-ngay-repo.ts" },
   // ADR-0201 Đ1: chi tiết dịch vụ (tên hiển thị, mô tả), mọi câu qua defineSql + EXPLAIN.
   { module: "catalog", file: "modules/catalog/chi-tiet-repo.ts" },
+  // ADR-0218 Đ1.3: giá gốc phí đưa đón đọc từ Sheet (`ctl_service_transfer_price`, migration 0178), mọi câu qua defineSql + EXPLAIN.
+  { module: "catalog", file: "modules/catalog/phi-don-goc-repo.ts" },
   { module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" },
   // Sổ tiền lượt 1 (ADR-0024 điều 3–4 — SIẾT): câu mốc "Đã giao" / "Hoàn thành" + đọc trạng thái cho billing, mọi câu qua defineSql + EXPLAIN.
   { module: "orders", file: "modules/orders/hoan-tat-repo.ts" },
