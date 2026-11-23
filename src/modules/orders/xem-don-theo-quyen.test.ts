@@ -319,6 +319,8 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "partner.org.manager.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)
     "credit.limit.write": "none", // ADR-0168: hạn mức trả sau do Toàn quyền đặt
     "credit.limit.view": "none",
+    "credit.service_rule.write": "none", // ADR-0230 Đ1 / ADR-0178 Đ3: dấu Trả sau theo dịch vụ chỉ Toàn quyền đặt
+    "credit.service_rule.view": "none",
     "credit.ceiling.write": "none", // ADR-0172: chỉ Toàn quyền
     "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0178 Đ1 mục 1: công tắc kênh thu không phải việc của Đối tác
     "credit.due.extend": "none", // ADR-0173 Đ1 mục 3: Ân hạn là việc của Quản trị, Toàn quyền

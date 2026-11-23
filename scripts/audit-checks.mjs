@@ -2553,6 +2553,22 @@ export const CHECKS = [
     level: "warn",
     note: "máy đã không cho dùng hạn mức này; đóng dòng hạn mức bằng route POST /api/tra-sau/han-muc/<hồ sơ>/ngung (giao diện không hiện hồ sơ hết vai trò) — chờ chủ quyết cách làm trên màn",
   },
+  // R-CRD-6 (ADR-0230 Đ1 mục 3; migration 0187 phần A): loại Trả sau chụp CÙNG câu chụp hạn trả của lô xác nhận; đơn cũ đã qua nháp được điền 'LIMIT' lúc áp. Đơn Trả sau đã
+  // qua nháp (không huỷ) mà còn NULL = lô xác nhận bỏ sót loại (màn nợ không biết tách «theo hạn mức» / «theo dịch vụ»). Cột của 0187: chạy SAU khi áp migration (thiếu ⇒ thoát 2).
+  {
+    code: "R-CRD-6",
+    what: "đơn Trả sau đã xác nhận mà thiếu loại Trả sau (theo hạn mức / theo dịch vụ)",
+    sql: `SELECT count(*) FROM orders WHERE payment_term = 'CREDIT' AND status NOT IN ('draft', 'cancelled') AND credit_basis IS NULL`,
+    level: "fail",
+  },
+  // R-CRD-7 (ADR-0230 Đ2; migration 0187 phần B): «Trả lúc check-in» chỉ đi với Thanh toán ngay. Trigger chặn lúc chèn dòng bật và ở câu xác nhận; nháp đổi hình thức sau khi chọn
+  // (không qua máy chủ) là chỗ trigger không canh — lưới này bắt. Dòng hiệu lực = `valid_from_at` lớn nhất (view công bố `v_ord_tra_luc_checkin`).
+  {
+    code: "R-CRD-7",
+    what: "đơn mang hình thức «Trả lúc check-in» mà không phải Thanh toán ngay",
+    sql: `SELECT count(*) FROM orders o JOIN v_ord_tra_luc_checkin c ON c.order_id = o.id WHERE o.payment_term <> 'PREPAID'`,
+    level: "fail",
+  },
   // R-KT-1 (ADR-0178 Đ1 mục 3; migration 0144): «khoản thu giùm = 0». Đơn mang dấu Tắt (company_collects_snapshot = 0) chỉ có khoản khách trả còn hiệu lực do hồ sơ người lập thu.
   // CÙNG định nghĩa với trigger `bil_receipt_partner_channel` (CUSTOMER_PAYMENT, không phải dòng đảo; so NULL-safe với hồ sơ của người lập qua `v_stf_staff_label`); «còn hiệu lực» =
   // chưa có dòng đảo trỏ tới (khoản thay bằng «Thay lần thu» cũng đảo khoản cũ). Chỉ đọc. Trả mã đơn, không in số tiền hay người thu.

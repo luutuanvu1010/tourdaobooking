@@ -511,6 +511,11 @@ export interface OrderDetailDto extends OrderDto {
    * «thiếu tên» lúc cho xe chạy; trang đơn đổi câu «cần đủ tên» (Task 3.4). Chỉ cờ, không dữ liệu khách.
    */
   manifestExempt: boolean;
+  /**
+   * ADR-0230 Đ2: đơn mang hình thức «Trả lúc check-in» (dòng hiệu lực bật của `ord_checkin_payment`; `paymentTerm` vẫn là `PREPAID`). Nhãn: `NHAN_TRA_LUC_CHECKIN`
+   * (src/shared/tra-luc-checkin.ts). Khối ghi thu chỉ còn tiền mặt, không QR (máy chủ chặn ở cổng người thu + trigger 0187).
+   */
+  traLucCheckin: boolean;
 }
 
 /** Thông tin chuyến rút gọn cho thẻ trong danh sách đơn — lấy từ dịch vụ ĐẦU TIÊN theo sort_order của đơn (không gộp nhiều dịch vụ). */
@@ -601,6 +606,8 @@ export interface OrderInput {
   declaredDeposit?: number;
   /** ADR-0168: hình thức thanh toán; vắng = giữ hình thức đang lưu (đơn mới: Trả trước). Trả sau chỉ nhận được khi bên đặt có hạn mức còn hiệu lực. */
   paymentTerm?: HinhThucThanhToan;
+  /** ADR-0230 Đ2: hình thức «Trả lúc check-in» (chỉ đi với `paymentTerm` PREPAID); vắng = giữ lựa chọn đang lưu (đơn mới: không chọn). Form luôn gửi. */
+  traLucCheckin?: boolean;
   /** ADR-0213 Đ3.1: tư cách lập đơn (mã hồ sơ cá nhân hoặc tổ chức trong `GET /api/to-chuc/cua-toi`); chỉ khi lập đơn mới, người giữ quyền Đối tác; vắng = tư cách mặc định. */
   tuCach?: string;
   /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
@@ -1025,8 +1032,10 @@ export interface CatalogNgungBanInput { ngungBan: boolean }
 export interface CatalogCoVeResponse { dichVu: { code: string; coVe: boolean; nguon: "SERVICE" | "GROUP" | "CHUA_KHAI" }[]; nhom: { code: string; coVe: boolean }[] }
 export interface CatalogCoVeInput { pham: "SERVICE" | "GROUP"; ma: string; coVe: boolean }
 /** ADR-0175 Đ1.2: ô «Vé do ai phát», chỉ trên từng dịch vụ. GET trả mọi dịch vụ của danh mục kèm giá trị hiện hành (chưa đặt là `HANG_NGOAI`). */
-export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
-export interface CatalogNguonVeInput { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }
+/** ADR-0175 Đ1.2, ADR-0230 Đ3: `dichVu[].nguon` = giá trị đã gộp (dòng riêng, không thì nhóm hiện tại, không thì vé hãng ngoài); `theo` = lấy từ đâu; `nhom` = các nhóm đã đặt. */
+export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO"; theo: "SERVICE" | "GROUP" | "CHUA_KHAI" }[]; nhom: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
+/** Gửi `ma` (một dịch vụ) HOẶC `nhom` (một nhóm đang hoạt động), không cả hai. */
+export type CatalogNguonVeInput = { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" } | { nhom: string; nguon: "HANG_NGOAI" | "TOUR_DAO" };
 /** ADR-0231: ô «Hotline trên vé». Chỉ dịch vụ đã đặt số; `so` dạng chuẩn chỉ chữ số. Gửi `so` null hoặc chuỗi rỗng = dùng hotline công ty. */
 export interface CatalogSoHoTroResponse { dichVu: { ma: string; so: string }[] }
 export interface CatalogSoHoTroInput { ma: string; so: string | null }
@@ -1167,6 +1176,8 @@ export interface MyAssignmentDto {
   /** Tổng tiền của đơn (VNĐ), số hiện hành sau điều chỉnh số khách — cùng số với `OrderDto.total` của chi tiết đơn. "Đã thu / còn thu" lấy qua
    *  `POST /api/ledger/balances` (billing — ADR-0026 đ9), không nằm ở đây. */
   total: number;
+  /** ADR-0230 Đ2: đơn «Trả lúc check-in» — HDV nhắc thu tiền mặt (số «còn thu» lấy từ sổ tiền, như các thẻ khác). Chỉ cờ, không thêm tiền. */
+  traLucCheckin: boolean;
   services: MyAssignmentServiceDto[];
 }
 export interface MyAssignmentsResponse { assignments: MyAssignmentDto[] }
@@ -2591,7 +2602,10 @@ export interface OrderPaymentsResponse {
    * `nguoiLapPartyId` = id hồ sơ đó (null khi chưa gắn) — giá trị duy nhất của ô người thu «Sửa khoản thu đã ghi» / «Ghi bù khoản thu» của Kế toán ở đơn này.
    */
   kenhThu: { congTyThu: boolean; nguoiLapTen: string | null; nguoiLapLaBenDatHuong: boolean; nguoiLapPartyId: string | null } | null;
-  /** ADR-0225 Đ2 (đề xuất; migration 0184): đơn mang dấu «đơn đối tác chỉ thu hộ tiền mặt» — không QR công ty, không «Công ty (vào tài khoản công ty)», phía Tour Đảo chỉ ghi tiền mặt. */
+  /**
+   * ADR-0225 Đ2 (đề xuất; migration 0184): đơn mang dấu «đơn đối tác chỉ thu hộ tiền mặt» — không QR công ty, không «Công ty (vào tài khoản công ty)», phía Tour Đảo chỉ ghi tiền mặt.
+   * ADR-0230 Đ2: cũng true với đơn «Trả lúc check-in» (cùng hành vi giao diện; máy chủ xét hai luật riêng).
+   */
   chiTienMat: boolean;
 }
 
@@ -3624,7 +3638,10 @@ export interface HanMucTraSauDto {
   gioTra: number | null;
   gioAnHan: number | null;
   tuNgay: string | null;
+  /** Nợ của các đơn Trả sau THEO HẠN MỨC — số duy nhất trừ vào hạn mức (ADR-0230 Đ1 mục 4). */
   dangNo: number;
+  /** Nợ của các đơn Trả sau theo dịch vụ — không trừ vào hạn mức. */
+  dangNoDichVu: number;
   conDuocDung: number | null;
   soDonNo: number;
   /** Đơn đang trong ân hạn (chỉ báo). */
@@ -3650,6 +3667,8 @@ export interface DonNoTraSauDto {
   hetAnHan: string | null;
   no: number;
   trangThai: TrangThaiHanTraSau;
+  /** Loại Trả sau của đơn (ADR-0230 Đ1 mục 3). */
+  coSo: "LIMIT" | "SERVICE";
 }
 export interface DonNoTraSauResponse {
   partyId: string;
@@ -3673,7 +3692,10 @@ export interface TraSauHoSoResponse {
   hanMuc: number | null;
   gioTra: number | null;
   gioAnHan: number | null;
+  /** Nợ của các đơn Trả sau THEO HẠN MỨC — số duy nhất trừ vào hạn mức (ADR-0230 Đ1 mục 4). */
   dangNo: number;
+  /** Nợ của các đơn Trả sau theo dịch vụ — không trừ vào hạn mức. */
+  dangNoDichVu: number;
   conDuocDung: number | null;
   coQuyenSua: boolean;
 }
@@ -3682,6 +3704,15 @@ export interface ConDuocDungTraSauResponse {
   coHanMuc: boolean;
   conDuocDung: number;
   coDonQuaHan: boolean;
+  /**
+   * ADR-0230 Đ2 mục 3: công tắc «Khách của đối tác trả cho Công ty» HIỆN HÀNH — chỉ trả cho người giữ quyền Đối tác (form xét lựa chọn «Trả lúc check-in»); văn phòng: null.
+   */
+  congTyThu: boolean | null;
+  /**
+   * ADR-0230 Đ1 mục 5: đơn đang soạn (mã dịch vụ gửi kèm) đủ điều kiện «Trả sau theo dịch vụ» cho bên đặt này ⇒ số giờ trả; không đủ / không gửi dịch vụ ⇒ null.
+   * Chỉ số giờ — không bao giờ kèm danh sách dấu.
+   */
+  traSauDichVu: { gioTra: number } | null;
 }
 /** «Trả sau của tôi» (ADR-0173 Đ3 mục 3): hồ sơ của phiên; `toChuc` (ADR-0213 Đ5, Task 12) = cùng các số cho từng tổ chức người gọi là người quản lý có hiệu lực (thành viên: rỗng). */
 export interface TraSauCuaToiResponse {
@@ -3689,7 +3720,10 @@ export interface TraSauCuaToiResponse {
   hanMuc: number | null;
   gioTra: number | null;
   gioAnHan: number | null;
+  /** Nợ của các đơn Trả sau THEO HẠN MỨC — số duy nhất trừ vào hạn mức (ADR-0230 Đ1 mục 4). */
   dangNo: number;
+  /** Nợ của các đơn Trả sau theo dịch vụ — không trừ vào hạn mức. */
+  dangNoDichVu: number;
   conDuocDung: number | null;
   don: DonNoTraSauDto[];
   toChuc: TraSauToChucDto[];
@@ -3701,7 +3735,10 @@ export interface TraSauToChucDto {
   hanMuc: number | null;
   gioTra: number | null;
   gioAnHan: number | null;
+  /** Nợ của các đơn Trả sau THEO HẠN MỨC — số duy nhất trừ vào hạn mức (ADR-0230 Đ1 mục 4). */
   dangNo: number;
+  /** Nợ của các đơn Trả sau theo dịch vụ — không trừ vào hạn mức. */
+  dangNoDichVu: number;
   conDuocDung: number | null;
   don: DonNoTraSauDto[];
 }
@@ -3743,6 +3780,18 @@ export interface ChuaCoBanHangResponse { don: TheDonDto[]; soDonChoXacNhanAn: nu
 export interface BanHangChinhSachResponse { phutUuTien: number; tuPhut: number; denPhut: number; mocPhatHanh: string | null; doiDuoc: boolean }
 /** `GET`/`POST /api/kenh-thu-doi-tac` (ADR-0178 Đ1 mục 1): công tắc «Khách của đối tác trả cho Công ty». `congTyThu` = Bật; `tuLuc` = lúc dòng hiện hành có hiệu lực (null = chưa ai đổi, mặc định Bật). `lichSu` mới nhất trước. */
 export interface KenhThuDoiTacDto { congTyThu: boolean; tuLuc: string | null; lichSu: { congTyThu: boolean; tuLuc: string; nguoiDoi: string }[] }
+
+/**
+ * `GET /api/tra-sau/dich-vu` (ADR-0178 Đ2 mục 1, ADR-0230 Đ1 mục 1): các dấu «Trả sau theo dịch vụ» đang mở. `ten` = tên nhóm / dịch vụ (rỗng nếu đích đã rời danh mục);
+ * `tuLuc` = lúc dòng mở có hiệu lực; `canhBao` = câu báo khi đơn có đích này sẽ không đủ điều kiện (vé hãng ngoài, không «Có vé», nhóm có vé hãng ngoài), null = không.
+ */
+export interface DauTraSauDichVuDto { targetKind: "GROUP" | "SERVICE"; targetCode: string; ten: string; gioTra: number; gioAnHan: number; tuLuc: string; canhBao: string | null }
+export interface DauTraSauDichVuResponse { dau: DauTraSauDichVuDto[] }
+/** Danh mục cho dấu «Trả sau theo dịch vụ» — gốc lắp ráp tiêm từ `catalog` (billing không import catalog). «Có vé», «Vé do ai phát» là giá trị ĐÃ GỘP. */
+export interface DanhMucTraSauDichVu {
+  dichVu: ReadonlyMap<string, { ten: string; nhom: string | null; coVe: boolean; nguonVe: "HANG_NGOAI" | "TOUR_DAO" }>;
+  nhom: ReadonlyMap<string, { ten: string; dangBat: boolean }>;
+}
 
 /**
  * Phiếu đăng ký của CHÍNH người đăng ký (`GET`, `PUT /api/dang-ky/phieu`, `POST …/gui`, `…/rut`; ADR-0206 Đ6). KHÔNG mang số giấy tờ đủ, nơi cấp, số điện thoại, email, khoá kho:

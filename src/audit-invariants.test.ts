@@ -4734,6 +4734,54 @@ test("R-CRD-5: hạn mức còn mở trên hồ sơ đã hết vai được hư�
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
+// R-CRD-6 (ADR-0230 Đ1 mục 3; migration 0187 phần A): đơn Trả sau đã qua nháp (không huỷ) phải mang loại Trả sau `credit_basis`.
+// R-CRD-7 (ADR-0230 Đ2; migration 0187 phần B): đơn mang dòng «Trả lúc check-in» hiệu lực bật phải là Thanh toán ngay.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+test("R-CRD-6: đơn Trả sau đã xác nhận thiếu loại Trả sau → vi phạm; có loại / còn nháp / đã huỷ / Thanh toán ngay → 0", () => {
+  const db = build();
+  const c = one("R-CRD-6");
+  assert.equal(c.level, "fail");
+  const don = (term: string, trangThai: "draft" | "confirmed" | "cancelled", loai: string | null): string => {
+    const { order } = donKhach(db, [{ adult: 1 }], "draft");
+    db.prepare("UPDATE orders SET payment_term = ? WHERE id = ?").run(term, order);
+    if (trangThai === "cancelled") db.exec("DROP TRIGGER IF EXISTS orders_cancel_requires_reason"); // bài chỉ cần trạng thái, không cần lý do huỷ
+    if (trangThai !== "draft") db.prepare("UPDATE orders SET status = ?, confirmed_at = ? WHERE id = ?").run(trangThai, T1, order);
+    if (loai !== null) {
+      db.exec("DROP TRIGGER IF EXISTS orders_credit_basis_guard"); // gieo thẳng loại (bài không đi đường lô xác nhận)
+      db.prepare("UPDATE orders SET credit_basis = ? WHERE id = ?").run(loai, order);
+    }
+    return order;
+  };
+  don("CREDIT", "confirmed", "LIMIT");
+  don("CREDIT", "confirmed", "SERVICE");
+  don("CREDIT", "draft", null);
+  don("CREDIT", "cancelled", null);
+  don("PREPAID", "confirmed", null);
+  assert.equal(violations(db, c), 0);
+  don("CREDIT", "confirmed", null);
+  assert.equal(violations(db, c), 1, "Trả sau đã xác nhận mà không có loại");
+});
+
+test("R-CRD-7: đơn mang «Trả lúc check-in» hiệu lực bật mà hình thức khác Thanh toán ngay → vi phạm; dòng đã tắt hoặc đơn Thanh toán ngay → 0", () => {
+  const db = build();
+  const c = one("R-CRD-7");
+  assert.equal(c.level, "fail");
+  let n = 0;
+  const chon = (order: string, enabled: number) =>
+    db.prepare("INSERT INTO ord_checkin_payment (id, order_id, enabled, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, NULL, ?, NULL)")
+      .run(`ck-${++n}`, order, enabled, `2026-11-23T03:00:00.00${n}Z`, T1, T1);
+  const a = donKhach(db, [{ adult: 1 }], "draft").order;
+  chon(a, 1);
+  const b = donKhach(db, [{ adult: 1 }], "draft").order;
+  chon(b, 1);
+  chon(b, 0);
+  db.prepare("UPDATE orders SET payment_term = 'CREDIT' WHERE id = ?").run(b); // đã tắt rồi mới đổi sang Trả sau: hợp lệ
+  assert.equal(violations(db, c), 0);
+  db.prepare("UPDATE orders SET payment_term = 'CREDIT' WHERE id = ?").run(a); // nháp đổi hình thức không qua máy chủ
+  assert.equal(violations(db, c), 1, "dòng bật trên đơn Trả sau");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
 // R-KT-1 (ADR-0178 Đ1 mục 3; migration 0144): đơn mang dấu Tắt chỉ có khoản khách trả còn hiệu lực do hồ sơ người lập thu.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 test("R-KT-1: đơn dấu Tắt có khoản khách trả còn hiệu lực với người thu khác người lập → vi phạm; đơn dấu Bật / không dấu, khoản đã đảo, khoản hoàn → 0", () => {

@@ -80,7 +80,7 @@ export const app = (await bundle(
   'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
     ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff"; export { docTapNhieuMay } from "./modules/auth";' +
     ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { cauDatCocKhiXacNhan, tienDonVe, nhacHanTraSau } from "./modules/billing"; export { dongChuyenTheoId } from "./modules/thongbao";' +
-    ' export { syncCatalog } from "./modules/catalog/service"; export { auditStatement } from "./modules/audit"; export { giaDaiLyNhieuDon, phanThuongMaiCuaDon } from "./modules/orders"; export { donPhieuDangKy } from "./modules/dang-ky";', // ADR-0186: bài src/tac-nhan-tu-dong.test.ts gọi thẳng hàm lệnh đồng bộ và hàm dựng câu nhật ký; ADR-0182: src/cong-no-dai-ly.test.ts so giá đại lý đọc nhiều đơn với từng đơn; ADR-0208 Đ8: src/modules/dang-ky/don-phieu.test.ts gọi thẳng hàm lệnh của tác nhân dọn phiếu
+    ' export { syncCatalog } from "./modules/catalog/service"; export { auditStatement } from "./modules/audit"; export { giaDaiLyNhieuDon, phanThuongMaiCuaDon } from "./modules/orders"; export { donPhieuDangKy } from "./modules/dang-ky"; export { lamMoiBanDungThu, lamMoiNeuDenMoc } from "./ban-dung-thu";', // ADR-0186: bài src/tac-nhan-tu-dong.test.ts gọi thẳng hàm lệnh đồng bộ và hàm dựng câu nhật ký; ADR-0182: src/cong-no-dai-ly.test.ts so giá đại lý đọc nhiều đơn với từng đơn; ADR-0208 Đ8: src/modules/dang-ky/don-phieu.test.ts gọi thẳng hàm lệnh của tác nhân dọn phiếu
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -245,6 +245,12 @@ export function khoR2Gia() {
       const x = kho.get(key);
       if (!x) return null;
       return { key, size: x.b.length, httpMetadata: { contentType: x.contentType }, body: new Response(x.b).body };
+    },
+    // Bản dùng thử (ADR-0223 Đ2.2): lệnh làm sạch liệt kê rồi xoá mọi tệp trong kho.
+    async list(opts) {
+      const keys = [...kho.keys()].sort();
+      const lim = opts?.limit ?? 1000;
+      return { objects: keys.slice(0, lim).map((key) => ({ key, size: kho.get(key).b.length })), truncated: keys.length > lim };
     },
     async head(key) {
       if (r2.hong.get) throw new Error("r2_head_gia_hong");

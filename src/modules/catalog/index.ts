@@ -7,7 +7,7 @@ import { route, type AppModule } from "../../shared/router";
 import type {
   CatalogNgungBanResponse,
   CatalogAdminGroupDto, CatalogAdminItemDto, CatalogAdminResponse, CatalogConflictCountResponse, CatalogGroupAssignResponse, CatalogGroupHistoryResponse, CatalogGroupResponse,
-  CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse,
+  CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse, DanhMucTraSauDichVu,
 } from "../../shared/contracts";
 import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type EffectiveService, type PaxCode } from "../../shared/order-lines";
 import { getSyncState, loadAll, loadOne, saveOverride, type StoredItem } from "./repository";
@@ -74,11 +74,29 @@ export async function coVeTheoMa(db: D1Database, codes: readonly string[]): Prom
   return new Map(codes.map((ma) => [ma, coVeCua(ma, nhomCua.get(ma) ?? null, co).coVe]));
 }
 
-/** ADR-0175 Đ1.2: ô «Vé do ai phát» của các mã trong `codes` (không có dòng là `HANG_NGOAI`). Một nguồn cho `ve-dien-tu` qua hàm tiêm. KHÔNG tự kiểm quyền. */
+/**
+ * ADR-0175 Đ1.2, ADR-0230 Đ3: ô «Vé do ai phát» ĐÃ GỘP của các mã trong `codes` — dòng riêng của dịch vụ, không thì dòng của nhóm hiện tại (kể cả nhóm đang tắt, như `coVeTheoMa`),
+ * không thì `HANG_NGOAI`. Mỗi mã được hỏi đều có khoá. Một nguồn cho `orders` và `ve-dien-tu`; nơi dùng KHÔNG tự xét lại luật. KHÔNG tự kiểm quyền.
+ */
 export async function nguonVeTheoMa(db: D1Database, codes: readonly string[]): Promise<Map<string, NguonVe>> {
   if (codes.length === 0) return new Map();
-  const hienHanh = await nguonVeHienHanh(db);
-  return new Map(codes.map((ma) => [ma, nguonVeCua(ma, hienHanh)]));
+  const [hien, nhomCua] = await Promise.all([nguonVeHienHanh(db), nhomHienHanhTheoMa(db)]);
+  return new Map(codes.map((ma) => [ma, nguonVeCua(ma, nhomCua.get(ma) ?? null, hien).nguonVe]));
+}
+
+/**
+ * ADR-0178 Đ2, ADR-0230 Đ1: danh mục cho dấu «Trả sau theo dịch vụ» của `billing` (gốc lắp ráp tiêm — billing không import catalog). Mọi dịch vụ trong danh mục (kể cả đang ẩn):
+ * tên hiển thị, nhóm hiện tại (kể cả nhóm tắt), «Có vé» và «Vé do ai phát» ĐÃ GỘP bằng cùng luật thuần với `coVeTheoMa` / `nguonVeTheoMa`; mọi nhóm: tên + cờ bật. KHÔNG tự kiểm quyền.
+ */
+export async function danhMucChoTraSauDichVu(db: D1Database): Promise<DanhMucTraSauDichVu> {
+  const [dv, co, nguon, nhomCua, nhoms] = await Promise.all([getEffectiveServices(db), coVeHienHanh(db), nguonVeHienHanh(db), nhomHienHanhTheoMa(db), danhSachNhom(db)]);
+  return {
+    dichVu: new Map([...dv.values()].map((s) => {
+      const nhom = nhomCua.get(s.code) ?? null;
+      return [s.code, { ten: s.name, nhom, coVe: coVeCua(s.code, nhom, co).coVe, nguonVe: nguonVeCua(s.code, nhom, nguon).nguonVe }];
+    })),
+    nhom: new Map(nhoms.map((g) => [g.code, { ten: g.name, dangBat: g.active === 1 }])),
+  };
 }
 
 /**

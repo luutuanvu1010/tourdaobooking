@@ -14,6 +14,8 @@
 // chuyến (nhóm `dieu-xe` + tài xế có dòng lái lúc sự kiện) và gõ cửa tin chuyến (`dayGoCua` với `{ chuyen }`); hộp thông báo đọc dữ kiện qua `ctx.chuyenChoTin`.
 
 import { baoLoiDinhGio } from "./bao-loi-dinh-gio.ts";
+import { fetchBanDungThu, lamMoiNeuDenMoc } from "./ban-dung-thu.ts";
+import { laBanDungThu } from "./shared/ban-dung-thu.ts";
 // Soát tiền hằng ngày (Đợt 2 sau kiểm toán): gốc lắp ráp tiêm CHÍNH danh sách kiểm của script soát vào module audit (module không nhập scripts/).
 import { CHECKS, demViPham } from "../scripts/audit-checks.mjs";
 import { accountsModule } from "./modules/accounts";
@@ -22,7 +24,7 @@ import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, clearAtte
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
 import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, maDonTraSauDaXacNhan, traSauCuaDon, kenhThuHienTai, coHanMucTraSauMo, cauDongHanMucKhiHetVai } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
-import { catalogModule, runScheduledSync } from "./modules/catalog";
+import { catalogModule, danhMucChoTraSauDichVu, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
 import { cauAnDanhBanKhai, cauAnDanhBanKhaiToChuc, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, donPhieuDangKyDinhGio, suKienDuyetStatement, taiKhoanChuaKichHoat } from "./modules/dang-ky";
 import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
@@ -48,6 +50,7 @@ import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDon
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { can, holdsPartner } from "./shared/permissions";
 import { vnToday } from "./shared/vn-date";
+import { dichVuXetTuDanhMuc } from "./shared/tra-sau-dich-vu";
 import { createApp, type AppOptions, type KetLuanGanToChuc, type NguoiQuanLyHieuLuc } from "./shared/router";
 import { chonTuCach, type TuCachDong } from "./shared/booker";
 import type { StaffProfile } from "./shared/contracts";
@@ -479,6 +482,8 @@ const APP_OPTIONS: AppOptions = {
       if (!ben) return new Set<string>();
       return new Set((await kiemLuatBan(env.DB, { bookerPartyId: ben.partyId, catalogCodes: codes, ngay: vnToday(new Date()) })).map((t) => t.catalogCode));
     },
+    // DANH MỤC CHO DẤU «TRẢ SAU THEO DỊCH VỤ» (ADR-0178 Đ2, ADR-0230 Đ1): billing không import catalog — gốc lắp ráp nối. Route billing kiểm quyền trước khi gọi.
+    danhMucTraSauDichVu: (env) => danhMucChoTraSauDichVu(env.DB),
     // NGƯỜI ĐI KÈM (lời chủ 2026-10-01 — "Chỉ hướng dẫn viên"): van-chuyen không import staff — gốc lắp ráp đọc tài khoản FIELD đang hoạt động, chỉ tên.
     huongDanVien: async (env) => {
       const ds = (await listStaffAccounts(env.DB)).filter((a) => a.active && a.partyId !== null && a.permissions.includes("FIELD"));
@@ -517,7 +522,15 @@ const APP_OPTIONS: AppOptions = {
     // KHÁCH ĐẶT CỌC TRƯỚC (ADR-0159 Đ1 mục 3; ADR-0024 đ4): `orders` không đọc, không ghi bảng bil_ — billing dựng câu, lô xác nhận của `orders` chạy chung.
     cauCocKhiXacNhan: (env, i) => cauDatCocKhiXacNhan(env.DB, i),
     // TRẢ SAU THEO HẠN MỨC (ADR-0168): `orders` không import `billing` — gốc lắp ráp tiêm cổng hạn mức, câu gác phiên bản và hạn trả / nợ của một đơn.
-    kiemTraSau: (env, i) => kiemTraSau(env.DB, i),
+    // ADR-0230 Đ1: đơn kèm mã dịch vụ ⇒ gốc lắp ráp dựng dòng xét «Trả sau theo dịch vụ» từ danh mục ĐÃ GỘP của catalog (billing không import catalog). Danh mục không đọc được ⇒
+    // coi như không đủ điều kiện (phía an toàn về tiền); riêng đơn đã chụp loại SERVICE thì trả null (cổng chặn 503, không đoán «hết đủ điều kiện»).
+    kiemTraSau: async (env, i) => {
+      const { maDichVu, ...hoi } = i;
+      if (!maDichVu) return kiemTraSau(env.DB, hoi);
+      const dm = await danhMucChoTraSauDichVu(env.DB).catch(() => null);
+      if (dm === null && hoi.coSo === "SERVICE") return null;
+      return kiemTraSau(env.DB, { ...hoi, dichVu: dichVuXetTuDanhMuc(maDichVu, dm) });
+    },
     cauGacPhienBanTraSau: (env, partyId, version, at) => cauGacPhienBan(env.DB, partyId, version, at),
     traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     veDaMoCuaDon: (env, id) => veDaMoCuaDon(env.DB, id),
@@ -591,9 +604,12 @@ export function taoAppChoKhungThu(ghiDe: Partial<AppOptions["injected"]>): Retur
 }
 
 export default {
-  fetch: app.fetch,
+  // BẢN DÙNG THỬ (ADR-0223): chỉ khi BAN_DUNG_THU = "bat" mới qua cửa vào riêng; bản chính thức và Development đi thẳng router như cũ.
+  fetch: (request: Request, env: Env, ctx: ExecutionContext) => (laBanDungThu(env) ? fetchBanDungThu(request, env, ctx, app.fetch) : app.fetch(request, env, ctx)),
   // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156); nhắc hạn trả sau (ADR-0173 Đ3 mục 2); dọn phiếu đăng ký (ADR-0208 Đ8).
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    // BẢN DÙNG THỬ (ADR-0223 Đ2): đúng mốc giờ chẵn giờ VN thì làm sạch TRƯỚC, các việc dưới (đồng bộ danh mục…) chạy trên dữ liệu mới. Bản khác: hàm trả về ngay.
+    if (laBanDungThu(env)) await lamMoiNeuDenMoc(env, event.scheduledTime).catch((e: unknown) => console.error(JSON.stringify({ level: "error", event: "ban_dung_thu_lam_moi", message: e instanceof Error ? e.message : String(e) })));
     // Đợt 2 sau kiểm toán: gom kết quả năm việc — việc hỏng vẫn log; lượt 7 giờ sáng giờ VN gửi MỘT thư liệt kê việc đang hỏng (src/bao-loi-dinh-gio.ts).
     const viec = {
       "dong-bo-danh-muc": runScheduledSync(env),

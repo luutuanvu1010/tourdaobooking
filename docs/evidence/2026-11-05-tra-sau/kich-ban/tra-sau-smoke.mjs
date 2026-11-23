@@ -340,7 +340,7 @@ try {
     assert.equal(x.status, 201, JSON.stringify(x.json));
     return x.json.order;
   };
-  const khoiHien = (q) => q.ev("(() => { const k = document.getElementById('tra-sau-khoi'); return { hien: !!k && !k.hidden, cau: document.getElementById('tra-sau-cau').textContent, credit: document.querySelector('input[name=paymentTerm][value=CREDIT]').checked, bao: document.getElementById('tra-sau-bao').hidden ? '' : document.getElementById('tra-sau-bao').textContent }; })()");
+  const khoiHien = (q) => q.ev("(() => { const k = document.getElementById('tra-sau-khoi'); const oc = document.querySelector('input[name=paymentTerm][value=CREDIT]').closest('label'); return { hien: !!k && !k.hidden, creditHien: !!k && !k.hidden && !oc.hidden, cau: document.getElementById('tra-sau-cau').textContent, credit: document.querySelector('input[name=paymentTerm][value=CREDIT]').checked, bao: document.getElementById('tra-sau-bao').hidden ? '' : document.getElementById('tra-sau-bao').textContent }; })()");
   const bamLuuDon = (q) => q.ev("document.getElementById('save').click(); true");
   const luuDon = (id) => `/api/orders/${encodeURIComponent(id)}`;
   const chanDoan = async (q, nhan) => {
@@ -395,7 +395,8 @@ try {
     try {
       await sleep(2500);
       const k = await khoiHien(q);
-      assert.equal(k.hien, false, "không có hạn mức thì không có ô chọn");
+      // ADR-0230 Đ2: văn phòng luôn có «Trả lúc check-in» nên khối hình thức có thể hiện; điều cần giữ là KHÔNG có ô «Trả sau».
+      assert.equal(k.creditHien, false, "không có hạn mức thì không có ô Trả sau");
     } finally { q.close(); trangHienTai = null; }
   });
   // Hết hạn mức giữa lúc lưu và lúc mở lại: nháp Trả sau tự về Trả trước KÈM câu báo, lưu được (không ngõ cụt).
@@ -409,7 +410,7 @@ try {
       await sleep(1500); // câu báo phải còn sau các lần hỏi hạn mức kế tiếp (từng bị lần hỏi sau xoá, tuỳ tốc độ mạng)
       assert.equal(await q.ev("document.getElementById('tra-sau-bao').hidden"), false, "câu báo vẫn còn");
       const k = await khoiHien(q);
-      assert.equal(k.hien, false, "khối ẩn");
+      assert.equal(k.creditHien, false, "ô Trả sau ẩn"); // ADR-0230 Đ2: khối còn hiện vì «Trả lúc check-in»
       assert.ok(k.bao.includes("chuyển về Thanh toán ngay"), k.bao);
       await chup(q, "lap-don-het-han-muc-1440");
       await luuRoiChoChuyenTrang(q);

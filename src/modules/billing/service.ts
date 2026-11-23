@@ -531,9 +531,14 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
     coc,
     benKia: quyen.laDoiTac || !quyen.coTheGhiThu || info.deliveredAt !== null ? null : await luaChonBenKia(db, phan),
     kenhThu: await kenhThuChoTrang(db, info.orderId, phan),
-    chiTienMat: (await kenhThuCuaDon(db, info.orderId))?.chiTienMat === true, // ADR-0225 Đ2
+    chiTienMat: await chiNhanTienMat(db, info.orderId), // ADR-0225 Đ2 + ADR-0230 Đ2 (đơn «Trả lúc check-in»): cùng một cờ cho giao diện — chỉ tiền mặt, không QR
   };
 }
+
+const chiNhanTienMat = async (db: D1Database, orderId: string): Promise<boolean> => {
+  const k = await kenhThuCuaDon(db, orderId);
+  return k?.chiTienMat === true || k?.traLucCheckin === true;
+};
 
 /**
  * ADR-0178 Đ1 mục 2 (Task A5): khối «người thu» của trang đơn mang dấu Tắt. Chỉ đơn dấu 0 có khối; dấu 1 / không dấu ⇒ null (giữ như cũ). Không gác theo quyền ghi: người chỉ

@@ -135,6 +135,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/auth/me", access: "staff" },
   { method: "POST", path: "/api/auth/xem-nhu-vai", access: "staff" }, // ADR-0180: Toàn quyền bật xem như vai trò khác — cổng xét quyền THẬT trong handler (module accounts)
   { method: "DELETE", path: "/api/auth/xem-nhu-vai", access: "staff" }, // ADR-0180: thoát chế độ đó
+  { method: "POST", path: "/api/account/dung-thu-vai", access: "staff" }, // ADR-0223 Đ3.1: tài khoản dùng thử chọn vai trò cho phiên — chỉ bản dùng thử (bản chính 404), chỉ đúng tài khoản dùng thử
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
   { method: "POST", path: "/api/auth/mfa/verify", access: "public" }, // bước hai của đăng nhập PIN (ADR-0074) — cổng là cookie chờ td_mfa_pending (khoá ký riêng, 5 phút); tự gọi maintenanceBlock
@@ -704,6 +705,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/tra-sau/muc-toi-da", access: "office" }, // ADR-0172: credit.ceiling.write (chỉ Toàn quyền)
   { method: "GET", path: "/api/kenh-thu-doi-tac", access: "office" }, // ADR-0178 Đ1 mục 1: billing.partner_channel.view (Kế toán, Quản trị, Toàn quyền), không Đối tác
   { method: "POST", path: "/api/kenh-thu-doi-tac", access: "office" }, // ADR-0178 Đ1 mục 1: billing.partner_channel.write (chỉ Toàn quyền)
+  { method: "GET", path: "/api/tra-sau/dich-vu", access: "office" }, // ADR-0178 Đ3, ADR-0230 Đ1: credit.service_rule.view (Kế toán, Quản trị, Toàn quyền), không Đối tác
+  { method: "POST", path: "/api/tra-sau/dich-vu", access: "office" }, // ADR-0178 Đ3, ADR-0230 Đ1: credit.service_rule.write (chỉ Toàn quyền)
+  { method: "POST", path: "/api/tra-sau/dich-vu/go", access: "office" }, // như trên
   { method: "GET", path: "/api/tra-sau/goi-y", access: "office" }, // ADR-0172 Đ2: credit.limit.view
   { method: "PUT", path: "/api/tra-sau/goi-y/:cap", access: "office" }, // ADR-0172 Đ2: credit.limit.write (Quản trị, Toàn quyền)
   { method: "GET", path: "/api/tra-sau/cua-toi", access: "orders" }, // ADR-0173 Đ3 mục 3: credit.own.view (Đối tác, own)
@@ -939,8 +943,11 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-21 (ADR-0221 Đ1): + GET (orders), POST (admin) /api/cai-dat/noi-don-doi-tac = 570.
   // Gộp main vào nhánh ADR-0218 (22/11/2026): 574 của nhánh + 5 route của main (ngừng bán theo ngày 3, nơi đón đối tác 2) = 579.
   // Gộp main vào nhánh việc 7 (23/11/2026, ADR-0227): + GET (orders), POST (admin) /api/cai-dat/chan-chua-gio-sat-ngay = 581.
+  // Gộp main vào nhánh việc 8 (23/11/2026, ADR-0228): + GET (orders), POST (admin) /api/cai-dat/hanh-khach-doi-tac, /api/cai-dat/khong-can-gio-don, /api/cai-dat/mien-du-ten-doi-tac = 587.
   // Gộp main vào nhánh Việc 13 (23/11/2026, ADR-0232 Ảnh bàn giao): 589 (main sau việc 12, ADR-0231) + 8 route /api/anh-ban-giao/* (4 staff, 4 office) = 597.
-  // Gộp main vào nhánh Việc 10 (23/11/2026, ADR-0229 Giá mùa vụ): 597 + 5 route /api/catalog/gia-mua-vu* (office) = 602.
-  assert.equal(actual.length, 602, "số route thực tế lệch 602 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 602, "SNAPSHOT phải có đúng 602 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // Gộp main vào nhánh Việc 11 (23/11/2026, ADR-0230 Đ1): 597 (main sau Việc 12, 13) + GET, POST /api/tra-sau/dich-vu, POST /api/tra-sau/dich-vu/go (office; billing) = 600.
+  // Gộp main vào nhánh việc 1 (23/11/2026, ADR-0223 Đ3.1): + POST /api/account/dung-thu-vai (staff; chỉ bản dùng thử, bản chính 404) = 601.
+  // Gộp main vào nhánh Việc 10 lần ba (23/11/2026, ADR-0229 Giá mùa vụ): + 5 route /api/catalog/gia-mua-vu* (office) = 606.
+  assert.equal(actual.length, 606, "số route thực tế lệch 606 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 606, "SNAPSHOT phải có đúng 606 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

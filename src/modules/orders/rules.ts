@@ -37,6 +37,8 @@ export interface ValidOrder {
   declaredDeposit: number | null;
   /** ADR-0168: hình thức thanh toán. `null` = thân không có khoá này (máy còn bản giao diện cũ): lập đơn coi là Trả trước, lưu nháp giữ hình thức đang lưu. Cổng hạn mức ở route. */
   paymentTerm: HinhThucThanhToan | null;
+  /** ADR-0230 Đ2: «Trả lúc check-in». `null` = thân không có khoá này (máy còn bản giao diện cũ): lập đơn coi là không chọn, lưu nháp giữ lựa chọn đang lưu. Cổng ở route. */
+  traLucCheckin: boolean | null;
   /** Chỉ dùng cho PUT: `updated_at` mà client đã đọc (khoá lạc quan). */
   expectedUpdatedAt: string | null;
   /**
@@ -238,6 +240,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   const datCoc = docLoiKhai(b.declaredDeposit);
   if (!datCoc.ok) return fail(datCoc.message);
   if (b.paymentTerm !== undefined && b.paymentTerm !== null && b.paymentTerm !== "PREPAID" && b.paymentTerm !== "CREDIT") return fail("Hình thức thanh toán không hợp lệ.");
+  if (b.traLucCheckin !== undefined && b.traLucCheckin !== null && typeof b.traLucCheckin !== "boolean") return fail("Lựa chọn «Trả lúc check-in» không hợp lệ.");
 
   // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước KHÔNG còn nằm trong đơn — trình duyệt ghi KHOẢN THU ở bước hai (billing) sau khi đơn đã lưu. Trang lập
   // đơn CŨ (bộ nhớ đệm PWA chưa tải bản mới) còn gửi khoản trả trước trong thân đơn → từ chối rõ ràng thay vì lặng lẽ bỏ mất số tiền đó.
@@ -261,6 +264,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
       paymentNote: paymentNote.value,
       declaredDeposit: datCoc.value,
       paymentTerm: b.paymentTerm === "PREPAID" || b.paymentTerm === "CREDIT" ? b.paymentTerm : null,
+      traLucCheckin: typeof b.traLucCheckin === "boolean" ? b.traLucCheckin : null,
       expectedUpdatedAt: typeof b.expectedUpdatedAt === "string" && b.expectedUpdatedAt ? b.expectedUpdatedAt : null,
       passengers,
       legsGiven: withLegsResult.legsGiven,

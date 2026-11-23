@@ -100,6 +100,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "billing", file: "modules/billing/dieu-chinh-repo.ts" }, // ADR-0115 đợt 1 (điều chỉnh công nợ cần duyệt, migration 0094) — nghiêm từ ngày đầu: SQL tiền đi qua defineSql + EXPLAIN
   { module: "billing", file: "modules/billing/kenh-thu-repo.ts" }, // ADR-0178 (công tắc kênh thu đối tác, migration 0144) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/tra-sau-repo.ts" }, // ADR-0168 (trả sau theo hạn mức, migration 0141) — nghiêm từ ngày đầu
+  { module: "billing", file: "modules/billing/tra-sau-dich-vu-repo.ts" }, // ADR-0178 Đ2, ADR-0230 Đ1 (dấu Trả sau theo dịch vụ, migration 0186) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/tu-ghi-repo.ts" }, // ADR-0187 Đ3 mức (a) (sổ soát tự ghi đơn mình lập, migration 0150) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/bien-lai-repo.ts" }, // ADR-0196 (ảnh biên lai chuyển khoản, migration 0158) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/khoan-nop-repo.ts" }, // ADR-0182 phần B (khoản nộp đại lý + ảnh biên lai, migration 0159) — nghiêm từ ngày đầu

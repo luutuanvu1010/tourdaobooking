@@ -1122,3 +1122,47 @@ export async function demDonXacNhanTheoMaVaNgay(db: D1Database, codes: readonly 
   if (codes.length === 0) return 0;
   return (await db.prepare(CONFIRMED_COUNT_BY_CODE_DATE).bind(JSON.stringify(codes), tuNgay, denNgay).first<{ n: number }>())?.n ?? 0;
 }
+
+// ---- «Trả lúc check-in» (ADR-0230 Đ2; migration 0187 phần B): bảng CHỈ THÊM `ord_checkin_payment`, dòng hiệu lực = `valid_from_at` lớn nhất ----
+// KHÔNG thuộc ngoại lệ xoá–chèn của đơn nháp (XOA_CUNG_NHAP): đổi ý khi còn nháp = chèn dòng mới; lưu y nguyên không chèn gì. Trigger chặn chèn khi đơn đã rời nháp.
+const CHECKIN_INSERT = defineSql(
+  "orders",
+  "checkin_payment_insert",
+  `INSERT INTO ord_checkin_payment (id, order_id, enabled, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, 1, ?3, ?3, ?4, ?3, ?4)`,
+);
+/** Lập đơn: chỉ gọi khi người lập CHỌN (không chọn ⇒ không dòng nào). Đứng SAU câu chèn đơn (khoá ngoại + trigger đọc trạng thái nháp). */
+export const checkinInsert = (db: D1Database, orderId: string, at: string, by: string): D1PreparedStatement => db.prepare(CHECKIN_INSERT).bind(crypto.randomUUID(), orderId, at, by);
+/**
+ * Lưu nháp: chèn dòng MỚI chỉ khi giá trị gửi lên khác dòng hiệu lực (không dòng = không chọn) VÀ đơn còn nháp với ĐÚNG mốc `updated_at` form đã đọc (?6) — CÙNG điều kiện câu UPDATE
+ * đơn của lô (khoá lạc quan). Câu đứng TRƯỚC câu UPDATE trong cùng `db.batch` (một giao dịch, tuần tự): điều kiện đúng ở câu này thì câu UPDATE ngay sau cũng thắng, và ngược lại
+ * — không cần đọc `audit_log` (không nới nợ DOC_AUDIT_LOG_WONGUARD). Vì đứng trước câu UPDATE, hình thức trên đơn lúc chèn là hình thức CŨ: luật «chỉ Thanh toán ngay» do máy chủ
+ * kiểm trước lô và trigger `orders_checkin_payment_prepaid` chặn ở câu xác nhận. `at` = `updated_at` mới của đơn (luôn tăng — `nextStamp`).
+ */
+const CHECKIN_INSERT_IF_DRAFT = defineSql(
+  "orders",
+  "checkin_payment_insert_if_draft",
+  `INSERT INTO ord_checkin_payment (id, order_id, enabled, valid_from_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5
+   WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?2 AND status = 'draft' AND updated_at = ?6)
+     AND COALESCE((SELECT c.enabled FROM ord_checkin_payment c WHERE c.order_id = ?2 ORDER BY c.valid_from_at DESC LIMIT 1), 0) <> ?3`,
+);
+export const checkinInsertIfDraft = (db: D1Database, orderId: string, chon: boolean, at: string, by: string, expectedUpdatedAt: string): D1PreparedStatement =>
+  db.prepare(CHECKIN_INSERT_IF_DRAFT).bind(crypto.randomUUID(), orderId, chon ? 1 : 0, at, by, expectedUpdatedAt);
+/** Dòng hiệu lực của một đơn: 1 = «Trả lúc check-in», 0 / không dòng = không. Dùng trong lô đọc của `findOrder`. */
+const CHECKIN_OF_ORDER = defineSql(
+  "orders",
+  "checkin_payment_of_order",
+  `SELECT enabled FROM ord_checkin_payment WHERE order_id = ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+export const checkinOfOrderStatement = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(CHECKIN_OF_ORDER).bind(orderId);
+export const laCheckinTuKetQua = (rows: readonly unknown[]): boolean => Number((rows[0] as { enabled?: number } | undefined)?.enabled ?? 0) === 1;
+/** Lưu nháp: lựa chọn đang lưu + dấu «Khách của đối tác trả cho Công ty» chụp lúc lập (null = đơn văn phòng lập) — đủ cho cổng `traLucCheckinHopLe`. */
+const CHECKIN_DRAFT_INFO = defineSql(
+  "orders",
+  "checkin_payment_draft_info",
+  `SELECT o.company_collects_snapshot AS dau, (SELECT c.enabled FROM ord_checkin_payment c WHERE c.order_id = o.id ORDER BY c.valid_from_at DESC LIMIT 1) AS chon FROM orders o WHERE o.id = ?1`,
+);
+export async function checkinDangLuu(db: D1Database, orderId: string): Promise<{ daChon: boolean; congTyThuLucLap: 0 | 1 | null }> {
+  const r = await db.prepare(CHECKIN_DRAFT_INFO).bind(orderId).first<{ dau: number | null; chon: number | null }>();
+  return { daChon: r?.chon === 1, congTyThuLucLap: r?.dau === 0 ? 0 : r?.dau === 1 ? 1 : null };
+}

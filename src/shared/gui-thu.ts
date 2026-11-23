@@ -26,7 +26,9 @@ function locThuBanThu(that: Mailer, danhSach: unknown): Mailer {
 }
 
 /** Bộ gửi + địa chỉ người gửi đọc từ môi trường; thiếu cái nào thì trường đó `undefined` (tính năng thư tự tắt — không ném). Có `MOI_TRUONG` thì bộ gửi được lọc theo `THU_CHO_PHEP`. */
-export function cauHinhThu(env: { EMAIL?: unknown; FEEDBACK_MAIL_FROM?: unknown; MOI_TRUONG?: unknown; THU_CHO_PHEP?: unknown }): { mailer?: Mailer; from?: string } {
+export function cauHinhThu(env: { EMAIL?: unknown; FEEDBACK_MAIL_FROM?: unknown; MOI_TRUONG?: unknown; THU_CHO_PHEP?: unknown; BAN_DUNG_THU?: unknown }): { mailer?: Mailer; from?: string } {
+  // BẢN DÙNG THỬ (ADR-0223 Đ4): không thư nào đi ra ngoài, kể cả khi lỡ đặt danh sách cho phép — không dựng bộ gửi.
+  if (env.BAN_DUNG_THU === "bat") return {};
   const e = env.EMAIL as Partial<Mailer> | undefined;
   let mailer = e && typeof e.send === "function" ? (e as Mailer) : undefined;
   if (mailer && env.MOI_TRUONG !== undefined && env.MOI_TRUONG !== null) mailer = locThuBanThu(mailer, env.THU_CHO_PHEP);

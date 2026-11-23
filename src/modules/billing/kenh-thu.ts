@@ -3,6 +3,7 @@
 import type { KenhThuDoiTacDto } from "../../shared/contracts.ts";
 import { nguoiThuHopLeKenhTat, thuHoChiTienMat } from "../../shared/kenh-thu-doi-tac.ts";
 import { error } from "../../shared/http.ts";
+import { checkinChiTienMat } from "../../shared/tra-luc-checkin.ts";
 import { kenhThuCuaDon, kenhThuLichSu, kenhThuTai } from "./kenh-thu-repo.ts";
 
 export async function kenhThuHienTai(db: D1Database, at: string = new Date().toISOString()): Promise<0 | 1> {
@@ -34,15 +35,20 @@ export async function kiemNguoiThuKenh(
   const v = nguoiThuHopLeKenhTat({ dauDon: k.dau, nguoiLapPartyId: k.nguoiLap, collectorPartyId: lt.collectorPartyId });
   if (!v.ok) return error(409, v.ma, v.cau);
   if (lt.boQuaChiTienMat) return null;
-  const m = thuHoChiTienMat({ chiTienMat: k.chiTienMat, collectorRole: lt.collectorRole, method: lt.hinhThuc, nguoiThuLaDoiTacLapDon: k.dau !== null && k.nguoiLap !== null && lt.collectorPartyId === k.nguoiLap });
-  return m.ok ? null : error(409, m.ma, m.cau);
+  const doiTacLapDonTuThu = k.dau !== null && k.nguoiLap !== null && lt.collectorPartyId === k.nguoiLap;
+  const m = thuHoChiTienMat({ chiTienMat: k.chiTienMat, collectorRole: lt.collectorRole, method: lt.hinhThuc, nguoiThuLaDoiTacLapDon: doiTacLapDonTuThu });
+  if (!m.ok) return error(409, m.ma, m.cau);
+  // ADR-0230 Đ2 mục 2: đơn «Trả lúc check-in» — CÙNG cổng, luật riêng (trigger bil_receipt_checkin_cash_only, 0187 mục 10), cùng miễn như luật trên.
+  const c = checkinChiTienMat({ traLucCheckin: k.traLucCheckin, collectorRole: lt.collectorRole, method: lt.hinhThuc, nguoiThuLaDoiTacLapDon: doiTacLapDonTuThu });
+  return c.ok ? null : error(409, c.ma, c.cau);
 }
 
 /**
  * QR vào tài khoản công ty (ADR-0178 Đ1 mục 2): đơn mang dấu Tắt ⇒ false (Công ty không nhận tiền khách của đơn đó). ADR-0225 Đ2: đơn mang dấu «chỉ thu hộ tiền mặt» ⇒ false.
+ * ADR-0230 Đ2: đơn «Trả lúc check-in» ⇒ false.
  * Đơn dấu Bật / không dấu / không đọc được ⇒ true (nơi gọi đã đọc đơn).
  */
 export async function congTyNhanTienKhach(db: D1Database, orderId: string): Promise<boolean> {
   const k = await kenhThuCuaDon(db, orderId);
-  return k?.dau !== 0 && k?.chiTienMat !== true;
+  return k?.dau !== 0 && k?.chiTienMat !== true && k?.traLucCheckin !== true; // ADR-0230 Đ2: đơn «Trả lúc check-in» không QR
 }
