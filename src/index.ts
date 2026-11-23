@@ -247,7 +247,7 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
     ...(toChuc ? cauXacMinhToChucTuPhieu(db, { partyId: toChuc.partyId, muc: toChuc.muc, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt }) : []),
     // 6 — parties: dòng đồng ý, người tạo = tài khoản mới; câu LUÔN chạy này mang lính gác hồ sơ đích còn dùng, chưa gộp (I1).
     cauDongYTuPhieu(db, { id: crypto.randomUUID(), partyId, policyId: v.policyId, consentedAt: v.consentedAt, staffId: tk.id }),
-    // 7a — parties: tệp ô GPKD / GIAY_PHEP_THEM thành tệp của hồ sơ TỔ CHỨC (nối dòng giấy tờ tổ chức). Đứng TRƯỚC câu 7 vì câu 7 gỡ mọi tệp chờ còn lại.
+    // 7a — parties: tệp ô của phần tổ chức (GPKD / GIAY_PHEP_THEM / TEP_KHAC_TO_CHUC — ADR-0233) thành tệp của hồ sơ TỔ CHỨC (nối dòng giấy tờ tổ chức). Đứng TRƯỚC câu 7 vì câu 7 gỡ mọi tệp chờ còn lại.
     ...(toChuc ? cauChuyenTepChoToChuc(db, { registrationId: v.registrationId, orgPartyId: toChuc.partyId, gpkdDocId: toChuc.gpkdId, extraDocId: toChuc.extraId, approverId: v.approverId, at: v.at }) : []),
     // 7 — parties: tệp của phiếu (trừ ô tổ chức) thành tệp của hồ sơ người (nối dòng giấy tờ); không có dòng giấy tờ thì tệp chờ còn lại nhận quyết gỡ.
     ...(docId

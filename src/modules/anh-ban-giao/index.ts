@@ -1,4 +1,4 @@
-// Module anh-ban-giao — «Ảnh bàn giao» (ADR-0232, accepted 2026-11-22; migration 0190; kho R2 binding ANH_BAN_GIAO). Module NGHIÊM, tiền tố bảng abg_.
+// Module anh-ban-giao — «Ảnh bàn giao» (ADR-0232, accepted 2026-11-22; migration 0192; kho R2 binding ANH_BAN_GIAO). Module NGHIÊM, tiền tố bảng abg_.
 // Route nằm dưới /api/anh-ban-giao/* — NGOÀI cổng đơn (tài xế công ty phải vào được mà không mở cổng đơn cho tài xế, ADR-0232 Đ1). Mỗi route hỏi ô của Đ4.
 // Không import dispatch / van-chuyen / parties: «người phụ trách» (ctx.isAssigned), «tài xế của chuyến» (ctx.taiXeLaiChang), số năm giữ (ctx.soNamGiuAnh) do gốc
 // lắp ráp tiêm. Nội dung ảnh, ghi chú, lý do ẩn, khoá kho KHÔNG vào nhật ký (chi tiết nhật ký chỉ mã ảnh 8 ký tự). Thứ tự xem: ô → nhật ký → đọc kho (Hiến chương 5.22).

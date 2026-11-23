@@ -1,4 +1,4 @@
--- Migration 0190 — ADR-0232 (accepted 2026-11-22): «Ảnh bàn giao» — ảnh chụp lúc làm việc gắn vào đơn, trên R2 (binding ANH_BAN_GIAO). Module anh-ban-giao (tiền tố abg_).
+-- Migration 0192 — ADR-0232 (accepted 2026-11-22): «Ảnh bàn giao» — ảnh chụp lúc làm việc gắn vào đơn, trên R2 (binding ANH_BAN_GIAO). Module anh-ban-giao (tiền tố abg_).
 -- CHỈ THÊM. Xây trên lỗ đang hở HC-5.19 (khoá `xay_tren_cho_phep_adr_0232`, docs/quyen-hoan.json; chủ bỏ điều kiện diễn tập 22/11).
 -- Khuôn bil_receipt_proof (0158). Nội dung ảnh KHÔNG nằm trong D1 — chỉ ở kho R2 riêng, khoá ngẫu nhiên không mang nghĩa (Hiến chương 5.22). Không tên tệp gốc,
 -- không toạ độ, không giờ chụp của máy (Đ2). thumb_key, view_key, content_hash, hidden_reason là hạng N3; note là N2 — KHÔNG BAO GIỜ vào nhật ký, câu báo lỗi.

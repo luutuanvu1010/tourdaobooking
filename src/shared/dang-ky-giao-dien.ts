@@ -3,19 +3,16 @@
 // «Chưa kích hoạt», câu đóng đăng ký, lối vào ở màn Đăng nhập. Chữ còn lại do AI viết, chờ chủ chọn (BANG-THAM-CHIEU — khái niệm «Chữ của trang đăng ký đối tác»).
 
 import type { KHU_TO_CHUC, KhuO } from "./dang-ky-truong.ts";
+import { O_TEP_TO_CHUC } from "./dang-ky-o-tep.ts";
 
 /** PHU-LUC lượt A, «Câu khi đang đóng đăng ký» (nguyên văn). Cùng câu với 409 `registration_closed` của bước nhập mã. */
 export const CAU_DONG_DANG_KY = "Tour Đảo tạm ngừng nhận đăng ký mới.";
 /** PHU-LUC lượt A, «Lối vào ở màn Đăng nhập». */
 export const LOI_VAO_DANG_KY = "Đăng ký làm đối tác";
 
-/** Hai ô ảnh của phiếu cá nhân (khoá = `O_TEP_PHIEU` của máy chủ). */
-export const NHAN_O_TEP: Readonly<Record<string, string>> = { CCCD_MAT_TRUOC: "Ảnh mặt trước căn cước", CCCD_MAT_SAU: "Ảnh mặt sau căn cước" };
-
-/** Hai ô ảnh của PHẦN TỔ CHỨC (khoá = `O_TEP_TO_CHUC` của máy chủ; đợt 2 Task 8). Chỉ hiện khi phiếu có phần tổ chức. */
-export const NHAN_O_TEP_TO_CHUC: Readonly<Record<string, string>> = { GPKD: "Ảnh giấy chứng nhận đăng ký kinh doanh", GIAY_PHEP_THEM: "Ảnh giấy phép thêm" };
-/** Ô ảnh của phần tổ chức mà phiếu còn tệp chờ (theo thứ tự khai). Biểu mẫu LUÔN hiện các ô này kèm «Bỏ ảnh này», kể cả khi phần tổ chức đã đóng — nếu không, máy chủ báo `org_photo_without_org` mà không có lối ra. */
-export const anhToChucConLai = (tep: readonly { o: string }[]): string[] => Object.keys(NHAN_O_TEP_TO_CHUC).filter((ma) => tep.some((t) => t.o === ma));
+/** Ô của phần tổ chức mà phiếu còn tệp chờ (theo thứ tự khai ở `O_TEP`). Biểu mẫu LUÔN hiện các ô này kèm «Bỏ ảnh này», kể cả khi phần tổ chức đã đóng — nếu không, máy chủ báo `org_photo_without_org` mà không có lối ra.
+ *  Tên hiện của mọi ô: `nhanOTep` ở src/shared/dang-ky-o-tep.ts (ADR-0233 — một nguồn cho máy chủ, trang đăng ký, hàng chờ xác minh). */
+export const anhToChucConLai = (tep: readonly { o: string }[]): string[] => O_TEP_TO_CHUC.filter((ma) => tep.some((t) => t.o === ma));
 /** Khu của phần tổ chức → ô ảnh nằm ở khu đó (khu không có ô ảnh thì vắng). */
 export const O_TEP_CUA_KHU: Readonly<Partial<Record<KhuO, string>>> = { gpkd: "GPKD", giayPhepThem: "GIAY_PHEP_THEM" };
 /** Tiêu đề từng khu của phần tổ chức (chờ chủ chọn). */
@@ -34,6 +31,7 @@ export const CHU_DANG_KY = {
   tieuDeMa: "Nhập mã",
   tieuDeThongTin: "Thông tin của bạn",
   nhapLaiSo: "Phiếu cần bổ sung: hãy xem lý do ở trên, sửa thông tin rồi bấm «Gửi lại». Số căn cước và số điện thoại cần nhập lại.",
+  giaiThichTepKhac: "Giấy tờ khác bạn muốn gửi kèm: ảnh JPG, PNG, HEIC hoặc tệp PDF.",
   giaiThichAnh: "Chụp hoặc chọn ảnh hai mặt căn cước. Ảnh được thu nhỏ trên máy trước khi gửi. Sau khi gửi, bạn không xem lại được ảnh.",
   dongY: "Tôi đã đọc và đồng ý chính sách riêng tư của Tour Đảo.",
   daGui: "Đã gửi phiếu. Tour Đảo sẽ xác minh và báo kết quả qua email.",

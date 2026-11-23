@@ -1,4 +1,4 @@
-// Luật thuần «Ảnh bàn giao» (ADR-0232 Đ5): kiểm thân tải, nhận JPEG còn Exif, hạn giữ; con số cỡ / trần khớp migration 0190.
+// Luật thuần «Ảnh bàn giao» (ADR-0232 Đ5): kiểm thân tải, nhận JPEG còn Exif, hạn giữ; con số cỡ / trần khớp migration 0192.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -52,8 +52,8 @@ test("lý do ẩn / ghi chú yêu cầu xoá: 3–300 ký tự sau khi bỏ kho�
   assert.equal(kiemLyDoAnh(5), null);
 });
 
-test("con số khớp migration 0190: cỡ ảnh nhỏ / ảnh xem, 30 ảnh mỗi đơn", () => {
-  const sql = readFileSync(new URL("../../migrations/0190_anh_ban_giao.sql", import.meta.url), "utf8");
+test("con số khớp migration 0192: cỡ ảnh nhỏ / ảnh xem, 30 ảnh mỗi đơn", () => {
+  const sql = readFileSync(new URL("../../migrations/0192_anh_ban_giao.sql", import.meta.url), "utf8");
   assert.match(sql, new RegExp(`thumb_size BETWEEN 1 AND ${TOI_DA_ANH_NHO}\\b`));
   assert.match(sql, new RegExp(`view_size BETWEEN 1 AND ${TOI_DA_ANH_XEM}\\b`));
   assert.match(sql, new RegExp(`p\\.hidden_at IS NULL\\) >= ${ANH_TOI_DA_MOI_DON}\\b`));

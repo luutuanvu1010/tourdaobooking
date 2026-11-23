@@ -1,4 +1,4 @@
-// Migration 0190 (ADR-0232): bảng abg_photo + abg_erasure_request — luật CSDL của «Ảnh bàn giao» (khuôn bil_receipt_proof của 0158).
+// Migration 0192 (ADR-0232): bảng abg_photo + abg_erasure_request — luật CSDL của «Ảnh bàn giao» (khuôn bil_receipt_proof của 0158).
 // Chạy trên SQLite dựng từ MỌI migration, chèn thẳng bằng SQL để canh lớp CSDL độc lập với route (Hiến chương 5.1, hai lớp).
 // Hạn giữ (ADR-0232 Đ7): trigger so với GIỜ HỆ THỐNG của SQLite — bài chèn thẳng dòng có created_at / retain_until trong quá khứ hoặc tương lai, không giả lập đồng hồ.
 import { test } from "node:test";

@@ -1,12 +1,12 @@
 // Luật THUẦN của «Ảnh bàn giao» (ADR-0232): MỘT nguồn cho máy chủ (module anh-ban-giao) và giao diện (web/anh-ban-giao.ts). Không I/O.
 // Chỉ nhận JPEG HAI CỠ đã nén ở trình duyệt (Đ5): kiểm theo chữ ký thật, từ chối JPEG còn đoạn «Exif» (canvas không sinh đoạn này — tệp có nó là tệp không qua
-// bước nén, có thể còn toạ độ chụp). Con số cỡ khớp CHECK của migration 0190 (bài src/shared/anh-ban-giao.test.ts ghim).
+// bước nén, có thể còn toạ độ chụp). Con số cỡ khớp CHECK của migration 0192 (bài src/shared/anh-ban-giao.test.ts ghim).
 import { doDaiBase64, giaiBase64, nhanLoaiTep } from "./tep-dinh-kem.ts";
 
 /** Cạnh dài (điểm ảnh) của hai bản (Đ5). */
 export const CANH_ANH_NHO = 400;
 export const CANH_ANH_XEM = 1600;
-/** Trần cỡ (byte) — khớp CHECK thumb_size / view_size của 0190. */
+/** Trần cỡ (byte) — khớp CHECK thumb_size / view_size của 0192. */
 export const TOI_DA_ANH_NHO = 100 * 1024;
 export const TOI_DA_ANH_XEM = 600 * 1024;
 /** Trần thân yêu cầu tải (chặn TRƯỚC khi đọc thân): hai chuỗi base64 + phần chữ. */
@@ -104,7 +104,7 @@ export function hanGiuAnh(taiLuc: string, soNam: number): string {
   return d.toISOString();
 }
 
-/** Lý do ẩn / ghi chú yêu cầu xoá: 3–300 ký tự (khớp CHECK hidden_reason / channel_note của 0190). */
+/** Lý do ẩn / ghi chú yêu cầu xoá: 3–300 ký tự (khớp CHECK hidden_reason / channel_note của 0192). */
 export function kiemLyDoAnh(v: unknown): string | null {
   if (typeof v !== "string") return null;
   const t = v.normalize("NFC").trim();

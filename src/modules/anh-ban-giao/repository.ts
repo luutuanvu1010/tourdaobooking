@@ -1,4 +1,4 @@
-// SQL của «Ảnh bàn giao» (ADR-0232; migration 0190): bảng abg_photo, abg_erasure_request (chỉ module anh-ban-giao ghi). Module NGHIÊM: mọi câu qua `defineSql`
+// SQL của «Ảnh bàn giao» (ADR-0232; migration 0192): bảng abg_photo, abg_erasure_request (chỉ module anh-ban-giao ghi). Module NGHIÊM: mọi câu qua `defineSql`
 // (câu TĨNH), chịu bài EXPLAIN. Đơn đọc qua view công bố v_ord_order_state (không JOIN bảng của orders). thumb_key, view_key, content_hash, hidden_reason là N3:
 // chỉ đi trong câu lệnh, KHÔNG BAO GIỜ ra DTO, nhật ký, câu lỗi. Khuôn: billing/bien-lai-repo.ts (ADR-0196). Import kèm đuôi .ts.
 import { defineSql } from "../../shared/sql-registry.ts";
@@ -60,7 +60,7 @@ const DANH_DAU_YEU_CAU = defineSql(
   "UPDATE abg_photo SET erasure_request_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND erasure_request_id IS NULL AND purged_at IS NULL",
 );
 // Lính gác cùng lô với parties (khuôn DA_THANG_XOA của parties/repository.ts): chỉ chạy khi chính dòng phiếu đã mang người ?3 + lúc ?2 của lô này — lô thua cuộc
-// đua (phiếu vừa bị rút / từ chối) thì hai câu dưới không đổi dòng nào. Đọc qua view công bố v_pty_erasure_decision (0190).
+// đua (phiếu vừa bị rút / từ chối) thì hai câu dưới không đổi dòng nào. Đọc qua view công bố v_pty_erasure_decision (0192).
 const DA_THANG_PHIEU = "EXISTS (SELECT 1 FROM v_pty_erasure_decision d WHERE d.id = ?1 AND d.status = 'DA_THUC_HIEN' AND d.decided_by = ?3 AND d.decided_at = ?2)";
 // Lô thực hiện phiếu xoá (ADR-0126) của parties: quyết gỡ mọi ảnh đã đánh dấu vào yêu cầu của phiếu ?1, rồi ghi mốc thực hiện của yêu cầu.
 const GO_THEO_PHIEU = defineSql(
