@@ -1,6 +1,6 @@
 # Sổ vàng giá mùa vụ — bản đọc cho Kế toán
 
-> **Loại tệp:** hồ sơ có ngày (ADR-0229 chủ đã duyệt 22/11/2026). **Trạng thái:** **chờ Kế toán xác nhận** (Hiến chương 5.17: luật sinh tiền phải có ca mẫu đúng từng đồng, chủ hoặc Kế toán xác nhận).
+> **Loại tệp:** hồ sơ có ngày (ADR-0229 chủ đã duyệt 22/11/2026). **Trạng thái:** **Kế toán xác nhận sổ vàng giá mùa vụ ngày 23/11/2026, người kiểm ghi tên «Vũ»** — 33/33 ca Đúng (C1–C20, H1–H13), ca C19 đồng ý giữ 0 đ; trả lời trên trang https://claude.ai/artifact/1JuYPL7JxxKdUTG8jhUoG4 (trước đó: chờ Kế toán xác nhận) (Hiến chương 5.17: luật sinh tiền phải có ca mẫu đúng từng đồng, chủ hoặc Kế toán xác nhận).
 > Bản máy đọc (nguồn duy nhất của con số): `src/shared/gia-mua-vu.so-vang.json`; bài kiểm `src/shared/gia-mua-vu.test.ts`. Sửa số thì sửa ở tệp JSON, rồi sửa bảng này cho khớp.
 > Đi kèm: đề xuất ADR-0229 `docs/superpowers/specs/2026-11-21-DE-XUAT-ADR-0229-gia-mua-vu.md`.
 

@@ -1,6 +1,6 @@
 {
   "_ghiChu": "Sổ vàng giá mùa vụ (Hiến chương 5.17; đề xuất ADR-0229). TRẠNG THÁI: CHỜ KẾ TOÁN XÁC NHẬN — chưa có hiệu lực. Bản đọc cho người: docs/superpowers/specs/2026-11-21-so-vang-gia-mua-vu.md. Công thức (chủ chốt 21/11, câu 10b): ceil((gốc × (100 + %) + tiền × 100) / 100000) × 1000; không quy tắc ⇒ giữ nguyên giá gốc. Giá gốc = giá sau ghi đè Quản trị. Mọi ngày là ngày đi, giờ Việt Nam.",
-  "trangThai": "CHO_KE_TOAN_XAC_NHAN",
+  "trangThai": "DA_XAC_NHAN — Kế toán xác nhận sổ vàng giá mùa vụ ngày 23/11/2026, người kiểm ghi tên «Vũ»: 33/33 ca Đúng (C1–C20, H1–H13), ca C19 đồng ý giữ 0 đ; trả lời trên trang https://claude.ai/artifact/1JuYPL7JxxKdUTG8jhUoG4",
   "quyTac": [
     {
       "id": "R1",
