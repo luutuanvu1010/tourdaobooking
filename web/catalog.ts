@@ -1033,8 +1033,11 @@ const staff = await initShell();
 if (!can(staff, "admin.manage")) {
   // ADR-0169 Đ4: Quản lý bán hàng dùng màn hẹp; còn lại máy chủ từ chối, trang báo lỗi.
   byId("man-du").hidden = true;
-  if (dungManHepDichVu(staff)) await veManHep(byId("man-hep"), errorEl, can(staff, "catalog.sync") ? noticeEl : null, quyenGiaMuaVu(staff));
-  else showError(errorEl, "Tài khoản này không vào được trang này.");
+  if (dungManHepDichVu(staff)) {
+    await veManHep(byId("man-hep"), errorEl, can(staff, "catalog.sync") ? noticeEl : null, quyenGiaMuaVu(staff), {
+      ngungBan: can(staff, "catalog.hidden.write"), kiemVe: can(staff, "catalog.confirm_flag.write"),
+    });
+  } else showError(errorEl, "Tài khoản này không vào được trang này.");
 } else {
   pullBtn.hidden = !can(staff, "catalog.sync");
   // Bước 1 khung chung (N10): khối tự kiểm vé và khối nhóm dịch vụ về sau dữ liệu — giữ chỗ trước để danh sách bên dưới không bị đẩy.

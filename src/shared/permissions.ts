@@ -555,8 +555,12 @@ export const passesAdminGate = (who: PermissionHolder): boolean => holdsAny(who,
 export const passesAccountsGate = (who: PermissionHolder): boolean => holdsAny(who, ACCOUNTS_GATE);
 /** Qua cổng "office" (vào Hồ sơ…). KHÔNG dùng để hiện Trang chủ/Đơn hàng — dùng `seesAllOrders`. */
 export const isOffice = (who: PermissionHolder): boolean => holdsAny(who, OFFICE_GATE);
-/** ADR-0169 Đ4: dùng được màn hẹp Dịch vụ & giá. Cổng office vẫn là điều kiện: mã SALES_MANAGER KHÔNG vào cổng (cổng này còn mở Danh bạ, tin đơn), nên tài khoản bị bớt tay SALES không dùng được. */
-export const dungManHepDichVu = (who: PermissionHolder): boolean => can(who, "catalog.hidden.write") && isOffice(who) && !holdsPartner(who);
+/**
+ * ADR-0169 Đ4: dùng được màn hẹp Dịch vụ & giá. Cổng office vẫn là điều kiện: mã SALES_MANAGER KHÔNG vào cổng (cổng này còn mở Danh bạ, tin đơn), nên tài khoản bị bớt tay SALES không dùng được.
+ * ADR-0229 (chủ dự án 2026-11-23, nguyên văn «duyệt cả ba theo khuyến nghị» — câu 1: mở màn hẹp cho người giữ ô đặt giá mùa vụ): thêm người giữ `catalog.seasonal.write` (Kế toán) —
+ * họ chỉ thấy nút Giá mùa vụ; nút Ngừng bán / Cần kiểm vé trên màn vẫn theo ô riêng (`catalog.hidden.write`, `catalog.confirm_flag.write`), route của chúng vẫn tự hỏi ô.
+ */
+export const dungManHepDichVu = (who: PermissionHolder): boolean => (can(who, "catalog.hidden.write") || can(who, "catalog.seasonal.write")) && isOffice(who) && !holdsPartner(who);
 /** Qua cổng "orders". Mỗi route đơn vẫn tự gọi `can()` để kiểm phạm vi. */
 export const canAccessOrders = (who: PermissionHolder): boolean => holdsAny(who, ORDERS_GATE);
 /** Xem được MỌI đơn (không ngữ cảnh): hiện Trang chủ, mục "Đơn hàng", ô tìm đơn; `homeRedirect` giữ người này ở Trang chủ. Là câu hỏi của BẢNG, không phải cổng. */

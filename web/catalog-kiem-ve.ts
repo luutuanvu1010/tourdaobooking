@@ -133,7 +133,11 @@ export async function dongBoTuSheet(o: { nut: HTMLButtonElement; thongBaoEl: HTM
  * Màn hẹp của Quản lý bán hàng (ADR-0169 Đ4): tên vé theo nhóm, ô tìm, công tắc kiểm vé, Ngừng bán / Mở bán lại. Không giá, không sửa nhóm.
  * `thongBaoEl` khác null (người xem giữ ô `catalog.sync`) ⇒ có thêm nút «Đồng bộ ngay từ Google Sheet» ở đầu màn (ADR-0186 Đ5, lời chủ 8/11).
  */
-export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, thongBaoEl: HTMLElement | null, quyenMuaVu: QuyenGiaMuaVu): Promise<void> {
+export async function veManHep(
+  noiDungEl: HTMLElement, errorEl: HTMLElement, thongBaoEl: HTMLElement | null, quyenMuaVu: QuyenGiaMuaVu,
+  /** ADR-0229 (chủ 23/11): màn hẹp mở cả cho người chỉ giữ ô giá mùa vụ (Kế toán) — nút Ngừng bán, Ngừng bán theo ngày, Cần kiểm vé chỉ hiện khi giữ ô tương ứng (trang hỏi bảng quyền). */
+  quyenMan: { ngungBan: boolean; kiemVe: boolean },
+): Promise<void> {
   let dm: Api.CatalogQuanLyBanResponse | null = null;
   let tuKhoa = "";
   const nhomMo = new Set<string>();
@@ -148,7 +152,7 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
     replaceChildren(dsEl, ...ds.map((n) => theNhom(n, moSanNhomKiemVe(ds, n, tuKhoa.trim() !== ""))));
   };
   const kv = taoKiemVe(errorEl, veDs);
-  const ngungNgay = taoNgungBanNgay(true, veDs); // màn hẹp chỉ mở cho người giữ ô ngừng bán (`dungManHepDichVu`)
+  const ngungNgay = taoNgungBanNgay(quyenMan.ngungBan, veDs); // ô `catalog.hidden.write` (màn hẹp nay mở cả cho người chỉ giữ ô giá mùa vụ)
   const giaMuaVu = taoGiaMuaVu(quyenMuaVu, veDs); // ADR-0229 Đ9: ô quyền do trang hỏi bảng quyền
 
   const doiBan = async (d: DongDichVuKiemVe, nut: HTMLButtonElement): Promise<void> => {
@@ -174,10 +178,10 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
       "div",
       { class: d.dangBan ? "kv-dong kv-dong-ve" : "kv-dong kv-dong-ve row-off", "data-ma": d.ma },
       h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, d.ten), !d.dangBan && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), ...ngungNgay.nhanDichVu(d.ma, dm?.dichVu.find((x) => x.code === d.ma)?.groupCode ?? null), ...giaMuaVu.nhanDichVu(d.ma, dm?.dichVu.find((x) => x.code === d.ma)?.groupCode ?? null)),
-      nutBan,
+      quyenMan.ngungBan && nutBan,
       ngungNgay.nut("SERVICE", d.ma, d.ten, "pill-btn"),
       giaMuaVu.nut("SERVICE", d.ma, d.ten, "pill-btn"),
-      kv.oKiemVe(d.ma, d.ten, d.can, nhanNguonKiemVe(d)),
+      quyenMan.kiemVe && kv.oKiemVe(d.ma, d.ten, d.can, nhanNguonKiemVe(d)),
     );
   };
 
@@ -192,8 +196,8 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
         : h(
             "div",
             { class: "kv-dong kv-ca-nhom" },
-            h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, "Cả nhóm cần kiểm vé"), h("span", { class: "hint" }, "Vé đã đặt riêng không đổi theo nhóm."), ...ngungNgay.nhanNhom(n.ma), ...giaMuaVu.nhanNhom(n.ma)),
-            kv.congTacNhom(n.ma, n.ten, n.caNhomCan),
+            h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, quyenMan.kiemVe ? "Cả nhóm cần kiểm vé" : "Cả nhóm"), quyenMan.kiemVe && h("span", { class: "hint" }, "Vé đã đặt riêng không đổi theo nhóm."), ...ngungNgay.nhanNhom(n.ma), ...giaMuaVu.nhanNhom(n.ma)),
+            quyenMan.kiemVe && kv.congTacNhom(n.ma, n.ten, n.caNhomCan),
             ngungNgay.nut("GROUP", n.ma, n.ten, "pill-btn"),
             giaMuaVu.nut("GROUP", n.ma, n.ten, "pill-btn"),
           ),
@@ -219,7 +223,7 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
   };
 
   try {
-    const [, ds] = await Promise.all([kv.tai(), api<Api.CatalogQuanLyBanResponse>("/api/catalog/quan-ly-ban"), ngungNgay.tai(), giaMuaVu.tai()]);
+    const [, ds] = await Promise.all([quyenMan.kiemVe ? kv.tai() : Promise.resolve(), api<Api.CatalogQuanLyBanResponse>("/api/catalog/quan-ly-ban"), ngungNgay.tai(), giaMuaVu.tai()]);
     dm = ds;
     const oTim = h("input", { type: "search", class: "o", id: "kv-tim", placeholder: "Ví dụ: buffet" }) as HTMLInputElement;
     oTim.addEventListener("input", () => {

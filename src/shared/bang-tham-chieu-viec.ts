@@ -4506,7 +4506,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/gia-mua-vu.ts", chu: "Giá mùa vụ" },
     ],
     trangThai: "da-chot",
-    nguonTen: "ADR-0229 Đ9 (chủ duyệt 22/11, tên đề xuất trong ADR)",
+    nguonTen: "ADR-0229 Đ9 (chủ duyệt 22/11, tên đề xuất trong ADR); chủ duyệt tên tạm 23/11, nguyên văn «duyệt cả ba theo khuyến nghị»",
   },
   {
     nhom: "Ghi đè giá dịch vụ",
@@ -4550,8 +4550,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/gia-mua-vu.ts", chu: "Lưu mức tăng tối đa" },
     ],
-    trangThai: "cho-chon",
-    nguonTen: "chờ chủ chọn: ADR-0229 Đ8 gọi là «trần %»; tên đang hiện do AI đặt theo câu báo lỗi của máy chủ",
+    trangThai: "da-chot",
+    nguonTen: "chủ dự án duyệt 2026-11-23, nguyên văn «duyệt cả ba theo khuyến nghị» (câu 3: tên tạm của giá mùa vụ); ADR-0229 Đ8 gọi là «trần %»",
   },
   {
     nhom: "Đưa đón của dịch vụ",

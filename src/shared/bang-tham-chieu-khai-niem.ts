@@ -898,7 +898,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuDaLoai: [],
     maNoiBo: ["ctl_seasonal_price", "catalog_seasonal_added", "catalog_seasonal_approved", "catalog_seasonal_ended", "catalog_seasonal_cap_set", "seasonal_overlap", "seasonal_date_changed"],
     trangThai: "da-chot",
-    chuChon: "2026-11-22 (ADR-0229 Đ9, chủ duyệt 22/11, tên đề xuất trong ADR)",
+    chuChon: "2026-11-23 (ADR-0229 Đ9; chủ duyệt tên tạm 23/11, nguyên văn «duyệt cả ba theo khuyến nghị»)",
   }),
   KN({
     ten: "Lượt đưa đón",

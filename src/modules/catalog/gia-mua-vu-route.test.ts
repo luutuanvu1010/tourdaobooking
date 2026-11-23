@@ -109,3 +109,15 @@ test("tiêu chí 7 + 9: quy tắc đã kết thúc không duyệt được, kế
   assert.throws(() => w.sqlite.exec(`DELETE FROM ctl_seasonal_price WHERE id = '${id}'`), /ctl_append_only/);
   assert.equal((await w.call("GET", URL_Q, { as: QL })).json.quyTac.length, 0, "quy tắc đã kết thúc không còn trong danh sách");
 });
+
+test("chủ 23/11 (mở màn hẹp cho người giữ ô giá mùa vụ): Kế toán đọc được danh sách màn hẹp (không giá) và thấy mục Dịch vụ & giá; Bán hàng thường, Đối tác vẫn không; Kế toán vẫn không Ngừng bán", async () => {
+  const w = the();
+  assert.equal((await w.call("GET", "/api/catalog/quan-ly-ban", { as: ACC })).status, 200);
+  for (const as of [A, PARTNER]) assert.equal((await w.call("GET", "/api/catalog/quan-ly-ban", { as })).status, 403, as);
+  assert.equal((await w.call("PUT", "/api/catalog/ZA1/ngung-ban", { as: ACC, body: { ngungBan: true } })).status, 403, "ô Ngừng bán vẫn riêng");
+  assert.equal((await w.call("GET", "/api/catalog/ngung-ban-ngay", { as: ACC })).status, 403);
+  const { TRANG } = await import("../../shared/muc-giao-dien.ts");
+  const nguoi = (permissions: string[]) => ({ id: "x", permissions }) as never;
+  assert.equal(TRANG.dichVu.hien(nguoi(["ACCOUNTING"])), true);
+  assert.equal(TRANG.dichVu.hien(nguoi(["SALES"])), false);
+});
