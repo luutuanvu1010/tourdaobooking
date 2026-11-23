@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Việc 11, phần nối tiếp sau khi 3.37 đã triển khai (23/11): hai bản sửa 7556c95b7, d927c3594. Không migration.
+    // Số 3.38 = số trống kế tiếp sau 3.37 (bản chạy thật lúc kiểm): bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.38",
+    date: "2026-11-23",
+    items: [
+      { kind: "sua", text: "Dịch vụ & giá trên máy tính: ô «Vé do ai phát» hiện đủ hai nút «Vé hãng ngoài» và «Vé Tour Đảo»; các ô vé xếp gọn từng cặp." },
+      { kind: "sua", text: "Chọn «Vé hãng ngoài» cho một dịch vụ nay luôn được giữ riêng, không đổi theo khi nhóm của dịch vụ được đặt «Vé Tour Đảo»." },
+    ],
+  },
+  {
     // Việc 11 kế hoạch 16 việc 21/11 (ADR-0230 chủ duyệt 22/11, migration 0186–0187). Nhánh claude/jolly-taussig-db3da9.
     // Số 3.37 = số trống kế tiếp sau 3.36 (Việc 13) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
     version: "3.37",
