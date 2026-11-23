@@ -419,6 +419,12 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/cai-dat/noi-don-doi-tac", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/chan-chua-gio-sat-ngay", access: "orders" }, // ADR-0227 Đ1: công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» — thân hỏi can(order.create)
   { method: "POST", path: "/api/cai-dat/chan-chua-gio-sat-ngay", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
+  { method: "GET", path: "/api/cai-dat/hanh-khach-doi-tac", access: "orders" }, // ADR-0228 Đ1: công tắc «Đối tác không nhập danh sách hành khách» — thân hỏi can(order.create); trả apChoToi theo người gọi
+  { method: "POST", path: "/api/cai-dat/hanh-khach-doi-tac", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
+  { method: "GET", path: "/api/cai-dat/khong-can-gio-don", access: "orders" }, // ADR-0228 Đ3: công tắc «Đơn đối tác không cần giờ đón» — thân hỏi can(order.create)
+  { method: "POST", path: "/api/cai-dat/khong-can-gio-don", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
+  { method: "GET", path: "/api/cai-dat/mien-du-ten-doi-tac", access: "orders" }, // ADR-0228 Đ2: công tắc «Đơn đối tác không cần đủ tên khách» — thân hỏi can(order.create)
+  { method: "POST", path: "/api/cai-dat/mien-du-ten-doi-tac", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/giao-dien", access: "orders" }, // ADR-0194 đợt 1: chính sách hiện/ẩn/bắt buộc ÁP CHO CHÍNH NGƯỜI GỌI (no-store); thân hỏi order.create / admin.manage / account.view / party.view
   { method: "GET", path: "/api/cai-dat/giao-dien/tat-ca", access: "admin" }, // ADR-0194: danh mục + mọi dòng — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "POST", path: "/api/cai-dat/giao-dien", access: "admin" }, // ADR-0194: đổi một lô dòng của một màn — thân hỏi can(settings.ops)
@@ -926,7 +932,7 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-21 (ADR-0221 Đ1): + GET (orders), POST (admin) /api/cai-dat/noi-don-doi-tac = 570.
   // Gộp main vào nhánh ADR-0218 (22/11/2026): 574 của nhánh + 5 route của main (ngừng bán theo ngày 3, nơi đón đối tác 2) = 579.
   // Gộp main vào nhánh việc 7 (23/11/2026, ADR-0227): + GET (orders), POST (admin) /api/cai-dat/chan-chua-gio-sat-ngay = 581.
-  // Gộp main vào nhánh Việc 13 (23/11/2026, ADR-0232 Ảnh bàn giao): 581 + 8 route /api/anh-ban-giao/* (4 staff, 4 office) = 589.
-  assert.equal(actual.length, 589, "số route thực tế lệch 589 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 589, "SNAPSHOT phải có đúng 589 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // Gộp main vào nhánh Việc 13 (23/11/2026, ADR-0232 Ảnh bàn giao): 587 (main sau việc 8, ADR-0228) + 8 route /api/anh-ban-giao/* (4 staff, 4 office) = 595.
+  assert.equal(actual.length, 595, "số route thực tế lệch 595 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 595, "SNAPSHOT phải có đúng 595 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -18,14 +18,26 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Ảnh bàn giao (kế hoạch 16 việc 21/11, Việc 13; ADR-0232). Nhánh claude/upbeat-payne-c7e621. CÓ migration 0192 và kho R2 mới tourdao-sales-anh-ban-giao (chủ tạo trước).
-    // Số 3.34 = số trống kế tiếp sau 3.33 (Việc 14) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Chỉ bật khi Toàn quyền đăng chính sách riêng tư có «Số năm giữ ảnh bàn giao».
-    version: "3.34",
+    // Số 3.35 = số trống kế tiếp sau 3.34 (Việc 8) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Chỉ bật khi Toàn quyền đăng chính sách riêng tư có «Số năm giữ ảnh bàn giao».
+    version: "3.35",
     date: "2026-11-23",
     items: [
       { kind: "moi", text: "Ảnh bàn giao: ở trang đơn đã xác nhận, văn phòng và hướng dẫn viên phụ trách chụp ảnh lúc giao vé, giao khách rồi bấm «Gửi ảnh»." },
       { kind: "moi", text: "Tài xế công ty gửi ảnh bàn giao ngay trên điểm đón trong màn chuyến." },
       { kind: "moi", text: "Văn phòng, Kế toán, Quản trị xem được ảnh; đối tác và khách không thấy. Ảnh gửi nhầm chỉ Toàn quyền ẩn được, có ghi lý do." },
       { kind: "moi", text: "Chính sách riêng tư có thêm ô «Số năm giữ ảnh bàn giao»; còn trống thì chưa ai gửi được ảnh." },
+    ],
+  },
+  {
+    // Việc 8 kế hoạch 16 việc 21/11 (ADR-0228 chủ duyệt 22/11, migration 0183). Nhánh claude/eloquent-snyder-7de04b.
+    // Số 3.34 = số trống kế tiếp sau 3.33 (Việc 14) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.34",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Công tắc «Ẩn thông tin khách» tách làm hai: «Đối tác không nhập tên, SĐT khách» và «Đối tác không nhập danh sách hành khách». Cả hai giữ vị trí cũ." },
+      { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần đủ tên khách» (mặc định bật): đơn đối tác cho xe chạy được dù chưa đủ tên khách. Tắt thì phải đủ tên." },
+      { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần giờ đón»: bật thì đơn có đón chưa có giờ không phải chờ văn phòng xét chỉ vì thiếu giờ. Mặc định tắt." },
+      { kind: "sua", text: "Trang đơn: dải tóm tắt đầu trang không còn lặp tên khách và nơi đón đã có ngay bên dưới; dòng «Tên» không hiện khi trùng tên bên đặt." },
     ],
   },
   {
