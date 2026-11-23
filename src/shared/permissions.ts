@@ -228,6 +228,11 @@ export const MATRIX = {
   // ADR-0186 Đ2, Đ3 (chủ duyệt 2026-11-08): «Đồng bộ ngay từ Google Sheet» — Quản lý bán hàng, Quản trị, Toàn quyền (trước: admin.manage); tác nhân DONG_BO_DANH_MUC
   // (Cron 15 phút, đồng bộ lần đầu) giữ đúng ô này. Một hàm lệnh cho cả ba đường: syncCatalog (src/modules/catalog/service.ts) hỏi ô này trước khi ghi.
   "catalog.sync": quanLyBanHang(),
+  // ADR-0229 Đ8 (chủ duyệt 2026-11-22): «Giá mùa vụ» — «quyền tiền mềm», KHÔNG thuộc O_GHI_TIEN (ADR-0090). write = xem danh sách, đặt, kết thúc quy tắc; approve = duyệt
+  // quy tắc NGƯỜI KHÁC đặt (máy chủ + CHECK CSDL người duyệt ≠ người đặt); cap = đặt trần % (chỉ Toàn quyền). Route còn chặn tài khoản giữ Đối tác.
+  "catalog.seasonal.write": keToanQuanLy(),
+  "catalog.seasonal.approve": keToanQuanLy(),
+  "catalog.seasonal.cap": chiToanQuyen(),
   "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
   "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // Phần đối tác của đơn (đặc tả §6; Task 5): xem = bằng `order.view` ở MỌI cột (supply.terms.view ⊆ order.terms.view ⊆ money.view — bài khoá ở permissions.test.ts), nhưng tài khoản giữ

@@ -427,6 +427,10 @@ export const AUDIT_ACTIONS = {
   ticket_flag_changed: { label: "Đổi ô Có vé", group: "catalog" }, // ADR-0174
   catalog_pause_added: { label: "Đặt Ngừng bán theo ngày", group: "catalog" }, // ADR-0220: detail = mã dịch vụ / tên nhóm + khoảng ngày
   catalog_pause_ended: { label: "Kết thúc Ngừng bán theo ngày", group: "catalog" },
+  catalog_seasonal_added: { label: "Đặt giá mùa vụ", group: "catalog" }, // ADR-0229 Đ8: detail = mã dịch vụ / tên nhóm + khoảng ngày + mức tăng
+  catalog_seasonal_approved: { label: "Duyệt giá mùa vụ", group: "catalog" },
+  catalog_seasonal_ended: { label: "Kết thúc giá mùa vụ", group: "catalog" },
+  catalog_seasonal_cap_set: { label: "Đặt mức tăng tối đa của giá mùa vụ", group: "catalog" }, // ADR-0229 Đ8: detail = số %
   ticket_source_changed: { label: "Đổi ô Vé do ai phát", group: "catalog" }, // ADR-0175 Đ1.2: targetId = mã dịch vụ, detail «Dịch vụ <mã>: Vé hãng ngoài | Vé Tour Đảo»
   service_detail_changed: { label: "Sửa chi tiết dịch vụ", group: "catalog" }, // ADR-0201 Đ1: targetId = mã dịch vụ, detail chỉ nói trường nào đổi (không chép tên, mô tả)
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")

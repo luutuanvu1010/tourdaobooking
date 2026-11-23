@@ -172,6 +172,10 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "catalog.hidden.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"],
   "catalog.ticket_flag.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0174 Đ4
   "catalog.sync": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0186 Đ2 (chủ 8/11): «Đồng bộ ngay từ Google Sheet» — Quản lý bán hàng, Quản trị, Toàn quyền
+  // ADR-0229 Đ8 (chủ duyệt 2026-11-22): giá mùa vụ — Quản lý bán hàng, Quản trị, Kế toán, Toàn quyền đặt / duyệt (người duyệt ≠ người đặt ở máy chủ); trần % chỉ Toàn quyền.
+  "catalog.seasonal.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"],
+  "catalog.seasonal.approve": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"],
+  "catalog.seasonal.cap": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR", "SALES_MANAGER"];
 const OPS = Object.keys(ADR) as OperationCode[];
@@ -341,6 +345,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "payment.refund", // sổ tiền lượt 1 (ADR-0026 điều 10): hoàn khách chỉ Kế toán, Toàn quyền (H4)
   "payment.proof.view", "payment.proof.purge", // ADR-0196 Đ5, Đ7: ảnh biên lai có số tài khoản — Quản trị không xem, không gỡ (khuôn quyền tiền ADR-0090)
   "dai-ly.nop.ghi", "dai-ly.nop.xac-nhan", // ADR-0182 Đ3: Quản trị chỉ xem khoản nộp, không ghi, không xác nhận (khuôn quyền tiền ADR-0090)
+  "catalog.seasonal.cap", // ADR-0229 Đ8: trần % giá mùa vụ chỉ Toàn quyền đặt
   "order.submit", // ADR-0136 Đ13.6: «Gửi đơn» chỉ Đối tác (own) và Toàn quyền — văn phòng xác nhận thẳng
   "order.complete", "ledger.write", // sổ tiền lượt 1: Hoàn thành / ghi sổ chỉ Kế toán, Toàn quyền (ADR-0025 đ6, ADR-0026 đ10)
   "ledger.view", // ADMIN "own" — chỉ sổ của chính mình (ngữ cảnh ownerId người khác → không)
@@ -482,6 +487,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
     "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", "catalog.ticket_flag.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền; ADR-0174 Đ4: chỉ Quản trị, Toàn quyền
     "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", "audit.money.daily": "none", // ADR-0186 Đ2
+    "catalog.seasonal.write": "none", "catalog.seasonal.approve": "none", "catalog.seasonal.cap": "none", // ADR-0229 Đ8
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế không xem phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
@@ -549,6 +555,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
     "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", "catalog.ticket_flag.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền; ADR-0174 Đ4: chỉ Quản trị, Toàn quyền
     "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", "audit.money.daily": "none", // ADR-0186 Đ2
+    "catalog.seasonal.write": "none", "catalog.seasonal.approve": "none", "catalog.seasonal.cap": "none", // ADR-0229 Đ8
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế đối tác không thấy phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
@@ -610,6 +617,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
     "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", "catalog.ticket_flag.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền; ADR-0174 Đ4: chỉ Quản trị, Toàn quyền
     "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", "audit.money.daily": "none", // ADR-0186 Đ2
+    "catalog.seasonal.write": "none", "catalog.seasonal.approve": "none", "catalog.seasonal.cap": "none", // ADR-0229 Đ8
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: Nhân sự không thấy phần đối tác của đơn
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].HR])), HR_ROW);
