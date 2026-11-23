@@ -62,10 +62,12 @@ export const nguonVeRoutes: Route[] = [
       return json(await docNguonVe(env.DB));
     }
     if (!coMa(ma) || !isNguonVe(nguon)) return error(400, "invalid_input", "Chọn dịch vụ và chọn Vé hãng ngoài hoặc Vé Tour Đảo.");
-    const [hien, items, nhomCua] = await Promise.all([nguonVeHienHanh(env.DB), loadAll(env.DB), nhomHienHanhTheoMa(env.DB)]);
+    const [hien, items] = await Promise.all([nguonVeHienHanh(env.DB), loadAll(env.DB)]);
     if (!items.some((i) => i.code === ma)) return error(400, "invalid_input", "Mã dịch vụ không có trong danh mục.");
-    // Dịch vụ chưa có dòng riêng đang đi theo nhóm: so với giá trị đang hiệu lực (khuôn co-ve-route.ts).
-    if (nguonVeCua(ma, nhomCua.get(ma) ?? null, hien).nguonVe !== nguon) {
+    // Chọn cho MỘT dịch vụ là đặt dòng riêng (ADR-0230 Đ3: dòng riêng thắng nhóm): chỉ bỏ qua khi chính dòng riêng đã mang đúng giá trị đó. KHÔNG so với giá trị gộp —
+    // nếu không, dịch vụ đặt «Vé hãng ngoài» lúc giá trị gộp đang là mặc định sẽ không có dòng riêng, rồi đặt nhóm «Vé Tour Đảo» sau đó làm nó lặng lẽ thành vé Tour Đảo
+    // (đủ điều kiện mở vé trước tiền, ADR-0230 Đ1). Lượt chấm giao diện 23/11/2026 phát hiện.
+    if (hien.nguonDichVu.get(ma) !== nguon) {
       const at = lanSau(await nguonVeMoiNhat(env.DB), new Date());
       try {
         await env.DB.batch([

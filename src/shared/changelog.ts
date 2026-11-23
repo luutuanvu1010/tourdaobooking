@@ -18,11 +18,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Bản dùng thử demo.tourdao.vn (kế hoạch 16 việc 21/11, Việc 1; ADR-0223). Nhánh claude/beautiful-engelbart-74cf25. Không migration. Bản chính thức không đổi hành vi.
-    // Số 3.38 = số trống kế tiếp sau 3.37 (Việc 11) trên main lúc gộp 23/11, lượt nhập của việc 1: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.38",
+    // Số 3.39 = số trống kế tiếp sau 3.38 (bản sửa Việc 11) trên main lúc gộp 23/11, lượt nhập của việc 1: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.39",
     date: "2026-11-23",
     items: [
       { kind: "moi", text: "Có bản dùng thử riêng ở demo.tourdao.vn để người mới tự bấm thử Nền tảng với vai trò mình chọn. Dữ liệu mẫu tự xoá mỗi 2 giờ, không chạm dữ liệu thật." },
+    ],
+  },
+  {
+    // Việc 11, phần nối tiếp sau khi 3.37 đã triển khai (23/11): hai bản sửa 7556c95b7, d927c3594. Không migration.
+    // Số 3.38 = số trống kế tiếp sau 3.37 (bản chạy thật lúc kiểm): bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.38",
+    date: "2026-11-23",
+    items: [
+      { kind: "sua", text: "Dịch vụ & giá trên máy tính: ô «Vé do ai phát» hiện đủ hai nút «Vé hãng ngoài» và «Vé Tour Đảo»; các ô vé xếp gọn từng cặp." },
+      { kind: "sua", text: "Chọn «Vé hãng ngoài» cho một dịch vụ nay luôn được giữ riêng, không đổi theo khi nhóm của dịch vụ được đặt «Vé Tour Đảo»." },
     ],
   },
   {

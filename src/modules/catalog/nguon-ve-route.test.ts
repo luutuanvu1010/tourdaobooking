@@ -40,10 +40,13 @@ test("quyền: Quản trị, Toàn quyền đổi được, có nhật ký chỉ
   assert.deepEqual([bang(w), nk(w)], [2, 2]);
 });
 
-test("chưa đặt mà gửi HANG_NGOAI là giá trị đang có: 200, không ghi", async () => {
+// Đổi 23/11/2026 (Việc 11, ADR-0230 Đ3): chọn cho dịch vụ là đặt dòng riêng, kể cả khi trùng giá trị mặc định — xem bài cuối tệp.
+test("chưa đặt mà gửi HANG_NGOAI: ghi dòng riêng một lần; gửi lại đúng dòng riêng đang có: 200, không ghi", async () => {
   const w = setup();
   assert.equal((await doi(w, "ZA1", "HANG_NGOAI")).status, 200);
-  assert.deepEqual([bang(w), nk(w)], [0, 0]);
+  assert.deepEqual([bang(w), nk(w)], [1, 1]);
+  assert.equal((await doi(w, "ZA1", "HANG_NGOAI")).status, 200);
+  assert.deepEqual([bang(w), nk(w)], [1, 1]);
 });
 
 test("thân sai: nguồn lạ, thiếu mã, mã không có trong danh mục, ô theo nhóm → 400, không ghi", async () => {
@@ -97,8 +100,6 @@ const nguonCua = async (w: any, ma: string) => ((await w.call("GET", URL_NV, { a
 test("nhóm = Vé Tour Đảo: dịch vụ trong nhóm không có dòng riêng thành Tour Đảo «theo nhóm»; dịch vụ có dòng riêng giữ giá trị riêng; nhật ký chỉ mã nhóm và nguồn", async () => {
   const w = setup();
   dungNhom(w);
-  assert.equal((await doi(w, "ZB2", "HANG_NGOAI")).status, 200);
-  assert.equal(bang(w), 0, "ZB2 đang là vé hãng ngoài: gửi đúng giá trị đang có không ghi");
   assert.equal((await doi(w, "ZB2", "TOUR_DAO")).status, 200);
   assert.equal((await doi(w, "ZB2", "HANG_NGOAI")).status, 200);
   assert.equal(bang(w), 2, "ZB2 có dòng riêng là vé hãng ngoài");
@@ -114,9 +115,7 @@ test("nhóm = Vé Tour Đảo: dịch vụ trong nhóm không có dòng riêng t
   assert.match(dong.detail, /Vé Tour Đảo/);
   assert.equal((await doiNhom(w, "NTD", "TOUR_DAO", SUP)).status, 200);
   assert.deepEqual([bangNhom(w), nkNhom(w)], [1, 1], "gửi đúng giá trị đang có của nhóm: không ghi");
-  // dịch vụ đang theo nhóm Tour Đảo: gửi Tour Đảo cho dịch vụ là giá trị đang có, không ghi; gửi hãng ngoài thì có dòng riêng
-  assert.equal((await doi(w, "ZA1", "TOUR_DAO")).status, 200);
-  assert.equal(w.q("SELECT count(*) AS n FROM ctl_service_ticket_source WHERE code = 'ZA1'")[0].n, 0);
+  // dịch vụ đang theo nhóm: nhóm đổi thì dịch vụ không có dòng riêng đổi theo
   assert.equal((await doiNhom(w, "NTD", "HANG_NGOAI")).status, 200);
   assert.deepEqual(await nguonCua(w, "ZA1"), { ma: "ZA1", nguon: "HANG_NGOAI", theo: "GROUP" });
   assert.deepEqual([bangNhom(w), nkNhom(w)], [2, 2]);
@@ -147,4 +146,18 @@ test("nhóm: hai lần đổi cùng mili-giây — đúng một lần ghi, lần
     assert.equal(lanDau.json.error.code, "stale");
     assert.deepEqual([bangNhom(w), nkNhom(w)], [1, 1]);
   } finally { tat(); }
+});
+
+// Lượt chấm giao diện 23/11 (Việc 11): dịch vụ được đặt «Vé hãng ngoài» khi giá trị gộp đang là mặc định hãng ngoài thì PHẢI có dòng riêng — nếu không, đặt nhóm
+// «Vé Tour Đảo» sau đó làm dịch vụ lặng lẽ thành vé Tour Đảo (đủ điều kiện mở vé trước tiền theo ADR-0230 Đ1). Người đã chọn cho dịch vụ thì dòng riêng thắng nhóm (Đ3).
+test("đặt dịch vụ «Vé hãng ngoài» TRƯỚC khi nhóm thành «Vé Tour Đảo»: dịch vụ giữ hãng ngoài (dòng riêng), không theo nhóm", async () => {
+  const w = setup();
+  dungNhom(w);
+  assert.equal((await doi(w, "ZB2", "HANG_NGOAI")).status, 200);
+  assert.equal(w.q("SELECT count(*) AS n FROM ctl_service_ticket_source WHERE code = 'ZB2'")[0].n, 1, "chọn cho dịch vụ ⇒ có dòng riêng");
+  assert.equal((await doi(w, "ZB2", "HANG_NGOAI")).status, 200);
+  assert.equal(w.q("SELECT count(*) AS n FROM ctl_service_ticket_source WHERE code = 'ZB2'")[0].n, 1, "gửi lại đúng dòng riêng đang có: không ghi thêm");
+  assert.equal((await doiNhom(w, "NTD", "TOUR_DAO")).status, 200);
+  assert.deepEqual(await nguonCua(w, "ZB2"), { ma: "ZB2", nguon: "HANG_NGOAI", theo: "SERVICE" });
+  assert.deepEqual(await nguonCua(w, "ZA1"), { ma: "ZA1", nguon: "TOUR_DAO", theo: "GROUP" });
 });
