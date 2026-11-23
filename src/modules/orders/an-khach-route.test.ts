@@ -1,6 +1,7 @@
 // ADR-0154 Đ2, Đ3.1, C2 — kế hoạch lượt 2 Task 2.1: công tắc «Ẩn thông tin khách khi đối tác đặt vé». MÁY CHỦ quyết, không tin trình duyệt:
 //   - `POST /api/cai-dat/an-thong-tin-khach` (chỉ ô `settings.ops`, một lô: dòng mới chỉ-thêm + nhật ký; thua mốc ⇒ 409 `stale`, không ghi gì) và `GET` cùng đường (cổng `orders`);
-//   - lập đơn lúc BẬT: tên và SĐT lấy từ tài khoản, email và ghi chú khách trống, bỏ `passengers`, `newBooker`, `bookerPartyId` (bên đặt theo luật ép có sẵn), dấu `manifest_exempt = 1`;
+//   - lập đơn lúc BẬT: tên và SĐT lấy từ tài khoản, email và ghi chú khách trống, bỏ `passengers`, `newBooker`, `bookerPartyId` (bên đặt theo luật ép có sẵn); ADR-0228 Đ2: dấu `manifest_exempt` luôn 0 cho đơn mới;
+//   - ADR-0228 Đ1: công tắc tách làm hai — `bat()` bật CẢ HAI (= công tắc cũ trước ADR-0228); bài cuối tệp kiểm từng công tắc riêng và đường `/api/cai-dat/hanh-khach-doi-tac`;
 //   - lưu nháp lúc BẬT: giữ bốn trường đang lưu, bỏ ba khoá trên; đơn lập lúc TẮT không mang dấu, đổi công tắc sau đó không đổi dấu;
 //   - tài khoản lai (có quyền ngoài nhóm bên ngoài) không bị áp (C2). Chạy CẢ ứng dụng trên SQLite thật (tests/audit/harness.mjs); tên, SĐT là GIẢ.
 // Công tắc đọc theo ĐỒNG HỒ: bài không bật đồng hồ giả, hai lần đổi cách nhau hàng ms của một lời gọi HTTP.
@@ -31,15 +32,28 @@ function dung(): W {
   seedStaff(w.sqlite, { id: DT_CU, phone: "0900000023", name: "Đối Tác Kiểu Cũ", perms: ["PARTNER"], kieuCu: true });
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', 'Khách Lẻ', 1, ?, ?)").run(KHACH, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, 'Khách Lẻ', ?, ?)").run(KHACH, AT, AT);
+  // ADR-0228 Đ2: công tắc «Đơn đối tác không cần đủ tên khách» gieo BẬT; các bài ở đây xuất phát từ trạng thái của công tắc cũ (TẮT cả) ⇒ tắt nó bằng dòng chính sách mốc xưa hơn mọi đọc.
+  w.sqlite.prepare("INSERT INTO ord_partner_manifest_exempt_policy (id, mien, valid_from_at, created_at, updated_at) VALUES ('tat-bai', 0, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '+0.001 seconds'), ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'CUSTOMER', '2026-01-01', ?, ?)").run(`r-${KHACH}`, KHACH, AT, AT);
   return w;
 }
 const dat = (w: W, as: string, bat: unknown) => w.call("POST", URL, { as, body: { bat } });
+const URL_DS = "/api/cai-dat/hanh-khach-doi-tac";
+const URL_MIEN = "/api/cai-dat/mien-du-ten-doi-tac";
+const datDs = (w: W, as: string, bat: unknown) => w.call("POST", URL_DS, { as, body: { bat } });
+/** Bật / tắt CẢ BA công tắc (tên, SĐT; danh sách hành khách; đơn đối tác không cần đủ tên khách) — đúng nghĩa công tắc «Ẩn thông tin khách» trước ADR-0228. */
 async function bat(w: W, v: boolean): Promise<void> {
   const r = await dat(w, SUP, v);
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.bat, v);
+  const r2 = await datDs(w, SUP, v);
+  assert.equal(r2.status, 200, r2.text);
+  assert.equal(r2.json.bat, v);
+  const r3 = await w.call("POST", URL_MIEN, { as: SUP, body: { bat: v } });
+  assert.equal(r3.status, 200, r3.text);
+  assert.equal(r3.json.bat, v);
 }
+const CA_HAI = { ten: true, ds: true } as const;
 /** Thân lập đơn của trình duyệt (kể cả bản cũ trong bộ nhớ đệm PWA): tên giả, SĐT giả, email, ghi chú, dịch vụ không đón. */
 const than = (extra: Record<string, unknown> = {}) => ({
   customerName: "Tên Giả Của Trình Duyệt", customerPhone: "0966666666", customerEmail: "gia@example.com", customerNote: "ghi chú giả", services: [svc("ZB1", inDays(3))], ...extra,
@@ -70,19 +84,19 @@ test("thanLapDonKhiAn: ghi đè tên, SĐT; email, ghi chú trống; xoá passen
   const goc = { customerName: "Giả", customerPhone: "0966666666", customerEmail: "g@e.com", customerNote: "n", passengers: [PAX("A")], newBooker: { fullName: "X", phone: "0911111111" }, bookerPartyId: KHACH,
     services: [{ id: 1 }], handlerStaffId: "h", discount: 5, paymentNote: "p", expectedUpdatedAt: "t" };
   const copy = structuredClone(goc);
-  const ra = thanLapDonKhiAn(goc, { fullName: "Tên Tài Khoản", phone: "0900000008" }) as Record<string, unknown>;
+  const ra = thanLapDonKhiAn(goc, { fullName: "Tên Tài Khoản", phone: "0900000008" }, CA_HAI) as Record<string, unknown>;
   assert.deepEqual(goc, copy, "không sửa thân gốc");
   assert.deepEqual(ra, { customerName: "Tên Tài Khoản", customerPhone: "0900000008", customerEmail: "", customerNote: "", services: [{ id: 1 }], handlerStaffId: "h", discount: 5, paymentNote: "p", expectedUpdatedAt: "t" });
-  for (const khong of [null, undefined, "x", 5, [1, 2]]) assert.equal(thanLapDonKhiAn(khong, { fullName: "T", phone: "0900000008" }), khong, "thân không phải đối tượng: trả nguyên để validateOrder báo lỗi");
+  for (const khong of [null, undefined, "x", 5, [1, 2]]) assert.equal(thanLapDonKhiAn(khong, { fullName: "T", phone: "0900000008" }, CA_HAI), khong, "thân không phải đối tượng: trả nguyên để validateOrder báo lỗi");
 });
 
 test("thanNhapKhiAn: ghi đè bốn trường từ bản đang lưu (email, ghi chú NULL → rỗng); xoá ba khoá; GIỮ mọi khoá khác", () => {
   const goc = { customerName: "Giả", customerPhone: "0966666666", customerEmail: "g@e.com", customerNote: "n", passengers: [], newBooker: null, bookerPartyId: null, services: [{ id: 1 }], expectedUpdatedAt: "t", discount: 7 };
-  const ra = thanNhapKhiAn(goc, { customerName: "Tên Cũ", customerPhone: "0933333333", customerEmail: null, customerNote: null }) as Record<string, unknown>;
+  const ra = thanNhapKhiAn(goc, { customerName: "Tên Cũ", customerPhone: "0933333333", customerEmail: null, customerNote: null }, CA_HAI) as Record<string, unknown>;
   assert.deepEqual(ra, { customerName: "Tên Cũ", customerPhone: "0933333333", customerEmail: "", customerNote: "", services: [{ id: 1 }], expectedUpdatedAt: "t", discount: 7 });
-  const day = thanNhapKhiAn({ services: [] }, { customerName: "Tên Cũ", customerPhone: "0933333333", customerEmail: "e@x.vn", customerNote: "ghi" }) as Record<string, unknown>;
+  const day = thanNhapKhiAn({ services: [] }, { customerName: "Tên Cũ", customerPhone: "0933333333", customerEmail: "e@x.vn", customerNote: "ghi" }, CA_HAI) as Record<string, unknown>;
   assert.deepEqual([day.customerEmail, day.customerNote], ["e@x.vn", "ghi"]);
-  assert.equal(thanNhapKhiAn(null, { customerName: "T", customerPhone: "0900000008", customerEmail: null, customerNote: null }), null);
+  assert.equal(thanNhapKhiAn(null, { customerName: "T", customerPhone: "0900000008", customerEmail: null, customerNote: null }, CA_HAI), null);
 });
 
 // ---- đường cài đặt ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -150,7 +164,7 @@ test("(f) TẮT: đối tác gửi tên, SĐT, email, ghi chú, passengers → l
   assert.equal(hanhKhach(w, id).length, 2);
 });
 
-test("(g) BẬT: đối tác gửi tên giả → tên, SĐT là của tài khoản; email, ghi chú NULL; passengers bị bỏ (ord_passenger rỗng, không 403); manifest_exempt = 1", async () => {
+test("(g) BẬT: đối tác gửi tên giả → tên, SĐT là của tài khoản; email, ghi chú NULL; passengers bị bỏ (ord_passenger rỗng, không 403); manifest_exempt = 1 (cả ba công tắc bật)", async () => {
   const w = dung();
   await bat(w, true);
   const r = await lap(w, PARTNER, { passengers: [PAX("Khách Một"), PAX("Khách Hai", 1991)] });
@@ -319,4 +333,78 @@ test("(g3) dòng chính sách BẬT hẹn ở TƯƠNG LAI chưa áp: lập đơn
   const id = await lap201(w, PARTNER, { passengers: [PAX("Khách Một")] });
   assert.deepEqual(dong(w, id), { ten: "Tên Giả Của Trình Duyệt", sdt: "0966666666", email: "gia@example.com", ghiChu: "ghi chú giả", mien: 0, ben: `pty-${PARTNER}` });
   assert.equal(hanhKhach(w, id).length, 1);
+});
+
+// ---- ADR-0228 Đ1: hai công tắc tách rời ----------------------------------------------------------------------------------------------------------------------------
+test("ADR-0228 thuần: chỉ «tên, SĐT» ⇒ giữ passengers; chỉ «danh sách» ⇒ giữ tên, SĐT, hồ sơ khách, chỉ bỏ passengers; cả hai tắt ⇒ trả nguyên thân", () => {
+  const goc = { customerName: "Giả", customerPhone: "0966666666", customerEmail: "g@e.com", customerNote: "n", passengers: [PAX("A")], newBooker: { fullName: "X", phone: "0911111111" }, bookerPartyId: KHACH, services: [] };
+  const tk = { fullName: "Tên Tài Khoản", phone: "0900000008" };
+  assert.deepEqual(thanLapDonKhiAn(goc, tk, { ten: true, ds: false }), { customerName: "Tên Tài Khoản", customerPhone: "0900000008", customerEmail: "", customerNote: "", passengers: [PAX("A")], services: [] });
+  assert.deepEqual(thanLapDonKhiAn(goc, tk, { ten: false, ds: true }), { customerName: "Giả", customerPhone: "0966666666", customerEmail: "g@e.com", customerNote: "n", newBooker: { fullName: "X", phone: "0911111111" }, bookerPartyId: KHACH, services: [] });
+  assert.equal(thanLapDonKhiAn(goc, tk, { ten: false, ds: false }), goc);
+  assert.deepEqual(thanNhapKhiAn(goc, null, { ten: false, ds: true }), thanLapDonKhiAn(goc, tk, { ten: false, ds: true }), "chỉ danh sách: không cần bốn trường đang lưu");
+  assert.throws(() => thanNhapKhiAn(goc, null, { ten: true, ds: false }), /thiếu bốn trường/);
+});
+
+test("ADR-0228 đường /api/cai-dat/hanh-khach-doi-tac: chỉ Toàn quyền đổi (403 người khác, không ghi); nhật ký không gắn đơn; apChoToi chỉ Đối tác thuần; gửi trạng thái đang có không ghi", async () => {
+  const w = dung();
+  assert.deepEqual((await w.call("GET", URL_DS, { as: SUP })).json, { bat: false, apChoToi: false, doiDuoc: true }, "gieo theo công tắc cũ đang TẮT");
+  for (const ai of [ADM, A, INTERN, PARTNER, ACC, H]) assert.equal((await datDs(w, ai, true)).status, 403, `POST ${ai}`);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM ord_partner_passenger_policy"), 1);
+  assert.deepEqual((await datDs(w, SUP, true)).json, { bat: true, apChoToi: false, doiDuoc: true });
+  assert.equal((await datDs(w, SUP, true)).status, 200);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM ord_partner_passenger_policy"), 2, "đúng trạng thái đang có: không ghi dòng");
+  const nk = w.q("SELECT detail, order_id, target_type FROM audit_log WHERE action = 'partner_passenger_policy_changed'");
+  assert.equal(nk.length, 1);
+  assert.equal(nk[0].order_id ?? null, null);
+  assert.equal(nk[0].target_type, "system");
+  assert.deepEqual((await w.call("GET", URL_DS, { as: PARTNER })).json, { bat: true, apChoToi: true, doiDuoc: false });
+  assert.deepEqual((await w.call("GET", URL_DS, { as: LAI })).json, { bat: true, apChoToi: false, doiDuoc: false }, "tài khoản lai không bị áp (C2)");
+  for (const ai of [ACC, H]) assert.equal((await w.call("GET", URL_DS, { as: ai })).status, 403, `GET ${ai}`);
+  for (const xau of ["co", 1, null]) assert.equal((await datDs(w, SUP, xau)).status, 400);
+  assert.equal(dem(w, "SELECT count(*) AS n FROM ord_partner_customer_policy"), 1, "đổi công tắc danh sách không chạm công tắc tên, SĐT");
+});
+
+test("ADR-0228 (xong khi): tắt danh sách, giữ tên, SĐT ⇒ đối tác nhập tên, SĐT như gửi, passengers bị bỏ, đơn không dấu miễn", async () => {
+  const w = dung();
+  assert.equal((await datDs(w, SUP, true)).status, 200);
+  const id = await lap201(w, PARTNER, { passengers: [PAX("Khách Một")] });
+  assert.deepEqual(dong(w, id), { ten: "Tên Giả Của Trình Duyệt", sdt: "0966666666", email: "gia@example.com", ghiChu: "ghi chú giả", mien: 0, ben: `pty-${PARTNER}` });
+  assert.equal(hanhKhach(w, id).length, 0);
+  // lưu nháp: tên đổi được, danh sách đang lưu (rỗng) giữ nguyên dù gửi passengers
+  const r = await sua(w, id, PARTNER, { passengers: [PAX("Khách Ba", 1992)] });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(dong(w, id).ten, "Tên Khác");
+  assert.equal(hanhKhach(w, id).length, 0);
+  // tài khoản không hồ sơ: chỉ công tắc danh sách thì không bị 409 partner_no_party
+  assert.equal((await lap(w, DT_KHONG_HO_SO)).status, 201);
+});
+
+test("ADR-0228: chỉ bật tên, SĐT ⇒ tên, SĐT của tài khoản, passengers LƯU như gửi", async () => {
+  const w = dung();
+  assert.equal((await dat(w, SUP, true)).status, 200);
+  const id = await lap201(w, PARTNER, { passengers: [PAX("Khách Một"), PAX("Khách Hai", 1991)] });
+  assert.deepEqual(dong(w, id), { ten: TEN(w, PARTNER), sdt: SDT(w, PARTNER), email: null, ghiChu: null, mien: 0, ben: `pty-${PARTNER}` });
+  assert.equal(hanhKhach(w, id).length, 2);
+});
+
+test("ADR-0228 Đ2 «Đơn đối tác không cần đủ tên khách»: gieo BẬT; chỉ Toàn quyền đổi; BẬT ⇒ đơn Đối tác thuần mang dấu dù hai công tắc khách tắt; tài khoản lai, Bán hàng không mang; TẮT ⇒ không dấu", async () => {
+  const w = setup(); // khung gốc: KHÔNG có dòng tắt của `dung()` ⇒ thấy đúng dòng gieo
+  seedStaff(w.sqlite, { id: DT_HUONG, phone: "0900000021", name: "Đối Tác Hưởng", perms: ["PARTNER"] });
+  assert.deepEqual((await w.call("GET", URL_MIEN, { as: SUP })).json, { bat: true, doiDuoc: true }, "gieo Bật (lời chủ «miễn»)");
+  for (const ai of [ADM, A, INTERN, PARTNER, ACC, H]) assert.equal((await w.call("POST", URL_MIEN, { as: ai, body: { bat: false } })).status, 403, `POST ${ai}`);
+  const id1 = await lap201(w, PARTNER, { passengers: [PAX("Khách Một")] });
+  assert.equal(dong(w, id1).mien, 1, "Bật: đơn Đối tác mang dấu dù công tắc tên, danh sách đang tắt");
+  assert.equal(hanhKhach(w, id1).length, 1, "danh sách vẫn lưu (công tắc danh sách tắt)");
+  assert.equal(dong(w, await lap201(w, LAI)).mien, 0, "tài khoản lai không mang dấu (C2)");
+  assert.equal(dong(w, await lap201(w, A)).mien, 0, "Bán hàng không mang dấu");
+  const r = await w.call("POST", URL_MIEN, { as: SUP, body: { bat: false } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.bat, false);
+  const nk = w.q("SELECT order_id, target_type FROM audit_log WHERE action = 'partner_manifest_exempt_policy_changed'");
+  assert.equal(nk.length, 1);
+  assert.equal(nk[0].order_id ?? null, null);
+  assert.equal(dong(w, await lap201(w, PARTNER)).mien, 0, "Tắt: đơn mới không dấu");
+  assert.equal(dong(w, id1).mien, 1, "đổi công tắc không đổi dấu đơn cũ");
+  for (const xau of ["co", 1, null]) assert.equal((await w.call("POST", URL_MIEN, { as: SUP, body: { bat: xau } })).status, 400);
 });

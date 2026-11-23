@@ -100,17 +100,42 @@ export function tinNhacDenLuc(i: { hanTra: string | null; bayGio: string; no: nu
 /** Lô mang câu gác phiên bản hạn mức thua (trigger `bil_credit_guard_version` — có lệnh khác vừa đổi hạn mức / nợ của cùng bên). MỘT nơi nhận dạng cho mọi module (orders, parties). */
 export const laLoiPhienBanTraSau = (e: unknown): boolean => /\bcredit_version_stale:/.test(e instanceof Error ? e.message : String(e));
 
-export type MaKhongTraSau = "khong_co_han_muc" | "vuot_han_muc" | "co_don_qua_han";
+/** `tra_sau_dich_vu_khong_dau` (ADR-0230 Đ1 mục 4): đơn đã xác nhận theo dịch vụ mà lần sửa làm đơn hết đủ điều kiện. */
+export type MaKhongTraSau = "khong_co_han_muc" | "vuot_han_muc" | "co_don_qua_han" | "tra_sau_dich_vu_khong_dau";
+/** Loại Trả sau chụp lên đơn lúc xác nhận (`orders.credit_basis`, migration 0187). */
+export type CoSoTraSau = "LIMIT" | "SERVICE";
+/** Tên hiện của hai loại (docs/BANG-THAM-CHIEU.md: «Trả sau theo dịch vụ»). */
+export const NHAN_CO_SO_TRA_SAU: Record<CoSoTraSau, string> = { LIMIT: "Trả sau theo hạn mức", SERVICE: "Trả sau theo dịch vụ" };
+export const CAU_TRA_SAU_DICH_VU_KHONG_DAU =
+  "Đơn trả sau theo dịch vụ chỉ nhận dịch vụ vé Tour Đảo có dấu Trả sau theo dịch vụ. Bỏ dịch vụ này, hoặc huỷ đơn và lập lại với hình thức khác.";
+
+/**
+ * Câu hỏi gửi cổng Trả sau (orders → gốc lắp ráp → billing). `maDichVu`: mã danh mục các dòng dịch vụ của đơn (null = dòng nhập tay) — có thì cổng xét được Trả sau theo dịch vụ;
+ * vắng ⇒ chỉ xét hạn mức (đổi bên đặt, gộp hồ sơ). `coSo`: ép loại — đơn ĐÃ xác nhận giữ loại đã chụp (sửa tăng): SERVICE hết đủ điều kiện ⇒ `tra_sau_dich_vu_khong_dau`.
+ */
+export interface HoiTraSau {
+  benDat: string;
+  soTienDon: number;
+  boQuaDon?: string;
+  loai?: "sua_tang" | "doi_ben";
+  maDichVu?: readonly (string | null)[];
+  coSo?: CoSoTraSau;
+}
 
 /** Kết quả cổng hạn mức (billing dựng, orders đọc qua `ctx` do gốc lắp ráp tiêm): `version` là phiên bản đã đọc, đưa vào câu gác của lô xác nhận. */
-export type KetQuaKiemTraSau = { ok: true; hanMuc: HanMucHieuLuc; version: number } | { ok: false; ma: MaKhongTraSau; cau: string };
+/** `gioTra` / `gioAnHan`: số giờ của LOẠI được chọn (SERVICE: nhỏ nhất của các dấu; LIMIT: của hạn mức) — lô xác nhận chụp hạn trả theo hai số này. `hanMuc` null được ở SERVICE. */
+export type KetQuaKiemTraSau =
+  | { ok: true; coSo: CoSoTraSau; gioTra: number; gioAnHan: number; hanMuc: HanMucHieuLuc | null; version: number }
+  | { ok: false; ma: MaKhongTraSau; cau: string };
 
+const CAU_CO_DON_QUA_HAN = "Bên đặt còn đơn trả sau quá hạn chưa thanh toán. Cần thanh toán đủ các đơn đó trước khi đặt thêm đơn trả sau.";
 /** Lý do một đơn không được xác nhận theo Trả sau (ADR-0168 Đ2 mục 3); `null` = được. */
 /** `loai: "doi_ben"` (ADR-0188): đổi bên đặt / gộp hồ sơ với `soTienDon: 0` — nơi gọi dùng câu riêng của mình, chỉ đọc `ma`. */
 /** `loai: "sua_tang"` (kế hoạch 2026-11-05 Task 3): `soTienDon` là PHẦN TĂNG của một lần sửa số khách đơn đã xác nhận, `noHienTai` gồm cả nợ của chính đơn đó — câu nói «số tiền tăng thêm». */
 export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: number; soTienDon: number; coDonQuaHan: boolean; loai?: "sua_tang" | "doi_ben" }): { ma: MaKhongTraSau; cau: string } | null {
+  // ADR-0230 Đ1 mục 3 (Kiểm): quá hạn xét TRƯỚC thiếu hạn mức — bên đặt còn đơn Trả sau (bất kỳ loại) hết ân hạn còn nợ luôn nhận «có đơn quá hạn».
+  if (i.coDonQuaHan) return { ma: "co_don_qua_han", cau: CAU_CO_DON_QUA_HAN };
   if (!i.hanMuc) return { ma: "khong_co_han_muc", cau: "Bên đặt chưa có hạn mức trả sau còn hiệu lực. Hãy chọn thanh toán ngay, hoặc nhờ Quản trị hay Toàn quyền cấp hạn mức trả sau cho bên đặt." };
-  if (i.coDonQuaHan) return { ma: "co_don_qua_han", cau: "Bên đặt còn đơn trả sau quá hạn chưa thanh toán. Cần thanh toán đủ các đơn đó trước khi đặt thêm đơn trả sau." };
   const conLai = Math.max(0, i.hanMuc.hanMuc - i.noHienTai);
   if (i.soTienDon > conLai) {
     return { ma: "vuot_han_muc", cau: `${i.loai === "sua_tang" ? "Số tiền tăng thêm" : "Đơn trả sau"} ${dongTien(i.soTienDon)} vượt hạn mức khả dụng của bên đặt là ${dongTien(conLai)} (hạn mức ${dongTien(i.hanMuc.hanMuc)}, đang nợ ${dongTien(i.noHienTai)}).` };
@@ -119,8 +144,30 @@ export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: nu
 }
 
 /**
+ * Chọn LOẠI Trả sau cho một đơn (ADR-0230 Đ1 mục 2–3) — MỘT luật cho cổng lưu, cổng xác nhận, cổng sửa tăng (billing gọi sau khi đọc số).
+ * `laDoiTacHuong`: bên đặt đang mang loại đối tác được hưởng hoa hồng (cùng định nghĩa hạn mức — trigger `bil_credit_limit_party_ok`). `dichVu`: kết quả `dieuKienTraSauDichVu`
+ * (null = đơn không đủ điều kiện dấu). `noHanMuc`: nợ của các đơn Trả sau theo hạn mức (không gồm nợ theo dịch vụ). `coDonQuaHan`: mọi loại.
+ * Đủ điều kiện theo dịch vụ ⇒ SERVICE: không kiểm hạn mức, vẫn chặn khi có đơn quá hạn. Không ⇒ LIMIT như ADR-0168. `coSo` ép loại (đơn đã chụp loại).
+ */
+export function quyetTraSau(i: {
+  laDoiTacHuong: boolean; dichVu: { gioTra: number; gioAnHan: number } | null; hanMuc: HanMucHieuLuc | null; noHanMuc: number; soTienDon: number; coDonQuaHan: boolean;
+  loai?: "sua_tang" | "doi_ben"; coSo?: CoSoTraSau;
+}): { ok: true; coSo: CoSoTraSau; gioTra: number; gioAnHan: number; hanMuc: HanMucHieuLuc | null } | { ok: false; ma: MaKhongTraSau; cau: string } {
+  const theoDichVu = i.coSo !== "LIMIT" && i.laDoiTacHuong ? i.dichVu : null;
+  if (i.coSo === "SERVICE" && theoDichVu === null) return { ok: false, ma: "tra_sau_dich_vu_khong_dau", cau: CAU_TRA_SAU_DICH_VU_KHONG_DAU };
+  if (theoDichVu) {
+    if (i.coDonQuaHan) return { ok: false, ma: "co_don_qua_han", cau: CAU_CO_DON_QUA_HAN };
+    return { ok: true, coSo: "SERVICE", gioTra: theoDichVu.gioTra, gioAnHan: theoDichVu.gioAnHan, hanMuc: i.hanMuc };
+  }
+  const ly = lyDoKhongTraSau({ hanMuc: i.hanMuc, noHienTai: i.noHanMuc, soTienDon: i.soTienDon, coDonQuaHan: i.coDonQuaHan, ...(i.loai ? { loai: i.loai } : {}) });
+  if (ly) return { ok: false, ...ly };
+  return { ok: true, coSo: "LIMIT", gioTra: i.hanMuc!.gioTra, gioAnHan: i.hanMuc!.gioAnHan, hanMuc: i.hanMuc };
+}
+
+/**
  * ADR-0198 Đ1 mục 1: «đối tác» = tài khoản giữ quyền Đối tác và KHÔNG giữ quyền Kế toán (cùng cách nhận diện của ADR-0196 mục 1). Chỉ đổi điều người đó NHÌN THẤY
- * (câu báo, chữ trên màn hình, lựa chọn sẵn) — không bao giờ là điều kiện cho phép.
+ * (câu báo, chữ trên màn hình, lựa chọn sẵn). Ngoại lệ DUY NHẤT (ADR-0224 Đ2.1, sửa ADR-0198 Đ1.1): cổng lưu đơn `congTraSauKhiLuu` dùng nó để TỪ CHỐI «Thanh toán ngay»
+ * khi Trả sau dùng được — chỉ siết, không bao giờ cho thêm quyền.
  */
 export const laDoiTacTraSau = (who: { readonly permissions: readonly string[] }): boolean => who.permissions.includes("PARTNER") && !who.permissions.includes("ACCOUNTING");
 

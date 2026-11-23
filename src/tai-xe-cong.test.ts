@@ -81,6 +81,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "GET /api/auth/me": { ma: 200, ly_do: "phiên của chính mình (đăng nhập — D3)" },
   "POST /api/auth/xem-nhu-vai": { ma: 403, ly_do: "ADR-0180: chỉ Toàn quyền (quyền thật) bật xem như vai trò khác; tài xế → 403" },
   "DELETE /api/auth/xem-nhu-vai": { ma: 403, ly_do: "như trên; không phải Toàn quyền → 403" },
+  "POST /api/account/dung-thu-vai": { ma: 404, ly_do: "ADR-0223 Đ3.1: chỉ có trên bản dùng thử (BAN_DUNG_THU); bản chính / khung thử → 404; trên bản dùng thử cũng chỉ tài khoản dùng thử chọn được" },
   "PUT /api/account/thanh-duoi": { DRIVER: { ma: 400, ly_do: "ADR-0187 Đ2.3: tự phục vụ nút thanh dưới của chính mình (ô me.favorites.write = own); thân rỗng → 400" }, DRIVER_PARTNER: { ma: 403, ly_do: "ADR-0187 Đ2.3: Tài xế đối tác không có ô me.favorites.write → 403" } },
   "GET /api/bang-tin": { ma: 426, ly_do: "bắt tay Bảng tin; nhãn nhận tin tính bằng can() — DRIVER không có tat-ca/cho-nhan, chỉ nguoi:<mình>; thiếu Upgrade → 426" },
   "GET /api/dispatch/mine": { ma: 403, ly_do: "việc của hướng dẫn viên — ô contact.view / money.view của DRIVER là none" },
@@ -212,6 +213,24 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/ve/quet": {
     DRIVER: { ma: 200, ly_do: "thân rỗng = mã lạ: trả kết quả đỏ «mã lạ», không ghi lượt, không dữ liệu đơn / khách / tiền" },
     DRIVER_PARTNER: { ma: 403, ly_do: "không có ô quét vé nào → 403 ở bước đầu, trước khi đọc thân" },
+  },
+  // ADR-0232 Đ4 (Ảnh bàn giao, NGOÀI cổng đơn): Tài xế công ty có ô tải (assigned, theo chuyến) và xem (own — ảnh mình gửi) ⇒ qua cổng ô, gặp đơn / ảnh lạ ⇒ 404;
+  // Tài xế đối tác không có ô nào ⇒ 403 ở bước đầu, trước mọi tra cứu. Không route nào trả dữ liệu đơn / khách / tiền.
+  "POST /api/anh-ban-giao/don/:orderId": {
+    DRIVER: { ma: 404, ly_do: "ô order.photo.upload assigned ⇒ qua bước đầu; đơn lạ ⇒ 404 (không ghi gì)" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "không có ô Ảnh bàn giao nào ⇒ 403 trước mọi tra cứu" },
+  },
+  "GET /api/anh-ban-giao/don/:orderId/tom-tat": {
+    DRIVER: { ma: 404, ly_do: "ô order.photo.view own ⇒ qua bước đầu; đơn lạ ⇒ 404" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "như trên — 403 trước mọi tra cứu" },
+  },
+  "GET /api/anh-ban-giao/don/:orderId": {
+    DRIVER: { ma: 404, ly_do: "ô order.photo.view own ⇒ qua bước đầu; đơn lạ ⇒ 404" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "như trên — 403 trước mọi tra cứu" },
+  },
+  "GET /api/anh-ban-giao/anh/:anhId": {
+    DRIVER: { ma: 404, ly_do: "ô order.photo.view own ⇒ qua bước đầu; ảnh lạ ⇒ 404" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "như trên — 403 trước mọi tra cứu" },
   },
   "POST /api/ve/quet/:id/bo": {
     DRIVER: { ma: 400, ly_do: "thân rỗng thiếu lý do → 400 TRƯỚC khi tra lượt quét (không lộ lượt nào có thật); bỏ lượt thật còn bị chặn ở bước sau (không phải người quét / Quản trị)" },

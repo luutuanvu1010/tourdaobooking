@@ -10,8 +10,9 @@ import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
 import { getMaintenanceState, maintenanceResponse } from "../maintenance";
 import { cookiePhienDangKy, dkTepIpKey, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
 import { CAU_PHIEU } from "../../shared/dang-ky-hien-thi.ts";
-import { cauKeoDaiHanNhap, chinhSachHienHanh, datChoTepMang, phanToChucMo, phieuCuaPhien, suKienGoTepStatement, suKienThemTepStatement } from "./repository.ts";
-import { O_TEP_TO_CHUC, TRANG_THAI_CHO_TAI_TEP, kiemTepPhieu, laOTepPhieu, tranThanTep, type TrangThai } from "./rules.ts";
+import { cauKeoDaiHanNhap, chinhSachHienHanh, chinhSachRiengTuHienHanh, datChoTepMang, dongOTepHieuLuc, phieuCuaPhien, suKienGoTepStatement, suKienThemTepStatement } from "./repository.ts";
+import { TRANG_THAI_CHO_TAI_TEP, kiemTepPhieu, tranThanTep, type TrangThai } from "./rules.ts";
+import { laMaOTep, oTheoVai, phanCuaO } from "../../shared/dang-ky-o-tep.ts";
 
 const HAN_TEP_MANG_MS = 3_600_000;
 const CAU_HET_PHIEN = "Lần đăng nhập để điền phiếu đã hết hạn. Hãy đăng nhập lại bằng email để tiếp tục.";
@@ -34,12 +35,18 @@ export async function taiTepPhieu({ request, env }: Ctx<"public">): Promise<Resp
   if (cl === null || !/^\d+$/.test(cl)) return error(411, "length_required", "Yêu cầu thiếu độ dài nội dung.");
   if (Number(cl) > tranThanTep(chinhSach.photo_max_mb)) return error(413, "file_too_large", `Tệp lớn hơn ${chinhSach.photo_max_mb} MB.`);
   const body = await readJson(request);
-  if (!laOTepPhieu(body?.o)) return error(400, "invalid_input", "Ô tệp không hợp lệ.");
+  // Mã ô máy biết (ADR-0233): gỡ nhận MỌI ô đang có tệp (kể cả ô không còn thuộc phiếu — lối thoát), tải thì xét ô theo vai ở dưới.
+  if (!laMaOTep(body?.o)) return error(400, "invalid_input", "Ô tệp không hợp lệ.");
   // Gỡ tệp chờ của MỘT ô (đợt 2 Task 8): thân `{ o, go: true }`, không `noiDung`. Đứng TRƯỚC trần tệp mỗi phiếu vì gỡ luôn được, kể cả khi phiếu đã đủ tệp.
   if (body.go === true) return goTepCuaO({ request, env }, { phien, phieu, chinhSach, slot: body.o, at, nowMs });
   if ((await demTepChoCuaPhieu(env.DB, phieu.id)) >= chinhSach.photo_max_count) return error(409, "too_many_files", `Mỗi phiếu tối đa ${chinhSach.photo_max_count} tệp.`);
-  // Ảnh GPKD, giấy phép thêm (ADR-0212 Đ4): chỉ nhận khi phần tổ chức mở (Đ7) — đóng thì không tệp tổ chức nào lọt vào kho rồi bị lô duyệt cá nhân chuyển nhầm sang hồ sơ người.
-  if (O_TEP_TO_CHUC.includes(body.o) && !(await phanToChucMo(env.DB))) return error(409, "org_section_closed", CAU_PHIEU.toChucDong);
+  // Ô của phần tổ chức (ADR-0212 Đ4): chỉ nhận khi phần tổ chức mở (Đ7) — đóng thì không tệp tổ chức nào lọt vào kho rồi bị lô duyệt cá nhân chuyển nhầm sang hồ sơ người.
+  const phan = phanCuaO(body.o)!;
+  const [riengTu, dongO] = await Promise.all([chinhSachRiengTuHienHanh(env.DB), dongOTepHieuLuc(env.DB, at)]);
+  if (phan === "TO_CHUC" && riengTu?.coToChuc !== true) return error(409, "org_section_closed", CAU_PHIEU.toChucDong);
+  // Ô phải thuộc phiếu theo vai đã lưu của phần đó (ADR-0233 Đ1; vai rỗng = dòng «mọi vai»); «Tệp khác» chỉ khi chính sách riêng tư hiện hành đã nêu (Đ3).
+  const vaiCuaPhan = phan === "CA_NHAN" ? phieu.role_code : (phieu.org_role_code ?? "");
+  if (!oTheoVai(dongO, phan, vaiCuaPhan, { tepKhacMo: riengTu?.coTepKhac === true }).some((x) => x.o === body.o)) return error(400, "slot_not_allowed", CAU_PHIEU.oKhongThuocVai);
   const k = kiemTepPhieu(body?.noiDung, chinhSach.photo_max_mb);
   if (!k.ok) return error(k.status, k.code, k.message);
   const bam = await bamSha256(k.bytes);

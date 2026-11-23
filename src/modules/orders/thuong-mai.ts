@@ -64,7 +64,8 @@ export interface PhanThuongMai {
   chuaChup: boolean;
   chup: readonly BanChup[];
   /** `pax` = số khách HIỆN HÀNH theo loại (ADR-0133); null = dịch vụ tính theo nhóm/lượt (soKhachTinh là số lượt). */
-  dichVu: readonly { id: string; name: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[];
+  /** `coSoHoaHong` (ADR-0229 Đ10): cơ sở hoa hồng theo tỷ lệ — thành tiền trừ phần tăng giá mùa vụ (`tienChoHoaHong`). */
+  dichVu: readonly { id: string; name: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[];
   ten: ReadonlyMap<string, string>;
   congTyChuId: string | null;
   /** Giảm giá HIỆU LỰC của đơn (`OrderDto.giamGiaHieuLuc`, số do `effectiveMoney` trả — cùng số biên nhận in). Billing dùng để tính trần phần của quầy nhà cung cấp SAU giảm
@@ -109,11 +110,11 @@ export const chuaCoBanChup = (serviceId: string): BanChup => ({ serviceId, benef
  * MỘT công thức `tinhDongDoiTac`; tổng hoa hồng / giá đại lý = null khi còn dòng thiếu mức (không cộng nửa vời, không tự lấy 0).
  */
 /** Tiền từng dòng theo bản chụp (dòng không có bản chụp ⇒ thiếu mức «chưa chụp»): MỘT chỗ gọi `tinhDongDoiTac` cho DTO lẫn tổng hoa hồng của trần giảm giá (Task 7). */
-function tinhCacDong<D extends { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }>(chup: readonly BanChup[], dichVu: readonly D[]) {
+function tinhCacDong<D extends { id: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }>(chup: readonly BanChup[], dichVu: readonly D[]) {
   const theoDichVu = new Map(chup.map((c) => [c.serviceId, c] as const));
   return dichVu.map((dv) => {
     const c = theoDichVu.get(dv.id) ?? chuaCoBanChup(dv.id);
-    return { dv, c, t: tinhDongDoiTac(c, { thanhTien: dv.thanhTien, soKhachTinh: dv.soKhachTinh, pax: dv.pax }) };
+    return { dv, c, t: tinhDongDoiTac(c, { thanhTien: dv.thanhTien, coSoHoaHong: dv.coSoHoaHong, soKhachTinh: dv.soKhachTinh, pax: dv.pax }) };
   });
 }
 
@@ -124,10 +125,10 @@ export const nguoiHuongCuaDon = (chup: readonly BanChup[]): string | null => chu
 /** Bên đặt mang vai bên ngoài không còn được hưởng (dòng thiếu mức `BOOKER_NOT_BENEFICIARY`) — vòng sửa Task 7 (M-1), chọn câu báo riêng. */
 export const benDatKhongHuongDon = (chup: readonly BanChup[]): boolean => chup.some((c) => c.hoaHong.status === "MISSING" && c.hoaHong.reason === "BOOKER_NOT_BENEFICIARY");
 /** Đơn có ÍT NHẤT MỘT dòng hoa hồng lớn hơn thành tiền của dòng (ADR-0161 Đ5) — cùng phép tính dòng với `tongHoaHongDon`, chọn câu báo trần cho đúng. */
-export const coDongVuotDon = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]): boolean =>
+export const coDongVuotDon = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]): boolean =>
   tinhCacDong(chup, dichVu).some((d) => dongVuotThanhTien(d.t));
 /** Dữ liệu trần giảm giá của đơn từ bản chụp + tiền dòng (dòng thiếu mức và dòng vượt thành tiền tính 0 — ADR-0079 điều 8, ADR-0161 Đ5). */
-export const donChoTran = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]) => ({
+export const donChoTran = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]) => ({
   coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, dichVu, "tinh0") ?? 0, beneficiaryPartyId: nguoiHuongCuaDon(chup), benDatKhongHuong: benDatKhongHuongDon(chup),
   coDongVuot: coDongVuotDon(chup, dichVu),
 });
@@ -137,7 +138,7 @@ export const donChoTran = (chup: readonly BanChup[], dichVu: readonly { id: stri
  * R-ORD-DC1 — thận trọng, trần chỉ thấp hơn): dòng thiếu mức tính 0 VÀ dòng có hoa hồng lớn hơn thành tiền của dòng cũng tính 0 (ADR-0161 Đ5, `hoaHongTinhTran`); "null" cho CẢNH BÁO
  * (số GỐC của bản chụp, không đoán khi còn dòng thiếu). Chỉ có HAI chế độ — kiểm định kỳ gọi "tinh0" nên tự theo luật trần. Cùng phép tính dòng với DTO phần thương mại (`tinhCacDong`).
  */
-export function tongHoaHongDon(chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[], thieu: "tinh0" | "null"): number | null {
+export function tongHoaHongDon(chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[], thieu: "tinh0" | "null"): number | null {
   const dong = tinhCacDong(chup, dichVu);
   if (thieu === "null" && dong.some((d) => d.t.hoaHong === null)) return null;
   return dong.reduce((s, d) => s + (thieu === "tinh0" ? hoaHongTinhTran(d.t) : (d.t.hoaHong ?? 0)), 0);
@@ -171,7 +172,7 @@ export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & P
         const h = c.hoaHong;
         const cu = c.cungUng;
         const d: ThuongMaiDongVanPhong = {
-          serviceId: dv.id, ten: dv.name, thanhTien: dv.thanhTien, soKhachTinh: dv.soKhachTinh,
+          serviceId: dv.id, ten: dv.name, thanhTien: dv.thanhTien, coSoHoaHong: dv.coSoHoaHong, soKhachTinh: dv.soKhachTinh,
           muc: h.status === "SET" ? nhanMuc({ kind: h.kind, rateBp: h.rateBp, perPax: h.perPax, theoLoai: h.theoLoai }) : null,
           hoaHong: t.hoaHong, giaDaiLy: t.giaDaiLy, ghiTay: v.ghiTay?.has(dv.id) ?? false,
           thieu: h.status === "MISSING" ? NHAN_LY_DO_THIEU[h.reason] : null,

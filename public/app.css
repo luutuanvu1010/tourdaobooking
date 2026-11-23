@@ -683,7 +683,9 @@ body[data-rong="hep"] main { max-width: calc(var(--luoi-rong-hep) + 2 * var(--lu
 body[data-rong="vua"] main { max-width: calc(var(--luoi-rong-vua) + 2 * var(--luoi-le)); }
 :where(body:not(.trang-chu)) main > p { margin: 0 0 var(--luoi-nhip); }
 .card { background: var(--c-bg); border-radius: var(--radius-md); padding: var(--s4); margin-bottom: var(--s4); box-shadow: var(--ring-card), var(--shadow-card); } /* 1.70: viền bằng bóng + bóng mềm (trước: thẻ phẳng) — không đổi kích thước thẻ */
-.card h2 { margin-bottom: var(--s3); }
+.card h2, .nhom-cai-dat > .card > h3 { margin: 0 0 var(--s3); } /* ADR-0227: thẻ con trong nhóm «Cài đặt lập đơn» mở đầu bằng h3, cùng khoảng như h2 của thẻ thường (không thêm luật khoảng cách — trần ADR-0222 Đ7a) */
+/* Nhóm «Cài đặt lập đơn» ở trang Tôi (ADR-0227, việc 7): tên nhóm (h2) rồi các thẻ công tắc con. Nhóm tự ẩn khi không thẻ con nào hiện (tài khoản không phải Toàn quyền). */
+.nhom-cai-dat:not(:has(> section:not([hidden]))) { display: none; }
 
 label { display: block; font-size: var(--fs-old-label); color: var(--c-muted); }
 input, select, textarea { display: block; width: 100%; margin-top: var(--s1); padding: 10px 12px; font: inherit; font-size: var(--fs-ui); color: var(--c-text); background: #fff; border: 1px solid var(--c-input-border); border-radius: var(--radius-sm); transition: border-color var(--m-fast) var(--ease-out), box-shadow var(--m-fast) var(--ease-out); }
@@ -1062,7 +1064,7 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .ht-hai-cot { display: block; }
 /* Màn «Nhóm hỗ trợ» (Toàn quyền): bảng ≥ 900px, thẻ ở điện thoại (cùng khuôn .table-wrap / .card-list). */
 .ht-nhom { padding: var(--s3); display: grid; gap: var(--s3); }
-.ht-nhom-chan { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
+.ht-nhom-chan, .kv-ngang, .kv-ngang > .kv-o, .kv-ngang .kv-nguon-ve { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
 .ht-nhom-chan .btn, .ht-nhom-thao-tac .btn, .ht-nhom-dong .btn { min-height: var(--tap-min); }
 .ht-nhom-ghi-chu { margin: 0; font-size: var(--fs-label); }
 .ht-nhom-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); justify-content: space-between; }
@@ -1602,7 +1604,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 /* ---------- A2: trang lập/sửa đơn — chỉ token ---------- */
 .pay-note { margin-top: var(--s3); }
 #use-mine, #use-partner { margin-bottom: var(--s3); }
-.summary-note { margin: 0; }
+.summary-note, .tra-sau-khoi > p { margin: 0; }
 .form-cols { display: contents; } /* dưới 960px: như không có lớp bọc — thanh Lưu vẫn dính đáy theo form */
 .form-side { display: contents; } /* điện thoại: các khối của cột phải nằm xen kẽ trong luồng; thanh Lưu vẫn là con trực tiếp của form để dính đáy */
 .form-actions { background: var(--c-bg); border-top: 1px solid var(--c-line); } /* khổ 641–959px (iPad dọc): thanh dính đáy phải có nền, không chồng chữ lên nội dung */
@@ -1682,11 +1684,14 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .order-summary-band .value.due { color: var(--c-summary-due); }
 .order-summary-band .sub { font-size: var(--fs-label); opacity: .72; }
 .order-summary-band .sep { align-self: stretch; width: 1px; background: var(--c-on-summary); opacity: .18; } /* chiều cao tự khớp hàng flex (align-self: stretch) — không cần số px cứng */
-.order-summary-band .grid4 { flex: 1; display: grid; grid-template-columns: repeat(4, auto); gap: var(--s5) var(--s6); }
+.order-summary-band .grid4 { flex: 1; display: grid; grid-template-columns: repeat(3, auto); gap: var(--s5) var(--s6); } /* việc 8: dải còn ba ô (Đón, Số khách, tiền) — tên lớp giữ nguyên */
 @media (max-width: 899px) {
   .order-summary-band { flex-direction: column; align-items: stretch; gap: var(--s3); padding: var(--s4); }
   .order-summary-band .sep { display: none; }
   .order-summary-band .grid4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .order-summary-band .grid4 > :last-child:nth-child(odd) { grid-column: 1 / -1; } /* việc 8: lưới hai cột, ô lẻ cuối trải hết hàng (từ 641px lưới ba cột — khối min-width 641px) */
 }
 @media (min-width: 900px) {
   .cot-phu .pay-form .grid.two { grid-template-columns: minmax(0, 1fr); } /* hàng Kế toán (Công ty đã nhận / Thay / Ghi lần thu / Ghi bù) nằm trong cột phụ hẹp của khuôn Chi tiết (khung gốc): `.grid.two` chia theo KHUNG NHÌN nên ô mã bị bóp còn vài ký tự — trong cột hẹp xếp một cột */
@@ -3435,8 +3440,9 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-luoi2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s3); }
 .dd-luoi-noi { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-noi), 1fr)); gap: var(--s3); }
 .dd-luoi-phu { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-phu), 1fr)); gap: var(--s3); }
-.dd-phi { display: grid; gap: var(--s2); align-content: start; } /* ADR-0214: ô «Phí đưa đón» + ô «Số khác» + câu lỗi của một lượt */
+.dd-phi { display: grid; gap: var(--s2); align-content: start; } /* ADR-0218: số máy tính + nút «Đổi phí» + hai ô (số tiền, lý do) + câu lỗi của một lượt */
 .dd-phi-nhac { margin: 0; }
+.dd-phi-nut { justify-self: start; }
 .dd-cot { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
 .dd-chang label, .hk label { min-width: 0; }
 .dd-gio { position: relative; display: block; }
@@ -3539,7 +3545,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
    SAU .form-cols; dưới 960px đặt ngay sau thẻ "Dịch vụ" (bản vẽ điện thoại). */
 /* ---------- Đưa đón — danh mục / điều phối (bản vẽ M7 docs/design/2026-10-01-dua-don-hanh-khach/; web/catalog.ts khung "Đưa đón"). Chỉ token. ---------- */
 .dd-chip-dong { margin-top: var(--s1); }
-.dd-ten-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
+.dd-ten-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); } /* Việc 11: hàng trên dưới cách s2 (trước s1) cho huy hiệu «Trả sau theo dịch vụ» có khoảng thở */
 .dd-ten-dong .badge { margin-left: 0; }
 .dd-nhom { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s4); }
 .dd-nhan { font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-text-muted); }
@@ -3879,6 +3885,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .khach-dau { flex-wrap: wrap; }
 .khach-dau-nut { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); justify-content: flex-end; } /* N5: hai nút điền sẵn («của tôi», «đối tác») xuống dòng được ở khổ hẹp */
 .khach-dau .btn-link { color: var(--c-primary); }
+#use-partner-bao a { white-space: nowrap; } /* Việc 3: lối «Mở hồ sơ ở Danh bạ» / «Thêm số ở Danh bạ» không gãy giữa chữ */
 .buoc[data-an-khach] > :not(.khach-ngay) { display: none; } /* ADR-0154 Đ2.2: công tắc «Ẩn thông tin khách» áp cho đối tác — chỉ còn dòng «Ngày khởi hành» của khối Khách */
 .buoc[data-an-khach] .khach-ngay { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
 .booker-chua { font-size: var(--fs-label); } /* "Hồ sơ khách: chưa liên kết (không bắt buộc)" — chữ xám, không còn nhãn vàng */
@@ -3938,12 +3945,14 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
    máy (appearance: none) → hai bộ máy cùng giữ đệm 24px / cao 52px như ô gõ; mũi tên tự vẽ bằng hai tam giác (nằm ngang dòng chữ, dưới nhãn), chừa chỗ phải cho chữ dài. Bỏ kiểu
    máy cũng bỏ phần thụt ~4px của chữ chọn nên đệm trái trở về như ô gõ (nhãn thẳng mép chữ). Bài: src/o-chon-nhan-noi-safari.test.ts; đo thật: nhan-noi-safari-smoke.mjs. */
 .o-noi-khung > select { -webkit-appearance: none; appearance: none; padding-right: var(--s6); background-image: linear-gradient(45deg, transparent 50%, var(--c-text-muted) 50%), linear-gradient(135deg, var(--c-text-muted) 50%, transparent 50%); background-size: var(--w-o-chon-mui) var(--w-o-chon-mui); background-position: calc(100% - var(--s4) - var(--w-o-chon-mui)) calc(50% + var(--s2)), calc(100% - var(--s4)) calc(50% + var(--s2)); background-repeat: no-repeat; }
-.card > .grid + label.o-noi { margin-top: var(--s3); }
+.card > .grid + label.o-noi, #pay-card > .tra-sau-khoi:not([hidden]) ~ .grid.two { margin-top: var(--s3); }
 /* Cột chính của form ở máy tính chỉ ~400px: ba / hai ô cạnh nhau làm nhãn nổi bị cắt ("Thanh toá…") → tự xuống hàng khi mỗi ô hẹp hơn 12rem. */
 #pay-card .grid.three, #order-form .card > .grid.two { grid-template-columns: repeat(auto-fit, minmax(var(--w-o-hep), 1fr)); }
 /* Hai lựa chọn «Hình thức thanh toán» (ADR-0168; đơn mới của đối tác chọn sẵn «Trả sau» — ADR-0198): cả dòng nhãn là vùng chạm, cao tối thiểu 44px (trước ~34px). */
 .tra-sau-khoi > label { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap-min); }
 .tra-sau-khoi > label > input { flex: none; width: auto; margin: 0; } /* luật chung `input { display: block; width: 100% }` kéo ô tròn ra cả dòng, đẩy chữ xuống dưới */
+/* Việc 11 (người chấm giao diện): câu trong khung «Hình thức thanh toán» bỏ lề (ở danh sách `margin: 0` của `.summary-note`) nên câu trống không giữ chỗ;
+   khung cách ô «Giảm giá (₫)» bên dưới (ở danh sách `margin-top` của `.card > .grid + label.o-noi`). Không thêm luật khoảng cách mới (trần ADR-0222 Đ7a). */
 .o-noi-khung > :is(input, textarea)::placeholder { color: transparent; }
 .o-noi-khung > :is(input, textarea):focus::placeholder { color: var(--c-placeholder); }
 /* Form Tạo đơn GỌN của Đối tác (đặt vé của đối tác, lượt 1; web/order-form.ts, web/service-card.ts; src/shared/form-dat-ve.ts). Hai biến thể của khung nhãn nổi, chỉ token:
@@ -4534,7 +4543,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .order-summary-band > div:first-child { flex: 1 1 100%; }
   .order-summary-band > div:first-child > .label { display: none; }
   .order-summary-band .sep { display: none; }
-  .order-summary-band .grid4 { flex: 1 1 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .order-summary-band .grid4 { flex: 1 1 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* [2] Thẻ đơn (mọi nơi dùng `web/order-card.ts`: danh sách Đơn hàng khi vùng chứa hẹp hơn mốc bảng của khối [14], «Việc của tôi», ô xem trước của màn Giao diện): ba hàng — (số thứ tự) ngày ·
@@ -4638,7 +4647,7 @@ main select { max-width: 100%; }
 .lb-truong .hint { margin-top: var(--s1); }
 /* Đặc điểm dịch vụ (ADR-0152, T12) — cùng khuôn .lb-*; chỉ token */
 .lb-the .tab-phu, #dd-noi-dung > .tab-phu { margin-bottom: var(--s3); }
-.dd-o .o { margin-top: 0; }
+.dd-o .o, .kv-ngang .o { margin-top: 0; }
 .dd-bang td { vertical-align: top; }
 .dd-bang td:last-child { text-align: left; white-space: normal; }
 .dd-bang .o { min-width: var(--w-o-hep); } /* nhiều đặc điểm ⇒ bảng cuộn ngang trong .table-wrap, ô chọn không co tới mất chữ */
@@ -4671,6 +4680,18 @@ main select { max-width: 100%; }
 .kv-nguon-ve { flex-basis: 100%; display: grid; gap: var(--s1); padding-bottom: var(--s2); }
 .kv-the { border-top: 1px solid var(--c-border); }
 .kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }
+/* Việc 11 (người chấm giao diện): bảng Dịch vụ & giá ở máy tính — huy hiệu «Trả sau theo dịch vụ» và ba ô vé nằm ở dòng phụ trải ngang dưới hàng dịch vụ.
+   Bố cục ngang `.kv-ngang` dùng chung danh sách luật của `.ht-nhom-chan` (flex, xuống dòng, khoảng s3) — không thêm luật khoảng cách mới (trần ADR-0222 Đ7a). */
+#list > tr.co-dong-phu > td { border-bottom: 0; }
+/* Mỗi cặp nhãn + điều khiển là một khối không bẻ chữ; dòng phụ xuống dòng theo KHỐI, không tràn khỏi bảng.
+   «Vé do ai phát», «Hotline trên vé» là khối ngang (nhãn, rồi điều khiển) cạnh công tắc «Có vé». */
+.kv-ngang > .kv-o { flex: 0 1 auto; justify-content: flex-start; }
+.kv-ngang .kv-nguon-ve { flex: 0 1 auto; }
+.kv-ngang .kv-chu, .kv-ngang .vc-seg, .kv-ngang .nut { flex: none; }
+.kv-ngang .o { flex: 1 1 auto; width: auto; }
+.kv-ngang .vc-seg button, .kv-ngang .kv-chu, .kv-ngang .nut { white-space: nowrap; } /* không bẻ «Có / vé», «Vé / hãng / ngoài», «Lưu / hotline» */
+/* Mã đơn trong danh sách đơn còn nợ (Trả sau của tôi, Hạn mức trả sau, Tổ chức): vùng chạm cao ≥ 44px. */
+.ts-ma-don { display: inline-flex; align-items: center; min-height: var(--tap-min); }
 
 /* ---------- ADR-0180: thanh «Đang xem như vai trò …» dính khi cuộn (chỉ token; dải chung `.dai` ở web/dai.ts) ---------- */
 #strips:has(> .dai[data-loai="xem-nhu-vai"]) { position: sticky; top: 0; z-index: var(--z-dinh); }
@@ -5026,3 +5047,10 @@ body[data-khung-goc] .chon-doan { display: grid; grid-auto-flow: column; grid-au
 body[data-khung-goc] .chon-doan > button { font: inherit; font-size: var(--fs-step-4); font-weight: var(--fw-bold); color: var(--c-text-muted); background: var(--c-surface); border: 0; cursor: pointer; }
 body[data-khung-goc] .chon-doan > button[aria-checked="true"] { color: var(--c-primary); background: var(--c-primary-soft); }
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
+
+/* ---------- Ảnh bàn giao (ADR-0232) — bố cục dùng lớp của khung gốc (.luoi, .truong, .thanh-nut); ở đây chỉ hình thẻ ảnh và ảnh lớn ---------- */
+.abg-the { display: flex; flex-direction: column; overflow: hidden; font: inherit; text-align: left; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); cursor: pointer; }
+.abg-the img { display: block; object-fit: cover; }
+.abg-chu { text-indent: var(--s2); font-size: var(--fs-badge); line-height: 1.6; }
+.abg-lon { display: block; max-width: 100%; max-height: var(--h-quet-video); object-fit: contain; }
+.abg-tai-xe > summary { min-height: var(--tap-min); display: flex; align-items: center; font-weight: var(--fw-bold); color: var(--c-primary); cursor: pointer; }

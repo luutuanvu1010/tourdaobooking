@@ -1,6 +1,7 @@
 // Kịch bản Chrome — Trả sau (ADR-0168; cập nhật 2026-11-06 cho ADR-0172, ADR-0173): ô «Trả sau» và khối «Hạn mức trả sau» ở màn Cấp độ đại lý (Toàn quyền đặt, điền sẵn số gợi ý;
 // Quản trị bị mức tối đa chặn; Kế toán chỉ xem), màn «Hạn mức trả sau» chỉ xem (giờ Việt Nam), khối Trả sau + nút «Ân hạn» trên đơn, mục «Trả sau của tôi» của Đối tác; 1440 và 390.
 // Cập nhật 2026-11-12 cho ADR-0198: P1 (Đối tác không thấy số hạn mức), P2 (Đối tác lập đơn mới: câu gọn, chọn sẵn «Trả sau»); F1 giữ «Hạn mức khả dụng» cho văn phòng.
+// Cập nhật 2026-11-21 cho ADR-0224: P2 thêm — đối tác dùng được Trả sau không thấy nút «Thanh toán ngay»; F2–F4 (văn phòng) giữ hai lựa chọn như cũ.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, KHÔNG --remote.
 // Quy tắc ADR-0074/0075: đăng nhập MỚI của cùng tài khoản đá phiên trang đang mở ⇒ mọi lời gọi API gieo dữ liệu làm TRƯỚC khi mở trang của tài khoản đó.
 // Chạy (sau `npm run build:web`, từ GỐC repo):
@@ -316,8 +317,10 @@ try {
       try {
         await q.waitFor("(() => { const k = document.getElementById('tra-sau-khoi'); return !!k && !k.hidden && document.getElementById('tra-sau-cau').textContent.length > 0; })()", "khối Trả sau hiện");
         await sleep(500); // lần nạp thứ hai (sau khi nạp xong bên đặt) không được đổi lựa chọn
-        const k = await q.ev("(() => ({ cau: document.getElementById('tra-sau-cau').textContent, khoi: document.getElementById('tra-sau-khoi').innerText, credit: document.querySelector('input[name=paymentTerm][value=CREDIT]').checked, baoHidden: document.getElementById('tra-sau-bao').hidden }))()");
+        const k = await q.ev("(() => ({ cau: document.getElementById('tra-sau-cau').textContent, khoi: document.getElementById('tra-sau-khoi').innerText, credit: document.querySelector('input[name=paymentTerm][value=CREDIT]').checked, baoHidden: document.getElementById('tra-sau-bao').hidden, nutTraNgay: document.querySelector('input[name=paymentTerm][value=PREPAID]').closest('label').offsetParent !== null }))()");
         assert.equal(k.cau, "Bạn được trả sau. Nhận vé trước, chuyển tiền cho Tour Đảo trong hạn trả.");
+        assert.equal(k.nutTraNgay, false, "ADR-0224 Đ3: đối tác dùng được Trả sau không thấy «Thanh toán ngay»");
+        assert.ok(!k.khoi.includes("Thanh toán ngay"), `khối còn chữ «Thanh toán ngay»: ${k.khoi}`);
         assert.ok(!/₫|\d{1,3}\.\d{3}/.test(k.khoi), `khối có số tiền: ${k.khoi}`);
         assert.equal(k.credit, true, "«Trả sau» chọn sẵn");
         assert.equal(k.baoHidden, true, "không câu «chuyển về Thanh toán ngay»");
@@ -337,7 +340,7 @@ try {
     assert.equal(x.status, 201, JSON.stringify(x.json));
     return x.json.order;
   };
-  const khoiHien = (q) => q.ev("(() => { const k = document.getElementById('tra-sau-khoi'); return { hien: !!k && !k.hidden, cau: document.getElementById('tra-sau-cau').textContent, credit: document.querySelector('input[name=paymentTerm][value=CREDIT]').checked, bao: document.getElementById('tra-sau-bao').hidden ? '' : document.getElementById('tra-sau-bao').textContent }; })()");
+  const khoiHien = (q) => q.ev("(() => { const k = document.getElementById('tra-sau-khoi'); const oc = document.querySelector('input[name=paymentTerm][value=CREDIT]').closest('label'); return { hien: !!k && !k.hidden, creditHien: !!k && !k.hidden && !oc.hidden, cau: document.getElementById('tra-sau-cau').textContent, credit: document.querySelector('input[name=paymentTerm][value=CREDIT]').checked, bao: document.getElementById('tra-sau-bao').hidden ? '' : document.getElementById('tra-sau-bao').textContent }; })()");
   const bamLuuDon = (q) => q.ev("document.getElementById('save').click(); true");
   const luuDon = (id) => `/api/orders/${encodeURIComponent(id)}`;
   const chanDoan = async (q, nhan) => {
@@ -392,7 +395,8 @@ try {
     try {
       await sleep(2500);
       const k = await khoiHien(q);
-      assert.equal(k.hien, false, "không có hạn mức thì không có ô chọn");
+      // ADR-0230 Đ2: văn phòng luôn có «Trả lúc check-in» nên khối hình thức có thể hiện; điều cần giữ là KHÔNG có ô «Trả sau».
+      assert.equal(k.creditHien, false, "không có hạn mức thì không có ô Trả sau");
     } finally { q.close(); trangHienTai = null; }
   });
   // Hết hạn mức giữa lúc lưu và lúc mở lại: nháp Trả sau tự về Trả trước KÈM câu báo, lưu được (không ngõ cụt).
@@ -406,7 +410,7 @@ try {
       await sleep(1500); // câu báo phải còn sau các lần hỏi hạn mức kế tiếp (từng bị lần hỏi sau xoá, tuỳ tốc độ mạng)
       assert.equal(await q.ev("document.getElementById('tra-sau-bao').hidden"), false, "câu báo vẫn còn");
       const k = await khoiHien(q);
-      assert.equal(k.hien, false, "khối ẩn");
+      assert.equal(k.creditHien, false, "ô Trả sau ẩn"); // ADR-0230 Đ2: khối còn hiện vì «Trả lúc check-in»
       assert.ok(k.bao.includes("chuyển về Thanh toán ngay"), k.bao);
       await chup(q, "lap-don-het-han-muc-1440");
       await luuRoiChoChuyenTrang(q);

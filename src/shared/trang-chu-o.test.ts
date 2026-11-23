@@ -16,7 +16,8 @@ test("Bán hàng: 6 ô, không có ô Tất cả (bản vẽ 1a + ô Điều ph�
 test("Kế toán: không có ô Tạo đơn (ADR-0007), không có ô Tất cả (bản vẽ 1d)", () => {
   const r = oTrangChu(who("ACCOUNTING"));
   // Tiền xe thuê (bản vẽ Đợt 4): Kế toán thêm "Bảng giá thuê xe" (ô transport.rate.view), "Bảng kê chi phí xe" (ô transport.cost.view) — 7 ô, vẫn không "Tất cả".
-  assert.deepEqual(khoa(r.luoi), ["don-hang", "danh-ba", "dieu-phoi", "gop-y", "tro-giup", "bang-gia-xe", "bang-ke-xe"]);
+  // ADR-0229 (chủ duyệt 23/11): thêm ô «Dịch vụ & giá» (màn hẹp, giá mùa vụ) — 8 ô, vẫn không "Tất cả".
+  assert.deepEqual(khoa(r.luoi), ["don-hang", "danh-ba", "dieu-phoi", "dich-vu", "gop-y", "tro-giup", "bang-gia-xe", "bang-ke-xe"]);
   assert.equal(r.coTatCa, false);
 });
 
@@ -152,7 +153,8 @@ test("Điện thoại 1.73: Bán hàng — đủ ô còn lại, không ô Tất 
   assert.equal(luoiDienThoai(who("SALES")).coTatCa, false);
   // Đợt 4 (1.74): Kế toán có thêm Bảng giá thuê xe + Bảng kê chi phí xe ⇒ 6 ô còn lại > 4 chỗ ⇒ 3 ô đầu theo thứ tự ưu tiên của oTrangChu + "Tất cả" (luật 1.73 áp nguyên;
   // hai ô tiền xe thuê nằm trong bảng "Tất cả").
-  assert.deepEqual(khoa(luoiDienThoai(who("ACCOUNTING")).luoi), ["danh-ba", "dieu-phoi", "gop-y"]);
+  // ADR-0229 (chủ duyệt 23/11): ô «Dịch vụ & giá» đứng trước «Góp ý» theo thứ tự ưu tiên ⇒ Góp ý vào «Tất cả».
+  assert.deepEqual(khoa(luoiDienThoai(who("ACCOUNTING")).luoi), ["danh-ba", "dieu-phoi", "dich-vu"]);
   assert.equal(luoiDienThoai(who("ACCOUNTING")).coTatCa, true);
 });
 

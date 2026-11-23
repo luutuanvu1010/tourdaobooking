@@ -4640,6 +4640,25 @@ test("R-ORD-17w (ADR-0193 mục 6): chỉ đếm đơn xác nhận khi công t�
   assert.equal(violations(db, c), 3, "xác nhận trước ngày gieo (không dòng nào hiệu lực) ⇒ coi là Bật, vẫn đếm (khớp docBatBuocGioDon)");
 });
 
+test("R-ORD-17w (ADR-0228 Đ3): KHÔNG đếm đơn xác nhận lúc công tắc «Đơn đối tác không cần giờ đón» BẬT — dòng hiệu lực tại confirmed_at; Tắt lại ⇒ đếm; không có dòng ⇒ coi là Tắt", () => {
+  const c = one("R-ORD-17w");
+  assert.match(c.sql, /ord_partner_pickup_time_optional_policy/);
+  const db = build17w();
+  const D = "2026-10-05";
+  const sau = (phut: number) => new Date(Date.now() + phut * 60_000).toISOString();
+  const thieuGio = (xacNhanLuc: string) => don17w(db, { staff: "s-lai", dvs: [[{ direction: "OUT", ngay: D, gio: null }]], xacNhanLuc });
+  db.prepare("INSERT INTO ord_partner_pickup_time_optional_policy (id, khong_can, valid_from_at, created_at, updated_at) VALUES ('bat', 1, ?1, ?1, ?1)").run(sau(10));
+  db.prepare("INSERT INTO ord_partner_pickup_time_optional_policy (id, khong_can, valid_from_at, created_at, updated_at) VALUES ('tat-lai', 0, ?1, ?1, ?1)").run(sau(30));
+  thieuGio(sau(5));
+  assert.equal(violations(db, c), 1, "xác nhận khi còn dòng gieo Tắt ⇒ đếm như hôm nay");
+  thieuGio(sau(20));
+  assert.equal(violations(db, c), 1, "xác nhận khi Bật ⇒ cố ý, không đếm");
+  thieuGio(sau(40));
+  assert.equal(violations(db, c), 2, "Tắt lại ⇒ đếm");
+  thieuGio("2000-01-01T00:00:00.000Z");
+  assert.equal(violations(db, c), 3, "không dòng nào hiệu lực ⇒ coi là Tắt (khớp docKhongCanGioDon)");
+});
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0141): hình thức thanh toán và hạn trả đi cùng nhau.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -4712,6 +4731,54 @@ test("R-CRD-5: hạn mức còn mở trên hồ sơ đã hết vai được hư�
   db.exec(`UPDATE bil_credit_limit SET valid_to_date = '2026-09-19', updated_at = '${T2}' WHERE id = 'hm-pty-c'`); // đã đóng đúng
   assert.deepEqual(db.prepare(c.sql).all().map((r) => (r as { party_id: string }).party_id), ["pty-a"]);
   assert.equal(violations(db, c), 1, "chỉ hồ sơ hết vai mà hạn mức còn mở");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+// R-CRD-6 (ADR-0230 Đ1 mục 3; migration 0187 phần A): đơn Trả sau đã qua nháp (không huỷ) phải mang loại Trả sau `credit_basis`.
+// R-CRD-7 (ADR-0230 Đ2; migration 0187 phần B): đơn mang dòng «Trả lúc check-in» hiệu lực bật phải là Thanh toán ngay.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+test("R-CRD-6: đơn Trả sau đã xác nhận thiếu loại Trả sau → vi phạm; có loại / còn nháp / đã huỷ / Thanh toán ngay → 0", () => {
+  const db = build();
+  const c = one("R-CRD-6");
+  assert.equal(c.level, "fail");
+  const don = (term: string, trangThai: "draft" | "confirmed" | "cancelled", loai: string | null): string => {
+    const { order } = donKhach(db, [{ adult: 1 }], "draft");
+    db.prepare("UPDATE orders SET payment_term = ? WHERE id = ?").run(term, order);
+    if (trangThai === "cancelled") db.exec("DROP TRIGGER IF EXISTS orders_cancel_requires_reason"); // bài chỉ cần trạng thái, không cần lý do huỷ
+    if (trangThai !== "draft") db.prepare("UPDATE orders SET status = ?, confirmed_at = ? WHERE id = ?").run(trangThai, T1, order);
+    if (loai !== null) {
+      db.exec("DROP TRIGGER IF EXISTS orders_credit_basis_guard"); // gieo thẳng loại (bài không đi đường lô xác nhận)
+      db.prepare("UPDATE orders SET credit_basis = ? WHERE id = ?").run(loai, order);
+    }
+    return order;
+  };
+  don("CREDIT", "confirmed", "LIMIT");
+  don("CREDIT", "confirmed", "SERVICE");
+  don("CREDIT", "draft", null);
+  don("CREDIT", "cancelled", null);
+  don("PREPAID", "confirmed", null);
+  assert.equal(violations(db, c), 0);
+  don("CREDIT", "confirmed", null);
+  assert.equal(violations(db, c), 1, "Trả sau đã xác nhận mà không có loại");
+});
+
+test("R-CRD-7: đơn mang «Trả lúc check-in» hiệu lực bật mà hình thức khác Thanh toán ngay → vi phạm; dòng đã tắt hoặc đơn Thanh toán ngay → 0", () => {
+  const db = build();
+  const c = one("R-CRD-7");
+  assert.equal(c.level, "fail");
+  let n = 0;
+  const chon = (order: string, enabled: number) =>
+    db.prepare("INSERT INTO ord_checkin_payment (id, order_id, enabled, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, NULL, ?, NULL)")
+      .run(`ck-${++n}`, order, enabled, `2026-11-23T03:00:00.00${n}Z`, T1, T1);
+  const a = donKhach(db, [{ adult: 1 }], "draft").order;
+  chon(a, 1);
+  const b = donKhach(db, [{ adult: 1 }], "draft").order;
+  chon(b, 1);
+  chon(b, 0);
+  db.prepare("UPDATE orders SET payment_term = 'CREDIT' WHERE id = ?").run(b); // đã tắt rồi mới đổi sang Trả sau: hợp lệ
+  assert.equal(violations(db, c), 0);
+  db.prepare("UPDATE orders SET payment_term = 'CREDIT' WHERE id = ?").run(a); // nháp đổi hình thức không qua máy chủ
+  assert.equal(violations(db, c), 1, "dòng bật trên đơn Trả sau");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------

@@ -19,6 +19,7 @@ import { can, holdsPartner } from "../src/shared/permissions";
 import { tripDeparted, tuChoiQuaMuon } from "../src/shared/trip-rules";
 import { ngayNgan, vnToday } from "../src/shared/vn-date";
 import { nhanTienDaTra } from "../src/shared/nhan-tien";
+import { cauNhacCheckin } from "../src/shared/tra-luc-checkin";
 import {
   EDIT_REASON_QUICK, departLabel, moneyEditServices, myJobChip, orderDepartDate, paxSummary, relLabel, sortMyJobs, telHref, type MyJobChipTone,
 } from "../src/shared/viec-cua-toi";
@@ -574,6 +575,8 @@ export async function initViecCuaToi(el: HTMLElement, staff: Staff): Promise<voi
         h("div", null, h("dt", null, nhanTienDaTra({ status: a.status, deliveredAt: tien?.daGiao ? "x" : null }).nhan), h("dd", null, tien ? vnd(tien.daThu) : "—")),
         h("div", null, h("dt", null, "Còn lại"), h("dd", { class: tien && tien.conLai > 0 ? "money-due" : null }, tien ? vnd(tien.conLai) : "—")),
       ),
+      // ADR-0230 Đ2 mục 2: đơn «Trả lúc check-in» — HDV thu tiền mặt khi khách check-in; số «còn thu» từ sổ tiền (không đoán khi chưa tải được).
+      a.traLucCheckin && a.status === "confirmed" && !tien?.daGiao ? h("p", { class: "hdv-note" }, cauNhacCheckin(tien ? tien.conLai : null, vnd)) : null,
       tien?.daGiao ? h("p", { class: "hdv-note" }, tien.hoanThanh ? "Hoàn thành." : "Khách đã trả đủ: đơn đã khoá.") : null,
       a.status === "draft" ? h("p", { class: "hdv-note" }, "Đơn chưa xác nhận — chưa thể huỷ hay sửa số khách.") : null,
       // bản 1.39: "Xem đơn" mở trang đơn (hướng dẫn viên xem được đơn mình đang phụ trách — máy chủ quyết). Ghi tiền đã thu / bấm "Đã giao – đã thu đủ"

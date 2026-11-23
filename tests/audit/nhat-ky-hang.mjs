@@ -23,6 +23,11 @@ export const PHU_TRACH = {
   "fbk_attachment.storage_key": "src/modules/feedback/tep-route.test.ts",
   "bil_receipt_proof.content_hash": "src/modules/billing/bien-lai-route.test.ts", // ADR-0196: ghi khoản thu kèm ảnh biên lai (cả đường xem, gỡ, kho hỏng)
   "bil_receipt_proof.storage_key": "src/modules/billing/bien-lai-route.test.ts",
+  "abg_photo.content_hash": "src/modules/anh-ban-giao/route.test.ts", // ADR-0232: tải, xem, ẩn, xoá Ảnh bàn giao
+  "abg_photo.thumb_key": "src/modules/anh-ban-giao/route.test.ts",
+  "abg_photo.view_key": "src/modules/anh-ban-giao/route.test.ts",
+  "abg_photo.hidden_reason": "src/modules/anh-ban-giao/route.test.ts",
+  "abg_photo.purge_note": "src/modules/anh-ban-giao/route.test.ts",
   "bil_remittance_proof.content_hash": "src/khoan-nop-dai-ly.test.ts", // ADR-0182 phần B: ghi khoản nộp kèm ảnh biên lai (cả đường xem, gỡ)
   "bil_remittance_proof.storage_key": "src/khoan-nop-dai-ly.test.ts",
   "pty_organization.tax_code": "src/giay-to-khong-lo-so.test.ts", // ADR-0212 Đ7 (R8): nâng N2 → N3; tạo hồ sơ tổ chức có mã số thuế qua route thật

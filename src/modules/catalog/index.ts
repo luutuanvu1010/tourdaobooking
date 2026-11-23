@@ -7,7 +7,7 @@ import { route, type AppModule } from "../../shared/router";
 import type {
   CatalogNgungBanResponse,
   CatalogAdminGroupDto, CatalogAdminItemDto, CatalogAdminResponse, CatalogConflictCountResponse, CatalogGroupAssignResponse, CatalogGroupHistoryResponse, CatalogGroupResponse,
-  CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse,
+  CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse, DanhMucTraSauDichVu,
 } from "../../shared/contracts";
 import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type EffectiveService, type PaxCode } from "../../shared/order-lines";
 import { getSyncState, loadAll, loadOne, saveOverride, type StoredItem } from "./repository";
@@ -25,8 +25,14 @@ import { coVeHienHanh } from "./co-ve-repo";
 import { coVeRoutes } from "./co-ve-route";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve";
 import { nguonVeHienHanh } from "./nguon-ve-repo";
+import { giaGocPhiDonTheoMa } from "./phi-don-goc-repo";
 import { nguonVeRoutes } from "./nguon-ve-route";
+import { soHoTroRoutes } from "./so-ho-tro-route";
 import { ngungBanNgayRoutes, trungDauTien } from "./ngung-ban-ngay-route";
+import { giaMuaVuRoutes } from "./gia-mua-vu-route";
+import { quyTacChuaKetThuc, quyTacTheoIds, thanhQuyTac } from "./gia-mua-vu-repo";
+import { doanMuaVu, tinhGiaMuaVu, type QuyTacMuaVu } from "../../shared/gia-mua-vu";
+import { vnToday } from "../../shared/vn-date";
 import { cauNgungBanNgay } from "./ngung-ban-ngay-rules";
 import { chiTietRoutes } from "./chi-tiet-route";
 import { chiTietHienHanh, type ChiTietDong } from "./chi-tiet-repo";
@@ -56,17 +62,54 @@ export async function getEffectiveServices(db: D1Database, codes?: readonly stri
  * chặn của `orders` đọc view `v_ctl_service_transfer`, không dựa vào hàm này. Chưa phân loại / chưa gán: không có khoá.
  */
 /** ADR-0174 Đ2: mã nào trong `codes` đang Có vé. Một nguồn cho `orders` (giữ vé, báo thiếu) và `ve-dien-tu` (báo lúc xác nhận lô). KHÔNG tự kiểm quyền. */
+/** Giá gốc phí đưa đón hiện hành của các dịch vụ (ADR-0218 Đ1.3); mã không có dòng thì vắng khỏi bản đồ. `null` trong giá = ô trống = chưa có giá. */
+export async function giaGocPhiDon(db: D1Database, codes: readonly string[]): Promise<Map<string, { moiKhach: number | null; xeRieng: number | null }>> {
+  return giaGocPhiDonTheoMa(db, codes);
+}
+export { dichVuDuaDonChuaCoGiaGoc } from "./phi-don-goc-repo";
+
 export async function coVeTheoMa(db: D1Database, codes: readonly string[]): Promise<Map<string, boolean>> {
   if (codes.length === 0) return new Map();
   const [co, nhomCua] = await Promise.all([coVeHienHanh(db), nhomHienHanhTheoMa(db)]);
   return new Map(codes.map((ma) => [ma, coVeCua(ma, nhomCua.get(ma) ?? null, co).coVe]));
 }
 
-/** ADR-0175 Đ1.2: ô «Vé do ai phát» của các mã trong `codes` (không có dòng là `HANG_NGOAI`). Một nguồn cho `ve-dien-tu` qua hàm tiêm. KHÔNG tự kiểm quyền. */
+/**
+ * ADR-0175 Đ1.2, ADR-0230 Đ3: ô «Vé do ai phát» ĐÃ GỘP của các mã trong `codes` — dòng riêng của dịch vụ, không thì dòng của nhóm hiện tại (kể cả nhóm đang tắt, như `coVeTheoMa`),
+ * không thì `HANG_NGOAI`. Mỗi mã được hỏi đều có khoá. Một nguồn cho `orders` và `ve-dien-tu`; nơi dùng KHÔNG tự xét lại luật. KHÔNG tự kiểm quyền.
+ */
 export async function nguonVeTheoMa(db: D1Database, codes: readonly string[]): Promise<Map<string, NguonVe>> {
   if (codes.length === 0) return new Map();
-  const hienHanh = await nguonVeHienHanh(db);
-  return new Map(codes.map((ma) => [ma, nguonVeCua(ma, hienHanh)]));
+  const [hien, nhomCua] = await Promise.all([nguonVeHienHanh(db), nhomHienHanhTheoMa(db)]);
+  return new Map(codes.map((ma) => [ma, nguonVeCua(ma, nhomCua.get(ma) ?? null, hien).nguonVe]));
+}
+
+/**
+ * ADR-0178 Đ2, ADR-0230 Đ1: danh mục cho dấu «Trả sau theo dịch vụ» của `billing` (gốc lắp ráp tiêm — billing không import catalog). Mọi dịch vụ trong danh mục (kể cả đang ẩn):
+ * tên hiển thị, nhóm hiện tại (kể cả nhóm tắt), «Có vé» và «Vé do ai phát» ĐÃ GỘP bằng cùng luật thuần với `coVeTheoMa` / `nguonVeTheoMa`; mọi nhóm: tên + cờ bật. KHÔNG tự kiểm quyền.
+ */
+export async function danhMucChoTraSauDichVu(db: D1Database): Promise<DanhMucTraSauDichVu> {
+  const [dv, co, nguon, nhomCua, nhoms] = await Promise.all([getEffectiveServices(db), coVeHienHanh(db), nguonVeHienHanh(db), nhomHienHanhTheoMa(db), danhSachNhom(db)]);
+  return {
+    dichVu: new Map([...dv.values()].map((s) => {
+      const nhom = nhomCua.get(s.code) ?? null;
+      return [s.code, { ten: s.name, nhom, coVe: coVeCua(s.code, nhom, co).coVe, nguonVe: nguonVeCua(s.code, nhom, nguon).nguonVe }];
+    })),
+    nhom: new Map(nhoms.map((g) => [g.code, { ten: g.name, dangBat: g.active === 1 }])),
+  };
+}
+
+/**
+ * ADR-0229 Đ2, Đ6: dữ liệu để `orders` tính giá mùa vụ bằng hàm thuần `src/shared/gia-mua-vu.ts` — quy tắc CHƯA KẾT THÚC có ngày cuối từ `tuNgay` (gồm chờ duyệt; hàm tính
+ * tự bỏ) cộng các quy tắc theo mã `ids` (bản chụp của đơn, kể cả đã kết thúc — Đ6), và nhóm HIỆN HÀNH của từng mã dịch vụ. KHÔNG tự kiểm quyền. `tuNgay` null ⇒ không
+ * đọc quy tắc mở (không dòng nào có ngày đi).
+ */
+export async function giaMuaVuChoDon(db: D1Database, v: { tuNgay: string | null; ids?: readonly string[] }): Promise<{ quyTac: QuyTacMuaVu[]; nhomCua: Map<string, string | null> }> {
+  const [mo, theoId] = await Promise.all([v.tuNgay ? quyTacChuaKetThuc(db, v.tuNgay) : Promise.resolve([]), quyTacTheoIds(db, v.ids ?? [])]);
+  const gop = new Map([...mo, ...theoId].map((r) => [r.id, thanhQuyTac(r)] as const));
+  const quyTac = [...gop.values()];
+  const nhomCua = quyTac.some((q) => q.phamVi === "GROUP") ? await nhomHienHanhTheoMa(db) : new Map<string, string | null>();
+  return { quyTac, nhomCua };
 }
 
 /**
@@ -186,7 +229,12 @@ const FORBIDDEN_PRICES = () => error(403, "forbidden", "Tài khoản này không
  */
 async function catalogForOrderForm(
   env: Env,
-  { showSyncError, biChan }: { showSyncError: boolean; biChan?: (codes: readonly string[]) => Promise<ReadonlySet<string>> },
+  { showSyncError, biChan, muaVu }: {
+    showSyncError: boolean;
+    biChan?: (codes: readonly string[]) => Promise<ReadonlySet<string>>;
+    /** ADR-0229 Đ7: kèm giá mùa vụ theo đoạn ngày (form lập đơn); `xemMucTang` = gửi % và số tiền tăng (chỉ văn phòng — Đ9). Vắng = giá gốc (`GET /api/catalog`). */
+    muaVu?: { xemMucTang: boolean };
+  },
 ): Promise<CatalogPublicResponse> {
   try {
     await bootstrapIfNeverSynced(env, DONG_BO_DANH_MUC);
@@ -207,6 +255,22 @@ async function catalogForOrderForm(
   // ADR-0149 Đ1: ô riêng của dịch vụ (Luôn đón / Không đón) thắng cờ nhóm — cùng hàm `choPhepDuaDon`, bài so khớp src/migrations-dua-don-dich-vu.test.ts.
   const nhomDuaDon = nhoms.map((g) => ({ code: g.code, active: g.active === 1, transferEnabled: g.transfer_enabled === 1 }));
   const choForm: CatalogServiceDto[] = form.items.map((i) => ({ ...i, transferEnabled: choPhepDuaDon(i.groupCode, nhomDuaDon, quyTac.get(i.code) ?? "GROUP") }));
+  if (muaVu) {
+    // ADR-0229 Đ7: cùng hàm chọn quy tắc với máy chủ (`chonQuyTac` qua `doanMuaVu`), nhóm HIỆN HÀNH thô (`nhomTheoDichVu`, như `giaMuaVuChoDon`), cùng công thức `tinhGiaMuaVu`.
+    const homNay = vnToday(new Date());
+    const quyTacMv = (await quyTacChuaKetThuc(env.DB, homNay)).map(thanhQuyTac);
+    if (quyTacMv.length > 0) {
+      for (const it of choForm) {
+        const doan = doanMuaVu({ maDichVu: it.code, maNhom: nhomTheoDichVu.get(it.code) ?? null, quyTac: quyTacMv, tuNgay: homNay });
+        if (doan.length === 0) continue;
+        it.giaTheoNgay = doan.map((d) => {
+          const prices = { ...it.prices };
+          for (const c of PAX_ORDER) prices[c] = tinhGiaMuaVu({ giaGoc: it.prices[c], maDichVu: it.code, maNhom: d.quyTac.phamVi === "GROUP" ? d.quyTac.ma : null, ngayDi: d.tu, quyTac: [d.quyTac] }).gia;
+          return { tu: d.tu, den: d.den, prices, ...(muaVu.xemMucTang ? { mucTang: { phanTram: d.quyTac.phanTram, soTien: d.quyTac.soTien } } : {}) };
+        });
+      }
+    }
+  }
   return { items: choForm, sync: { lastSuccessAt: state.lastSuccessAt, error: showSyncError ? state.lastError : null }, groups: form.groups };
 }
 
@@ -232,13 +296,15 @@ export const catalogModule: AppModule = {
       if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không xem được danh mục dịch vụ.");
       if (!can(staff, "money.view", { ownerId: staff.id })) return FORBIDDEN_PRICES();
       // ADR-0146 Đ4: Đối tác (kể cả lai) bị ép bên đặt không thấy dịch vụ luật bán chặn cho loại của mình.
-      return json((await catalogForOrderForm(env, { showSyncError: isOffice(staff), biChan: dichVuBiChanChoToi })) satisfies CatalogPublicResponse);
+      return json((await catalogForOrderForm(env, { showSyncError: isOffice(staff), biChan: dichVuBiChanChoToi, muaVu: { xemMucTang: isOffice(staff) && !holdsPartner(staff) } })) satisfies CatalogPublicResponse);
     }),
 
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
     ...coVeRoutes,
     ...nguonVeRoutes, // ADR-0175 Đ1.2: ô «Vé do ai phát»
+    ...soHoTroRoutes, // ADR-0231: ô «Hotline trên vé»
     ...ngungBanNgayRoutes, // ADR-0220: «Ngừng bán theo ngày»
+    ...giaMuaVuRoutes, // ADR-0229: «Giá mùa vụ»
     ...chiTietRoutes, // ADR-0201 Đ1: tên hiển thị + mô tả
     ...anhRoutes, // ADR-0201 Đ3: ảnh đại diện
     ...dacDiemRoutes,

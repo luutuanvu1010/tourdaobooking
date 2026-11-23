@@ -137,7 +137,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
     const lt = await docLanThu(db, { ...(m as object), ngayPhatSinh: ngay.value, ...(cuKhai.length > 0 && goDungDau(m) ? { ghiChu: null } : {}) }, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false, boQua });
     if (!lt.ok) return lt;
     // ADR-0178 Đ1 mục 2: khoản thay thế (kể cả «Ghi khoản thu đòi được» của phân định — cùng lô này) ở đơn mang dấu Tắt chỉ được là hồ sơ người lập; kiểm TRƯỚC lô.
-    const kenh = await kiemNguoiThuKenh(db, orderId, lt.value.collectorPartyId);
+    const kenh = await kiemNguoiThuKenh(db, orderId, lt.value);
     if (kenh) return { ok: false, res: kenh };
     daCo.push(lanThuMoiRow(lt.value, `moi-${daCo.length}`));
     // ADR-0092 Đ6a: khoản thu tiền mặt giống nhau — so với khoản còn hiệu lực trừ khoản đang bị thay, và các khoản đã đọc của chính lệnh này.

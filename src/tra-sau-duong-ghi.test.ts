@@ -645,7 +645,7 @@ test("Task 3 (ghim nợ 6): đường hẹp con-duoc-dung — đúng ba khoá; �
   assert.equal((await cua(DT, BEN2)).status, 403, "Task 11 vòng sửa 1: bên đặt ngoài tư cách ⇒ 403, không lặng lẽ đổi");
   const r = await cuaToi(DT);
   assert.equal(r.status, 200, r.text);
-  assert.deepEqual(Object.keys(r.json).sort(), ["coDonQuaHan", "coHanMuc", "conDuocDung"]);
+  assert.deepEqual(Object.keys(r.json).sort(), ["coDonQuaHan", "coHanMuc", "conDuocDung", "congTyThu", "traSauDichVu"]); // ADR-0230 Đ1 mục 5: thêm số giờ Trả sau theo dịch vụ; Đ2: công tắc kênh thu (form «Trả lúc check-in»)
   assert.equal(r.json.conDuocDung, 1_000_000, "số của chính Đối tác (hồ sơ phiên), không phải 3.000.000 của người khác");
   assert.equal((await cua(A, BEN2)).json.conDuocDung, 3_000_000, "văn phòng hỏi bên đặt đã chọn");
   assert.equal((await cua(H, BEN)).status, 403);
@@ -824,8 +824,9 @@ test("ADR-0197 Đ4 (c1): Kế toán ghi «Nộp về công ty» một phần ⇒
 
 test("ADR-0197 Đ4 (c1): đơn Trả sau KHÔNG khai cọc mà nhận cọc CHUYỂN từ đơn huỷ (`transfer_of_id`, không mang dấu ghi chú) ⇒ Đối tác tự huỷ vẫn 409; nợ của đơn không giảm (huỷ để lập lại sang đơn Trả sau)", async () => {
   const w = dung();
-  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  // ADR-0224: đối tác dùng được Trả sau không lập được đơn Thanh toán ngay ⇒ lập đơn Thanh toán ngay TRƯỚC khi được cấp hạn mức.
   const cu = await donDT(w, 200_000, "PREPAID");
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
   const h = await w.call("POST", `/api/orders/${cu.id}/status`, { as: DT, body: { status: "cancelled", lyDo: "SAI_THONG_TIN" } });
   assert.equal(h.status, 200, "đơn Thanh toán ngay có cọc: Đối tác tự huỷ như hôm nay");
   const moi = await donDT(w, 0);

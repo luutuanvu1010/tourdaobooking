@@ -192,15 +192,23 @@ function khoiDangChinhSach(d: Du, baoLoi: (m: string | null) => void): HTMLEleme
   }
   const oHanXoa = h("input", { type: "text", id: "hs-cs-han-xoa", inputmode: "numeric", maxlength: 5, autocomplete: "off", value: d.chinhSach?.hanXuLyXoaNgay != null ? String(d.chinhSach.hanXuLyXoaNgay) : "" }) as HTMLInputElement;
   const oHanPhien = h("input", { type: "text", id: "hs-cs-han-phien", inputmode: "numeric", maxlength: 5, autocomplete: "off", value: d.chinhSach?.hanGiuPhienNgay != null ? String(d.chinhSach.hanGiuPhienNgay) : "" }) as HTMLInputElement;
+  // ADR-0232 Đ10: số năm giữ Ảnh bàn giao — CHÉP SẴN số của bản đang hiệu lực (để đăng bản mới không vô tình tắt việc tải ảnh); xoá trống = bản này không có mục ảnh.
+  const oNamAnh = h("input", { type: "text", id: "hs-cs-nam-anh", inputmode: "numeric", maxlength: 2, autocomplete: "off", value: d.chinhSach?.soNamGiuAnh != null ? String(d.chinhSach.soNamGiuAnh) : "" }) as HTMLInputElement;
   // ADR-0212 Đ7: dấu «Thu thông tin tổ chức» — phần tổ chức của biểu mẫu đăng ký chỉ mở khi bản đang hiệu lực có dấu này. Mặc định KHÔNG tích; bản cũ không kéo dấu sang.
   const oPhanToChuc = h("input", { type: "checkbox", id: "hs-cs-co-to-chuc" }) as HTMLInputElement;
+  // ADR-0233 Đ3: dấu «Thu tệp khác» — ô «Tệp khác» của phiếu đăng ký chỉ mở khi bản đang hiệu lực có dấu này (Hiến chương 5.21). Mặc định KHÔNG tích.
+  const oTepKhac = h("input", { type: "checkbox", id: "hs-cs-co-tep-khac" }) as HTMLInputElement;
   const form = h("form", { id: "hs-dang-cs" },
     h("p", { class: "muted" }, "Đăng phiên bản mới thì mọi người phải đồng ý lại trước khi gửi thông tin. Chữ chính sách cần chủ dự án và luật sư duyệt trước khi đăng."),
     h("label", null, "Mục đích thu thập", mucDich), h("label", null, "Toàn văn chính sách", noiDung),
     h("label", null, "Số ngày xử lý yêu cầu xoá", oHanXoa), h("label", null, "Số ngày giữ IP và thông tin của máy đã đăng xuất", oHanPhien),
     h("p", { class: "muted" }, "Để trống nếu chưa có số được luật sư xác nhận. Nền tảng không tự điền số ngày."),
+    h("label", null, "Số năm giữ ảnh bàn giao", oNamAnh),
+    h("p", { class: "muted" }, "Chỉ điền khi toàn văn đã nêu việc chụp ảnh bàn giao và thời hạn giữ (từ 1 đến 20 năm). Để trống thì không ai tải được ảnh bàn giao mới."),
     h("label", { class: "hs-check", for: "hs-cs-co-to-chuc" }, oPhanToChuc, h("span", null, "Bản này có phần thu thông tin tổ chức")),
     h("p", { class: "muted" }, "Chỉ tích khi toàn văn đã nêu việc thu thông tin của tổ chức (tên, mã số thuế, giấy phép kinh doanh…). Chưa tích thì đối tác là tổ chức chưa đăng ký được."),
+    h("label", { class: "hs-check", for: "hs-cs-co-tep-khac" }, oTepKhac, h("span", null, "Bản này nêu việc thu tệp khác")),
+    h("p", { class: "muted" }, "Chỉ tích khi toàn văn đã nêu việc người đăng ký tự gửi thêm giấy tờ khác, dùng vào việc gì và giữ bao lâu. Chưa tích thì phiếu đăng ký không có ô «Tệp khác»."),
     h("button", { class: "btn btn-primary", type: "submit" }, "Đăng phiên bản mới")) as HTMLFormElement;
   /** Ô số ngày: trống = chưa có số (null); có chữ thì phải là số nguyên dương. */
   const soNgay = (o: HTMLInputElement): number | null | "loi" => {
@@ -220,7 +228,13 @@ function khoiDangChinhSach(d: Du, baoLoi: (m: string | null) => void): HTMLEleme
           baoLoi("Số ngày phải là số nguyên từ 1 trở lên, hoặc để trống.");
           return;
         }
-        await api<Api.ChinhSachDangResponse>("/api/parties/chinh-sach-rieng-tu", { method: "POST", body: { mucDich: mucDich.value, noiDung: noiDung.value, hanXuLyXoaNgay: hanXoa, hanGiuPhienNgay: hanPhien, coPhanToChuc: oPhanToChuc.checked } });
+        const namAnh = soNgay(oNamAnh);
+        if (namAnh === "loi" || (namAnh !== null && namAnh > 20)) {
+          xacNhan.hidden = true;
+          baoLoi("Số năm giữ ảnh bàn giao phải là số nguyên từ 1 đến 20, hoặc để trống.");
+          return;
+        }
+        await api<Api.ChinhSachDangResponse>("/api/parties/chinh-sach-rieng-tu", { method: "POST", body: { mucDich: mucDich.value, noiDung: noiDung.value, hanXuLyXoaNgay: hanXoa, hanGiuPhienNgay: hanPhien, coPhanToChuc: oPhanToChuc.checked, coTepKhac: oTepKhac.checked, soNamGiuAnh: namAnh } });
         tai("da-luu");
       } catch (e) {
         baoLoi(cauLoi(e));

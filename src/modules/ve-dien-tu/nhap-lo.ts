@@ -3,6 +3,7 @@ import { DANG_MA_VE } from "../../shared/ve-nhap-lo.ts";
 import type { NhomLo } from "./rules.ts";
 import { DANG_MA_VE_TD } from "../../shared/ma-ve-tour-dao.ts";
 import { isNguonVe, type NguonVe } from "../../shared/nguon-ve.ts";
+import { chuanHoaSoHoTro } from "../../shared/so-ho-tro.ts";
 
 type Kq<T> = { ok: true; value: T } | { ok: false; message: string };
 const NHOM_LO: readonly NhomLo[] = ["ADULT", "CHILD", "SENIOR", "ALL"];
@@ -14,7 +15,8 @@ const laNgay = (s: string): boolean => {
 };
 const chu = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-export interface LoMoi { catalogCode: string; nhomKhach: NhomLo; tenSanPham: string; nguon: NguonVe }
+/** `soHoTro` (ADR-0231): hotline in trên vé, dạng chuẩn; chỉ lô Tour Đảo; null = trình duyệt cũ không gửi (lô vẫn tạo được, như trước). */
+export interface LoMoi { catalogCode: string; nhomKhach: NhomLo; tenSanPham: string; nguon: NguonVe; soHoTro: string | null }
 export function kiemLo(raw: Record<string, unknown>): Kq<LoMoi> {
   const catalogCode = chu(raw.catalogCode);
   const nhom = chu(raw.nhomKhach);
@@ -25,7 +27,16 @@ export function kiemLo(raw: Record<string, unknown>): Kq<LoMoi> {
   // ADR-0175 Đ1.1: thiếu nguồn ⇒ vé hãng ngoài (hành vi cũ không đổi); nguồn lạ ⇒ từ chối, không đoán.
   const nguon = raw.nguon === undefined ? "HANG_NGOAI" : raw.nguon;
   if (!isNguonVe(nguon)) return { ok: false, message: "Chọn Vé do ai phát cho cả lô." };
-  return { ok: true, value: { catalogCode, nhomKhach: nhom as NhomLo, tenSanPham, nguon } };
+  // ADR-0231: số in trên vé chỉ có nghĩa với vé Tour Đảo (vé hãng ngoài là ảnh của hãng). Câu lỗi không nhắc lại số.
+  let soHoTro: string | null = null;
+  if (raw.soHoTro !== undefined && raw.soHoTro !== null) {
+    if (nguon !== "TOUR_DAO") return { ok: false, message: "Chỉ lô vé Tour Đảo mới có hotline trên vé." };
+    if (typeof raw.soHoTro !== "string") return { ok: false, message: "Nhập hotline trên vé." };
+    const c = chuanHoaSoHoTro(raw.soHoTro);
+    if (!c.ok) return { ok: false, message: c.cau };
+    soHoTro = c.so;
+  }
+  return { ok: true, value: { catalogCode, nhomKhach: nhom as NhomLo, tenSanPham, nguon, soHoTro } };
 }
 
 export interface VeNhap { maVe: string; tuNgay: string; denNgay: string; gio: string | null }

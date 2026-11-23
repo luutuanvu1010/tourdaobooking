@@ -19,7 +19,7 @@ const S = String(Date.now()).slice(-6);
 const CHU = S.replace(/\d/g, (d) => "ABCDEGHKLM"[d]); // tên không được chứa dãy số dài
 const BEN = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (migration 0010)
 const HOM_NAY = vnDate(0);
-const DS = (soTien) => ({ loai: "DANH_SACH", soTien });
+const DS = (soTien) => ({ donGia: soTien, lyDo: "Văn phòng đổi" });
 
 const phai = (r, status, nhan) => {
   assert.equal(r.status, status, `${nhan}: ${r.status} ${JSON.stringify(r.body)}`);
@@ -29,15 +29,15 @@ const datBatDau = async (ngay) => {
   const tuLuc = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp.tuLuc;
   phai(await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay, tuLucDaDoc: tuLuc }), 200, `đặt ngày bắt đầu áp ${ngay}`);
 };
-const dongPhiDb = async (id) => sqlRows(`SELECT fee_source, fee_choice, fee_zone_code, quantity, unit_price, line_total FROM order_item WHERE order_id = '${id}' AND line_kind = 'TRANSFER_FEE' ORDER BY sort_order`);
+const dongPhiDb = async (id) => sqlRows(`SELECT fee_calc_source, fee_zone_code, quantity, unit_price, line_total FROM order_item WHERE order_id = '${id}' AND line_kind = 'TRANSFER_FEE' ORDER BY sort_order`);
 const tienDb = async (id) => (await sqlRows(`SELECT status, subtotal, total, remaining_amount FROM orders WHERE id = '${id}'`))[0];
 const soNhatKy = async (id, action) => (await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE order_id = '${id}' AND action = '${action}'`))[0].n;
 const xacNhan = (id) => call(SALES, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
-const DON = (phiDon) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: `Khách sạn Thử ${CHU}`, dropoffLocationId: BEN, dropoffPlace: "", ...(phiDon ? { phiDon } : {}) });
+const DON = (phiDon) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: `Khách sạn Thử ${CHU}`, dropoffLocationId: BEN, dropoffPlace: "", ...(phiDon ? { doiPhi: phiDon } : {}) });
 const lap = async (phien, phiDon, ma = "ZE1") => phai(await call(phien, "POST", "/api/orders", orderInput({
   services: [catalogService({ catalogCode: ma, catalogPriceSeen: { adult: 100_000 }, pax: { adult: 2 }, legs: [DON(phiDon)] })],
 })), 201, "lập đơn").order;
-const cauThieu = (o) => `Chọn phí đưa đón cho lượt đón chiều đi của dịch vụ ${o.services[0].name} trước khi xác nhận.`;
+const cauThieu = (o) => `Dịch vụ ${o.services[0].name} chưa có giá gốc phí đưa đón cho lượt đón chiều đi. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.`;
 const laThieuPhi = (r, o) => assert.deepEqual([r.status, r.body?.error?.code, r.body?.error?.message], [409, "transfer_fee_missing", cauThieu(o)], JSON.stringify(r.body));
 
 try {
@@ -60,7 +60,7 @@ try {
   const o1 = await lap(SALES, DS(100_000));
   assert.deepEqual((await dongPhiDb(o1.id)).map((d) => d.line_total), [200_000], "nháp: phí dự kiến theo mức đã chọn");
   const r1 = phai(await xacNhan(o1.id), 200, "xác nhận có phí");
-  assert.deepEqual(await dongPhiDb(o1.id), [{ fee_source: "CHON", fee_choice: "DANH_SACH", fee_zone_code: null, quantity: 2, unit_price: 100_000, line_total: 200_000 }]);
+  assert.deepEqual(await dongPhiDb(o1.id), [{ fee_calc_source: "DOI_TAY", fee_zone_code: null, quantity: 2, unit_price: 100_000, line_total: 200_000 }]);
   assert.deepEqual(await tienDb(o1.id), { status: "confirmed", subtotal: 400_000, total: 400_000, remaining_amount: 400_000 });
   assert.equal(await soNhatKy(o1.id, "confirmed"), 1, "nhật ký confirmed ghi (câu chốt đứng sau chuỗi changes())");
   assert.equal(await soNhatKy(o1.id, "order_terms_captured"), 1, "nhật ký bản chụp ghi");
@@ -82,7 +82,7 @@ try {
   const DT = await gieoTaiKhoanLai(`Đối tác phí xác nhận ${CHU}`, ["PARTNER"]);
   const o7 = await lap(DT.cookie);
   const legId = o7.services[0].legs[0].id;
-  const r400 = await call(DT.cookie, "POST", `/api/orders/${o7.id}/gui-don`, { phiDon: [{ legId, muc: DS(30_000) }] });
+  const r400 = await call(DT.cookie, "POST", `/api/orders/${o7.id}/gui-don`, { doiPhi: [{ legId, ...DS(30_000) }] });
   assert.deepEqual([r400.status, r400.body?.error?.code], [400, "transfer_fee_not_allowed"], JSON.stringify(r400.body));
   const g = phai(await call(DT.cookie, "POST", `/api/orders/${o7.id}/gui-don`, {}), 201, "gửi đơn chưa chọn phí");
   assert.equal(g.nhanh, "A");
@@ -94,15 +94,15 @@ try {
     return call(ADMIN, "POST", `/api/orders/${o7.id}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, ...them });
   };
   laThieuPhi(await conVe(), o7);
-  const sai = await conVe({ phiDon: [{ legId, muc: DS(12_345) }] });
-  assert.deepEqual([sai.status, sai.body?.error?.message], [400, "Chọn phí đưa đón trong danh sách hoặc gõ số tiền hợp lệ."], JSON.stringify(sai.body));
+  const sai = await conVe({ doiPhi: [{ legId, donGia: 5_000_001, lyDo: "Quá trần" }] });
+  assert.deepEqual([sai.status, sai.body?.error?.message], [400, "Đơn giá phí đưa đón phải là số nguyên từ 0 đến 5.000.000 đ."], JSON.stringify(sai.body));
   assert.equal((await tienDb(o7.id)).status, "draft");
-  phai(await conVe({ phiDon: [{ legId, muc: DS(30_000) }] }), 200, "Còn vé kèm mức");
-  assert.deepEqual(await dongPhiDb(o7.id), [{ fee_source: "CHON", fee_choice: "DANH_SACH", fee_zone_code: null, quantity: 2, unit_price: 30_000, line_total: 60_000 }]);
+  phai(await conVe({ doiPhi: [{ legId, ...DS(30_000) }] }), 200, "Còn vé kèm mức");
+  assert.deepEqual(await dongPhiDb(o7.id), [{ fee_calc_source: "DOI_TAY", fee_zone_code: null, quantity: 2, unit_price: 30_000, line_total: 60_000 }]);
   assert.deepEqual(await tienDb(o7.id), { status: "confirmed", subtotal: 260_000, total: 260_000, remaining_amount: 260_000 });
   assert.equal(await soNhatKy(o7.id, "confirmed"), 1);
   const [nk] = await sqlRows(`SELECT detail FROM audit_log WHERE order_id = '${o7.id}' AND action = 'confirmed'`);
-  assert.ok(String(nk.detail).includes("phí đưa đón chiều đi · ") && String(nk.detail).includes("chưa chọn → 30.000 ₫ (trong danh sách)"), nk.detail);
+  assert.ok(String(nk.detail).includes("phí đưa đón chiều đi · ") && String(nk.detail).includes("chưa có → 30.000 ₫ × 2 (đổi số: Văn phòng đổi)"), nk.detail);
   console.log("✓ (4) SV-PC-10: Đối tác gửi mức 400; Gửi đơn ⇒ nhánh A, cờ PHI_DON; Còn vé thiếu mức 409, mức sai 400; Còn vé kèm 30.000 ⇒ xác nhận, phí 60.000 cùng lô, nhật ký ghi mức");
 } finally {
   // Dọn: TẮT phí (tự bắt lỗi: dọn dở cũng không che lỗi gốc).

@@ -50,7 +50,9 @@
           <legend>Hình thức thanh toán</legend>
           <label><input type="radio" name="paymentTerm" value="PREPAID" checked> <span data-nhan-hinh-thuc="PREPAID"></span></label>
           <label><input type="radio" name="paymentTerm" value="CREDIT" aria-describedby="tra-sau-cau"> <span data-nhan-hinh-thuc="CREDIT"></span></label>
+          <label id="tra-luc-checkin-nhan" hidden><input type="radio" name="paymentTerm" value="TRA_LUC_CHECKIN" aria-describedby="tra-luc-checkin-cau"> <span data-nhan-hinh-thuc="TRA_LUC_CHECKIN"></span></label>
           <p id="tra-sau-cau" class="muted" role="status"></p>
+          <p id="tra-luc-checkin-cau" class="muted" hidden></p>
         </fieldset>
         <p id="tra-sau-bao" class="alert" role="status" hidden></p>
         <div class="grid two">

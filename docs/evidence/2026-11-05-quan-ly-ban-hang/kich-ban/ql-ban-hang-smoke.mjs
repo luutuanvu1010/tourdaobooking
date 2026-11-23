@@ -154,7 +154,7 @@ try {
         await a.ev(`(() => { const s = document.getElementById('filter'); s.value = 'kiem-ve'; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
         await a.waitFor(`!!${hienRa(`[data-code="${MA}"]`)} && !${hienRa('[data-code="TD102"]')}`, "lọc ra vé cần kiểm");
         await chup(a, `ql-${tenKho}-6-loc`);
-        const tat = `${hienRa(`[data-code="${MA}"] [data-action="kiem-ve"]`)}`;
+        const tat = `${hienRa(`[data-code="${MA}"] [data-action="kiem-ve"], [data-code-phu="${MA}"] [data-action="kiem-ve"]`)}`; // ADR-0230: ở khổ máy tính công tắc nằm ở dòng phụ tr[data-code-phu]
         await a.ev(`${tat}.click()`);
         await a.waitFor(`!${hienRa(`[data-code="${MA}"]`)}`, "gạt tắt thì rời danh sách lọc");
         assert.equal(await coCua("SERVICE", MA), false);

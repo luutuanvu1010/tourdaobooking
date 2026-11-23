@@ -26,6 +26,9 @@ export const NHOM_KHACH_VE: Record<NhomLo, { vi: string; en: string }> = {
   ALL: { vi: "Mọi loại khách", en: "All guests" },
 };
 
+/** Chữ đứng trước số ở chân vé (ADR-0231: số là «Hotline trên vé» của lô — số dịch vụ, không có thì hotline công ty). Đổi nhãn chỉ đổi hằng này. */
+export const NHAN_HOTLINE_VE = "Hotline";
+
 export interface NoiDungVe { tenCongTy: string; hotline: string; tenDichVu: string; tenDichVuEn: string | null; nhomKhach: NhomLo; denNgay: string; ma: string; soSeri: string }
 /** Bề rộng (px) của chuỗi ở cỡ chữ và độ đậm cho trước. */
 export type DoChu = (chu: string, coPx: number, dam: number) => number;
@@ -136,8 +139,8 @@ export function boCucVeTourDao(nd: NoiDungVe, soOQr: number, doChu: DoChu): BoCu
   y = cap("Mỗi vé dùng một lần. Xuất trình mã cho nhân viên Tour Đảo.", "Single use. Show this code to Tour Đảo staff.", "motLan", y + 28 + 30, { vi: 30, en: 28, damVi: 500, toiDaVi: 2, toiDaEn: 2 });
   y = cap(CAU_KHONG_PHAI_HOA_DON.vi, CAU_KHONG_PHAI_HOA_DON.en, "hoaDon", y + 20 + 30, { vi: 30, en: 28, damVi: 500, toiDaVi: 2, toiDaEn: 2 });
 
-  // Hotline ở chân vé (không dịch).
-  y = khoi(`Hotline ${nd.hotline}`, { x: LE, y: Math.max(y + 56, H - 72), rong: RONG_TRONG, coPx: 36, dam: 700, mau: "chinh", ngonNgu: "chung", nhom: "hotline", toiDa: 1, caoDong: 44 });
+  // Hotline ở chân vé (không dịch). ADR-0231: `nd.hotline` là số của lô (thay hotline công ty khi dịch vụ có số riêng).
+  y = khoi(`${NHAN_HOTLINE_VE} ${nd.hotline}`, { x: LE, y: Math.max(y + 56, H - 72), rong: RONG_TRONG, coPx: 36, dam: 700, mau: "chinh", ngonNgu: "chung", nhom: "hotline", toiDa: 1, caoDong: 44 });
 
   return { rong: W, cao: H, logo, qr, vach, dong, dayNoiDung: y + duoiChu(36) };
 }

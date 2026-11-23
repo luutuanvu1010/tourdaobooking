@@ -5,7 +5,7 @@
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
-import { canhBaoVuotHanMuc, cauDonNo, cauHanMuc, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { canhBaoVuotHanMuc, cauDonNo, cauHanMucVanPhong, dongDangNo, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { dongTien } from "../src/shared/tra-sau";
 import { moTrang } from "../src/shared/muc-giao-dien";
 
@@ -39,7 +39,7 @@ async function xemDon(d: Api.HanMucTraSauDto): Promise<void> {
   try {
     const r = await api<Api.DonNoTraSauResponse>(`/api/tra-sau/han-muc/${encodeURIComponent(d.partyId)}/don`);
     const dong = (x: Api.DonNoTraSauDto): HTMLElement =>
-      h("li", { "data-trang-thai": x.trangThai }, h("a", { href: `/order?id=${encodeURIComponent(x.orderId)}` }, x.maDon), ` · ${cauDonNo(x)}`);
+      h("li", { "data-trang-thai": x.trangThai }, h("a", { class: "ts-ma-don", href: `/order?id=${encodeURIComponent(x.orderId)}` }, x.maDon), ` · ${cauDonNo(x)}`);
     replaceChildren(donEl, h("h2", null, `Đơn còn nợ của ${r.ten}`), r.don.length === 0 ? h("p", { class: "muted" }, "Không có đơn nào còn nợ.") : h("ul", null, ...r.don.map(dong)));
     donEl.hidden = false;
     donEl.scrollIntoView({ block: "nearest" });
@@ -61,8 +61,8 @@ const cauHan = (d: Api.HanMucTraSauDto): string => [nhanQuaHan(d.soDonQuaHan), n
 const hang = (d: Api.HanMucTraSauDto): HTMLElement =>
   h("tr", null,
     h("td", null, d.ten, canhBao(d)),
-    h("td", null, cauHanMuc(d)),
-    h("td", null, dongTien(d.dangNo)),
+    h("td", null, cauHanMucVanPhong(d)),
+    h("td", null, ...dongDangNo(d).map((x) => h("div", null, x))),
     h("td", null, conDuoc(d)),
     h("td", null, cauHan(d)),
     h("td", null, h("div", { class: "handler-actions" }, nutXem(d))),
@@ -71,8 +71,9 @@ const hang = (d: Api.HanMucTraSauDto): HTMLElement =>
 const the = (d: Api.HanMucTraSauDto): HTMLElement =>
   h("div", { class: "card card-col" },
     h("div", null, h("strong", null, d.ten)),
-    h("div", { class: "muted" }, cauHanMuc(d)),
-    h("div", null, `Đang nợ ${dongTien(d.dangNo)} · Hạn mức khả dụng ${conDuoc(d)}`),
+    h("div", { class: "muted" }, cauHanMucVanPhong(d)),
+    h("div", null, h("span", { class: "muted" }, "Đang nợ"), ...dongDangNo(d).map((x) => h("div", null, x))),
+    h("div", null, `Hạn mức khả dụng ${conDuoc(d)}`),
     cauHan(d) !== "—" ? h("div", { class: "muted" }, cauHan(d)) : null,
     canhBao(d),
     h("div", { class: "handler-actions" }, nutXem(d)),

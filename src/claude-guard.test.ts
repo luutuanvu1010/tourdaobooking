@@ -46,6 +46,11 @@ const MUST_DENY = [
   // ADR-0162 Task 5: lệnh lên chính thức, làm mới Development, và mọi đường chạm wrangler Development/R2 ngoài ba lệnh chỉ-đọc/local.
   "npm run len-chinh-thuc -- x",
   "npm run lam-moi-dev",
+  // ADR-0223: đưa mã lên bản dùng thử — chủ tự gõ.
+  "npm run len-demo",
+  "node scripts/len-demo.mjs",
+  "CI=1 npm run len-demo",
+  "./scripts/len-demo.mjs",
   "pnpm len-chinh-thuc",
   "node scripts/len-chinh-thuc.mjs x",
   "node ./scripts/lam-moi-dev.mjs",

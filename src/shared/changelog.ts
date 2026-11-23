@@ -17,6 +17,156 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Giá mùa vụ (kế hoạch 16 việc 21/11, Việc 10; ADR-0229 chủ duyệt 22/11). Nhánh claude/modest-goldstine-a52295. CÓ migration 0188, 0189.
+    // Số 3.40 = số trống kế tiếp sau 3.39 (việc 1) trên main lúc gộp lần ba 23/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0229.
+    version: "3.40",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Dịch vụ & giá: nút «Giá mùa vụ» cho một dịch vụ hoặc cả nhóm — tăng theo phần trăm hoặc số tiền trong một khoảng ngày đi. Giá chỉ áp sau khi người khác duyệt." },
+      { kind: "moi", text: "Lập đơn: dịch vụ có ngày đi trong mùa tự lấy giá mùa vụ. Văn phòng thấy thêm dòng nhỏ ghi mức tăng." },
+      { kind: "doi", text: "Đơn đã xác nhận giữ nguyên giá; muốn dời sang ngày thuộc mùa giá khác thì huỷ và lập đơn mới. Đơn nháp đổi ngày đi thì giá được tính lại theo ngày mới." },
+      { kind: "doi", text: "Hoa hồng theo phần trăm của đại lý không tính trên phần tăng giá mùa vụ." },
+    ],
+  },
+  {
+    // Bản dùng thử demo.tourdao.vn (kế hoạch 16 việc 21/11, Việc 1; ADR-0223). Nhánh claude/beautiful-engelbart-74cf25. Không migration. Bản chính thức không đổi hành vi.
+    // Số 3.39 = số trống kế tiếp sau 3.38 (bản sửa Việc 11) trên main lúc gộp 23/11, lượt nhập của việc 1: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.39",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Có bản dùng thử riêng ở demo.tourdao.vn để người mới tự bấm thử Nền tảng với vai trò mình chọn. Dữ liệu mẫu tự xoá mỗi 2 giờ, không chạm dữ liệu thật." },
+    ],
+  },
+  {
+    // Việc 11, phần nối tiếp sau khi 3.37 đã triển khai (23/11): hai bản sửa 7556c95b7, d927c3594. Không migration.
+    // Số 3.38 = số trống kế tiếp sau 3.37 (bản chạy thật lúc kiểm): bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.38",
+    date: "2026-11-23",
+    items: [
+      { kind: "sua", text: "Dịch vụ & giá trên máy tính: ô «Vé do ai phát» hiện đủ hai nút «Vé hãng ngoài» và «Vé Tour Đảo»; các ô vé xếp gọn từng cặp." },
+      { kind: "sua", text: "Chọn «Vé hãng ngoài» cho một dịch vụ nay luôn được giữ riêng, không đổi theo khi nhóm của dịch vụ được đặt «Vé Tour Đảo»." },
+    ],
+  },
+  {
+    // Việc 11 kế hoạch 16 việc 21/11 (ADR-0230 chủ duyệt 22/11, migration 0186–0187). Nhánh claude/jolly-taussig-db3da9.
+    // Số 3.37 = số trống kế tiếp sau 3.36 (Việc 13) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.37",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Trả sau theo dịch vụ: Toàn quyền đặt dấu cho nhóm hoặc dịch vụ ở màn Dịch vụ & giá, kèm số giờ trả và giờ ân hạn." },
+      { kind: "moi", text: "Đơn đối tác mà mọi dịch vụ có vé đều là vé Tour Đảo có dấu thì được trả sau không cần hạn mức: vé hiện ngay khi đơn xác nhận." },
+      { kind: "moi", text: "Hình thức mới «Trả lúc check-in»: khách trả tiền mặt khi check-in. Đơn này không nhận chuyển khoản, không có mã QR." },
+      { kind: "moi", text: "«Việc của tôi» của hướng dẫn viên nhắc số cần thu ở đơn «Trả lúc check-in»." },
+      { kind: "moi", text: "«Vé do ai phát» nay đặt được cho cả nhóm dịch vụ; dịch vụ đã đặt riêng giữ giá trị riêng." },
+      { kind: "doi", text: "Màn nợ trả sau tách hai số: nợ theo hạn mức và nợ Trả sau theo dịch vụ. Số «còn được dùng» chỉ trừ nợ theo hạn mức." },
+    ],
+  },
+  {
+    // Ảnh bàn giao (kế hoạch 16 việc 21/11, Việc 13; ADR-0232). Nhánh claude/upbeat-payne-c7e621. CÓ migration 0192 và kho R2 mới tourdao-sales-anh-ban-giao (chủ tạo trước).
+    // Số 3.36 = số trống kế tiếp sau 3.35 (Việc 12) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Chỉ bật khi Toàn quyền đăng chính sách riêng tư có «Số năm giữ ảnh bàn giao».
+    version: "3.36",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Ảnh bàn giao: ở trang đơn đã xác nhận, văn phòng và hướng dẫn viên phụ trách chụp ảnh lúc giao vé, giao khách rồi bấm «Gửi ảnh»." },
+      { kind: "moi", text: "Tài xế công ty gửi ảnh bàn giao ngay trên điểm đón trong màn chuyến." },
+      { kind: "moi", text: "Văn phòng, Kế toán, Quản trị xem được ảnh; đối tác và khách không thấy. Ảnh gửi nhầm chỉ Toàn quyền ẩn được, có ghi lý do." },
+      { kind: "moi", text: "Chính sách riêng tư có thêm ô «Số năm giữ ảnh bàn giao»; còn trống thì chưa ai gửi được ảnh." },
+    ],
+  },
+  {
+    // Hotline trên vé Tour Đảo theo dịch vụ (kế hoạch 16 việc 21/11, Việc 12; ADR-0231 chủ duyệt 22/11). Nhánh claude/jovial-tharp-11a62e. CÓ migration 0185.
+    // Số 3.35 = số trống kế tiếp sau 3.34 (Việc 8) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0231.
+    version: "3.35",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Vé Tour Đảo in số riêng của dịch vụ: đặt ở ô «Hotline trên vé» màn Dịch vụ & giá; chưa đặt thì in hotline công ty. Lúc tạo vé sửa được cho riêng lô.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+    ],
+  },
+  {
+    // Việc 8 kế hoạch 16 việc 21/11 (ADR-0228 chủ duyệt 22/11, migration 0183). Nhánh claude/eloquent-snyder-7de04b.
+    // Số 3.34 = số trống kế tiếp sau 3.33 (Việc 14) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.34",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Công tắc «Ẩn thông tin khách» tách làm hai: «Đối tác không nhập tên, SĐT khách» và «Đối tác không nhập danh sách hành khách». Cả hai giữ vị trí cũ." },
+      { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần đủ tên khách» (mặc định bật): đơn đối tác cho xe chạy được dù chưa đủ tên khách. Tắt thì phải đủ tên." },
+      { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần giờ đón»: bật thì đơn có đón chưa có giờ không phải chờ văn phòng xét chỉ vì thiếu giờ. Mặc định tắt." },
+      { kind: "sua", text: "Trang đơn: dải tóm tắt đầu trang không còn lặp tên khách và nơi đón đã có ngay bên dưới; dòng «Tên» không hiện khi trùng tên bên đặt." },
+    ],
+  },
+  {
+    // Ô tệp phiếu đăng ký theo vai, «Tệp khác», 12 tệp mỗi phiếu (ADR-0233, kế hoạch 16 việc Việc 14). Nhánh claude/objective-euclid-6c8a85. CÓ migration 0191.
+    // SỐ TẠM 3.33 (3.32 Việc 7, 3.31 Việc 6, 3.30 Việc 5 đã ở main 23/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.33",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Đăng ký làm đối tác: các ô gửi ảnh giấy tờ hiện theo vai người đăng ký chọn. Mỗi phiếu nay gửi được tối đa 12 tệp (trước là 8)." },
+      { kind: "moi", text: "Đăng ký làm đối tác: thêm ô «Tệp khác» để gửi kèm giấy tờ ngoài danh sách." },
+      { kind: "moi", text: "Ô «Tệp khác» chỉ hiện khi Toàn quyền đăng chính sách riêng tư mới có tích «Bản này nêu việc thu tệp khác»." },
+      { kind: "doi", text: "Đăng ký làm đối tác: chọn tệp Word thì Nền tảng báo ngay dưới ô «Tệp Word: hãy lưu thành PDF rồi gửi.»" },
+    ],
+  },
+  {
+    // Công tắc chặn đơn chưa có giờ đón khi sát ngày đón + nhóm «Cài đặt lập đơn» (kế hoạch 16 việc 21/11, Việc 7; ADR-0227 chủ duyệt 22/11). Nhánh claude/keen-austin-0abaf2. Migration 0182.
+    // Số 3.32 = số trống kế tiếp sau 3.31 (Việc 6) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0227.
+    version: "3.32",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Trang Tôi của Toàn quyền: các công tắc lập đơn gom vào một nhóm «Cài đặt lập đơn»." },
+      { kind: "moi", text: "Công tắc mới «Chặn đơn chưa có giờ đón khi sát ngày đón» (đang bật). Tắt thì đơn đón hôm nay chưa có giờ vẫn xác nhận được, nhưng chưa xếp xe tới khi có giờ." },
+    ],
+  },
+  {
+    // Kế toán thấy nợ đối tác (kế hoạch 16 việc 21/11, Việc 6; ADR-0226). Nhánh claude/frosty-heyrovsky-f7ea0a. Không migration.
+    // Số 3.31 = số trống kế tiếp sau 3.30 (Việc 5) trên main lúc gộp 23/11; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.31",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Đơn hàng và Trang chủ của Kế toán: đơn đối tác hiện số đối tác nợ Tour Đảo và số Tour Đảo đã thu hộ tiền mặt, không còn hiện giá đối tác bán cho khách." },
+      { kind: "doi", text: "Đơn khách lẻ và trang chi tiết từng đơn của Kế toán giữ như cũ." },
+    ],
+  },
+  {
+    // Bỏ thu hộ chuyển khoản ở đơn đối tác (kế hoạch 16 việc 21/11, Việc 5; ADR-0225). Nhánh claude/suspicious-almeida-d32ea2. CÓ migration 0184.
+    // SỐ TẠM 3.30 (3.29 = Việc 2, 3.28 = Việc 3 đã ở main 22/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. CÓ migration 0184.
+    version: "3.30",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn của đối tác không còn ô «Khách đặt cọc cho đối tác» và không còn chữ gợi ý «nội dung chuyển khoản»." },
+      { kind: "doi", text: "Đơn của đối tác xác nhận từ bản này (kể cả văn phòng lập «Qua đối tác»): Tour Đảo chỉ thu hộ tiền mặt, trang đơn không còn mã QR." },
+      { kind: "doi", text: "Ở các đơn đó, hướng dẫn viên và nhân viên chỉ ghi được khoản thu tiền mặt. Đơn xác nhận trước bản này giữ như cũ." },
+    ],
+  },
+  {
+    // Đối tác Trả sau chỉ thấy «Trả sau» (kế hoạch 16 việc 21/11, Việc 2; ADR-0224). Nhánh claude/great-montalcini-69b67b. Không migration.
+    // SỐ TẠM 3.29 (3.28 là Việc 3, 3.27 là sửa giu-cho-dai): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.29",
+    date: "2026-11-22",
+    items: [
+      { kind: "doi", text: "Đối tác được trả sau: màn Tạo đơn chỉ còn «Trả sau»." },
+      { kind: "doi", text: "Khi Trả sau tạm khoá (có đơn quá hạn) hoặc đơn vượt mức được trả sau, «Thanh toán ngay» hiện lại kèm câu lý do." },
+    ],
+  },
+  {
+    // Tìm đối tác theo số điện thoại ở màn Tạo đơn (kế hoạch 16 việc 21/11, Việc 3). Nhánh claude/nostalgic-jepsen-bb3f99. Không migration.
+    // SỐ TẠM 3.28 (3.27 = bản sửa «giữ chỗ dải» ee0bc120d đã ở main 22/11 06:17; bản chạy thật 3.26): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.28",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Tạo đơn: ô «Tìm đối tác» nhận cả số điện thoại. Gõ đủ số liên hệ của đối tác là ra đúng người, gõ tên vẫn tìm như cũ." },
+      { kind: "sua", text: "Tạo đơn: bấm «Điền thông tin đối tác» mà đối tác chưa có số điện thoại thì Nền tảng nói rõ ai thêm được số và mở sẵn hồ sơ ở Danh bạ." },
+    ],
+  },
+  {
+    // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
+    // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.27",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Trình duyệt đang chặn lưu dữ liệu (chế độ riêng tư trên máy cũ): Nền tảng không còn báo lỗi ngầm khi mở trang, vẫn chạy như thường." },
+    ],
+  },
+  {
     // Bộ lọc dùng chung của Kho vé (kế hoạch 16 việc 21/11, Việc 4). Nhánh claude/nostalgic-newton-418d14. Không migration.
     // SỐ TẠM 3.26 (3.25 là Việc 16, đã nhập main 21/11; bản chạy thật 3.24): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.26",

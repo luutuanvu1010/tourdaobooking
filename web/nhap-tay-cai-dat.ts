@@ -15,7 +15,7 @@ export async function ganCaiDatNhapTay(el: HTMLElement): Promise<void> {
   if (!s.doiDuoc) return;
   const ve = (s: Api.NhapTayResponse): void => {
     const loi = h("p", { class: "alert", role: "alert", hidden: true });
-    const nut = h("button", { class: s.batNhapTay ? "btn" : "btn btn-primary", type: "button", id: "nhap-tay-doi" }, s.batNhapTay ? "Tắt dịch vụ nhập tay" : "Bật dịch vụ nhập tay");
+    const nut = h("button", { class: "nut", "data-cap": s.batNhapTay ? undefined : "chinh", type: "button", id: "nhap-tay-doi" }, s.batNhapTay ? "Tắt dịch vụ nhập tay" : "Bật dịch vụ nhập tay");
     nut.addEventListener("click", async () => {
       loi.hidden = true;
       nut.disabled = true;
@@ -30,7 +30,7 @@ export async function ganCaiDatNhapTay(el: HTMLElement): Promise<void> {
     });
     replaceChildren(
       el,
-      h("h2", { id: "nhap-tay-heading" }, "Dịch vụ nhập tay"),
+      h("h3", { id: "nhap-tay-heading" }, "Dịch vụ nhập tay"),
       h("p", { id: "nhap-tay-trang-thai" }, s.batNhapTay ? "Đang bật." : "Đang tắt."),
       h(
         "p",

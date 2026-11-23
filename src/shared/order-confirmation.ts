@@ -274,12 +274,27 @@ function serviceBlock(s: ReceiptServiceDto, index: number): ServiceBlock {
     lines: s.items.map((it) => ({
       description: clean(it.description),
       detail: clean(it.detail) === "" ? null : clean(it.detail),
-      quantity: String(it.quantity),
-      unitPrice: money(it.unitPrice),
+      quantity: String(it.tronGoi ? it.tronGoi.soKhach : it.quantity),
+      unitPrice: it.tronGoi ? "" : money(it.unitPrice), // ADR-0218 Đ3.3: dòng trọn gói (phí đưa đón đã gộp) không in đơn giá
       lineTotal: money(it.lineTotal),
     })),
     subtotal: s.items.length >= 2 ? { label: SUBTOTAL_LABEL, value: money(s.items.reduce((sum, it) => sum + it.lineTotal, 0)) } : null,
   };
+}
+
+/**
+ * ADR-0218 Đ3.3: khối cho dịch vụ do NHÀ CUNG CẤP KHÁC bán khi biên nhận khách lẻ gộp phí vào giá — phí đưa đón là tiền của Tour Đảo nên không cộng vào phần của nhà cung cấp mà in thành một
+ * dòng «<Tên dịch vụ> — đưa đón» (không chữ «Phí đưa đón»). Dùng lại dạng khối dịch vụ. Không có dòng ⇒ không khối.
+ */
+export const TEN_KHOI_DUA_DON_TOUR_DAO = "Đưa đón (phần Tour Đảo)";
+function duaDonTourDaoBlock(order: ReceiptDto, index: number): ServiceBlock[] {
+  const dong = order.dongDuaDonTourDao ?? [];
+  if (dong.length === 0) return [];
+  return [{
+    kind: "service", index, name: TEN_KHOI_DUA_DON_TOUR_DAO, details: [], columns: { ...COLUMNS },
+    lines: dong.map((d) => ({ description: clean(d.description), detail: null, quantity: "", unitPrice: "", lineTotal: money(d.lineTotal) })),
+    subtotal: null,
+  }];
 }
 
 /** Chữ in ở cột thành tiền của dòng phí đưa đón có đơn giá 0 đồng (chủ 15/11, câu 3; sổ vàng SV-PD-01 `nhan_bien_nhan`) — cùng hằng với trang đơn. */
@@ -405,7 +420,7 @@ export function buildConfirmation(receipt: ReceiptDto, handlerName: HandlerInput
     orderCode: clean(order.orderCode),
     fileName: fileNameOf(order.orderCode),
     blocks: thanNoiBo
-      ? [dau, titleBlock(order, handlerName), customerBlock(order), ...order.services.map((s, i) => serviceBlock(s, i + 1)), ...phiBlock(order, order.services.length + 1), summaryBlock(order), footerBlock(company, order)]
+      ? [dau, titleBlock(order, handlerName), customerBlock(order), ...order.services.map((s, i) => serviceBlock(s, i + 1)), ...duaDonTourDaoBlock(order, order.services.length + 1), ...phiBlock(order, order.services.length + 1 + (order.dongDuaDonTourDao?.length ? 1 : 0)), summaryBlock(order), footerBlock(company, order)]
       : [dau, titleBlock(order, handlerName), customerDoiTac(order), ...order.services.map((s, i) => serviceDoiTac(s, i + 1, nhieuDiemDon)), ...phiBlock(order, order.services.length + 1), summaryDoiTac(order), footerBlock(company, order)],
   };
 }

@@ -7,3 +7,10 @@
  * (làm vậy thì Tắt đẩy đơn sang nhánh B — phương án khác của câu (i), không phải phương án chủ duyệt).
  */
 export const coChotGio = (diNhanhAViThieuGio: boolean, batBuoc: boolean): boolean => diNhanhAViThieuGio && batBuoc;
+
+/**
+ * ADR-0228 Đ3 (công tắc «Đơn đối tác không cần giờ đón»): đơn Đối tác có lượt đầu Đón chưa giờ (`thieuGio` = `canChotGioCuaNguoiLap`) có phải đi nhánh A VÌ THIẾU GIỜ không.
+ * Tắt (gieo) ⇒ như hôm nay: luôn nhánh A. Bật ⇒ không còn là lý do — TRỪ khi một lượt chưa giờ đã vào hạn chốt (`satHanChot`, cùng luật `chanChuaGioSatNgay` của ADR-0193 (ii)): đối tác không có
+ * ô giờ nên nhánh B sẽ 409 mà họ không tự sửa được ⇒ vẫn để văn phòng chốt giờ (câu 3 của bản đề xuất). Công tắc «Bắt buộc giờ đón» vẫn quyết cờ chụp (`coChotGio`) khi đơn đi nhánh A vì thiếu giờ.
+ */
+export const diNhanhAViThieuGio = (thieuGio: boolean, khongCanGio: boolean, satHanChot: boolean): boolean => thieuGio && (!khongCanGio || satHanChot);

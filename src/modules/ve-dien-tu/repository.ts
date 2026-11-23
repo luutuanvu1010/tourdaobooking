@@ -155,7 +155,7 @@ export const danhDauDaXoaR2 = async (db: D1Database, id: string, at: string): Pr
 const CHEN_LO = defineSql(
   "ve-dien-tu",
   "chen_lo",
-  `INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, source, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, 'PENDING', ?7, ?5, ?6, ?5, ?6)`,
+  `INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, source, support_phone, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, 'PENDING', ?7, ?8, ?5, ?6, ?5, ?6)`,
 );
 const DOC_LO = defineSql("ve-dien-tu", "doc_lo", "SELECT id, catalog_code, pax_group, printed_name, status, source FROM vdt_batch WHERE id = ?1");
 const CHEN_VE = defineSql(
@@ -301,8 +301,9 @@ export interface LoRow { id: string; catalog_code: string; pax_group: string; pr
 export interface VeMoi { id: string; batchId: string; soSeri: string; maVe: string; tuNgay: string; denNgay: string; gio: string | null; khoa: string; loaiNoiDung: string; coBytes: number; bam: string; at: string; by: string | null }
 export interface DongKho { catalog_code: string; pax_group: string; source: NguonVe; con_trong: number; sap_het_han: number; da_giu: number; da_giao: number }
 
-export const cauChenLo = (db: D1Database, p: { id: string; catalogCode: string; nhom: string; tenSanPham: string; at: string; by: string | null; nguon: NguonVe }): D1PreparedStatement =>
-  db.prepare(CHEN_LO).bind(p.id, p.catalogCode, p.nhom, p.tenSanPham, p.at, p.by, p.nguon);
+/** `soHoTro` (ADR-0231): bản chụp hotline in trên vé của lô Tour Đảo, dạng chuẩn; null với lô hãng ngoài hoặc trình duyệt cũ không gửi. */
+export const cauChenLo = (db: D1Database, p: { id: string; catalogCode: string; nhom: string; tenSanPham: string; at: string; by: string | null; nguon: NguonVe; soHoTro: string | null }): D1PreparedStatement =>
+  db.prepare(CHEN_LO).bind(p.id, p.catalogCode, p.nhom, p.tenSanPham, p.at, p.by, p.nguon, p.soHoTro);
 export const docLo = (db: D1Database, id: string): Promise<LoRow | null> => db.prepare(DOC_LO).bind(id).first<LoRow>();
 /** Chèn một vé vào lô PENDING; trùng mã vé hoặc lô không còn PENDING ⇒ câu không chèn gì (changes 0). */
 export const cauChenVe = (db: D1Database, v: VeMoi): D1PreparedStatement =>

@@ -234,7 +234,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .order-summary-band > div:first-child { flex: 1 1 100%; }
   .order-summary-band > div:first-child > .label { display: none; }
   .order-summary-band .sep { display: none; }
-  .order-summary-band .grid4 { flex: 1 1 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .order-summary-band .grid4 { flex: 1 1 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* [2] Thẻ đơn (mọi nơi dùng `web/order-card.ts`: danh sách Đơn hàng khi vùng chứa hẹp hơn mốc bảng của khối [14], «Việc của tôi», ô xem trước của màn Giao diện): ba hàng — (số thứ tự) ngày ·
@@ -338,7 +338,7 @@ main select { max-width: 100%; }
 .lb-truong .hint { margin-top: var(--s1); }
 /* Đặc điểm dịch vụ (ADR-0152, T12) — cùng khuôn .lb-*; chỉ token */
 .lb-the .tab-phu, #dd-noi-dung > .tab-phu { margin-bottom: var(--s3); }
-.dd-o .o { margin-top: 0; }
+.dd-o .o, .kv-ngang .o { margin-top: 0; }
 .dd-bang td { vertical-align: top; }
 .dd-bang td:last-child { text-align: left; white-space: normal; }
 .dd-bang .o { min-width: var(--w-o-hep); } /* nhiều đặc điểm ⇒ bảng cuộn ngang trong .table-wrap, ô chọn không co tới mất chữ */
@@ -371,6 +371,18 @@ main select { max-width: 100%; }
 .kv-nguon-ve { flex-basis: 100%; display: grid; gap: var(--s1); padding-bottom: var(--s2); }
 .kv-the { border-top: 1px solid var(--c-border); }
 .kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }
+/* Việc 11 (người chấm giao diện): bảng Dịch vụ & giá ở máy tính — huy hiệu «Trả sau theo dịch vụ» và ba ô vé nằm ở dòng phụ trải ngang dưới hàng dịch vụ.
+   Bố cục ngang `.kv-ngang` dùng chung danh sách luật của `.ht-nhom-chan` (flex, xuống dòng, khoảng s3) — không thêm luật khoảng cách mới (trần ADR-0222 Đ7a). */
+#list > tr.co-dong-phu > td { border-bottom: 0; }
+/* Mỗi cặp nhãn + điều khiển là một khối không bẻ chữ; dòng phụ xuống dòng theo KHỐI, không tràn khỏi bảng.
+   «Vé do ai phát», «Hotline trên vé» là khối ngang (nhãn, rồi điều khiển) cạnh công tắc «Có vé». */
+.kv-ngang > .kv-o { flex: 0 1 auto; justify-content: flex-start; }
+.kv-ngang .kv-nguon-ve { flex: 0 1 auto; }
+.kv-ngang .kv-chu, .kv-ngang .vc-seg, .kv-ngang .nut { flex: none; }
+.kv-ngang .o { flex: 1 1 auto; width: auto; }
+.kv-ngang .vc-seg button, .kv-ngang .kv-chu, .kv-ngang .nut { white-space: nowrap; } /* không bẻ «Có / vé», «Vé / hãng / ngoài», «Lưu / hotline» */
+/* Mã đơn trong danh sách đơn còn nợ (Trả sau của tôi, Hạn mức trả sau, Tổ chức): vùng chạm cao ≥ 44px. */
+.ts-ma-don { display: inline-flex; align-items: center; min-height: var(--tap-min); }
 
 /* ---------- ADR-0180: thanh «Đang xem như vai trò …» dính khi cuộn (chỉ token; dải chung `.dai` ở web/dai.ts) ---------- */
 #strips:has(> .dai[data-loai="xem-nhu-vai"]) { position: sticky; top: 0; z-index: var(--z-dinh); }
@@ -726,6 +738,13 @@ body[data-khung-goc] .chon-doan { display: grid; grid-auto-flow: column; grid-au
 body[data-khung-goc] .chon-doan > button { font: inherit; font-size: var(--fs-step-4); font-weight: var(--fw-bold); color: var(--c-text-muted); background: var(--c-surface); border: 0; cursor: pointer; }
 body[data-khung-goc] .chon-doan > button[aria-checked="true"] { color: var(--c-primary); background: var(--c-primary-soft); }
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
+
+/* ---------- Ảnh bàn giao (ADR-0232) — bố cục dùng lớp của khung gốc (.luoi, .truong, .thanh-nut); ở đây chỉ hình thẻ ảnh và ảnh lớn ---------- */
+.abg-the { display: flex; flex-direction: column; overflow: hidden; font: inherit; text-align: left; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); cursor: pointer; }
+.abg-the img { display: block; object-fit: cover; }
+.abg-chu { text-indent: var(--s2); font-size: var(--fs-badge); line-height: 1.6; }
+.abg-lon { display: block; max-width: 100%; max-height: var(--h-quet-video); object-fit: contain; }
+.abg-tai-xe > summary { min-height: var(--tap-min); display: flex; align-items: center; font-weight: var(--fw-bold); color: var(--c-primary); cursor: pointer; }
 /* ===== CHÉP TỪ MÃ — hết ===== */
 
 /* ===== RIÊNG CỦA BỘ (1) — lớp xem trước ===== */
