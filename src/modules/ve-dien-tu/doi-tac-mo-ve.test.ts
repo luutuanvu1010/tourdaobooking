@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { app, seedStaff } from "../../../tests/audit/harness.mjs";
 import { A, ACC, ADM, H, INTERN, LAI, PARTNER, SUP, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
 import { datQuaHan } from "../../../tests/audit/tra-sau-moc.mjs";
+import { donTruocNgayAp } from "../../../tests/audit/chi-tien-mat.mjs";
 import { CAU_DOI_TAC_CHO_NOP } from "../../shared/ve-cau-khoa.ts";
 
 const AT = "2026-10-01T00:00:00.000Z";
@@ -40,6 +41,7 @@ test("đối tác tự ghi đủ tiền: mọi hình thức × người thu đ�
   for (const [hinhThuc, nguoiThu] of BANG) {
     const w = dung();
     const id = await moDon(w, PARTNER);
+    if (nguoiThu === "cong_ty" && hinhThuc !== "CASH") donTruocNgayAp(w, id); // ADR-0225 Đ2: «Công ty thu» không tiền mặt chỉ còn ở đơn xác nhận trước ngày áp
     const r = await thu(w, id, PARTNER, { hinhThuc, nguoiThu });
     assert.equal(r.status, 201, `${hinhThuc}/${nguoiThu}: ${r.text}`);
     assert.equal((await veDon(w, id)).thuDu, false, `${hinhThuc}/${nguoiThu}`);
@@ -535,6 +537,7 @@ for (const hinhThuc of ["CASH", "OTHER"]) {
   test(`đối tác ghi «Công ty thu» (${hinhThuc}) đủ tiền: nộp một phần vẫn khoá, nộp đủ mới mở`, async () => {
     const w = dung();
     const id = await moDon(w, PARTNER);
+    if (hinhThuc !== "CASH") donTruocNgayAp(w, id); // ADR-0225 Đ2: như trên
     assert.equal((await thu(w, id, PARTNER, { hinhThuc, nguoiThu: "cong_ty" })).status, 201);
     assert.equal((await veDon(w, id)).thuDu, false);
     assert.equal((await nop(w, id, 1000)).status, 201);

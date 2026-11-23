@@ -16,7 +16,7 @@ export async function ganCaiDatGioDon(el: HTMLElement): Promise<void> {
   if (!s.doiDuoc) return;
   const ve = (s: Api.BatBuocGioDonResponse): void => {
     const loi = h("p", { class: "alert", role: "alert", hidden: true });
-    const nut = h("button", { class: s.bat ? "btn" : "btn btn-primary", type: "button", id: "gio-don-doi" }, s.bat ? "Tắt bắt buộc giờ đón" : "Bật bắt buộc giờ đón");
+    const nut = h("button", { class: "nut", "data-cap": s.bat ? undefined : "chinh", type: "button", id: "gio-don-doi" }, s.bat ? "Tắt bắt buộc giờ đón" : "Bật bắt buộc giờ đón");
     nut.addEventListener("click", async () => {
       loi.hidden = true;
       nut.disabled = true;
@@ -31,7 +31,7 @@ export async function ganCaiDatGioDon(el: HTMLElement): Promise<void> {
     });
     replaceChildren(
       el,
-      h("h2", { id: "gio-don-heading" }, "Bắt buộc giờ đón cho đơn đối tác"),
+      h("h3", { id: "gio-don-heading" }, "Bắt buộc giờ đón cho đơn đối tác"),
       h("p", { id: "gio-don-trang-thai" }, s.bat ? "Đang bật." : "Đang tắt."),
       h("p", { class: "muted" }, "Khi bật, đơn có đón của đối tác mà chưa có giờ đón thì văn phòng phải ghi giờ rồi mới bấm «Còn vé, xác nhận đơn» được. Khi tắt, văn phòng vẫn xét đơn nhưng xác nhận được khi chưa có giờ; đơn hiện nhắc «Chưa chốt giờ» và chưa xếp xe được cho tới khi có giờ."),
       loi,

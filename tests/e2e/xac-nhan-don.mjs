@@ -237,15 +237,14 @@ try {
   phiDaBat = true;
   const s1 = await lap(SALES, [dichVu("ZXN1", ngay, [chang(ngay, "07:00")])]);
   r = await gui(SALES, s1.id);
-  assert.deepEqual([r.status, r.body?.error?.code, r.body?.error?.message], [409, "transfer_fee_missing", "Chọn phí đưa đón cho lượt đón chiều đi của dịch vụ Dịch vụ xác nhận thử trước khi xác nhận."], JSON.stringify(r.body));
-  const s2 = await lap(SALES, [dichVu("ZXN1", ngay, [{ ...chang(ngay, "07:00"), phiDon: { loai: "SO_KHAC", soTien: 25_000 } }])]);
+  assert.deepEqual([r.status, r.body?.error?.code, r.body?.error?.message], [409, "transfer_fee_missing", "Dịch vụ Dịch vụ xác nhận thử chưa có giá gốc phí đưa đón cho lượt đón chiều đi. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận."], JSON.stringify(r.body));
+  const s2 = await lap(SALES, [dichVu("ZXN1", ngay, [{ ...chang(ngay, "07:00"), doiPhi: { donGia: 25_000, lyDo: "Báo giá riêng" } }])]);
   assert.equal((await gui(SALES, s2.id)).status, 201);
-  r = await quyet(SALES_B, s2.id, "CON_VE", { phiDon: [{ legId: s2.services[0].legs[0].id, muc: { loai: "DANH_SACH", soTien: 50_000 } }] });
-  assert.deepEqual([r.status, r.body?.error?.message], [400, "Lượt đón này đã có phí đưa đón."], "người xét không ghi đè mức người lập đã chọn");
+  // ADR-0218 Đ1.5: người xét ĐỔI ĐƯỢC cả lượt đã có số (chặn «Lượt đón này đã có phí đưa đón» của ADR-0214 bỏ); để nguyên số người lập đã đổi: Còn vé không kèm doiPhi.
   assert.equal((await quyet(SALES_B, s2.id, "CON_VE")).status, 200);
-  assert.deepEqual(await sqlRows(`SELECT fee_choice, quantity, unit_price, line_total FROM order_item WHERE order_id = '${s2.id}' AND line_kind = 'TRANSFER_FEE'`), [{ fee_choice: "SO_KHAC", quantity: 2, unit_price: 25_000, line_total: 50_000 }]);
+  assert.deepEqual(await sqlRows(`SELECT fee_calc_source, quantity, unit_price, line_total FROM order_item WHERE order_id = '${s2.id}' AND line_kind = 'TRANSFER_FEE'`), [{ fee_calc_source: "DOI_TAY", quantity: 2, unit_price: 25_000, line_total: 50_000 }]);
   assert.equal((await sqlRows(`SELECT total FROM orders WHERE id = '${s2.id}'`))[0].total, 250_000);
-  console.log("✓ (s): phí đưa đón chưa chọn ⇒ Gửi kiểm vé 409 «Chọn phí đưa đón cho lượt đón …»; mức người lập chọn đi tới Còn vé, người xét không ghi đè được (400), xác nhận chụp 25.000 × 2");
+  console.log("✓ (s): phí đưa đón chưa chọn ⇒ Gửi kiểm vé 409 «Chọn phí đưa đón cho lượt đón …»; số người lập đổi đi tới Còn vé, xác nhận chụp 25.000 × 2");
 } finally {
   if (phiDaBat) {
     const ap = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp;
