@@ -122,7 +122,7 @@ const CHUP_JSON = (t) => `json_object('id', ${t}.id, 'order_service_id', ${t}.or
  */
 const COT_DICH_VU = (s) => `${s}.id AS dv, ${s}.name AS ten, ${s}.unit AS unit, ${s}.catalog_code AS catalog_code,
        json_object('adult', ${s}.pax_adult, 'child', ${s}.pax_child, 'senior', ${s}.pax_senior, 'infant', ${s}.pax_infant) AS pax,
-       (SELECT json_group_array(json_object('paxCode', i.pax_code, 'catalogPrice', i.catalog_price, 'unitPrice', i.unit_price, 'lineTotal', i.line_total, 'quantity', i.quantity))
+       (SELECT json_group_array(json_object('paxCode', i.pax_code, 'catalogPrice', i.catalog_price, 'unitPrice', i.unit_price, 'lineTotal', i.line_total, 'quantity', i.quantity, 'seasonalIncrease', i.seasonal_increase))
           FROM order_item i WHERE i.service_id = ${s}.id) AS items,
        (SELECT a.after_json FROM order_money_adjustment a WHERE a.order_id = ${s}.order_id ORDER BY a.seq DESC LIMIT 1) AS after_json,
        (SELECT ${CHUP_JSON("t")} FROM ord_service_terms t WHERE t.order_service_id = ${s}.id AND ${CHUP_HIEN_HANH("t")}) AS chup`;

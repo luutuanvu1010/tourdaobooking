@@ -229,7 +229,9 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // trên bản gộp: 15 / 9 / 50 (16 → 15, một đoạn rơi khỏi ngưỡng tương đối của câu than phiền). Số đo, luật không đổi, trần 12 vẫn cắt.
   // 2026-11-23 (gộp main vào nhánh việc 7, ADR-0227): trang Tôi có nhóm «Cài đặt lập đơn» và việc «Tắt/Bật chặn chưa có giờ đón» ⇒ đo lại bằng chính bài này trên bản gộp:
   // 15 / 9 / 50 (49 → 50, câu lập đơn thêm một đoạn chứa «lập đơn»). Số đo, luật không đổi, trần 12 vẫn cắt.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [15, 9, 50]);
+  // 2026-11-23 (ADR-0229 giá mùa vụ): ba ô quyền mới (đặt / duyệt giá mùa vụ, trần phần trăm) thêm dòng lời thường vào kho cấu trúc app, bảng tham chiếu thêm «Giá mùa vụ»
+  // ⇒ điểm cao nhất của câu than phiền đổi, hai đoạn sát ngưỡng rơi ra (15 → 13); đo bằng chính bài này. Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [13, 9, 50]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA); // số khớp mạnh đo ở trên (17) vượt trần nên đoạn chọn bị cắt đúng bằng trần (2026-11-15)

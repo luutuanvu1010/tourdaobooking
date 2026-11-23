@@ -26,6 +26,9 @@
 // Chụp lại 2026-11-09 (ADR-0175 Đ1.4, kế hoạch vé Tour Đảo Task 9 «hiện trang khi ve.kho.manage hoặc ve.phat-hanh»): chỉ thay ô `thanh-ben` bằng bản chụp cây làm việc và bật
 // mặt nạ «Vé điện tử» ở `trang-toi`. So bản cũ: «Vé điện tử» thêm đúng 128 tập (đều giữ ACCOUNTING, không SALES/ADMIN/SUPER_ADMIN), không tập nào mất; thanh bên ghim thêm
 // «Hạn mức trả sau» (mục có từ trước, chỉ siết). Các ô khác giữ nguyên (bản chụp mới còn lệch sẵn ở «Đơn chờ xác nhận» của trang Tôi, không do việc này — không lấy).
+// Chụp lại 2026-11-23 (ADR-0229 giá mùa vụ; chủ duyệt 23/11 «duyệt cả ba theo khuyến nghị» — mở màn hẹp Dịch vụ & giá cho Kế toán): chỉ thay hai ô `thanh-ben` và `trang-chu` bằng bản
+// chụp cây làm việc. So bản cũ: «Dịch vụ & giá» thêm đúng 64 tập ở mỗi ô (đều giữ ACCOUNTING, không ADMIN/SUPER_ADMIN/SALES_MANAGER/PARTNER), không tập nào mất mục nào; thanh bên
+// ghim thêm các mục mới có từ trước (chỉ siết). Các ô khác giữ nguyên (`thanh-tab`, `trang-toi` còn lệch sẵn, không do việc này — không lấy).
 // Riêng `ngoaiTuyen.thanhTab` GIỮ NGUYÊN giá trị cũ: lệnh chụp, kể cả `--rev HEAD`, ra mảng rỗng ở ô này (lệch từ trước, không do ADR-0169), còn bài mất mạng dưới đây vẫn đọc bốn tab cơ bản từ bảng.
 import { test } from "node:test";
 import assert from "node:assert/strict";

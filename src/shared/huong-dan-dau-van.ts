@@ -5,7 +5,7 @@ export const DAU_VAN: Readonly<Record<string, DauVanBai>> = {
   "quet-ve": {"neo":"32e130e72ac639cc","chu":"93c9e8217a60edd6","ban":"3.24","ngay":"2026-11-21"},
   "doi-chieu-ve": {"neo":"acf62b32e59c3576","chu":"80947f92445b6340","ban":"3.25","ngay":"2026-11-21"},
   "cai-dat-ve": {"neo":"1a9be7c66766df30","chu":"78895cd744fbcb8b","ban":"2.80","ngay":"2026-11-09"},
-  "dich-vu-can-kiem-ve": {"neo":"7472f9f7d97d027a","chu":"b41fe0afa23fe41f","ban":"3.19","ngay":"2026-11-20"},
+  "dich-vu-can-kiem-ve": {"neo":"f2dde5cfd02f1520","chu":"b41fe0afa23fe41f","ban":"3.33","ngay":"2026-11-23"},
   "gioi-han-nhap-hoa-hong": {"neo":"5be668561a80de9f","chu":"f2fe829bae2aff80","ban":"2.58","ngay":"2026-11-03"},
   "han-muc-tra-sau": {"neo":"8a61a6bb6e49eb24","chu":"e55a75d65e11b187","ban":"3.27","ngay":"2026-11-21"},
   "xem-no-tra-sau": {"neo":"4db6f12ce2982896","chu":"fa963bef8425dbf2","ban":"3.6","ngay":"2026-11-15"},

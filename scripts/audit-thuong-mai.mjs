@@ -16,6 +16,7 @@ import { discountWithinCap } from "../src/modules/orders/price-guards.ts";
 import { soKhachTinhHoaHong } from "../src/modules/pricing/rules.ts";
 import { dongThuongMaiTu, sinhPhieuDaGiao, tinhTrangThuongMai } from "../src/modules/billing/rules.ts";
 import { parseUnit, thanhTienDong } from "../src/shared/order-lines.ts";
+import { coSoHoaHong } from "../src/shared/gia-mua-vu.ts";
 
 const docJson = (s, macDinh) => {
   if (s === null || s === undefined) return macDinh;
@@ -47,10 +48,17 @@ function tienDichVu(r, apDieuChinh) {
   const vao = { id: r.dv, catalogCode: r.catalog_code, name: r.ten, unit: r.unit, items: items.map((i) => ({ paxCode: i.paxCode, catalogPrice: i.catalogPrice, unitPrice: i.unitPrice, lineTotal: i.lineTotal })) };
   const moi = apDieuChinh && r.after_json ? parseAdjustmentAfter(r.after_json).find((a) => a.serviceId === r.dv)?.pax : undefined;
   const eff = effectiveService(vao, moi);
-  const dong = eff.recomputed ? eff.recomputed.lines.map((l) => ({ quantity: l.quantity, lineTotal: thanhTienDong(l) })) : items.map((i) => ({ quantity: i.quantity, lineTotal: i.lineTotal }));
+  // ADR-0229 Đ10: số tăng mùa vụ theo loại khách đi theo dòng (khuôn `kemTangMuaVu` / `giaDaiLyNhieuDon`) — dòng tính lại nhận số tăng của loại khách tương ứng.
+  const tangTheoLoai = new Map(items.flatMap((i) => (i.paxCode ? [[i.paxCode, i.seasonalIncrease ?? null]] : [])));
+  const dong = eff.recomputed
+    ? eff.recomputed.lines.map((l) => ({ quantity: l.quantity, lineTotal: thanhTienDong(l), seasonalIncrease: tangTheoLoai.get(l.pax) ?? null }))
+    : items.map((i) => ({ quantity: i.quantity, lineTotal: i.lineTotal, seasonalIncrease: i.seasonalIncrease ?? null }));
   const pax = eff.recomputed ? eff.recomputed.pax : paxLuu;
   // ADR-0133: số khách theo loại cho mức «mỗi khách theo loại» (khuôn `tienChoHoaHong`); dịch vụ nhóm/lượt không tách loại ⇒ null.
-  return { id: r.dv, name: r.ten, thanhTien: dong.reduce((t, i) => t + i.lineTotal, 0), soKhachTinh: soKhachTinhHoaHong({ unit: r.unit, pax, items: dong }),
+  // ADR-0229 Đ10: cơ sở hoa hồng theo tỷ lệ — CHÍNH hàm `coSoHoaHong` mà `tienChoHoaHong` gọi (không tự trừ).
+  return { id: r.dv, name: r.ten, thanhTien: dong.reduce((t, i) => t + i.lineTotal, 0),
+    coSoHoaHong: coSoHoaHong(dong.map((i) => ({ donGia: i.quantity > 0 ? i.lineTotal / i.quantity : 0, soTang: i.seasonalIncrease, soLuong: i.quantity }))),
+    soKhachTinh: soKhachTinhHoaHong({ unit: r.unit, pax, items: dong }),
     pax: parseUnit(r.unit).kind === "group" ? null : { adult: pax.adult ?? 0, child: pax.child ?? 0, senior: pax.senior ?? 0 } };
 }
 const banChupCua = (r) => {
