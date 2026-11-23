@@ -330,6 +330,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "catalog.ticket_flag.write": "none", // ADR-0174 Đ4
     "order.terms.view": "own", "order.terms.override": "none", // Task 5: Đối tác xem phần đối tác của ĐƠN CỦA MÌNH (DTO hẹp: chỉ số tiền hoa hồng — holdsPartner ở route); không ghi mức tay
     "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", // ADR-0186: đồng bộ danh mục là việc văn phòng; hai ô kia là việc Nền tảng tự làm
+    "catalog.seasonal.write": "none", "catalog.seasonal.approve": "none", "catalog.seasonal.cap": "none", // ADR-0229 Đ8: giá mùa vụ là việc văn phòng
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

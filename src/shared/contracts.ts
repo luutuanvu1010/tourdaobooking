@@ -3469,6 +3469,8 @@ export interface NguoiHuongTimResponse { ketQua: { partyId: string; ten: string;
 // Đối tác (`holdsPartner`, kể cả tài khoản lai) CHỈ thấy số tiền hoa hồng của mình — không tỷ lệ, không đ/khách, không giá vốn, không mã nguồn (C9 = A).
 export interface ThuongMaiDongVanPhong {
   serviceId: string; ten: string; thanhTien: number; soKhachTinh: number;
+  /** ADR-0229 Đ10: cơ sở của hoa hồng theo tỷ lệ (thành tiền trừ phần tăng giá mùa vụ). CHỈ ở DTO văn phòng — DTO Đối tác không có (suy ra được phần tăng, trái Đ9). */
+  coSoHoaHong: number;
   /** "12%" / "50.000đ/khách"; null khi thiếu mức hoặc không người hưởng. */
   muc: string | null; hoaHong: number | null; giaDaiLy: number | null; ghiTay: boolean;
   /** Câu tiếng Việt khi thiếu mức; null khi đủ. Giao diện nối thêm đuôi: «cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Khách đã trả đủ» (đơn nháp / chưa chụp), hoặc «cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này» (đơn đã chụp). */

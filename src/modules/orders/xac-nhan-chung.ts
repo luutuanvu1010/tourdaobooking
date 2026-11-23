@@ -27,10 +27,11 @@ import { KHONG_COC, findOrder, getMeta, getStoredServices, type KemCoc } from ".
 import { CAU_VUOT_TONG, vuotTong } from "../../shared/dat-coc-truoc";
 import type { CauCocXacNhan, VaoCauCoc } from "../../shared/dat-coc-kieu";
 import { viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
-import { cauChupChuoi } from "./thuong-mai-repo";
+import { cauChupChuoi, kemTangMuaVu, tangMuaVuTheoDichVu } from "./thuong-mai-repo";
 import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
 import { catalogStatusOf, confirmGaps, giaDanhMucHienHanh, summarizeDeviations } from "./service-rules";
 import { getEffectiveServices, giaMuaVuChoDon } from "../catalog";
+import { coSoHoaHong } from "../../shared/gia-mua-vu";
 import { chuanBiPhiDonXacNhan, kiemNhomChoPhepDuaDon, type PhiDonXacNhan } from "./service";
 import { moTaPhiDonNhatKy, tomTatTuDto, tomTatTuKetQua, type DoiTayLuu } from "./phi-don-don";
 import { cauThieuPhiDon } from "./phi-don-don";
@@ -229,9 +230,12 @@ export async function congGiaDanhMucDoi(db: D1Database, order: DonXacNhan, cua: 
  * Thành tiền (Σ thành tiền dòng, trước giảm giá cấp đơn) và số khách tính hoa hồng (`soKhachTinhHoaHong`) của MỘT dịch vụ — MỘT công thức cho phần thương mại (`phanThuongMaiCuaDon`)
  * và trần giảm giá (Task 7). Đứng ngoài thân route (bài `src/so-khach-mot-luat-tien.test.ts` (4): thân route không tính trên tiền dòng).
  */
-export function tienChoHoaHong(s: { unit: string; pax: PaxCounts; items: readonly { quantity: number; lineTotal: number }[] }): { thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null } {
+export function tienChoHoaHong(s: { unit: string; pax: PaxCounts; items: readonly { quantity: number; lineTotal: number; seasonalIncrease?: number | null }[] }): { thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null } {
   // ADR-0133: số khách theo loại cho mức «mỗi khách theo loại»; dịch vụ tính theo nhóm/lượt không tách loại ⇒ null (soKhachTinh là số lượt).
-  return { thanhTien: s.items.reduce((t, i) => t + i.lineTotal, 0), soKhachTinh: soKhachTinhHoaHong({ unit: s.unit, pax: s.pax, items: s.items }),
+  // ADR-0229 Đ10: cơ sở hoa hồng theo tỷ lệ bỏ phần tăng mùa vụ (số tăng MỖI ĐƠN VỊ × số lượng HIỆN HÀNH); dòng không có số tăng ⇒ bằng thành tiền. Đơn giá = thành tiền / số lượng (trigger 0007).
+  return { thanhTien: s.items.reduce((t, i) => t + i.lineTotal, 0),
+    coSoHoaHong: coSoHoaHong(s.items.map((i) => ({ donGia: i.quantity > 0 ? i.lineTotal / i.quantity : 0, soTang: i.seasonalIncrease ?? null, soLuong: i.quantity }))),
+    soKhachTinh: soKhachTinhHoaHong({ unit: s.unit, pax: s.pax, items: s.items }),
     pax: parseUnit(s.unit).kind === "group" ? null : { adult: s.pax.adult ?? 0, child: s.pax.child ?? 0, senior: s.pax.senior ?? 0 } };
 }
 
@@ -333,7 +337,7 @@ export async function kiemCongXacNhan(
     dong: order.services.map((s) => ({ serviceId: s.id, catalogCode: s.catalogCode, groupCode: s.catalogCode ? (bang.nhom.get(s.catalogCode) ?? null) : null })),
   });
   // Task 7 (ADR-0079 điều 8 gạch 2): R3 theo BẢN CHỤP VỪA TÍNH — đơn có người hưởng: trần = tổng hoa hồng (dòng thiếu mức tính 0); không người hưởng: luật hôm nay (Đối tác, Thực tập 0).
-  const tien = order.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
+  const tien = kemTangMuaVu(order.services, await tangMuaVuTheoDichVu(db, [order.id])).map((s) => ({ id: s.id, ...tienChoHoaHong(s) })); // ADR-0229 Đ10: trần giảm giá theo hoa hồng không tính phần tăng
   const tranLoi = viPhamTranGiamGia(actor, order.discount, donChoTran(chup, tien)); // I-1: Đối tác trên đơn đại lý KHÁC ⇒ luật cũ, không nêu số
   if (tranLoi) return { loi: TRAN_GIAM_GIA(tranLoi) };
   return { ok: true, chup, detail, today, traSau: traSau.traSau, phiDon, thieuNoiDon };

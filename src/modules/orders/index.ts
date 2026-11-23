@@ -59,7 +59,7 @@ import { CAU_X3_THUE_XE, NHOM_THUE_XE } from "../../shared/so-dai-ly-nhan";
 import { lichSuChoDoiTac } from "../../shared/lich-su-doi-tac";
 import { lichSuNoiBo } from "../../shared/lich-su-noi-bo";
 import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, coDongVuotDon, coNguoiHuongDon, donChoTran, dongGhiTuChup, dungThuongMai, kiemGhiTayVoiBanChup, kiemThanGhiTay, moTaChup, moTaGhiTay, tongHoaHongDon, type PhanThuongMai } from "./thuong-mai";
-import { banChupHienHanh, cauChupChuoi, cauDoiMocSauGhiTay, cauGhiTayKemPax, cauKhoaChupBu, demBanChup, donChoChupBu, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
+import { banChupHienHanh, cauChupChuoi, cauDoiMocSauGhiTay, cauGhiTayKemPax, cauKhoaChupBu, demBanChup, donChoChupBu, kemTangMuaVu, laNhaCungCap, nhomCuaMa, tangMuaVuTheoDichVu, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
 import { canhBaoGiamGiaDon, cauDoiBenDatVuotHoaHong, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation, viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
 import { NHAN_LY_DO_TRA_LAI, laMaLyDoTraLai } from "../../shared/to-chuc";
@@ -1031,7 +1031,9 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
 export async function phanThuongMaiCuaDon(db: D1Database, orderId: string): Promise<PhanThuongMai | null> {
   const don = await loadOrderView(db, orderId, false);
   if (!don || don.status === "cancelled") return null;
-  const dichVu = don.services.map((s) => ({ id: s.id, name: s.name, ...tienChoHoaHong(s) }));
+  // ADR-0229 Đ10: DTO đơn không mang số tăng mùa vụ — đọc từ bản chụp dòng đơn rồi gắn vào chỉ để tính cơ sở hoa hồng.
+  const tang = await tangMuaVuTheoDichVu(db, [orderId]);
+  const dichVu = kemTangMuaVu(don.services, tang).map((s) => ({ id: s.id, name: s.name, ...tienChoHoaHong(s) }));
   let chup: BanChup[];
   let duKien = false;
   let chuaChup = false;
@@ -2187,7 +2189,7 @@ export const ordersModule: AppModule = {
         // Tiền dòng HIỆN HÀNH (`loadOrderView`, đã áp dòng điều chỉnh số khách); dòng thiếu mức tính 0 (thận trọng như trần nháp).
         const hienHanh = await loadOrderView(env.DB, id, false);
         if (!hienHanh) return NOT_FOUND();
-        const tien = hienHanh.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
+        const tien = kemTangMuaVu(hienHanh.services, await tangMuaVuTheoDichVu(env.DB, [id])).map((s) => ({ id: s.id, ...tienChoHoaHong(s) })); // ADR-0229 Đ10
         const vuotTran = cauDoiBenDatVuotHoaHong({ coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, tien, "tinh0") ?? 0, giamGiaHieuLuc: hienHanh.giamGiaHieuLuc, coDongVuot: coDongVuotDon(chup, tien) });
         if (vuotTran) return error(409, "discount_exceeds_commission", vuotTran);
         kemChup = (at) => [

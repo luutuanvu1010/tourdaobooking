@@ -55,13 +55,13 @@ const DICH_VU_NHIEU = defineSql("orders", "services_money_many",
   `SELECT order_id, id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`);
 // Chỉ dòng DỊCH VỤ (Đợt C, Task 5): dòng phí đưa đón không vào hoa hồng / giá đại lý — đọc riêng bằng `dongPhiTienNhieuDon` (chang-hanh-khach-repo.ts) rồi cộng vào tổng công nợ.
 const DONG_TIEN_NHIEU = defineSql("orders", "items_money_many",
-  `SELECT order_id, service_id, pax_code, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1)) AND line_kind = 'SERVICE' ORDER BY order_id, sort_order`);
+  `SELECT order_id, service_id, pax_code, quantity, unit_price, catalog_price, line_total, seasonal_increase FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1)) AND line_kind = 'SERVICE' ORDER BY order_id, sort_order`);
 // «Đơn đại lý» (ADR-0182 Đ1 mục 1 = luật `mauBienNhan`): cờ bên đặt mang vai được hưởng — CÙNG câu với `BOOKER_LA_DOI_TAC` của chi tiết đơn — và người lập (để hỏi «Đối tác thuần»).
 const DON_DAI_LY_NHIEU = defineSql("orders", "orders_agent_flags_many",
   `SELECT o.id, o.staff_id, o.status, EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = o.booker_party_id) AS la
    FROM orders o WHERE o.id IN (SELECT value FROM json_each(?1))`);
 export interface DichVuTienRow { order_id: string; id: string; catalog_code: string | null; name: string; unit: string; pax_adult: number; pax_child: number; pax_senior: number; pax_infant: number }
-export interface DongTienRow { order_id: string; service_id: string | null; pax_code: string | null; quantity: number; unit_price: number; catalog_price: number | null; line_total: number }
+export interface DongTienRow { order_id: string; service_id: string | null; pax_code: string | null; quantity: number; unit_price: number; catalog_price: number | null; line_total: number; seasonal_increase: number | null }
 export interface DonDaiLyRow { id: string; staff_id: string; status: "draft" | "confirmed" | "cancelled"; la: number }
 export async function docGiaDaiLyNhieu(db: D1Database, orderIds: readonly string[]): Promise<{ chup: (TermRowDb & { order_id: string })[]; dichVu: DichVuTienRow[]; dong: DongTienRow[]; don: DonDaiLyRow[]; phi: FeeMoneyRow[] }> {
   const ids = JSON.stringify([...new Set(orderIds)]);
@@ -74,6 +74,25 @@ export async function docGiaDaiLyNhieu(db: D1Database, orderIds: readonly string
   ]);
   return { chup: chup.results, dichVu: dichVu.results, dong: dong.results, don: don.results, phi };
 }
+/**
+ * ADR-0229 Đ10: số tăng giá mùa vụ MỖI ĐƠN VỊ theo dịch vụ → loại khách, từ bản chụp dòng đơn (cùng câu `DONG_TIEN_NHIEU`). Dùng để gắn vào dòng của DTO đơn (DTO không mang số
+ * này — Đ9) trước khi tính cơ sở hoa hồng (`tienChoHoaHong`). Dịch vụ / loại khách không có số tăng thì vắng khỏi Map. Rỗng → không truy vấn.
+ */
+export async function tangMuaVuTheoDichVu(db: D1Database, orderIds: readonly string[]): Promise<Map<string, Map<string, number>>> {
+  const out = new Map<string, Map<string, number>>();
+  if (orderIds.length === 0) return out;
+  const rows = (await db.prepare(DONG_TIEN_NHIEU).bind(JSON.stringify([...new Set(orderIds)])).all<DongTienRow>()).results;
+  for (const r of rows) {
+    if (!r.service_id || !r.pax_code || !r.seasonal_increase) continue;
+    const m = out.get(r.service_id) ?? new Map<string, number>();
+    m.set(r.pax_code, r.seasonal_increase);
+    out.set(r.service_id, m);
+  }
+  return out;
+}
+/** Gắn số tăng mùa vụ (Map của `tangMuaVuTheoDichVu`) vào dòng tiền của các dịch vụ theo id dịch vụ + loại khách — CHỈ cho phép tính, không đưa ra DTO. */
+export const kemTangMuaVu = <S extends { id: string; items: readonly { paxCode: string | null }[] }>(services: readonly S[], tang: ReadonlyMap<string, ReadonlyMap<string, number>>) =>
+  services.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, seasonalIncrease: (i.paxCode ? tang.get(s.id)?.get(i.paxCode) : undefined) ?? null })) }));
 /** ADR-0226: cờ «đơn đại lý» (bên đặt mang vai được hưởng) + người lập + trạng thái của NHIỀU đơn, mọi trạng thái — một câu (cùng câu `DON_DAI_LY_NHIEU`). */
 export async function coDaiLyNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<DonDaiLyRow[]> {
   if (orderIds.length === 0) return [];

@@ -269,7 +269,7 @@ export function docThanGhiTay(f: FormGhiTay, congTyChuId: string | null): { ok: 
  * đúng dạng — lỗi ô tự nói, đơn không người hưởng, không vượt).
  */
 export function canhBaoHaMucTay(v: {
-  dto: Pick<ThuongMaiVanPhongDto, "nguoiHuong"> & { dong: readonly { serviceId: string; thanhTien: number; soKhachTinh: number; hoaHong: number | null }[] };
+  dto: Pick<ThuongMaiVanPhongDto, "nguoiHuong"> & { dong: readonly { serviceId: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; hoaHong: number | null }[] };
   serviceId: string;
   form: Pick<FormGhiTay, "kieu" | "tyLe" | "moiKhach">;
   giamGiaHieuLuc: number;
