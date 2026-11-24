@@ -1,19 +1,28 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Xe — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="rong" data-title="Xe" data-back="/account">
+<body data-rong="rong" data-khung-goc="danh-sach" data-title="Xe" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Danh sách xe (ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/01 Danh sach xe.dc.html). Điện thoại: thẻ + nút "Thêm xe" dính đáy; máy tính (≥900px): bảng. -->
-  <div class="vc-page-head"><h1>Xe</h1><a id="xe-add-top" class="vc-btn btn btn-primary vc-head-btn" href="/xe-sua" hidden>Thêm xe</a></div>
+  <!-- Danh sách xe (ADR-0040 D1). Khuôn Danh sách của khung gốc (ADR-0222): thanh lọc (trạng thái, chủ xe) với nút «Thêm xe» ở mép phải, rồi MỘT khối bảng.
+       Khối rộng từ 800 hiện bảng (#xe-table), hẹp hơn hiện danh sách dòng (#xe-cards); mỗi dòng mở chi tiết xe. -->
+  <h1>Xe</h1>
+  <div class="thanh-loc">
+    <div id="vc-filters" class="hang" role="group" aria-label="Lọc theo trạng thái" hidden></div>
+    <div id="xe-chu-loc" class="truong" hidden><label for="xe-chu">Chủ xe</label><select id="xe-chu" class="o"><option value="">Tất cả</option></select></div>
+    <a id="xe-add-top" class="nut day-phai" data-cap="chinh" href="/xe-sua" hidden>Thêm xe</a>
+  </div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <div id="vc-filters" class="vc-filters" role="group" aria-label="Lọc theo trạng thái" hidden></div>
-  <div id="xe-chu-loc" class="vc-field vc-chu-loc" hidden><label for="xe-chu">Chủ xe</label><select id="xe-chu" class="vc-input"><option value="">Tất cả</option></select></div>
-  <section id="xe-empty" class="vc-card vc-empty" hidden><span class="vc-empty-title">Chưa có xe nào</span><span class="vc-empty-text">Thêm xe để theo dõi giấy tờ và hạn.</span></section>
-  <p id="xe-filter-empty" class="vc-card vc-filter-empty" hidden>Không có xe nào ở trạng thái này.</p>
-  <div id="xe-cards" class="vc-list vc-narrow"></div>
-  <div id="xe-table" class="vc-card vc-table vc-wide" hidden></div>
-  <div id="xe-add-bottom" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden><a class="vc-btn btn btn-primary" href="/xe-sua">Thêm xe</a></div>
+  <section id="xe-khoi" class="khoi" data-kieu="bang" aria-labelledby="xe-khoi-ten" hidden>
+    <header class="khoi-dau"><h2 id="xe-khoi-ten">Danh sách xe</h2></header>
+    <p id="xe-empty" class="rong" hidden><strong>Chưa có xe nào</strong><span>Thêm xe để theo dõi giấy tờ và hạn.</span></p>
+    <p id="xe-filter-empty" class="rong" hidden>Không có xe nào ở trạng thái này.</p>
+    <table id="xe-table" class="bang" hidden>
+      <thead><tr><th>Biển số</th><th>Tên / đời xe</th><th>Số người được chở</th><th>Trạng thái</th><th>Giấy tờ</th><th></th></tr></thead>
+      <tbody id="xe-rows"></tbody>
+    </table>
+    <div id="xe-cards" class="ds-dong" data-thay-bang></div>
+  </section>
 </main>
 <script type="module" src="/js/xe.js"></script>
 </body></html>

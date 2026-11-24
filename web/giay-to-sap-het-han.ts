@@ -1,6 +1,6 @@
 // Giấy tờ sắp hết hạn (/giay-to-sap-het-han — ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/06 Sap het han.dc.html). Giấy xe và giấy tài xế chung MỘT
 // danh sách, xếp theo ngày hết hạn gần nhất (máy chủ xếp; giấy đã hết hạn tự nổi lên đầu), biểu tượng xe / người đầu dòng; bấm dòng mở chi tiết xe hoặc hồ sơ ở
-// Danh bạ. KHÔNG có số giấy tờ (máy chủ không trả). Toàn quyền (ô `settings.ops`) đổi mốc bằng nút "Đổi mốc nhắc" (khuôn kế hoạch B6 của 1a: nút chữ cạnh dòng tiêu đề,
+// Danh bạ. Bố cục: khuôn Danh sách của khung gốc (ADR-0222) — bảng từ 800, danh sách dòng hẹp hơn. KHÔNG có số giấy tờ (máy chủ không trả). Toàn quyền (ô `settings.ops`) đổi mốc bằng nút "Đổi mốc nhắc" (khuôn kế hoạch B6 của 1a: nút chữ cạnh dòng tiêu đề,
 // bảng trượt một ô số) — R23 đã hết điều kiện vì giấy tờ người nay đọc mốc từ API (Task 4).
 // ADR-0048 D1 (Task B4, khuôn dòng phụ sẵn có): dòng có `ownerLabel` (xe của nhà xe; tài xế đối tác — tên nhà xe) thêm nhãn phụ "Nhà xe: <tên>" — chỉ TÊN.
 import { can } from "../src/shared/permissions";
@@ -10,72 +10,68 @@ import { moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { chipEl, datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { truong } from "./khung";
 import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 import { layDanhSachSapHet } from "./vc-dem";
 
 const errorEl = byId("error");
 const subEl = byId("due-sub");
-const titleEl = byId("due-title");
+const khoiEl = byId("due-khoi");
 const emptyEl = byId("due-empty");
 const listEl = byId("due-list");
 const tableEl = byId("due-table");
-emptyEl.prepend(icon("checkCircle", 44, 1.5));
+const rowsEl = byId("due-rows");
 
 /** Nhãn phụ "Nhà xe: <tên>" (ADR-0048 D1); null = của công ty chủ hiện tại / tài xế công ty. */
-const nhanNhaXe = (it: Api.ExpiringItemDto): HTMLElement | null => (it.ownerLabel ? h("span", { class: "vc-due-doc vc-due-owner" }, `Nhà xe: ${it.ownerLabel}`) : null);
+const nhanNhaXe = (it: Api.ExpiringItemDto): HTMLElement | null => (it.ownerLabel ? h("span", { class: "o-phu" }, `Nhà xe: ${it.ownerLabel}`) : null);
 
+/** Biểu tượng xe / người đầu dòng (vòng tròn của phân hệ Vận chuyển). */
 const vong = (it: Api.ExpiringItemDto, size: number): HTMLElement =>
   h("span", { class: "vc-ring", role: "img", "aria-label": it.kind === "vehicle" ? "Xe" : "Người" }, icon(it.kind === "vehicle" ? "truck" : "me", size));
 
 function ve(r: Api.ExpiringListResponse): void {
-  replaceChildren(titleEl, h("span", { class: "vc-desk" }, "Giấy tờ sắp hết hạn"), h("span", { class: "vc-phone" }, `Trong ${r.warnDays} ngày tới`));
-  replaceChildren(
-    subEl,
-    h("strong", { class: "vc-desk" }, `Trong ${r.warnDays} ngày tới`),
-    h("span", { class: "vc-desk" }, " · gồm cả giấy đã hết hạn"),
-    h("span", { class: "vc-phone" }, "Gồm cả giấy đã hết hạn"),
-    ` · ${r.count} giấy`,
-  );
+  const cau = h("p", { class: "doan-dan" }, `Trong ${r.warnDays} ngày tới · gồm cả giấy đã hết hạn · ${r.count} giấy`);
+  let doiMoc: HTMLButtonElement | null = null;
   if (can(staff, "settings.ops")) {
-    const doiMoc = h("button", { type: "button", class: "btn btn-link vc-due-doi-moc", "data-action": "doi-moc" }, "Đổi mốc nhắc");
-    doiMoc.addEventListener("click", () => moDoiMoc(doiMoc, r.warnDays));
-    subEl.append(" · ", doiMoc);
+    doiMoc = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "doi-moc" }, "Đổi mốc nhắc");
+    const nut = doiMoc;
+    nut.addEventListener("click", () => moDoiMoc(nut, r.warnDays));
   }
+  replaceChildren(subEl, cau, doiMoc);
+  khoiEl.hidden = false;
   emptyEl.hidden = r.items.length > 0;
   replaceChildren(
     listEl,
     ...r.items.map((it) =>
       h(
         "a",
-        { class: "vc-due-row", href: duongDanDong(it) },
+        { class: "dong", href: duongDanDong(it) },
         vong(it, 22),
         h(
           "span",
-          { class: "vc-due-text" },
-          h("span", { class: "vc-due-who" }, it.label),
+          { class: "dong-chu" },
+          h("strong", null, it.label),
           nhanNhaXe(it),
-          h("span", { class: "vc-due-doc" }, `${tenGiayTo(it)} · ${ngayVN(it.expiryDate)}`),
-          chipEl(chipHan(it.daysLeft, r.warnDays)),
+          h("span", { class: "o-phu" }, `${tenGiayTo(it)} · ${ngayVN(it.expiryDate)}`),
+          h("span", null, chipEl(chipHan(it.daysLeft, r.warnDays))),
         ),
-        h("span", { class: "vc-due-chevron" }, icon("next", 20)),
+        icon("next", 20),
       ),
     ),
   );
   listEl.hidden = r.items.length === 0;
   replaceChildren(
-    tableEl,
-    h("div", { class: "vc-due-grid vc-th vc-due-head", "aria-hidden": "true" }, h("span", null, ""), h("span", null, "XE / NGƯỜI"), h("span", null, "LOẠI GIẤY"), h("span", null, "HẾT HẠN"), h("span", null, "CÒN"), h("span", null, "")),
+    rowsEl,
     ...r.items.map((it) =>
       h(
-        "a",
-        { class: "vc-due-grid vc-due-trow", href: duongDanDong(it) },
-        vong(it, 20),
-        it.ownerLabel ? h("span", { class: "vc-due-text" }, h("span", { class: "vc-due-who" }, it.label), nhanNhaXe(it)) : h("span", { class: "vc-due-who" }, it.label),
-        h("span", { class: "vc-due-doc" }, tenGiayTo(it)),
-        h("span", { class: "vc-due-exp" }, ngayVN(it.expiryDate)),
-        h("span", null, chipEl(chipHan(it.daysLeft, r.warnDays))),
-        h("span", { class: "vc-due-chevron" }, icon("next", 18)),
+        "tr",
+        null,
+        h("td", null, h("span", { class: "hang" }, vong(it, 20), h("span", null, h("a", { href: duongDanDong(it) }, h("strong", null, it.label)), nhanNhaXe(it)))),
+        h("td", null, tenGiayTo(it)),
+        h("td", { "data-gon": "" }, ngayVN(it.expiryDate)),
+        h("td", null, chipEl(chipHan(it.daysLeft, r.warnDays))),
+        h("td", null, icon("next", 18)),
       ),
     ),
   );
@@ -100,13 +96,13 @@ try {
 
 /** Đổi mốc "sắp hết hạn" (ADR-0040 D1) — chỉ Toàn quyền; máy chủ kiểm 1–365 và quyền, màn chỉ hiện câu của máy chủ. Lưu xong đọc lại danh sách. */
 function moDoiMoc(opener: HTMLElement, hienTai: number): void {
-  const o = h("input", { id: "moc-nhac", class: "vc-input", type: "text", inputmode: "numeric", value: String(hienTai), autocomplete: "off", "aria-describedby": "moc-nhac-loi" }) as HTMLInputElement;
-  const loi = h("div", { id: "moc-nhac-loi", class: "vc-field-error", role: "alert", hidden: true });
-  const huy = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Huỷ");
-  const luu = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "doi-moc-luu" }, "Lưu");
+  const o = h("input", { id: "moc-nhac", class: "o", type: "text", inputmode: "numeric", value: String(hienTai), autocomplete: "off", "aria-describedby": "moc-nhac-loi" }) as HTMLInputElement;
+  const loi = h("div", { id: "moc-nhac-loi", class: "truong-loi", role: "alert", hidden: true });
+  const huy = h("button", { type: "button", class: "nut", "data-co": "lon", "data-cap": "loi" }, "Huỷ");
+  const luu = h("button", { type: "button", class: "nut", "data-co": "lon", "data-cap": "chinh", "data-action": "doi-moc-luu" }, "Lưu");
   const bang = moBangTruot({
     title: "Mốc nhắc giấy tờ sắp hết hạn",
-    body: [h("div", { class: "vc-field" }, h("label", { for: "moc-nhac" }, "Nhắc trước (ngày)"), o, loi), h("p", { class: "dp-note" }, "Áp cho giấy tờ xe và giấy tờ cá nhân, có hiệu lực ngay.")],
+    body: [truong("Nhắc trước (ngày)", o, { loi, goiY: "Áp cho giấy tờ xe và giấy tờ cá nhân, có hiệu lực ngay." })],
     foot: [huy, luu],
     footClass: "vc-foot-2",
     opener,

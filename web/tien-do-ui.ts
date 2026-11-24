@@ -157,18 +157,28 @@ export function veDiemChay(o: {
   choVang?: boolean;
   /** C2 (C56): đang gửi một lệnh — mọi nút lệnh vẽ ở trạng thái khoá (vẽ lại giữa chừng không mở khoá lại). */
   khoa?: boolean;
+  /**
+   * Khung gốc (ADR-0222): trang đã chuyển khuôn đặt các điểm vào MỘT khối — mỗi điểm là mục con `.muc-con` (không thẻ riêng), nút theo bộ thành phần chung
+   * `.nut[data-cap]` (đều là `phu`: nút đặc duy nhất của màn ở chỗ khác); điểm kế tiếp mang cả lớp `is-ke-tiep` (tên nơi cỡ chữ lớn) lẫn `data-ke-tiep`. Không truyền ⇒ vẽ y như cũ.
+   * Phần ruột (.dp-run-*, .dp-khach*, data-*) giữ nguyên cho cả hai cách.
+   */
+  khung?: boolean;
 }): HTMLElement[] {
+  const nutLop = (cu: string, rieng: string): string => (o.khung ? `nut ${rieng}` : `${cu} ${rieng}`);
+  const nutCap = o.khung ? "phu" : undefined;
   const baoHuy = new Set(o.suat.filter((x) => x.vanPhongBaoHuy).map((x) => x.id));
   return buocDiem(o.diem, o.suat, o.trangThai, o.ngayXem).filter((b) => (o.loc ? o.loc(b) : true)).map((b) => {
     const d = b.diem;
     // Đợt 5 (V6 bảng 6.2): "Mới thêm" / "Văn phòng đã báo huỷ — vẫn tới điểm" — cùng khối cho tài xế và văn phòng.
     const chipDiem = chipDiemChay(d, o.suat);
-    const nutDiem = o.coNut && b.nut && !o.nutChinhODay?.has(d.id) ? h("button", { type: "button", class: "vc-btn btn btn-primary dp-run-btn", disabled: o.khoa === true, "data-action": b.nut.lenh, "data-diem": d.id }, b.nut.nhan) : null;
+    const nutDiem = o.coNut && b.nut && !o.nutChinhODay?.has(d.id) ? h("button", { type: "button", class: nutLop("vc-btn btn btn-primary", "dp-run-btn"), "data-cap": nutCap, disabled: o.khoa === true, "data-action": b.nut.lenh, "data-diem": d.id }, b.nut.nhan) : null;
     nutDiem?.addEventListener("click", () => o.onLenh(b.nut!.lenh === "da-toi" ? { loai: "da-toi", buoc: b } : { loai: "tra-het", buoc: b }, nutDiem));
     const phu = o.phuDiem ? o.phuDiem(b) : {};
     return h(
       "section",
-      { class: `vc-card dp-run is-${b.trangThaiHien}${o.keTiepId === d.id ? " is-ke-tiep" : ""}`, "data-diem": d.id, "aria-label": `${b.nhanLoai} ${d.tenNoi}` },
+      o.khung
+        ? { class: `muc-con dp-run is-${b.trangThaiHien}${o.keTiepId === d.id ? " is-ke-tiep" : ""}`, "data-diem": d.id, "data-ke-tiep": o.keTiepId === d.id ? "" : undefined, "aria-label": `${b.nhanLoai} ${d.tenNoi}` }
+        : { class: `vc-card dp-run is-${b.trangThaiHien}${o.keTiepId === d.id ? " is-ke-tiep" : ""}`, "data-diem": d.id, "aria-label": `${b.nhanLoai} ${d.tenNoi}` },
       h(
         "div",
         { class: "dp-run-head" },
@@ -190,7 +200,7 @@ export function veDiemChay(o: {
         const cho = o.choGui?.has(k.suatId) ?? false;
         const them = o.phuKhach && !cho ? o.phuKhach(k) : null;
         const nut = o.coNut && !cho ? k.nut.map((l) => {
-          const x = h("button", { type: "button", class: `vc-btn ${l === "don" ? "btn btn-primary" : "vc-btn-ghost-primary"} dp-khach-btn`, disabled: o.khoa === true, "data-action": l, "data-suat": k.suatId }, NHAN_LENH_SUAT[l]);
+          const x = h("button", { type: "button", class: nutLop(`vc-btn ${l === "don" ? "btn btn-primary" : "vc-btn-ghost-primary"}`, "dp-khach-btn"), "data-cap": nutCap, disabled: o.khoa === true, "data-action": l, "data-suat": k.suatId }, NHAN_LENH_SUAT[l]);
           x.addEventListener("click", () => o.onLenh({ loai: l, buoc: b, suatId: k.suatId, ten: k.ten }, x));
           return x;
         }) : [];
@@ -201,7 +211,7 @@ export function veDiemChay(o: {
             baoHuy.has(k.suatId) && !k.ketQua ? chip("Văn phòng đã báo huỷ", "warn") : null,
             k.ketQua ? h("span", { class: `dp-khach-kq${k.ketQua === "Vắng" ? " is-vang" : k.ketQua === "Đã đón" || k.ketQua === "Đã trả" ? " is-ok" : ""}` }, k.ketQua) : null),
           o.vuaGhi?.suatId === k.suatId ? h("div", { class: "dp-vua-ghi", role: "status" }, icon("check", 16, 2), h("span", null, o.vuaGhi.cau)) : null,
-          cho ? h("div", { class: "dp-khach-cho" }, "Chưa gửi được", h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", disabled: o.khoa === true, "data-action": "bam-lai", "data-suat": k.suatId }, "Bấm lại")) : null,
+          cho ? h("div", { class: "dp-khach-cho" }, "Chưa gửi được", h("button", { type: "button", class: o.khung ? "nut" : "vc-btn vc-btn-ghost-primary", "data-cap": nutCap, disabled: o.khoa === true, "data-action": "bam-lai", "data-suat": k.suatId }, "Bấm lại")) : null,
           nut.length || them ? h("div", { class: "dp-khach-nut" }, ...nut, them) : null,
         );
       }),

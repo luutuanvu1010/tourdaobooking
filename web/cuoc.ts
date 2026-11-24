@@ -3,6 +3,7 @@
 // - Hôm nay + ngày mai + ngày kia (góp ý T3); mỗi chuyến: giờ xuất bến, trạng thái, mã, biển số, số khách, số điểm đón / trả; điều kiện còn thiếu "(văn phòng lo)" (thiếu tên hôm nay + tài xế công ty: chỉ chỗ tự bổ sung — Đợt 5 A-1b).
 // - KHÔNG tên, KHÔNG SĐT khách ở màn này (DTO không có). Chuyến đang chạy: "Mở chuyến đang chạy". Bấm thẻ → /cuoc-chuyen?id= (xuất bến / đang chạy).
 // - HT-24: chuyến đang chạy vắt qua 0 giờ (hoặc xuất bến sớm) vẫn ở "Hôm nay", đứng đầu, dòng "Xuất bến dd/mm" (`nhomCuoc`).
+// - Bố cục: khuôn Tổng quan của khung gốc (ADR-0222) — mỗi ngày một khối trên lưới, mỗi cuốc một dòng (.ds-dong > a.dong).
 // - Giờ kết thúc dự kiến (bản vẽ "06:40 – 08:25") chưa có trong DTO route 19 — chỉ hiện giờ xuất bến (ghi câu hỏi Q-B-12 ở nhật ký).
 import { nhomCuoc } from "../src/shared/tien-do-man";
 import { can } from "../src/shared/permissions";
@@ -14,6 +15,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { chip } from "./dieu-phoi-ui";
 import { loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { dsDong, khoi, luoi } from "./khung";
 import { initShell, showError } from "./shell";
 import { taoBoLamMoi } from "./lam-moi-logic";
 import { dai } from "./dieu-phoi-ui";
@@ -52,25 +54,34 @@ async function veDanhSach(): Promise<void> {
   replaceChildren(
     dsEl,
     daTuChoi ? dai("ok", `Đã từ chối chuyến ${daTuChoi}`, ["Văn phòng đã nhận báo và sẽ xếp người khác."]) : null,
-    ...nhomCuoc(r.chuyen, homNay, { tuBoSungTen }).map((g) =>
-      h(
-        "section",
-        { class: "dp-cuoc-day", "aria-labelledby": `cu-${g.iso}` },
-        h("div", { class: "dp-cuoc-day-head" }, h("h2", { id: `cu-${g.iso}`, class: "dp-cuoc-day-title" }, g.tieuDe), h("span", { class: "dp-cuoc-date" }, g.ngay)),
-        ...(g.the.length
-          ? g.the.map((t) =>
-              h(
-                "a",
-                { class: `vc-card dp-cuoc-the${t.moChay ? " is-chay" : ""}`, href: `/cuoc-chuyen?id=${encodeURIComponent(t.id)}`, "data-chuyen": t.id },
-                h("span", { class: "dp-cuoc-top" }, h("span", { class: "dp-cuoc-gio" }, t.gio), h("span", { class: "dp-cuoc-ma" }, t.ma), chip(t.chip.nhan, t.chip.tone)),
-                t.nhanNgay ? h("span", { class: "dp-cuoc-xb-ngay" }, t.nhanNgay) : null,
-                t.nhanVang ? h("span", { class: "chip dp-chip-warn", "data-khoi": "cho-chay-thieu" }, icon("alert", 14, 2), t.nhanVang) : null, // ADR-0184
-                h("span", { class: "dp-cuoc-dong" }, t.dong),
-                ...t.canhBao.map((c) => h("span", { class: "dp-cuoc-canh-bao" }, icon("alert", 16, 2), h("span", null, c))),
-                t.moChay ? h("span", { class: "vc-btn btn btn-primary dp-cuoc-mo" }, "Mở chuyến đang chạy") : null,
-              ),
-            )
-          : [h("p", { class: "dp-cuoc-trong" }, "Không có cuốc nào.")]),
+    luoi(
+      null,
+      ...nhomCuoc(r.chuyen, homNay, { tuBoSungTen }).map((g) =>
+        khoi(
+          { tieuDe: g.tieuDe, idTieuDe: `cu-${g.iso}`, moTa: g.ngay, kieu: "bang", thuoc: { "data-cot": "4", "data-ngay-cuoc": g.iso } },
+          dsDong(
+            null,
+            ...(g.the.length
+              ? g.the.map((t) =>
+                  h(
+                    "a",
+                    { class: "dong", href: `/cuoc-chuyen?id=${encodeURIComponent(t.id)}`, "data-chuyen": t.id, "data-cuoc": t.moChay ? "chay" : "" },
+                    h(
+                      "span",
+                      { class: "dong-chu" },
+                      h("span", { class: "hang" }, h("strong", null, t.gio), h("span", null, t.ma), chip(t.chip.nhan, t.chip.tone)),
+                      t.nhanNgay ? h("span", { class: "o-phu" }, t.nhanNgay) : null,
+                      t.nhanVang ? h("span", { class: "chip dp-chip-warn", "data-khoi": "cho-chay-thieu" }, icon("alert", 14, 2), t.nhanVang) : null, // ADR-0184
+                      h("span", { class: "o-phu" }, t.dong),
+                      ...t.canhBao.map((c) => h("span", { class: "dp-cuoc-canh-bao" }, icon("alert", 16, 2), h("span", null, c))),
+                    ),
+                    // Chuyến đang chạy: việc chính của màn (cả dòng là liên kết; chữ này chỉ là dáng nút, không phải nút thứ hai).
+                    t.moChay ? h("span", { class: "nut", "data-cap": "chinh" }, "Mở chuyến đang chạy") : icon("next", 20),
+                  ),
+                )
+              : [h("p", { class: "rong" }, "Không có cuốc nào.")]),
+          ),
+        ),
       ),
     ),
   );

@@ -2,6 +2,7 @@
 // - Ô trip.view (cùng mục "Điều phối xe" — `thayDieuPhoiXe`). Đọc GET /api/van-chuyen/lich của HÔM QUA, HÔM NAY, NGÀY MAI (chuyến chạy qua nửa đêm; xuất bến sớm chuyến ngày mai), lọc RUNNING.
 // - Mỗi thẻ "mã · Đang chạy · biển số · x/y chỗ" mở Chi tiết chuyến (web/chuyen.ts) — nơi có "Việc của văn phòng", "Khách đang chờ".
 // - Tin Bảng tin về chuyến / nối lại → tải lại danh sách.
+// - Bố cục: khuôn Tổng quan của khung gốc (ADR-0222) — đầu trang (số xe), một khối, mỗi xe một dòng (.ds-dong > a.dong).
 // - ADR-0104 Đ2.7: thẻ có dòng nhắc cố định khi máy chủ báo `coKhachDonHuy` (khách chờ đón của đơn huỷ — văn phòng bấm Báo huỷ ở Chi tiết chuyến).
 import type { ChuyenTomTatDto, LichChungResponse } from "../src/shared/contracts";
 import { thayDieuPhoiXe } from "../src/shared/dieu-phoi-man";
@@ -13,6 +14,7 @@ import { chip } from "./dieu-phoi-ui";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
+import { dauTrang, dsDong, khoi } from "./khung";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -32,21 +34,28 @@ function ve(ds: readonly ChuyenTomTatDto[]): void {
   const homNay = vnToday(new Date());
   replaceChildren(
     trangEl,
-    h("div", { class: "xdc-head" }, h("h1", { class: "dp-ct-title" }, "Xe đang chạy"), h("span", { class: "dp-card-note" }, `${ds.length} xe`)),
-    ds.length
-      ? h("div", { class: "xdc-list" }, ...ds.map((c) => {
-          const t = theXeDangChay(c, homNay);
-          const nhac = nhacXeDangChay(c); // ADR-0104 Đ2.7: khách chờ đón của đơn huỷ — máy không ghi lên xe đang chạy, văn phòng bấm Báo huỷ
-          return h(
-            "a",
-            { class: "vc-card xdc-the", href: `/chuyen?id=${encodeURIComponent(c.id)}`, "data-chuyen": c.id },
-            h("span", { class: "xdc-the-dau" }, h("strong", { class: "xdc-ma" }, t.tieuDe), chip("Đang chạy", "navy"), h("span", { class: "xdc-dong" }, t.dong)),
-            h("span", { class: "dp-note" }, t.phu),
-            nhac ? h("span", { class: "xdc-nhac" }, nhac) : null,
-            icon("next", 20),
-          );
-        }))
-      : h("div", { class: "vc-card xdc-rong" }, "Hiện không có xe nào đang chạy."),
+    dauTrang(null, h("p", { class: "doan-dan", "data-dem": "" }, `${ds.length} xe`)),
+    khoi(
+      { tieuDe: "Đang chạy", idTieuDe: "xdc-ten", kieu: "bang" },
+      ds.length
+        ? dsDong({ class: "xdc-list" }, ...ds.map((c) => {
+            const t = theXeDangChay(c, homNay);
+            const nhac = nhacXeDangChay(c); // ADR-0104 Đ2.7: khách chờ đón của đơn huỷ — máy không ghi lên xe đang chạy, văn phòng bấm Báo huỷ
+            return h(
+              "a",
+              { class: "dong xdc-the", href: `/chuyen?id=${encodeURIComponent(c.id)}`, "data-chuyen": c.id },
+              h(
+                "span",
+                { class: "dong-chu" },
+                h("span", { class: "hang" }, h("strong", null, t.tieuDe), chip("Đang chạy", "navy"), h("span", null, t.dong)),
+                h("span", { class: "o-phu" }, t.phu),
+                nhac ? h("span", { class: "xdc-nhac" }, nhac) : null,
+              ),
+              icon("next", 20),
+            );
+          }))
+        : h("p", { class: "rong xdc-rong" }, "Hiện không có xe nào đang chạy."),
+    ),
   );
 }
 

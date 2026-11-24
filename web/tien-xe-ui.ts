@@ -6,6 +6,7 @@ import { moBangTruot } from "./bang-truot";
 import { chip, LOI_MANG } from "./dieu-phoi-ui";
 import { h, replaceChildren, type Child } from "./dom";
 import { icon } from "./icons";
+import { luoi, thanhNut, truong } from "./khung";
 
 /** Bảng nhiều cột / form nội tuyến từ 900px (cùng mốc `.table-wrap`); hẹp hơn: thẻ dọc + tấm đáy. */
 export const laMayTinh = (): boolean => matchMedia("(min-width: 900px)").matches;
@@ -100,4 +101,58 @@ export function loiTai(cau: string, thuLai: () => void): HTMLElement {
   const b = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "thu-lai" }, "Thử lại");
   b.addEventListener("click", thuLai);
   return h("div", { class: "banner banner-danger", role: "alert" }, h("div", { class: "banner-title" }, icon("alert", 16, 2), " ", cau), h("div", { class: "banner-actions" }, b));
+}
+
+// ---- Bản theo khung gốc giao diện (ADR-0222) — cho màn đã khai `data-khung-goc`. Hàm cũ ở trên giữ nguyên cho màn chưa chuyển (Chi phí chuyến). ----
+
+/** Một ô có nhãn theo khung gốc (`truong` của web/khung.ts): ô mang lớp `o`, gợi ý dưới ô. `batBuoc` thêm " *" như bản cũ. */
+export function oKhung(idO: string, nhan: string, el: HTMLElement, opt: { batBuoc?: boolean; goiY?: Child; cot?: 3 | 4 | 6 | 8 } = {}): HTMLElement {
+  el.id = idO;
+  el.classList.add("o");
+  return truong(`${nhan}${opt.batBuoc ? " *" : ""}`, el, { cot: opt.cot, goiY: opt.goiY ?? undefined });
+}
+
+/**
+ * Như `moForm` nhưng theo khung gốc: máy tính = `host` (một khối `.khoi` của trang, đang ẩn) nhận đầu khối là tên form, các ô trên lưới 12 cột và thanh nút;
+ * điện thoại = bảng trượt. `nut` là các nút chính (đặt trước nút "Đóng"). Trả null nếu không mở được (bảng trượt khác đang mở).
+ */
+export function moFormKhung(o2: { tieuDe: string; body: Child[]; nut: HTMLButtonElement[]; host: HTMLElement; opener?: HTMLElement | null; onClosed?: () => void }): FormTienXe | null {
+  const dong = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "dong-form" }, "Đóng");
+  if (laMayTinh()) {
+    replaceChildren(o2.host, h("header", { class: "khoi-dau" }, h("h2", null, o2.tieuDe)), luoi(null, ...o2.body), thanhNut(null, ...o2.nut, dong));
+    o2.host.setAttribute("aria-label", o2.tieuDe);
+    o2.host.hidden = false;
+    let busy = false;
+    const close = (): void => {
+      if (busy) return;
+      replaceChildren(o2.host);
+      o2.host.hidden = true;
+      if (o2.opener?.isConnected) o2.opener.focus();
+      o2.onClosed?.();
+    };
+    dong.addEventListener("click", close);
+    o2.host.scrollIntoView({ block: "nearest" });
+    (o2.host.querySelector("input:not([disabled]), select:not([disabled]), textarea") as HTMLElement | null)?.focus();
+    return {
+      close() {
+        busy = false;
+        close();
+      },
+      setBusy(b) {
+        busy = b;
+        dong.disabled = b;
+      },
+    };
+  }
+  const bang = moBangTruot({ title: o2.tieuDe, body: [luoi(null, ...o2.body)], foot: [dong, ...o2.nut], footClass: "vc-foot-2", opener: o2.opener, onClosed: o2.onClosed });
+  if (!bang) return null;
+  dong.addEventListener("click", () => bang.close());
+  return { close: () => bang.close(), setBusy: (b) => bang.setBusy(b) };
+}
+
+/** Nút gửi của form theo khung gốc (bộ thành phần chung `.nut[data-cap]`) có trạng thái "đang gửi" như `nutGui` (dùng chung `dangGui`). */
+export function nutGuiKhung(nhan: string, cap: "chinh" | "phu" | "nguy-hiem", action: string): HTMLButtonElement {
+  const b = h("button", { type: "button", class: "nut", "data-cap": cap, "data-action": action }, nhan);
+  b.dataset.nhan = nhan;
+  return b;
 }

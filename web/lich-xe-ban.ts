@@ -1,5 +1,5 @@
-// Lịch xe bận (/lich-xe-ban — ADR-0055 VK2-A; kế hoạch Đợt 3 Task 10; bản vẽ docs/design/van-chuyen-dot-3-7/Quản lý lịch xe bận.dc.html 2/10). Lưới tuần
-// hàng = xe, cột = 7 ngày; form "Thêm lịch bận" mở tại chỗ; ✕ trên thẻ = RÚT có hỏi + gửi version (ADR-0055 A1: chỉ-thêm, rút một lần — không xoá).
+// Lịch xe bận (/lich-xe-ban — ADR-0055 VK2-A; kế hoạch Đợt 3 Task 10). Khuôn Danh sách của khung gốc (ADR-0222): khối rộng từ 800 là bảng
+// hàng = xe, cột = 7 ngày; hẹp hơn là danh sách dòng theo xe (mỗi dòng liệt kê ngày bận); form "Thêm lịch bận" mở tại chỗ; ✕ trên thẻ = RÚT có hỏi + gửi version (ADR-0055 A1: chỉ-thêm, rút một lần — không xoá).
 // Chỉ Quản trị + Toàn quyền (ô vehicle.manage — câu 3.4): máy chủ trả 403 cho người khác; màn hiện câu của máy chủ (khuôn trang Xe).
 // Chuyến đã xếp (câu 3.1) chỉ mã CX-… + giờ, bấm mở Chi tiết chuyến, không ✕. Luật hiển thị thuần: src/shared/khung-ban-hien-thi.ts (tuần theo ngày VN).
 import { can } from "../src/shared/permissions";
@@ -7,10 +7,11 @@ import { cauHoiRut, cauLoiChongChuyen, docFormKhungBan, luoiTuanXeBan, tuanXem, 
 import { vnToday } from "../src/shared/vn-date";
 import { api, ApiError, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
-import { dai } from "./dieu-phoi-ui";
+import { chip, dai } from "./dieu-phoi-ui";
 import { byId, h, replaceChildren } from "./dom";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { luoi, thanhNut, truong } from "./khung";
 import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
 import { initShell, showError } from "./shell";
 
@@ -22,9 +23,11 @@ const baoEl = byId("xb-bao");
 const formEl = byId<HTMLFormElement>("xb-form");
 const emptyEl = byId("xb-empty");
 const theEl = byId("xb-the");
+const bangEl = byId("xb-bang");
+const dauEl = byId("xb-dau");
 const luoiEl = byId("xb-luoi");
+const dsEl = byId("xb-ds");
 const chuThichEl = byId("xb-chu-thich");
-emptyEl.prepend(icon("truck", 44, 1.5));
 
 const homNay = vnToday(new Date());
 let tu = tuanXem(new URLSearchParams(location.search).get("tu"), homNay).tu;
@@ -67,26 +70,55 @@ function theMuc(m: MucO, ngay: string): HTMLElement {
   return h("div", { class: "xb-muc", "data-khung": m.id }, h("div", { class: "xb-muc-gio" }, m.gio), h("div", { class: "xb-muc-nhan" }, m.nhan), x);
 }
 
+/** Tên thứ viết thường chữ đầu («THỨ 2» → «Thứ 2»; «CN» giữ nguyên) — nhãn cột bảng chữ thường (ADR-0234). */
+const thuThuong = (thu: string): string => (thu === "CN" ? thu : thu.charAt(0) + thu.slice(1).toLowerCase());
+
 function ve(): void {
   const v = duLieu!;
   const g = luoiTuanXeBan(v, homNay, Date.now());
   replaceChildren(subEl, `${tuanXem(v.tu, homNay).nhan} · ${g.soLichBan} lịch bận`);
   navEl.hidden = false;
+  theEl.hidden = false;
   themBtn.hidden = !quanLy || v.xe.length === 0;
   emptyEl.hidden = v.xe.length > 0;
-  theEl.hidden = v.xe.length === 0;
+  bangEl.hidden = v.xe.length === 0;
+  dsEl.hidden = v.xe.length === 0;
+  // Bảng (khối từ 800): hàng = xe, cột = bảy ngày; cột hôm nay có tên in đậm.
+  replaceChildren(
+    dauEl,
+    h("th", null, "Xe"),
+    ...g.ngay.map((n) => {
+      const ten = [thuThuong(n.thu), h("span", { class: "o-phu" }, n.nhan)];
+      return h("th", { "aria-current": n.homNay ? "date" : undefined }, n.homNay ? h("strong", null, ...ten) : ten[0]!, n.homNay ? null : ten[1]!);
+    }),
+    // Cột cuối trống: cột cuối của bảng khung canh phải và không xuống dòng — để cột Chủ nhật xuống dòng như các ngày khác.
+    h("th", null, ""),
+  );
+  const oXe = (r: (typeof g.hang)[number]): HTMLElement[] =>
+    [h("strong", null, r.bienSo), h("span", { class: "o-phu" }, r.soChoNhan), r.trangThaiNhan ? h("span", null, chip(r.trangThaiNhan, "warn")) : null].filter((x): x is HTMLElement => x !== null);
   replaceChildren(
     luoiEl,
-    h("div", { class: "xb-dau-xe xb-eyebrow" }, "XE"),
-    ...g.ngay.map((n) => h("div", { class: `xb-dau-ngay${n.homNay ? " is-hom-nay" : ""}` }, h("div", { class: "xb-eyebrow" }, n.thu), h("div", { class: "xb-ngay-so" }, n.nhan))),
-    ...g.hang.flatMap((r) => [
-      h("div", { class: "xb-xe" }, h("span", { class: "xb-bien" }, r.bienSo), h("span", { class: "xb-cho" }, r.soChoNhan), r.trangThaiNhan ? h("span", { class: "vc-chip vc-chip-warn nhan-chip" }, r.trangThaiNhan) : null),
-      ...r.o.map((muc, i) => h("div", { class: `xb-o-ngay${g.ngay[i]!.homNay ? " is-hom-nay" : ""}` }, ...muc.map((m) => theMuc(m, g.ngay[i]!.k)))),
-    ]),
+    ...g.hang.map((r) => h("tr", { "data-xe": r.xeId }, h("td", { "data-gon": "" }, ...oXe(r)), ...r.o.map((muc, i) => h("td", null, ...muc.map((m) => theMuc(m, g.ngay[i]!.k)))), h("td", null, ""))),
+  );
+  // Danh sách dòng (khối hẹp hơn 800): mỗi xe một dòng, liệt kê những ngày có lịch bận hoặc chuyến.
+  replaceChildren(
+    dsEl,
+    ...g.hang.map((r) =>
+      h(
+        "div",
+        { class: "dong", "data-xe": r.xeId },
+        h(
+          "div",
+          { class: "dong-chu" },
+          ...oXe(r),
+          ...r.o.flatMap((muc, i) => (muc.length ? [h("div", { class: "hang" }, h("span", { class: "o-phu" }, `${thuThuong(g.ngay[i]!.thu)} ${g.ngay[i]!.nhan}`), ...muc.map((m) => theMuc(m, g.ngay[i]!.k)))] : [])),
+        ),
+      )),
   );
   replaceChildren(
     chuThichEl,
     h("span", { class: "xb-lg" }, h("span", { class: "xb-lg-o" }), "Xe bận · ô trống là xe rảnh"),
+    " ",
     v.chuyen.length > 0 ? h("span", { class: "xb-lg" }, h("span", { class: "xb-lg-o is-chuyen" }), "Chuyến đã xếp") : null,
   );
   chuThichEl.hidden = v.xe.length === 0;
@@ -94,9 +126,9 @@ function ve(): void {
 
 // ---- rút (✕) --------------------------------------------------------------------------------------------------------------------------------------------
 function moRut(m: MucO, ngay: string, opener: HTMLElement): void {
-  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
-  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
-  const rut = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "rut-xac-nhan" }, "Rút");
+  const loi = h("div", { class: "truong-loi", role: "alert", hidden: true });
+  const dong = h("button", { type: "button", class: "nut", "data-co": "lon", "data-cap": "phu" }, "Đóng");
+  const rut = h("button", { type: "button", class: "nut", "data-co": "lon", "data-cap": "nguy-hiem", "data-action": "rut-xac-nhan" }, "Rút");
   const bang = moBangTruot({ title: "Rút lịch bận", body: [h("p", null, cauHoiRut(m, ngay, homNay)), loi], foot: [dong, rut], footClass: "vc-foot-2", opener });
   if (!bang) return;
   dong.addEventListener("click", () => bang.close());
@@ -127,17 +159,17 @@ function moForm(): void {
   const v = duLieu!;
   bao(null);
   const ngayMacDinh = tu <= homNay && homNay <= tuanXem(tu, homNay).den ? homNay : tu;
-  const truong = (id: string, nhan: string, o: HTMLElement): { el: HTMLElement; loi: HTMLElement } => {
-    const loi = h("span", { id: `${id}-loi`, class: "xb-loi-o", role: "alert", hidden: true });
+  const oTruong = (id: string, nhan: string, o: HTMLElement): { el: HTMLElement; loi: HTMLElement } => {
+    const loi = h("div", { id: `${id}-loi`, class: "truong-loi", role: "alert", hidden: true });
     o.setAttribute("aria-describedby", `${id}-loi`);
-    return { el: h("label", { class: "xb-truong", for: id }, nhan, o, loi), loi };
+    return { el: truong(nhan, o, { cot: 4, loi }), loi };
   };
-  const selXe = h("select", { id: "xb-xe", class: "xb-o" }, ...v.xe.map((x) => h("option", { value: x.id }, `${x.bienSo} · Xe ${x.soCho} chỗ`))) as HTMLSelectElement;
-  const oNgay = h("input", { id: "xb-ngay", class: "xb-o", type: "date", value: ngayMacDinh }) as HTMLInputElement;
-  const oDenNgay = h("input", { id: "xb-den-ngay", class: "xb-o", type: "date", value: ngayMacDinh }) as HTMLInputElement;
-  const oTu = h("input", { id: "xb-tu", class: "xb-o", type: "time", value: "07:00" }) as HTMLInputElement;
-  const oDen = h("input", { id: "xb-den", class: "xb-o", type: "time", value: "17:00" }) as HTMLInputElement;
-  const selLyDo = h("select", { id: "xb-ly-do", class: "xb-o" }, h("option", { value: "" }, "Chọn lý do"), ...v.lyDo.map((l) => h("option", { value: l.code }, l.label))) as HTMLSelectElement;
+  const selXe = h("select", { id: "xb-xe", class: "o" }, ...v.xe.map((x) => h("option", { value: x.id }, `${x.bienSo} · Xe ${x.soCho} chỗ`))) as HTMLSelectElement;
+  const oNgay = h("input", { id: "xb-ngay", class: "o", type: "date", value: ngayMacDinh }) as HTMLInputElement;
+  const oDenNgay = h("input", { id: "xb-den-ngay", class: "o", type: "date", value: ngayMacDinh }) as HTMLInputElement;
+  const oTu = h("input", { id: "xb-tu", class: "o", type: "time", value: "07:00" }) as HTMLInputElement;
+  const oDen = h("input", { id: "xb-den", class: "o", type: "time", value: "17:00" }) as HTMLInputElement;
+  const selLyDo = h("select", { id: "xb-ly-do", class: "o" }, h("option", { value: "" }, "Chọn lý do"), ...v.lyDo.map((l) => h("option", { value: l.code }, l.label))) as HTMLSelectElement;
   // "Đến ngày" mặc định bằng "Ngày" (câu 3.3): đổi Ngày khi Đến ngày đang trùng Ngày cũ thì kéo theo.
   let ngayCu = oNgay.value;
   oNgay.addEventListener("change", () => {
@@ -145,16 +177,17 @@ function moForm(): void {
     ngayCu = oNgay.value;
   });
   const t = {
-    xeId: truong("xb-xe", "Xe", selXe), ngay: truong("xb-ngay", "Ngày", oNgay), denNgay: truong("xb-den-ngay", "Đến ngày", oDenNgay),
-    tuGio: truong("xb-tu", "Từ", oTu), denGio: truong("xb-den", "Đến", oDen), lyDo: truong("xb-ly-do", "Lý do", selLyDo),
+    xeId: oTruong("xb-xe", "Xe", selXe), ngay: oTruong("xb-ngay", "Ngày", oNgay), denNgay: oTruong("xb-den-ngay", "Đến ngày", oDenNgay),
+    tuGio: oTruong("xb-tu", "Từ", oTu), denGio: oTruong("xb-den", "Đến", oDen), lyDo: oTruong("xb-ly-do", "Lý do", selLyDo),
   };
   const o: Record<keyof FormKhungBan, HTMLElement> = { xeId: selXe, ngay: oNgay, denNgay: oDenNgay, tuGio: oTu, denGio: oDen, lyDo: selLyDo };
-  const luu = h("button", { type: "submit", class: "btn btn-primary", "data-action": "luu-khung" }, "Lưu");
-  const dong = h("button", { type: "button", class: "btn xb-nut xb-nut-lon" }, "Đóng");
+  const luu = h("button", { type: "submit", class: "nut", "data-cap": "chinh", "data-action": "luu-khung" }, "Lưu");
+  const dong = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Đóng");
   const loiChung = h("div", { class: "alert xb-form-loi", role: "alert", hidden: true });
-  replaceChildren(formEl, t.xeId.el, t.ngay.el, t.denNgay.el, t.tuGio.el, t.denGio.el, t.lyDo.el, h("div", { class: "xb-nut-form" }, luu, dong), loiChung);
+  replaceChildren(formEl, luoi(null, t.xeId.el, t.ngay.el, t.denNgay.el, t.tuGio.el, t.denGio.el, t.lyDo.el), loiChung, thanhNut(null, luu, dong));
   formEl.hidden = false;
   themBtn.setAttribute("aria-expanded", "true");
+  themBtn.setAttribute("data-cap", "phu"); // form mở: nút nền đặc là «Lưu» trong form (tối đa một nút nền đặc mỗi màn — ADR-0234 Đ4)
   selXe.focus();
   dong.addEventListener("click", dongForm);
   const xoaLoi = () => {
@@ -202,6 +235,7 @@ function dongForm(): void {
   formEl.onsubmit = null;
   replaceChildren(formEl);
   themBtn.setAttribute("aria-expanded", "false");
+  themBtn.setAttribute("data-cap", "chinh");
   themBtn.focus();
 }
 

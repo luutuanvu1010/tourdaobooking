@@ -6,6 +6,8 @@
 // - ADR-0095 Q4: ô "Ngày phát sinh" của điều chỉnh để TRỐNG mặc định — máy chủ lấy ngày chạy (chuyến đã huỷ: ngày huỷ); chỉ gửi `ngay` khi người dùng chọn.
 // - ADR-0095 Q5: chuyến đã đổi sang xe công ty vẫn ghi được "Phí huỷ muộn" cho nhà xe cũ ⇒ nút "Điều chỉnh" theo "chuyến đã có dòng chi phí" (máy chủ quyết lý do).
 // - Khối là MỘT phần tử sống qua các lần vẽ lại trang chuyến (form nội tuyến đang mở không bị xoá khi Bảng tin làm mới trang).
+// - Khung gốc (ADR-0222): `el` là lớp bọc `.gop` (không tham gia bố cục) — con của nó (dải thiếu giá, khối "Chi phí chuyến", khối form nội tuyến của máy tính) xếp
+//   như các khối của cột chính trang Chi tiết chuyến. Nút theo bộ thành phần chung, đều cấp phu (động từ không có trong bảng cấp nút) trừ «Huỷ dòng» (loi, theo bảng).
 import type { ChiPhiChuyenDto, ChiPhiChuyenResponse, DongChiPhiDto } from "../src/shared/contracts";
 import { can, type PermissionHolder } from "../src/shared/permissions";
 import { chipDongChiPhi, docSoTien, loiSoTien, nhanNguonGia, soTienCoDau } from "../src/shared/tien-xe-hien-thi";
@@ -14,7 +16,9 @@ import { moBangTruot } from "./bang-truot";
 import { dai, taoLenh } from "./dieu-phoi-ui";
 import { h, replaceChildren } from "./dom";
 import { dateTime, vnd } from "./format";
-import { cauLoi, chipTx, daiLoi, dangGui, loiTai, moForm, nutGui, o, type FormTienXe } from "./tien-xe-ui";
+import { cap, khoi } from "./khung";
+import { icon } from "./icons";
+import { cauLoi, chipTx, daiLoi, dangGui, moFormKhung, nutGui, nutGuiKhung, o, oKhung, type FormTienXe } from "./tien-xe-ui";
 
 const CAU_VUA_DOI = "Chi phí chuyến vừa thay đổi — tải lại rồi thử lại.";
 
@@ -29,8 +33,9 @@ export interface KhoiChiPhi {
 export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<void>): KhoiChiPhi {
   if (!can(staff, "transport.cost.view")) return { el: null, tai: async () => undefined };
   const coSua = can(staff, "transport.cost.adjust");
-  const el = h("div", { class: "cp-khoi", id: "ct-chi-phi", hidden: true });
-  const formHost = h("div", { class: "tx-form-host", hidden: true });
+  const el = h("div", { class: "gop", id: "ct-chi-phi", hidden: true });
+  // Máy tính: form mở thành một khối của trang ngay dưới khối chi phí (`moFormKhung`); điện thoại: bảng trượt.
+  const formHost = h("section", { class: "khoi", "data-khoi": "form-chi-phi", hidden: true });
   let tripId = "";
   let cp: ChiPhiChuyenDto | null = null;
   let loiTaiCau: string | null = null;
@@ -78,7 +83,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
   function ve(): void {
     if (loiTaiCau !== null && cp === null) {
       el.hidden = false;
-      replaceChildren(el, h("section", { class: "vc-card cp-the" }, dauKhoi(), h("div", { class: "cp-than" }, loiTai(`Chưa tải được chi phí chuyến: ${loiTaiCau}`, () => void tai(tripId)))));
+      replaceChildren(el, khoi({ thuoc: { "aria-labelledby": "cp-title" } }, dauKhoi(), loiTaiKhung(`Chưa tải được chi phí chuyến: ${loiTaiCau}`, () => void tai(tripId))));
       return;
     }
     const c = cp;
@@ -90,42 +95,42 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
     }
     el.hidden = false;
     const thieuGia = c.thue && c.trangThai === "PLANNED" && c.nguonGia === null;
-    const nutThoaThuan = (lop: string) => {
+    const nutThoaThuan = () => {
       if (!(coSua && c.coTheNhapThoaThuan)) return null;
-      const b = h("button", { type: "button", class: `vc-btn ${lop}`, "data-action": "nhap-thoa-thuan" }, "Nhập giá thoả thuận");
+      const b = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "nhap-thoa-thuan" }, "Nhập giá thoả thuận");
       b.addEventListener("click", () => moThoaThuan(b));
       return b;
     };
     // Dải cảnh báo thiếu giá (chỉ người có ô cost.view — câu 4.4).
     const daiThieu = thieuGia
       ? dai("warning", "Chuyến xe thuê chưa có giá — chưa được cho xe chạy", ["Nhập giá thoả thuận với nhà xe, hoặc bổ sung giá vào Bảng giá thuê xe rồi lấy lại giá bảng."], undefined,
-        coSua && c.coTheNhapThoaThuan ? [h("div", { class: "banner-actions" }, nutThoaThuan("btn btn-primary btn-chinh"))] : [])
+        coSua && c.coTheNhapThoaThuan ? [h("div", { class: "banner-actions" }, nutThoaThuan())] : [])
       : null;
     daiThieu?.classList.add("cp-dai-thieu");
     const nguon = nhanNguonGia(c.nguonGia, c.trangThai === "CANCELLED"); // L2: chuyến huỷ không có giá → tông trung tính
-    const tomTat = h(
-      "div",
-      { class: "cp-tom-tat" },
-      o2("NHÀ XE", c.nhaXe?.ten ?? "—"),
-      o2("TUYẾN", c.tuyen?.ten ?? "Chưa chọn tuyến"),
-      h("div", { class: "cp-o" }, h("span", { class: "dp-kv-k" }, "NGUỒN GIÁ"), h("span", null, chipTx(nguon.nhan, nguon.tone))),
-      h("div", { class: "cp-o" }, h("span", { class: "dp-kv-k" }, "TỔNG CHI PHÍ"), h("span", { class: "cp-tong", "data-tong": String(c.tong) }, c.nguonGia === null && c.tong === 0 ? "—" : vnd(c.tong))),
-    );
-    const dong = c.dong.length ? h("div", { class: "cp-ds" }, ...c.dong.map(dongEl)) : h("div", { class: "cp-trong" }, "Chưa có dòng chi phí nào.");
-    // Hàng nút cuối khối (chỉ ô transport.cost.adjust).
+    // Tóm tắt: nhà xe, tuyến, nguồn giá (huy hiệu), tổng chi phí (dòng nhấn mạnh, số canh phải).
+    const tomTat = [
+      cap("Nhà xe", c.nhaXe?.ten ?? "—"),
+      cap("Tuyến", c.tuyen?.ten ?? "Chưa chọn tuyến"),
+      cap("Nguồn giá", chipTx(nguon.nhan, nguon.tone)),
+      cap("Tổng chi phí", h("span", { class: "cp-tong", "data-tong": String(c.tong) }, c.nguonGia === null && c.tong === 0 ? "—" : vnd(c.tong)), { kieu: "so", manh: true }),
+    ];
+    // Dòng chi phí: mỗi dòng một mục con của khối (phần ruột .cp-dong-* giữ lớp cũ).
+    const dong = c.dong.length ? c.dong.map(dongEl) : [h("p", { class: "rong" }, "Chưa có dòng chi phí nào.")];
+    // Nút của khối (đầu khối khi khối rộng, cuối khối khi hẹp) — chỉ ô transport.cost.adjust.
     const nut: HTMLElement[] = [];
     const goiY: string[] = [];
     if (coSua) {
-      const tt = nutThoaThuan("btn btn-primary btn-chinh");
+      const tt = nutThoaThuan();
       if (tt) nut.push(tt);
       if (c.coTheChupLai) {
-        const b = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "chup-lai" }, "Lấy lại giá bảng");
+        const b = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "chup-lai" }, "Lấy lại giá bảng");
         b.addEventListener("click", () => void chupLai(b));
         nut.push(b);
         if (c.giaBangCoThe !== null) goiY.push(`Bảng giá vừa có giá ${vnd(c.giaBangCoThe)} cho tuyến và cỡ xe này — bấm “Lấy lại giá bảng” để dùng.`);
       }
       if (c.dong.length > 0) {
-        const b = h("button", { type: "button", class: `vc-btn ${nut.length ? "vc-btn-ghost-primary" : "btn btn-primary btn-chinh"}`, "data-action": "dieu-chinh" }, "Điều chỉnh");
+        const b = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "dieu-chinh" }, "Điều chỉnh");
         b.addEventListener("click", () => moDieuChinh(b));
         nut.push(b);
         goiY.push("Điều chỉnh cộng hoặc trừ vào tổng; ghi sai thì “Huỷ dòng”.");
@@ -135,35 +140,36 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
     replaceChildren(
       el,
       daiThieu,
-      h(
-        "section",
-        { class: "vc-card cp-the", "aria-labelledby": "cp-title" },
+      khoi(
+        { viec: nut, thuoc: { "aria-labelledby": "cp-title", "data-khoi": "chi-phi" } },
         dauKhoi(),
-        h(
-          "div",
-          { class: "cp-than" },
-          vuaDoi ? dai("danger", CAU_VUA_DOI, [], () => void taiLaiGiuCuon()) : null,
-          baoLoi ? dai("danger", baoLoi) : null,
-          tomTat,
-          dong,
-          formHost,
-          nut.length ? h("div", { class: "cp-nut" }, ...nut) : null,
-          ...goiY.map((g) => h("div", { class: "vc-hint cp-goi-y" }, g)),
-        ),
+        vuaDoi ? dai("danger", CAU_VUA_DOI, [], () => void taiLaiGiuCuon()) : null,
+        baoLoi ? dai("danger", baoLoi) : null,
+        ...tomTat,
+        ...dong,
+        ...goiY.map((g) => h("p", { class: "o-phu cp-goi-y" }, g)),
       ),
+      formHost,
     );
   }
 
-  const dauKhoi = () => h("div", { class: "dp-card-head" }, h("h2", { id: "cp-title", class: "dp-card-title cp-title" }, "Chi phí chuyến"), h("span", { class: "chip dp-chip-unit cp-chip-ai" }, "Chỉ Kế toán · Quản trị"));
-  const o2 = (k: string, v: string) => h("div", { class: "cp-o" }, h("span", { class: "dp-kv-k" }, k), h("span", { class: "cp-v" }, v));
+  /** Đầu khối: tên + huy hiệu "Chỉ Kế toán · Quản trị" (khuôn `.khoi-dau` của khung). */
+  const dauKhoi = () => h("header", { class: "khoi-dau" }, h("h2", { id: "cp-title" }, "Chi phí chuyến"), h("span", { class: "chip dp-chip-unit" }, "Chỉ Kế toán · Quản trị"));
+
+  /** Lỗi tải + «Thử lại» (dải đỏ trong khối; nút theo bộ thành phần chung). */
+  function loiTaiKhung(cau: string, thuLai: () => void): HTMLElement {
+    const b = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "thu-lai" }, "Thử lại");
+    b.addEventListener("click", thuLai);
+    return h("div", { class: "banner banner-danger", role: "alert" }, h("div", { class: "banner-title" }, icon("alert", 16, 2), " ", cau), h("div", { class: "banner-actions" }, b));
+  }
 
   function dongEl(d: DongChiPhiDto): HTMLElement {
     const loai = chipDongChiPhi(d);
-    const daoNut = coSua && d.daoDuoc ? h("button", { type: "button", class: "vc-btn vc-btn-text cp-dao", "data-action": "dao-dong" }, "Huỷ dòng") : null;
+    const daoNut = coSua && d.daoDuoc ? h("button", { type: "button", class: "nut", "data-cap": "loi", "data-action": "dao-dong" }, "Huỷ dòng") : null;
     daoNut?.addEventListener("click", () => moDao(d, daoNut));
     return h(
       "div",
-      { class: `cp-dong${d.daDao ? " is-dao" : ""}`, "data-dong": d.id, "data-loai": d.loai },
+      { class: `muc-con cp-dong${d.daDao ? " is-dao" : ""}`, "data-dong": d.id, "data-loai": d.loai },
       h(
         "div",
         { class: "cp-dong-dau" },
@@ -173,7 +179,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
       d.lyDo ? h("div", { class: "cp-ly-do" }, d.lyDo.nhan) : null,
       d.ghiChu ? h("div", { class: "tx-phu" }, d.ghiChu) : null,
       h("div", { class: "cp-ai" }, `${d.tuDong ? "Hệ thống" : (d.nguoi ?? "—")} · ${dateTime(d.luc)}`),
-      daoNut,
+      daoNut ? h("div", { class: "hang" }, daoNut) : null,
     );
   }
 
@@ -197,8 +203,8 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
   function moFormChiPhi(tieuDe: string, body: HTMLElement[], nhanNut: string, action: string, duoi: string, layThan: () => Record<string, unknown> | string, opener: HTMLElement): void {
     const lenh = taoLenh();
     const loi = daiLoi();
-    const nut = nutGui(nhanNut, "btn btn-primary btn-chinh", action);
-    form = moForm({ tieuDe, body: [...body, loi.el], nut: [nut], host: formHost, opener, onClosed: () => (form = null) });
+    const nut = nutGuiKhung(nhanNut, "chinh", action);
+    form = moFormKhung({ tieuDe, body: [...body, loi.el], nut: [nut], host: formHost, opener, onClosed: () => (form = null) });
     if (!form) return;
     const f = form;
     nut.addEventListener("click", async () => {
@@ -218,25 +224,25 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
   }
 
   function moThoaThuan(opener: HTMLElement): void {
-    const tien = h("input", { class: "vc-input", type: "text", inputmode: "numeric", autocomplete: "off", placeholder: "Ví dụ: 1.250.000" });
-    const ghi = h("textarea", { class: "vc-input", maxLength: 300, rows: 3, placeholder: "Thoả thuận với ai, ngày nào" });
-    moFormChiPhi("Nhập giá thoả thuận", [o("cp-tt-tien", "Số tiền (₫)", tien, { batBuoc: true }), o("cp-tt-ghi", "Ghi chú thoả thuận", ghi, { batBuoc: true, rong: true })],
+    const tien = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", placeholder: "Ví dụ: 1.250.000" });
+    const ghi = h("textarea", { "data-loai": "nhieu-dong", maxLength: 300, rows: 3, placeholder: "Thoả thuận với ai, ngày nào" });
+    moFormChiPhi("Nhập giá thoả thuận", [oKhung("cp-tt-tien", "Số tiền (₫)", tien, { batBuoc: true, cot: 6 }), oKhung("cp-tt-ghi", "Ghi chú thoả thuận", ghi, { batBuoc: true })],
       "Lưu giá thoả thuận", "luu-thoa-thuan", "gia-thoa-thuan", () => loiSoTien(tien.value) ?? { soTien: docSoTien(tien.value), ghiChu: ghi.value }, opener);
   }
 
-  const chonLyDo = (): HTMLSelectElement => h("select", { class: "vc-input" }, h("option", { value: "" }, "Chọn lý do"), ...(cp?.lyDoChon ?? []).map((l) => h("option", { value: l.ma }, l.nhan)));
+  const chonLyDo = (): HTMLSelectElement => h("select", null, h("option", { value: "" }, "Chọn lý do"), ...(cp?.lyDoChon ?? []).map((l) => h("option", { value: l.ma }, l.nhan)));
 
   function moDieuChinh(opener: HTMLElement): void {
-    const tien = h("input", { class: "vc-input", type: "text", inputmode: "text", autocomplete: "off", placeholder: "Ví dụ: + 150.000 hoặc − 700.000" });
+    const tien = h("input", { type: "text", inputmode: "text", autocomplete: "off", placeholder: "Ví dụ: + 150.000 hoặc − 700.000" });
     const lyDo = chonLyDo();
-    const ngay = h("input", { class: "vc-input", type: "date" });
-    const ghi = h("input", { class: "vc-input", type: "text", maxLength: 300 });
+    const ngay = h("input", { type: "date" });
+    const ghi = h("input", { type: "text", maxLength: 300 });
     const goiYNgay = cp?.trangThai === "CANCELLED" ? "Để trống: ngày huỷ chuyến." : "Để trống: ngày chạy chuyến.";
     moFormChiPhi("Điều chỉnh chi phí", [
-      o("cp-dc-tien", "Số tiền (+ hoặc −)", tien, { batBuoc: true }),
-      o("cp-dc-ly-do", "Lý do", lyDo, { batBuoc: true }),
-      o("cp-dc-ngay", "Ngày phát sinh", ngay, { goiY: goiYNgay }),
-      o("cp-dc-ghi", "Ghi chú", ghi, { rong: true }),
+      oKhung("cp-dc-tien", "Số tiền (+ hoặc −)", tien, { batBuoc: true, cot: 6 }),
+      oKhung("cp-dc-ly-do", "Lý do", lyDo, { batBuoc: true, cot: 6 }),
+      oKhung("cp-dc-ngay", "Ngày phát sinh", ngay, { goiY: goiYNgay, cot: 6 }),
+      oKhung("cp-dc-ghi", "Ghi chú", ghi),
     ], "Lưu điều chỉnh", "luu-dieu-chinh", "dieu-chinh", () => loiSoTien(tien.value, { coDau: true }) ?? ({ soTien: docSoTien(tien.value, { coDau: true }), lyDo: lyDo.value, ghiChu: ghi.value.trim() || null, ...(ngay.value ? { ngay: ngay.value } : {}) }), opener);
   }
 
@@ -245,6 +251,7 @@ export function taoKhoiChiPhi(staff: PermissionHolder, sauGhi: () => Promise<voi
     const lenh = taoLenh();
     const loi = daiLoi();
     const lyDo = chonLyDo();
+    lyDo.classList.add("vc-input"); // bảng trượt "Huỷ dòng" giữ khuôn ô cũ (.vc-field)
     const ghi = h("input", { class: "vc-input", type: "text", maxLength: 300 });
     const nut = nutGui("Huỷ dòng", "vc-btn-danger", "dao-gui");
     const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");

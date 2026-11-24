@@ -1,15 +1,23 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Giấy tờ sắp hết hạn — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="rong" data-title="Sắp hết hạn" data-back="/account">
+<body data-rong="rong" data-khung-goc="danh-sach" data-title="Sắp hết hạn" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Giấy tờ sắp hết hạn (ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/06 Sap het han.dc.html). Giấy xe + giấy tài xế chung một danh sách. -->
-  <div class="vc-due-top"><h1 id="due-title">Giấy tờ sắp hết hạn</h1><p id="due-sub" class="vc-due-sub"></p></div>
+  <!-- Giấy tờ sắp hết hạn (ADR-0040 D1). Khuôn Danh sách của khung gốc (ADR-0222): đầu trang (câu tóm tắt và nút «Đổi mốc nhắc» của Toàn quyền), rồi MỘT
+       khối bảng — giấy xe + giấy tài xế chung một danh sách. Khối rộng từ 800 hiện bảng (#due-table), hẹp hơn hiện danh sách dòng (#due-list). -->
+  <h1 id="due-title">Giấy tờ sắp hết hạn</h1>
+  <div id="due-sub" class="dau-trang"></div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <section id="due-empty" class="vc-card vc-empty vc-empty-ok" hidden><span class="vc-empty-title">Không có giấy tờ nào sắp hết hạn</span></section>
-  <div id="due-list" class="vc-card vc-due-list vc-narrow" hidden></div>
-  <div id="due-table" class="vc-card vc-table vc-wide" hidden></div>
+  <section id="due-khoi" class="khoi" data-kieu="bang" aria-labelledby="due-khoi-ten" hidden>
+    <header class="khoi-dau"><h2 id="due-khoi-ten">Giấy tờ</h2></header>
+    <p id="due-empty" class="rong" hidden>Không có giấy tờ nào sắp hết hạn</p>
+    <table id="due-table" class="bang" hidden>
+      <thead><tr><th>Xe / người</th><th>Loại giấy</th><th>Hết hạn</th><th>Còn</th><th></th></tr></thead>
+      <tbody id="due-rows"></tbody>
+    </table>
+    <div id="due-list" class="ds-dong" data-thay-bang hidden></div>
+  </section>
 </main>
 <script type="module" src="/js/giay-to-sap-het-han.js"></script>
 </body></html>

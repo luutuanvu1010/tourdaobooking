@@ -5062,6 +5062,27 @@ body[data-khung-goc] .bo-dem > output { width: var(--counter-field); text-align:
 body[data-khung-goc] .chon-doan { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); min-height: var(--kg-cao-o); border: 1px solid var(--c-input-border); border-radius: var(--kg-bo-nho); overflow: hidden; }
 body[data-khung-goc] .chon-doan > button { font: inherit; font-size: var(--fs-step-4); font-weight: var(--fw-bold); color: var(--c-text-muted); background: var(--c-surface); border: 0; cursor: pointer; }
 body[data-khung-goc] .chon-doan > button[aria-checked="true"] { color: var(--c-primary); background: var(--c-primary-soft); }
+
+/* Dòng là liên kết (cả dòng bấm được, mở trang chi tiết): chữ màu thường, không gạch chân (đợt B, 24/11/2026 — bổ sung, không đổi luật đang có). */
+body[data-khung-goc] .ds-dong > a.dong { color: inherit; text-decoration: none; }
+@media (hover: hover) { body[data-khung-goc] .ds-dong > a.dong:hover { background: var(--c-soft-hover); } }
+
+/* -- Khuôn Tổng quan (đợt B, 24/11/2026): đầu trang (đoạn dẫn hoặc bộ chọn ngày bên trái, tối đa MỘT nút chính bên phải) → dải số (tuỳ chọn, một khối)
+   → lưới khối (.luoi; mỗi khối khai data-cot 3 · 4 · 6 · 8 hoặc kín hàng). Dòng thời gian của Điều phối xe là vùng tự do trong một khối (sổ ngoại lệ).
+   Dải số: mỗi ô một nhãn nhỏ và một con số cỡ tiêu đề khối, chữ thường (không đậm — ADR-0234 nguyên tắc 1), số đều cột; ô tự xếp theo bề rộng khối. -- */
+body[data-khung-goc="tong-quan"] .dai-so { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--kg-cot-ngan), 1fr)); gap: var(--s3) var(--kg-khe); margin: 0; }
+body[data-khung-goc="tong-quan"] .dai-so > div { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+body[data-khung-goc="tong-quan"] .dai-so dt { font-size: var(--fs-label); line-height: var(--lh-20); color: var(--c-text-muted); }
+body[data-khung-goc="tong-quan"] .dai-so dd { margin: 0; font-size: var(--fs-h2); line-height: var(--lh-24); font-variant-numeric: tabular-nums; color: var(--c-text); }
+/* Bộ chọn ngày ở đầu trang (‹ ngày ›): ô ngày không kín hàng. */
+body[data-khung-goc="tong-quan"] .dau-trang > .hang { flex: 1 1 auto; }
+body[data-khung-goc="tong-quan"] .dau-trang .hang > .o { flex: 0 1 var(--kg-cot-dai); width: auto; min-width: 0; }
+/* Cột khối: một ô của lưới chứa vài khối xếp dọc (dòng thời gian và thẻ «chuyến đang chọn» của Điều phối xe). */
+body[data-khung-goc="tong-quan"] .luoi > .cot-khoi { display: flex; flex-direction: column; gap: var(--kg-nhip); }
+/* Thẻ ở khổ hẹp (vùng tuỳ chọn của khuôn): vùng nội dung hẹp hơn 560 thì các ô của lưới thành thẻ (.tab-phu, data-chi="hep"), mỗi lúc hiện một — ô đang ẩn
+   mang data-the-an; từ 560 mọi ô cùng hiện. */
+body[data-khung-goc="tong-quan"] .luoi > [data-the-an] { display: none; }
+@container trang (min-width: 560px) { body[data-khung-goc="tong-quan"] .luoi > .khoi[data-the-an] { display: grid; } body[data-khung-goc="tong-quan"] .luoi > .cot-khoi[data-the-an] { display: flex; } }
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
 
 /* ---------- Ảnh bàn giao (ADR-0232) — bố cục dùng lớp của khung gốc (.luoi, .truong, .thanh-nut); ở đây chỉ hình thẻ ảnh và ảnh lớn ---------- */

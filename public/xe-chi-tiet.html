@@ -1,20 +1,26 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Chi tiết xe — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Xe" data-back="/xe">
+<body data-rong="vua" data-khung-goc="chi-tiet" data-title="Xe" data-back="/xe">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Chi tiết xe + giấy tờ xe (ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/03 Chi tiet xe.dc.html). Biển số là h1 trong thẻ đầu. -->
-  <a class="vc-back" href="/xe">‹ Xe</a>
+  <!-- Chi tiết xe + giấy tờ xe (ADR-0040 D1). Khuôn Chi tiết của khung gốc (ADR-0222). #xe là VÙNG VẼ: web/xe-chi-tiet.ts vẽ lại nội dung vào đây theo thứ tự
+       của điện thoại, xếp dọc một cột: khối «tóm tắt xe» #xe-head, khối «Giấy tờ xe» #docs-wrap (kín bề ngang), thanh việc #xe-viec (vùng nội dung
+       từ 560 lên đầu trang), «Thêm giấy tờ» dính đáy #xe-bottom. Khối giấy tờ rộng từ 800 hiện bảng #docs-table, hẹp hơn hiện danh sách dòng #docs-list.
+       Biển số là h1 (ẩn khỏi mắt: tên trang nằm ở thanh trên, biển số hiện ở tóm tắt). -->
   <div id="error" class="alert" role="alert" hidden></div>
-  <section id="xe-head" class="vc-card vc-xe-head" hidden></section>
-  <p id="xe-retired" class="vc-retired-note" hidden>Xe đã ngừng dùng — không thêm hay gia hạn giấy tờ. Muốn dùng lại: Sửa thông tin xe → Dùng lại xe.</p>
-  <section id="docs-wrap" class="vc-docs-wrap" aria-labelledby="docs-title" hidden>
-    <h2 id="docs-title" class="vc-docs-title" tabindex="-1">Giấy tờ xe</h2>
-    <div id="docs-list" class="vc-card vc-narrow"></div>
-    <div id="docs-table" class="vc-wide"></div>
-  </section>
-  <div id="xe-bottom" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden><button id="add-doc-bottom" type="button" class="vc-btn btn btn-primary">Thêm giấy tờ</button></div>
+  <div id="xe" class="vung-ve">
+    <section id="docs-wrap" class="khoi" data-kieu="bang" aria-labelledby="docs-title" hidden>
+      <header class="khoi-dau"><h2 id="docs-title" tabindex="-1">Giấy tờ xe</h2></header>
+      <p id="xe-retired" class="khoi-mo-ta" hidden>Xe đã ngừng dùng — không thêm hay gia hạn giấy tờ. Muốn dùng lại: Sửa thông tin xe → Dùng lại xe.</p>
+      <table id="docs-table" class="bang">
+        <thead><tr><th>Loại · số · ngày cấp</th><th>Hết hạn</th><th>Còn</th><th></th></tr></thead>
+        <tbody id="docs-rows"></tbody>
+      </table>
+      <div id="docs-list" class="ds-dong" data-thay-bang></div>
+    </section>
+    <div id="xe-bottom" class="thanh-day thanh-hanh-dong-cuoi" hidden><button id="add-doc-bottom" type="button" class="nut" data-cap="chinh">Thêm giấy tờ</button></div>
+  </div>
 </main>
 <script type="module" src="/js/xe-chi-tiet.js"></script>
 </body></html>

@@ -78,6 +78,9 @@ export const DO_TRONG_TRANG = String.raw`(() => {
     } else soatDay();
   } else if (khuon === "danh-sach") {
     for (const c of chinhTrang) { if (!c.closest(".thanh-loc, .dau-trang")) loi("nút chính của trang không nằm ở đầu trang (thanh tìm và lọc)"); else if (Math.abs(c.getBoundingClientRect().right - cr) > 1) loi("nút chính của trang không ở mép phải đầu trang"); }
+  } else if (khuon === "tong-quan") {
+    if (chinhTrang.length > 1) loi("khuôn Tổng quan có " + chinhTrang.length + " nút chính của trang (tối đa một)");
+    for (const c of chinhTrang) { if (!c.closest(".dau-trang")) loi("nút chính của trang không nằm ở đầu trang"); else if (rongTrang >= 560 && Math.abs(c.getBoundingClientRect().right - cr) > 1) loi("nút chính của trang không ở mép phải đầu trang"); }
   } else if (khuon === "thiet-lap") {
     for (const k of khoi) { const v = [...k.children].find((e) => e.classList.contains("khoi-viec") && hien(e)); const d = [...k.children].find((e) => e.classList.contains("khoi-dau") && hien(e)); if (!v || !d) continue; const oDau = v.dataset.cho === "dau" || k.getBoundingClientRect().width - 2 * parseFloat(getComputedStyle(k).paddingLeft || "0") >= 560; if (!oDau) continue; const vr = v.getBoundingClientRect(), dr = d.getBoundingClientRect(), kr = k.getBoundingClientRect(); const nutCuoi = ds(".nut", v).pop(); const demPhai = parseFloat(getComputedStyle(v).paddingRight) + parseFloat(getComputedStyle(k).paddingRight); if (nutCuoi && Math.abs(nutCuoi.getBoundingClientRect().right - (kr.right - demPhai)) > 1) loi("nút của khối không ở mép phải đầu khối"); if (Math.abs((vr.top + vr.bottom) / 2 - (dr.top + dr.bottom) / 2) > 8) loi("nút của khối không cùng hàng với tên khối"); }
   }

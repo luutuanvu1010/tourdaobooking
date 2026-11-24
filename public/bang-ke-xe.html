@@ -1,14 +1,16 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Bảng kê chi phí xe thuê — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="rong" data-title="Bảng kê chi phí xe thuê" data-back="/account">
+<body data-rong="rong" data-khung-goc="danh-sach" data-title="Bảng kê chi phí xe thuê" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
-<main class="bk-trang">
-  <!-- Bảng kê chi phí xe thuê (ADR-0057 T2 C9) — bản vẽ docs/design/van-chuyen-dot-3-7/Chi phí xe thuê.dc.html màn 1c. Ô transport.cost.view. Số tiền do máy chủ tính — trang KHÔNG cộng. -->
+<main>
+  <!-- Bảng kê chi phí xe thuê (ADR-0057 T2 C9). Ô transport.cost.view. Số tiền do máy chủ tính — trang KHÔNG cộng.
+       Khuôn Danh sách của khung gốc (ADR-0222): đoạn dẫn, thanh lọc (#bk-loc), rồi vùng vẽ #bk-trang: câu tóm tắt, mỗi nhà xe một khối bảng (bảng từ 800,
+       danh sách dòng hẹp hơn; tổng nhóm ở cuối khối), khối tổng cộng. -->
   <h1>Bảng kê chi phí xe thuê</h1>
-  <p class="muted">Chuyến nào, nhà xe nào, bao nhiêu — để trả tay cho nhà xe.</p>
+  <div class="dau-trang"><p class="doan-dan">Chuyến nào, nhà xe nào, bao nhiêu — để trả tay cho nhà xe.</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <div id="bk-trang"></div>
+  <div id="bk-trang" class="vung-ve"></div>
 </main>
 <script type="module" src="/js/bang-ke-xe.js"></script>
 </body></html>

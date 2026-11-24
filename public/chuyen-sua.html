@@ -1,19 +1,21 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Chuyến mới — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-khuon="bieu-mau" data-tabbar="off" data-title="Chuyến mới" data-back="/dieu-phoi">
+<body data-rong="vua" data-khuon="bieu-mau" data-khung-goc="bieu-mau" data-tabbar="off" data-title="Chuyến mới" data-back="/dieu-phoi">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Tạo / sửa chuyến (ADR-0049 V3; bản vẽ docs/design/van-chuyen-dieu-phoi/project/03 Tao sua chuyen.dc.html). /chuyen-sua?ngay=YYYY-MM-DD = tạo; ?id=<chuyến> = sửa. -->
-  <a id="cx-back" class="vc-back" href="/dieu-phoi">‹ Điều phối xe</a>
-  <div class="vc-page-head"><h1 id="cx-title">Chuyến mới</h1></div>
+  <!-- Tạo / sửa chuyến (ADR-0049 V3; bản vẽ docs/design/van-chuyen-dieu-phoi/project/03 Tao sua chuyen.dc.html). /chuyen-sua?ngay=YYYY-MM-DD = tạo; ?id=<chuyến> = sửa.
+       Khuôn Biểu mẫu của khung gốc (ADR-0222): đường quay lại chính xác (#cx-back, ở đầu trang), dải lỗi (#cx-banner), khối biểu mẫu #cx-form trên lưới 12 cột,
+       thanh nút cuối trang #cx-nut (vùng nội dung từ 560: «Huỷ bỏ» cạnh «Lưu chuyến» bên phải), khối «<xe> trong ngày» #cx-ngay; điện thoại: hai nút dính
+       đáy #cx-bottom. #cx-layout là vùng vẽ bọc hai khối (ẩn khi không có quyền xếp xe). Tên trang nằm ở thanh trên; h1 chỉ cho trình đọc màn hình. -->
+  <div class="dau-trang"><a id="cx-back" href="/dieu-phoi">‹ Điều phối xe</a></div>
+  <h1 id="cx-title">Chuyến mới</h1>
   <div id="error" class="alert" role="alert" hidden></div>
-  <div id="cx-banner"></div>
-  <div id="cx-layout" class="dp-cx-layout" hidden>
-    <form id="cx-form" class="vc-card dp-cx-form" autocomplete="off" novalidate></form>
-    <section id="cx-ngay" class="vc-card dp-hist dp-cx-day" aria-labelledby="cx-ngay-title"></section>
-  </div>
-  <div id="cx-bottom" class="vc-bottom-bar dp-cx-bottom thanh-hanh-dong-cuoi" hidden></div>
+  <div id="cx-banner" class="vung-ve"></div>
+  <form id="cx-form" class="khoi" autocomplete="off" novalidate hidden></form>
+  <div id="cx-nut" class="thanh-nut" data-kieu="trang" hidden></div>
+  <section id="cx-ngay" class="khoi" data-kieu="bang" aria-labelledby="cx-ngay-title" hidden></section>
+  <div id="cx-bottom" class="thanh-day thanh-hanh-dong-cuoi" hidden></div>
 </main>
 <script type="module" src="/js/chuyen-sua.js"></script>
 </body></html>

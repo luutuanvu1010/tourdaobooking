@@ -1,13 +1,18 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Báo bận của tôi — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="hep" data-khuon="bieu-mau" data-title="Báo bận của tôi">
+<body data-rong="hep" data-khuon="bieu-mau" data-khung-goc="bieu-mau" data-title="Báo bận của tôi">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Báo bận của tôi (ADR-0053 D9; kế hoạch A4 T9): tài xế đối tác ghi / rút khung giờ bận của chính mình. Văn phòng chỉ thấy "bận", không thấy lý do. -->
-  <div class="dp-cuoc-head"><h1>Báo bận của tôi</h1></div>
+  <!-- Báo bận của tôi (ADR-0053 D9; kế hoạch A4 T9): tài xế đối tác ghi / rút khung giờ bận của chính mình. Văn phòng chỉ thấy "bận", không thấy lý do.
+       Khuôn Biểu mẫu của khung gốc (ADR-0222): dải kết quả (#bb-bao), khối biểu mẫu «Ghi khung bận», thanh nút cuối trang #bb-nut (vùng nội dung từ 560),
+       khối «Khung bận đang có» (#bb-ds); hẹp hơn 560: «Lưu khung bận» ở cuối khối biểu mẫu (không dính đáy để giữ thanh tab của tài xế). Tên trang nằm ở thanh trên; h1 chỉ cho trình đọc màn hình. -->
+  <h1>Báo bận của tôi</h1>
   <div id="error" class="alert" role="alert" hidden></div>
-  <div id="bb-trang" class="bb-trang"></div>
+  <div id="bb-bao" class="vung-ve"></div>
+  <section id="bb-form" class="khoi" aria-labelledby="bb-form-title" hidden></section>
+  <div id="bb-nut" class="thanh-nut" data-kieu="trang" hidden></div>
+  <section id="bb-ds" class="khoi" data-kieu="bang" aria-labelledby="bb-ds-title" hidden></section>
 </main>
 <script type="module" src="/js/ban.js"></script>
 </body></html>

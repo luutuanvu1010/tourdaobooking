@@ -10,22 +10,26 @@
 // - A4 T9 (ADR-0053 D9, lời chủ 6.4, G-A4-19): ô Tài xế ghi "Bận <giờ>" cạnh tên tài xế có khung báo bận giao ngày chạy (GET /ban-tai-xe — cùng route dải "Tài xế
 //   bận", ô trip.dispatch; không lý do). Chỉ là nhãn — vẫn chọn được; câu chặn (409 TRUNG_GIO_TAI_XE "<Tên> bận từ … đến …") hiện dưới ô Tài xế khi Lưu. Lỗi
 //   đọc thì không nhãn, form vẫn dùng được.
-// - Cột phải "<biển số> trong ngày" (máy tính): các chuyến của xe đang chọn trong ngày (từ GET /lich); chuyến máy chủ báo trùng giờ tô đỏ.
+// - Khối "<biển số> trong ngày": các chuyến của xe đang chọn trong ngày (từ GET /lich); chuyến máy chủ báo trùng giờ mang huy hiệu đỏ «Trùng với giờ bạn chọn».
+// - Bố cục: khuôn Biểu mẫu của khung gốc giao diện (ADR-0222) bằng hàm của web/khung.ts — khối biểu mẫu trên lưới 12 cột (Xe, Tuyến, Tài xế kín hàng; hai ô giờ
+//   mỗi ô nửa hàng), dải vùng khoá là cảnh báo trong khối; thanh nút cuối trang («Huỷ bỏ» cạnh «Lưu chuyến» bên phải) từ 560, hẹp hơn thì dính đáy; khối
+//   "<xe> trong ngày" đứng sau.
 import { NUT_VUOT, gioHien, thanPhaLe, truongLoiChuyen } from "../src/shared/dieu-phoi-man";
 import type { BanTaiXeResponse, ChuyenChiTietResponse, ChuyenTomTatDto, GioVnDto, LichChungResponse, LyDoDangDungDto, TaiXeChonDto, TuyenDto, TuyenListResponse, XeChonDto } from "../src/shared/contracts";
 import { can } from "../src/shared/permissions";
 import { addDays, isISODate, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
-import { dai, docLoiLenh, moPhaLe, taoLenh, thuNgay } from "./dieu-phoi-ui";
+import { chip, dai, docLoiLenh, moPhaLe, taoLenh, thuNgay } from "./dieu-phoi-ui";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { api } from "./api";
+import { dsDong, luoi, truong } from "./khung";
 import { initShell, setBarTitle, showError } from "./shell";
 
 const errorEl = byId("error");
 const bannerEl = byId("cx-banner");
-const layoutEl = byId("cx-layout");
 const formEl = byId<HTMLFormElement>("cx-form");
+const nutEl = byId("cx-nut");
 const ngayEl = byId("cx-ngay");
 const bottomEl = byId("cx-bottom");
 const params = new URLSearchParams(location.search);
@@ -94,9 +98,7 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
   let dangGui = false;
   let loiTruong: string[] = [];
 
-  const truong = (idO: string, nhan: string, o: HTMLElement, goiY: HTMLElement | null, loi: HTMLElement) =>
-    h("div", { class: "vc-field" }, h("label", { for: idO }, nhan), o, goiY, loi);
-  const oLoi = (idO: string) => h("div", { id: `${idO}-error`, class: "vc-field-error", role: "alert", hidden: true });
+  const oLoi = (idO: string) => h("div", { id: `${idO}-error`, class: "truong-loi", role: "alert", hidden: true });
   const baoLoi = (o: HTMLElement, el: HTMLElement, cau: readonly string[]) => {
     replaceChildren(el, ...(cau.length ? [icon("alert", 16, 2), cau.join(" ")] : []));
     el.hidden = cau.length === 0;
@@ -105,11 +107,11 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
   };
 
   // Xe — xe bảo dưỡng hiện nhưng không chọn được (bản vẽ V3 / [MH]:69).
-  const selXe = h("select", { id: "cx-xe", class: "vc-input", "aria-describedby": "cx-xe-hint cx-xe-error" },
+  const selXe = h("select", { id: "cx-xe", class: "o", "aria-describedby": "cx-xe-hint cx-xe-error" },
     h("option", { value: "" }, "Chọn xe"),
     ...xe.map((x) => h("option", { value: x.id, disabled: x.trangThai !== "active" }, `${x.bienSo} · ${x.soCho} chỗ · ${x.chuLaCongTy ? "xe công ty" : x.chuXe}${x.trangThai !== "active" ? " · đang bảo dưỡng" : ""}`)));
   selXe.value = st.xeId;
-  const hintXe = h("div", { id: "cx-xe-hint", class: "vc-hint" });
+  const hintXe = h("div", { id: "cx-xe-hint", class: "truong-goi-y" });
   const loiXe = oLoi("cx-xe");
   const veGoiYXe = (): void => {
     const x = xe.find((v) => v.id === st.xeId);
@@ -125,12 +127,12 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
   // Tuyến (Đợt 4 G3): chỉ tuyến đang dùng, theo thứ tự danh mục; tuyến đang gắn mà đã ngưng dùng vẫn là một lựa chọn (không xoá lặng lẽ).
   const dangDung = (tuyen ?? []).filter((t) => t.dangDung).sort((a, b) => a.thuTu - b.thuTu || a.ten.localeCompare(b.ten, "vi"));
   const tuyenNgung = chuyen?.tuyen && !dangDung.some((t) => t.ma === chuyen.tuyen!.ma) ? chuyen.tuyen : null;
-  const selTuyen = h("select", { id: "cx-tuyen", class: "vc-input", "aria-describedby": "cx-tuyen-hint cx-tuyen-error" },
+  const selTuyen = h("select", { id: "cx-tuyen", class: "o", "aria-describedby": "cx-tuyen-hint cx-tuyen-error" },
     h("option", { value: "" }, "Chưa chọn tuyến"),
     tuyenNgung ? h("option", { value: tuyenNgung.ma }, `${tuyenNgung.ten} (đã ngưng dùng)`) : null,
     ...dangDung.map((t) => h("option", { value: t.ma }, t.ten)));
   selTuyen.value = st.tuyen;
-  const hintTuyen = h("div", { id: "cx-tuyen-hint", class: "vc-hint" }, "Xe thuê của nhà xe lấy giá theo tuyến và cỡ xe.");
+  const hintTuyen = h("div", { id: "cx-tuyen-hint", class: "truong-goi-y" }, "Xe thuê của nhà xe lấy giá theo tuyến và cỡ xe.");
   const loiTuyen = oLoi("cx-tuyen");
   selTuyen.addEventListener("change", () => {
     st.tuyen = selTuyen.value;
@@ -147,7 +149,7 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
   const banCua = new Map<string, string[]>();
   for (const k of ban) banCua.set(k.taiXeId, [...(banCua.get(k.taiXeId) ?? []), k.nhan]);
   const opt = (t: TaiXeChonDto) => h("option", { value: t.partyId }, banCua.has(t.partyId) ? `${t.ten} · Bận ${banCua.get(t.partyId)!.join(", ")}` : t.ten);
-  const selTx = h("select", { id: "cx-tai-xe", class: "vc-input", "aria-describedby": "cx-tai-xe-error" },
+  const selTx = h("select", { id: "cx-tai-xe", class: "o", "aria-describedby": "cx-tai-xe-error" },
     h("option", { value: "" }, "Chọn tài xế"),
     congTy.length ? h("optgroup", { label: "Tài xế công ty" }, ...congTy.map(opt)) : null,
     ...[...nhaXe.entries()].map(([n, ds]) => h("optgroup", { label: `Nhà xe ${n}` }, ...ds.map(opt))));
@@ -159,11 +161,11 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
   });
 
   // Giờ
-  const oTu = h("input", { id: "cx-tu", class: "vc-input", type: "time", value: st.tu, "aria-describedby": "cx-tu-error" });
-  const oDen = h("input", { id: "cx-den", class: "vc-input", type: "time", value: st.den, "aria-describedby": "cx-den-hint cx-den-error" });
+  const oTu = h("input", { id: "cx-tu", class: "o", type: "time", value: st.tu, "aria-describedby": "cx-tu-error" });
+  const oDen = h("input", { id: "cx-den", class: "o", type: "time", value: st.den, "aria-describedby": "cx-den-hint cx-den-error" });
   const loiTu = oLoi("cx-tu");
   const loiDen = oLoi("cx-den");
-  const hintDen = h("div", { id: "cx-den-hint", class: "vc-hint" });
+  const hintDen = h("div", { id: "cx-den-hint", class: "truong-goi-y" });
   const veGoiYDen = () => (hintDen.textContent = st.tu && st.den && st.den <= st.tu ? "Kết thúc sang ngày hôm sau." : "");
   oTu.addEventListener("input", () => {
     st.tu = oTu.value;
@@ -177,40 +179,66 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
   });
   veGoiYDen();
 
+  // Trường của khung (nhãn trên ô, lỗi dưới ô); gợi ý là phần tử riêng có id (ô trỏ tới bằng aria-describedby, chữ đổi theo lựa chọn) nên gắn sau lỗi.
+  const oTruong = (nhan: string, o: HTMLElement, loi: HTMLElement, goiY: HTMLElement | null, cot?: 6): HTMLElement => {
+    const t = truong(nhan, o, { cot, loi });
+    if (goiY) t.append(goiY);
+    return t;
+  };
+
   // Trang Chuyến mới ghi «Tạo chuyến», trang Sửa chuyến ghi «Lưu chuyến» (bảng tham chiếu, chủ 2026-11-05).
   const nhanLuu = chuyen ? "Lưu chuyến" : "Tạo chuyến";
-  const luuMay = h("button", { type: "submit", class: "vc-btn btn btn-accent", "data-action": "luu-chuyen" }, chuyen ? "Lưu chuyến" : "Tạo chuyến");
-  const huyMay = h("a", { class: "vc-btn vc-btn-ghost-primary", href: document.body.dataset.back ?? "/dieu-phoi" }, "Huỷ bỏ");
+  // Nút của trang đứng NGOÀI <form> (thanh nút cuối trang từ 560, thanh dính đáy ở điện thoại): nút gửi trỏ về biểu mẫu bằng thuộc tính `form`.
+  // Chữ nút viết bằng biểu thức chọn như trước: bảng tham chiếu (ADR-0167) khai đúng dạng «Lưu chuyến / Tạo chuyến» cho chỗ này.
+  const luuMay = h("button", { type: "submit", class: "nut", "data-cap": "chinh", "data-action": "luu-chuyen" }, chuyen ? "Lưu chuyến" : "Tạo chuyến");
+  luuMay.setAttribute("form", "cx-form");
+  const quayVe = document.body.dataset.back ?? "/dieu-phoi";
   replaceChildren(
     formEl,
-    truong("cx-xe", "Xe", selXe, hintXe, loiXe),
-    tuyen ? truong("cx-tuyen", "Tuyến", selTuyen, hintTuyen, loiTuyen) : null,
-    truong("cx-tai-xe", "Tài xế", selTx, null, loiTx),
-    h("div", { class: "dp-cx-gio" }, truong("cx-tu", "Giờ bắt đầu", oTu, null, loiTu), truong("cx-den", "Giờ kết thúc", oDen, hintDen, loiDen)),
+    luoi(
+      null,
+      oTruong("Xe", selXe, loiXe, hintXe),
+      tuyen ? oTruong("Tuyến", selTuyen, loiTuyen, hintTuyen) : null,
+      oTruong("Tài xế", selTx, loiTx, null),
+      oTruong("Giờ bắt đầu", oTu, loiTu, null, 6),
+      oTruong("Giờ kết thúc", oDen, loiDen, hintDen, 6),
+    ),
     chuyen?.khoaMoc.dangKhoa
       ? dai("warning", "Chuyến đã vào vùng khoá trước giờ xe chạy", [
         `Đổi xe, đổi tài xế là điều chỉnh khẩn cấp${can(staff, "trip.urgent_adjust") ? " — khi lưu, bạn sẽ chọn lý do" : ", cần người xếp xe làm"}. Đổi giờ không cần điều chỉnh khẩn cấp.`,
       ])
       : null,
-    h("div", { class: "dp-cx-actions" }, huyMay, luuMay),
   );
-  const luuDay = h("button", { type: "button", class: "vc-btn btn btn-accent", "data-action": "luu-chuyen-day" }, nhanLuu);
+  replaceChildren(nutEl, h("a", { class: "nut day-phai", "data-cap": "loi", href: quayVe }, "Huỷ bỏ"), luuMay);
+  const luuDay = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-action": "luu-chuyen-day" }, nhanLuu);
   luuDay.addEventListener("click", () => formEl.requestSubmit());
-  replaceChildren(bottomEl, h("a", { class: "vc-btn vc-btn-ghost-primary", href: document.body.dataset.back ?? "/dieu-phoi" }, "Huỷ bỏ"), luuDay);
+  replaceChildren(bottomEl, h("a", { class: "nut", "data-cap": "loi", href: quayVe }, "Huỷ bỏ"), luuDay);
 
-  // Cột phải: chuyến của xe đang chọn trong ngày.
+  // Khối "<xe> trong ngày": chuyến của xe đang chọn trong ngày (khối riêng, sau khối biểu mẫu).
   function veNgay(): void {
     const x = xe.find((v) => v.id === st.xeId);
     const cua: ChuyenTomTatDto[] = (lich?.chuyen ?? []).filter((c) => c.xe.id === st.xeId && c.trangThai !== "CANCELLED").sort((a, b) => a.batDauMs - b.batDauMs);
     const trung = new Set(loiTruong.flatMap((c) => c.match(/CX-[0-9]{4}-[0-9]+/g) ?? []));
     replaceChildren(
       ngayEl,
-      h("div", { class: "dp-hist-head" }, h("h2", { id: "cx-ngay-title", class: "dp-hist-title" }, x ? `${x.bienSo} trong ngày` : "Xe trong ngày")),
-      ...(cua.length
-        ? cua.map((c) => h("div", { class: trung.has(c.ma) ? "dp-hist-row is-trung" : "dp-hist-row", "data-ma": c.ma },
-            h("span", { class: "dp-hist-name" }, h("strong", null, c.ma), h("span", null, `${gioHien(c.batDau, st.ngay)}–${gioHien(c.ketThuc, st.ngay)}`)),
-            h("span", { class: trung.has(c.ma) ? "dp-hist-sub is-trung" : "dp-hist-sub" }, trung.has(c.ma) ? "Trùng với giờ bạn chọn" : c.id === chuyen?.id ? "Chuyến đang sửa" : c.trangThaiNhan)))
-        : [h("div", { class: "dp-hist-row dp-hist-sub" }, x ? "Xe chưa có chuyến nào trong ngày." : "Chọn xe để xem các chuyến trong ngày.")]),
+      h("header", { class: "khoi-dau" }, h("h2", { id: "cx-ngay-title" }, x ? `${x.bienSo} trong ngày` : "Xe trong ngày")),
+      cua.length
+        ? dsDong(
+            null,
+            ...cua.map((c) =>
+              h(
+                "div",
+                { class: trung.has(c.ma) ? "dong is-trung" : "dong", "data-ma": c.ma },
+                h(
+                  "div",
+                  { class: "dong-chu" },
+                  h("span", null, h("strong", null, c.ma), ` ${gioHien(c.batDau, st.ngay)}–${gioHien(c.ketThuc, st.ngay)}`),
+                  trung.has(c.ma) ? h("div", null, chip("Trùng với giờ bạn chọn", "danger")) : h("span", { class: "o-phu" }, c.id === chuyen?.id ? "Chuyến đang sửa" : c.trangThaiNhan),
+                ),
+              ),
+            ),
+          )
+        : h("p", { class: "rong" }, x ? "Xe chưa có chuyến nào trong ngày." : "Chọn xe để xem các chuyến trong ngày."),
     );
   }
   veGoiYXe();
@@ -244,7 +272,7 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
     const soO = [r.xe, r.taiXe, r.gioBatDau, r.gioKetThuc].filter((x) => x.length > 0).length;
     replaceChildren(bannerEl, soO > 0 ? dai("danger", `Chưa lưu được — sửa ${soO} ô có đánh dấu bên dưới.`, [...r.khac, ...dongThem]) : dai("danger", tieuDe, [...r.khac, ...dongThem]));
     veNgay();
-    (selXe.getAttribute("aria-invalid") ? selXe : selTx.getAttribute("aria-invalid") ? selTx : oTu.getAttribute("aria-invalid") ? oTu : oDen.getAttribute("aria-invalid") ? oDen : bannerEl).scrollIntoView({ block: "center" });
+    (selXe.getAttribute("aria-invalid") ? selXe : selTx.getAttribute("aria-invalid") ? selTx : oTu.getAttribute("aria-invalid") ? oTu : oDen.getAttribute("aria-invalid") ? oDen : (bannerEl.firstElementChild ?? bannerEl)).scrollIntoView({ block: "center" }); // #cx-banner là vùng vẽ (không có hộp riêng): cuộn tới dải bên trong
   };
 
   async function gui(phaLe?: string): Promise<void> {
@@ -317,7 +345,9 @@ function dung(ngay: string, chuyen: ChuyenChiTietResponse["chuyen"] | null, xe: 
     }
   });
 
-  layoutEl.hidden = false;
+  formEl.hidden = false;
+  nutEl.hidden = false;
+  ngayEl.hidden = false;
   bottomEl.hidden = false;
 }
 

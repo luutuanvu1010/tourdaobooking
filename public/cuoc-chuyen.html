@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Chuyến của tôi — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Chuyến của tôi" data-back="/cuoc">
+<body data-rong="vua" data-khung-goc="chi-tiet" data-title="Chuyến của tôi" data-back="/cuoc">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Một chuyến của tài xế (ADR-0049 V6 Chuyến đang chạy + V7 Xuất bến; bản vẽ docs/design/van-chuyen-dieu-phoi/project/05 khung 5a, 5b; 06 khung 6b, 6c). /cuoc-chuyen?id=<chuyến>. -->
-  <a class="vc-back" href="/cuoc">‹ Cuốc của tôi</a>
+  <!-- Một chuyến của tài xế (ADR-0049 V6 Chuyến đang chạy + V7 Xuất bến; bản vẽ docs/design/van-chuyen-dieu-phoi/project/05 khung 5a, 5b; 06 khung 6b, 6c). /cuoc-chuyen?id=<chuyến>.
+       Khuôn Chi tiết của khung gốc (ADR-0222). #cc-trang là VÙNG VẼ: web/cuoc-chuyen.ts vẽ lại toàn bộ vào đây (dải báo, đầu trang, thanh việc đầu trang #cc-viec
+       — chỉ hiện khi vùng nội dung từ 560 —, các khối, việc cuối trang #cc-cuoi của điện thoại, thanh dính đáy #cc-day của điện thoại). -->
   <div id="error" class="alert" role="alert" hidden></div>
-  <div id="cc-trang"></div>
-  <div id="cc-day" class="vc-bottom-bar dp-cc-day thanh-hanh-dong-cuoi" hidden></div>
+  <div id="cc-trang" class="vung-ve"></div>
 </main>
 <script type="module" src="/js/cuoc-chuyen.js"></script>
 </body></html>

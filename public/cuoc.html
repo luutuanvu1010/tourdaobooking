@@ -1,13 +1,15 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Cuốc của tôi — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="rong" data-title="Cuốc của tôi">
+<body data-rong="rong" data-khung-goc="tong-quan" data-title="Cuốc của tôi">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Cuốc của tôi (ADR-0049 V5, trang mở đầu của tài xế công ty — Q5; bản vẽ docs/design/van-chuyen-dieu-phoi/project/04 Cuoc cua toi.dc.html). -->
-  <div class="dp-cuoc-head"><h1>Cuốc của tôi</h1><span id="cu-ngay" class="dp-cuoc-date"></span></div>
+  <!-- Cuốc của tôi (ADR-0049 V5, trang mở đầu của tài xế công ty — Q5; bản vẽ docs/design/van-chuyen-dieu-phoi/project/04 Cuoc cua toi.dc.html).
+       Khuôn Tổng quan của khung gốc (ADR-0222): đầu trang (ngày hôm nay), rồi lưới khối — mỗi ngày (hôm nay, ngày mai, ngày kia) một khối, mỗi cuốc một dòng. -->
+  <h1>Cuốc của tôi</h1>
+  <div class="dau-trang"><p id="cu-ngay" class="doan-dan"></p></div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <div id="cu-ds" class="dp-cuoc-days"></div>
+  <div id="cu-ds" class="vung-ve"></div>
 </main>
 <script type="module" src="/js/cuoc.js"></script>
 </body></html>

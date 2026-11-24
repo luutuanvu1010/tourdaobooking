@@ -46,8 +46,6 @@ const errorEl = byId("error");
 const bannerEl = byId("dp-banner");
 const trangEl = byId("dp-trang");
 const soEl = byId("dp-so");
-const soMEl = byId("dp-so-m");
-const soPhuEl = byId("dp-so-phu");
 const tabsEl = byId("dp-tabs");
 const cotChua = byId("dp-cot-chua-xep");
 const cotXe = byId("dp-cot-xe");
@@ -120,20 +118,17 @@ function ve(): void {
   if (!rong) daiRong?.remove();
 
   const moc = [s.satMoc ? `${s.satMoc} sắp tới hạn chốt` : null, s.quaMoc ? `${s.quaMoc} quá hạn chốt` : null].filter(Boolean).join(" · ");
-  const o = (nhan: string, so: number, phu = "", tone = "") =>
-    h("div", { class: "dp-stat" }, h("span", { class: "dp-stat-k" }, nhan), h("span", { class: "dp-stat-v" }, h("span", { class: "dp-stat-n" }, String(so)), phu ? h("span", { class: `dp-stat-sub ${tone}` }, phu) : null));
+  // Dải số của khuôn Tổng quan: nhãn nhỏ, số cỡ tiêu đề khối, không đậm; dòng phụ (bị giữ, hạn chốt, đặt gấp) chữ nhỏ dưới số.
+  const o = (nhan: string, so: number, phu = "") => h("div", null, h("dt", null, nhan), h("dd", null, String(so), phu ? h("span", { class: "o-phu" }, phu) : null));
   replaceChildren(
     soEl,
-    o("LƯỢT ĐƯA ĐÓN", s.chang),
-    o("ĐÃ XẾP", s.daXep),
-    o("CHƯA XẾP", s.chuaXep, moc, "is-danger"),
-    o("CHUYẾN", s.chuyen, s.biGiu ? `${s.biGiu} bị giữ` : "", "is-danger"),
-    o("CẦN XỬ LÝ", s.canXuLy),
-    o("CHƯA XÁC NHẬN", s.nhap, s.choDatGap ? "chờ duyệt đặt gấp" : "", "is-sand"),
+    o("Lượt đưa đón", s.chang),
+    o("Đã xếp", s.daXep),
+    o("Chưa xếp", s.chuaXep, moc),
+    o("Chuyến", s.chuyen, s.biGiu ? `${s.biGiu} bị giữ` : ""),
+    o("Cần xử lý", s.canXuLy),
+    o("Chưa xác nhận", s.nhap, s.choDatGap ? "chờ duyệt đặt gấp" : ""),
   );
-  const om = (nhan: string, so: number, danger = false) => h("div", { class: "dp-stat-m" }, h("span", { class: danger && so > 0 ? "dp-stat-n is-danger" : "dp-stat-n" }, String(so)), h("span", { class: "dp-stat-k" }, nhan));
-  replaceChildren(soMEl, om("lượt", s.chang), om("đã xếp", s.daXep), om("chưa xếp", s.chuaXep, true), om("chuyến", s.chuyen));
-  soPhuEl.textContent = [s.chuaXep ? `Chưa xếp: ${[s.satMoc ? `${s.satMoc} sắp tới hạn chốt` : null, s.quaMoc ? `${s.quaMoc} quá hạn chốt` : null].filter(Boolean).join(", ") || "chưa tới hạn chốt"}` : null, s.nhap ? `${s.nhap} đơn nháp` : null].filter(Boolean).join(" · ");
 
   veTaiXeBan();
   veTabs(s.chuaXep, s.chuyen, s.canXuLy);
@@ -158,8 +153,8 @@ function veTaiXeBan(): void {
 function veTabs(nChua: number, nXe: number, nCxl: number): void {
   const ds: [typeof tab, string, number][] = [["chua-xep", "Chưa xếp", nChua], ["xe", "Xe", nXe], ["can-xu-ly", "Cần xử lý", nCxl]];
   const nut = ds.map(([k, nhan, n]) =>
-    h("button", { type: "button", id: `dp-tab-${k}`, class: "dp-tab", role: "tab", "aria-selected": String(k === tab), "aria-controls": `dp-cot-${k}`, tabindex: k === tab ? 0 : -1, "data-tab": k },
-      nhan, h("span", { class: "dp-tab-n" }, String(n))));
+    h("button", { type: "button", id: `dp-tab-${k}`, role: "tab", "aria-selected": String(k === tab), "aria-controls": `dp-cot-${k}`, tabindex: k === tab ? 0 : -1, "data-tab": k },
+      nhan, " ", h("span", { class: "huy-hieu", "data-tong": "cat" }, String(n))));
   nut.forEach((b, i) => {
     b.addEventListener("click", () => chonTab(ds[i]![0]));
     b.addEventListener("keydown", (e) => {
@@ -171,21 +166,22 @@ function veTabs(nChua: number, nXe: number, nCxl: number): void {
     });
   });
   replaceChildren(tabsEl, ...nut);
-  for (const [k] of ds) byId(`dp-cot-${k}`).classList.toggle("is-active", k === tab);
+  for (const [k] of ds) byId(`dp-cot-${k}`).toggleAttribute("data-the-an", k !== tab);
 }
 function chonTab(k: typeof tab): void {
   tab = k;
-  for (const b of tabsEl.querySelectorAll<HTMLElement>(".dp-tab")) {
+  for (const b of tabsEl.querySelectorAll<HTMLElement>("[role=tab]")) {
     const on = b.dataset.tab === k;
     b.setAttribute("aria-selected", String(on));
     b.tabIndex = on ? 0 : -1;
   }
-  for (const id of ["chua-xep", "xe", "can-xu-ly"]) byId(`dp-cot-${id}`).classList.toggle("is-active", id === k);
+  for (const id of ["chua-xep", "xe", "can-xu-ly"]) byId(`dp-cot-${id}`).toggleAttribute("data-the-an", id !== k);
   if (k === "xe") requestAnimationFrame(cuonDau);
 }
 
+/** Đầu khối của một cột (khung gốc): tên khối và số đếm (huy hiệu cát), cùng hàng. */
 const dauCot = (tieuDe: string, n: number | null, them: Child = null) =>
-  h("div", { class: "dp-card-head" }, h("h2", { class: "dp-card-title" }, tieuDe), n === null ? null : h("span", { class: "dp-count-sand" }, String(n)), them);
+  h("header", { class: "khoi-dau" }, h("h2", null, tieuDe), n === null ? null : h("span", { class: "huy-hieu", "data-tong": "cat" }, String(n)), them);
 
 /** C3 — chặng đang chọn (C34) và bộ lọc (C35): giữ qua mỗi lần tải lại lịch (tin đơn đổi, chuyến đổi); đổi ngày thì bỏ. Chọn / lọc chỉ là việc của màn — máy chủ không biết. */
 let daChon = new Set<string>();
@@ -206,7 +202,7 @@ function veChuaXep(): void {
     h("div", { class: "dp-tong", "data-role": "tong" }, cauTongKhachGhe(tongKhachGhe(lich!))),
     co.dieuPhoi && tatCa.length ? h("div", { class: "dp-col-note dp-chi-may-tinh" }, "Kéo lượt đưa đón thả vào một chuyến, hoặc bấm vào lượt để chọn chuyến") : null,
     tatCa.length ? veLoc(tatCa, ds.length) : null,
-    ...(ds.length ? ds.map(({ chang: c, conLai }) => theChang(c, conLai)) : [h("div", { class: "dp-col-empty" }, tatCa.length ? "Không có lượt đưa đón nào khớp bộ lọc." : "Không còn lượt đưa đón nào chưa xếp.")]),
+    ...(ds.length ? ds.map(({ chang: c, conLai }) => theChang(c, conLai)) : [h("p", { class: "rong" }, tatCa.length ? "Không có lượt đưa đón nào khớp bộ lọc." : "Không còn lượt đưa đón nào chưa xếp.")]),
     thanhChonEl,
   );
   veThanhChon();
@@ -215,7 +211,7 @@ function veChuaXep(): void {
 /** Hàng lọc của cột "Chưa xếp" (C35): ca đón / chiều / nơi trả; lọc CẢ BA (VÀ). Đổi lọc → vẽ lại cột, giữ tiêu điểm ở ô vừa đổi. */
 function veLoc(tatCa: { chang: ChangLichDto }[], soHien: number): HTMLElement {
   const o = (id: string, nhan: string, ds: readonly { ma: string; nhan: string }[], gt: string, dat: (v: string) => void) => {
-    const sel = h("select", { id, class: "vc-input" }, h("option", { value: "" }, "Tất cả"), ...ds.map((x) => h("option", { value: x.ma }, x.nhan)));
+    const sel = h("select", { id, class: "o" }, h("option", { value: "" }, "Tất cả"), ...ds.map((x) => h("option", { value: x.ma }, x.nhan)));
     sel.value = gt;
     sel.addEventListener("change", () => {
       dat(sel.value);
@@ -224,7 +220,7 @@ function veLoc(tatCa: { chang: ChangLichDto }[], soHien: number): HTMLElement {
     });
     return h("label", { class: "dp-loc-o" }, nhan, sel);
   };
-  const boLocNut = dangLoc(boLoc) ? h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-loc-bo", "data-action": "bo-loc" }, `Bỏ lọc · đang hiện ${soHien}/${tatCa.length} lượt`) : null;
+  const boLocNut = dangLoc(boLoc) ? h("button", { type: "button", class: "nut dp-loc-bo", "data-cap": "loi", "data-action": "bo-loc" }, `Bỏ lọc · đang hiện ${soHien}/${tatCa.length} lượt`) : null;
   boLocNut?.addEventListener("click", () => {
     boLoc = { ...LOC_TRONG };
     veChuaXep();
@@ -244,15 +240,15 @@ function veThanhChon(): void {
   const ds = locChangChuaXep(changChuaXep(lich!), boLoc);
   const chon = ds.filter((x) => daChon.has(x.chang.legId));
   const khach = chon.reduce((n, x) => n + x.conLai, 0);
-  const chonHet = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "chon-het" }, `Chọn hết ${Math.min(ds.length, TOI_DA_CHANG_MOT_LAN)} lượt đang hiện`);
+  const chonHet = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "chon-het" }, `Chọn hết ${Math.min(ds.length, TOI_DA_CHANG_MOT_LAN)} lượt đang hiện`);
   chonHet.addEventListener("click", () => {
     daChon = new Set(ds.slice(0, TOI_DA_CHANG_MOT_LAN).map((x) => x.chang.legId));
     capNhatO();
     if (ds.length > TOI_DA_CHANG_MOT_LAN) baoKetQua(dai("info", `Một lần xếp tối đa ${TOI_DA_CHANG_MOT_LAN} lượt — đã chọn ${TOI_DA_CHANG_MOT_LAN} lượt đầu, xếp xong thì chọn tiếp.`));
   });
-  const xep = h("button", { type: "button", class: "vc-btn btn btn-accent", "data-action": "xep-nhieu" }, chon.length > 1 ? `Xếp ${chon.length} lượt vào chuyến…` : "Xếp vào chuyến…");
+  const xep = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-action": "xep-nhieu" }, chon.length > 1 ? `Xếp ${chon.length} lượt vào chuyến…` : "Xếp vào chuyến…");
   xep.addEventListener("click", () => moXep(chon.map((x) => ({ chang: x.chang, conLai: x.conLai })), null, xep));
-  const bo = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "bo-chon" }, "Bỏ chọn");
+  const bo = h("button", { type: "button", class: "nut", "data-cap": "loi", "data-action": "bo-chon" }, "Bỏ chọn");
   bo.addEventListener("click", () => {
     daChon = new Set();
     capNhatO();
@@ -337,15 +333,17 @@ function veXe(): void {
       append(tl, [h("div", { class: "dp-tl-hang" }, nhanHang(hang), duong)]);
     }
   }
-  if (!hinh.nhom.length) append(tl, [h("div", { class: "dp-col-empty" }, "Chưa có xe nào.")]);
+  if (!hinh.nhom.length) append(tl, [h("p", { class: "rong" }, "Chưa có xe nào.")]);
   if (hinh.bayGio) append(tl, [viTri(h("div", { class: "dp-tl-bay-gio", "aria-hidden": "true" }, h("span", null, hinh.bayGio.nhan)), hinh.bayGio.x)]);
   if (hinh.moc) append(tl, [viTri(h("div", { class: "dp-tl-moc", "aria-hidden": "true" }, h("span", null, hinh.moc.nhan)), hinh.moc.x)]);
   const cuon = h("div", { class: "dp-tl-cuon", tabindex: 0, role: "region", "aria-label": "Dòng thời gian theo xe — cuộn ngang" }, tl);
   const mocNhan = l.mocToiThieuPhut === null ? "Hạn chốt" : `Hạn chốt ${nhanThoiLuong(l.mocToiThieuPhut)}`;
   const the = h(
     "section",
-    { class: "vc-card dp-tl-card", "aria-labelledby": "dp-tl-title" },
-    h("div", { class: "dp-card-head" }, h("h2", { id: "dp-tl-title", class: "dp-card-title" }, "Dòng thời gian theo xe"), chip(`${soChuyen} chuyến`, "muted")),
+    { class: "khoi dp-tl-card", "aria-labelledby": "dp-tl-title" },
+    h("header", { class: "khoi-dau" }, h("h2", { id: "dp-tl-title" }, "Dòng thời gian theo xe"), chip(`${soChuyen} chuyến`, "muted")),
+    // Vùng tự do (sổ ngoại lệ ADR-0222 Đ5, src/shared/khung-goc.ts): chú giải, trục giờ và các chuyến xếp theo thời gian — bố cục riêng, vỏ khối vẫn của khung.
+    h("div", { class: "vung-tu-do" },
     h("div", { class: "dp-tl-legend" },
       ...([["plan", "Lên kế hoạch"], ["run", "Đang chạy"], ["done", "Xong"], ["held", "Bị giữ"], ["nodrv", "Chưa có tài xế"]] as const).map(([k, t]) => h("span", { class: "dp-lg" }, h("span", { class: `dp-lg-o is-${k}` }), t)),
       ...(["THOANG", "GAN_DAY", "DAY", "VUOT"] as const).map((m) => h("span", { class: "dp-lg" }, h("span", { class: `dp-lg-tai ${lopTai(m)}` }), `Tải: ${NHAN_MUC_TAI[m].toLowerCase()}`)),
@@ -358,6 +356,7 @@ function veXe(): void {
         ...ban.map((b) => h("li", { class: "dp-ban-dong" }, icon("ban", 14, 2), h("strong", null, l.khungBanXe.find((k) => k.xeId === b.xeId)?.bienSo ?? ""), ` · ${b.nhan}`)))
       : null,
     h("div", { class: "dp-tl-note" }, "Chuyến có ", icon("lock", 12), " đang trong vùng khoá trước giờ xe chạy — khoá xếp khách, đổi xe, đổi tài xế. ● điểm đón · ■ điểm trả."),
+    ),
   );
   // Vẽ lại (bấm khối, sau khi xếp / cập nhật) GIỮ chỗ đang cuộn; chỉ tự cuộn tới chuyến đầu tiên MỘT lần mỗi ngày xem — và chỉ khi khung đang hiện (thẻ "Xe"
   // ở điện thoại có thể đang ẩn: thử lại lúc mở thẻ).
@@ -435,22 +434,22 @@ function theChon(): HTMLElement | null {
   if (t.tra.length) t.tra.forEach((d, i) => tuyen.push(h("span", { class: i ? "dp-route-sep" : "dp-route-arrow" }, i ? "·" : "►"), h("span", null, d)));
   const muc = c.trangThai === "PLANNED" ? mucTai(c.tai, c.xe.soCho) : null;
   const noiDoi = c.trangThai === "PLANNED" && c.lyDoGiu.some((x) => x.ma === "NOI_HEN_DOI") && co.dieuPhoi;
-  const capNhat = noiDoi ? h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "cap-nhat-diem" }, "Cập nhật điểm theo đơn") : null;
+  const capNhat = noiDoi ? h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "cap-nhat-diem" }, "Cập nhật điểm theo đơn") : null;
   capNhat?.addEventListener("click", () => void capNhatDiem(c, capNhat));
   // Vòng 5e (R-P29): "Cập nhật khách theo đơn" cạnh "Cập nhật điểm theo đơn" — cùng điều kiện (chuyến lên kế hoạch + ô điều phối); lý do giữ nút gỡ được
   // (ADR-0104 Đ2.11 — `giuCapNhatKhach`: khách đổi, đơn huỷ, chặng đã bỏ, đơn không xác nhận, thừa suất).
   const khachDoi = c.trangThai === "PLANNED" && giuCapNhatKhach(c.lyDoGiu).length > 0 && co.dieuPhoi;
-  const capNhatKh = khachDoi ? h("button", { type: "button", class: "vc-btn btn btn-primary", "data-action": "cap-nhat-khach" }, NUT_CAP_NHAT_KHACH) : null;
+  const capNhatKh = khachDoi ? h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "cap-nhat-khach" }, NUT_CAP_NHAT_KHACH) : null;
   capNhatKh?.addEventListener("click", () => void capNhatKhach(c, capNhatKh));
   return h(
     "section",
-    { class: "vc-card dp-chon", "aria-label": `Chuyến đang chọn ${c.ma}` },
+    { class: "khoi dp-chon", "aria-label": `Chuyến đang chọn ${c.ma}` },
     h("div", { class: "dp-chon-head" }, h("span", { class: "dp-chon-ma" }, c.ma), chip(k.nhan, TONE_KIEU[k.kieu]), c.khanCap ? chip(NHAN_KHAN_CAP, "warn") : null, c.choChayThieu.length ? chip(nhanChoChayThieu(c.choChayThieu.map((x) => x.ten)), "warn") : null, muc === "GAN_DAY" || muc === "DAY" ? chip(NHAN_MUC_TAI[muc], "warn") : muc === "VUOT" ? chip(NHAN_MUC_TAI[muc], "danger") : null, h("span", { class: "dp-chon-tag" }, "Đang chọn")),
     h("div", { class: "dp-chon-line" }, `${c.xe.bienSo} · ${c.xe.soCho} chỗ · ${c.taiXe?.ten ?? "Chưa có tài xế"} · `, gioChuyen(c), " · tải ", h("strong", null, `${c.tai}/${c.xe.soCho}`)),
     tuyen.length ? h("div", { class: "dp-route" }, ...tuyen) : null,
     c.trangThai === "PLANNED" && c.lyDoGiu.length ? h("div", { class: "dp-chon-giu" }, c.lyDoGiu.map((x) => x.loiNhan).join("; ")) : null,
     c.khoaMoc.dangKhoa && c.trangThai === "PLANNED" ? h("div", { class: "dg-lock dp-chon-lock" }, icon("lock", 14), cauKhoaMoc(lich!.mocToiThieuPhut, co)) : null,
-    h("div", { class: "dp-chon-actions" }, h("a", { class: "vc-btn vc-btn-ghost-primary", href: `/chuyen?id=${encodeURIComponent(c.id)}`, "data-action": "mo-chuyen" }, "Mở chuyến"), capNhat, capNhatKh),
+    h("div", { class: "thanh-nut dp-chon-actions" }, h("a", { class: "nut", "data-cap": "phu", href: `/chuyen?id=${encodeURIComponent(c.id)}`, "data-action": "mo-chuyen" }, "Mở chuyến"), capNhat, capNhatKh),
   );
 }
 const TONE_KIEU = { plan: "unit", run: "navy", done: "ok", held: "danger", nodrv: "warn", cancel: "muted" } as const;
@@ -461,20 +460,20 @@ function veCanXuLy(viec: ViecCanXuLy[]): void {
     cotCxl,
     dauCot("Cần xử lý", viec.length),
     co.dieuPhoi ? null : h("div", { class: "dp-readonly" }, "Chỉ xem — Kế toán không xếp xe, không điều chỉnh khẩn cấp hay phá lệ."),
-    ...(viec.length ? viec.map(mucViec) : [h("div", { class: "dp-col-empty" }, "Không có việc cần xử lý.")]),
+    ...(viec.length ? viec.map(mucViec) : [h("p", { class: "rong" }, "Không có việc cần xử lý.")]),
   );
 }
 function mucViec(v: ViecCanXuLy): HTMLElement {
   const nut = v.hanhDong.map((a) => {
-    if (a.kieu === "link") return h("a", { class: "vc-btn vc-btn-ghost-primary dp-cxl-btn", href: a.href }, a.nhan);
+    if (a.kieu === "link") return h("a", { class: "nut dp-cxl-btn", "data-cap": "phu", href: a.href }, a.nhan);
     if (a.kieu === "goi-bao") {
-      const b = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-cxl-btn", "data-action": "da-goi-bao", "data-leg": a.legId }, a.nhan);
+      const b = h("button", { type: "button", class: "nut dp-cxl-btn", "data-cap": "phu", "data-action": "da-goi-bao", "data-leg": a.legId }, a.nhan);
       b.addEventListener("click", () => void daGoiBao(a, b));
       return b;
     }
     const c = lich!.chuyen.find((x) => x.id === a.tripId)!;
     const khach = a.kieu === "cap-nhat-khach";
-    const b = h("button", { type: "button", class: "vc-btn btn btn-primary dp-cxl-btn", "data-action": khach ? "cap-nhat-khach" : "cap-nhat-diem" }, a.nhan);
+    const b = h("button", { type: "button", class: "nut dp-cxl-btn", "data-cap": "phu", "data-action": khach ? "cap-nhat-khach" : "cap-nhat-diem" }, a.nhan);
     b.addEventListener("click", () => void (khach ? capNhatKhach(c, b) : capNhatDiem(c, b)));
     return b;
   });
@@ -486,7 +485,7 @@ function mucViec(v: ViecCanXuLy): HTMLElement {
     v.noiDung ? h("span", { class: "dp-cxl-text" }, v.noiDung) : null,
     h("span", { class: "dp-cxl-ai" }, `Ai xử lý: ${v.aiXuLy}`),
     v.khoa ? h("span", { class: "dg-lock dp-cxl-khoa" }, icon("lock", 16), v.khoa) : null,
-    nut.length ? h("div", { class: "dp-cxl-actions" }, ...nut) : null,
+    nut.length ? h("div", { class: "thanh-nut dp-cxl-actions" }, ...nut) : null,
   );
 }
 
@@ -507,7 +506,7 @@ async function daGoiBao(a: { legId: string; phienBan: number; gioMoi: { ngay: st
   nut.disabled = true;
   try {
     const r = await guiGoiBao(`/api/van-chuyen/chang/${encodeURIComponent(a.legId)}/da-goi-bao`, { phienBan: a.phienBan, gioMoi: a.gioMoi });
-    const bo = r.daGoiBao?.boDuoc ? h("button", { type: "button", class: "btn", "data-action": "bo-danh-dau" }, "Bỏ đánh dấu") : null;
+    const bo = r.daGoiBao?.boDuoc ? h("button", { type: "button", class: "nut", "data-cap": "loi", "data-action": "bo-danh-dau" }, "Bỏ đánh dấu") : null;
     bo?.addEventListener("click", async () => {
       bo.disabled = true;
       try {
@@ -576,8 +575,8 @@ function moXep(doi: DoiXep[], chuyenId: string | null, opener: HTMLElement): voi
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const ghiChuKhoa = h("div", { class: "dg-lock dg-lock-note", hidden: true });
   const ghiChuMo = h("div", { class: "dp-note dp-xep-nhac", role: "status", hidden: true });
-  const chinh = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !den, "data-action": "xep-gui" }, "Xếp vào chuyến");
-  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
+  const chinh = h("button", { type: "button", class: "nut", "data-cap": "chinh", disabled: !den, "data-action": "xep-gui" }, "Xếp vào chuyến");
+  const dong = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Đóng");
   const veKhoa = () => {
     const x = lua.find((v) => v.chuyen.id === den);
     const khoa = !!x?.khoa && !doi.every((d) => d.chang.datGap);
@@ -587,7 +586,7 @@ function moXep(doi: DoiXep[], chuyenId: string | null, opener: HTMLElement): voi
     ghiChuMo.hidden = nhac.length === 0;
     replaceChildren(ghiChuMo, ...(nhac.length ? [`Lưu ý: ${nhac.join("; ")}. Bạn vẫn chọn được — nếu không xếp được, máy chủ sẽ báo.`] : []));
   };
-  const taoMoi = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "tao-chuyen" }, "+ Chuyến mới");
+  const taoMoi = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "tao-chuyen" }, "+ Chuyến mới");
   const nhom = lua.length
     ? nhomChon("dp-xep-chuyen", "Chuyến", lua.map((x) => ({ code: x.chuyen.id, nhan: x.nhan, phu: x.ghiChu.join(" · ") || undefined, mo: x.mo })), (id) => {
         den = id;
@@ -596,7 +595,7 @@ function moXep(doi: DoiXep[], chuyenId: string | null, opener: HTMLElement): voi
         veKhoa();
       }, den ?? undefined)
     : h("p", { class: "dp-sheet-text" }, "Ngày này chưa có chuyến nào lên kế hoạch — tạo chuyến trước.");
-  const oSo = h("input", { id: "dp-xep-so", class: "vc-input", type: "number", inputmode: "numeric", min: 1, max: conLai, value: String(conLai), "aria-describedby": "dp-xep-so-hint" });
+  const oSo = h("input", { id: "dp-xep-so", class: "o", type: "number", inputmode: "numeric", min: 1, max: conLai, value: String(conLai), "aria-describedby": "dp-xep-so-hint" });
   oSo.addEventListener("input", () => {
     so = Number(oSo.value);
   });
@@ -718,7 +717,7 @@ function moTaoChuyen(o: { opener: HTMLElement | null; onTao: (r: ChuyenChiTietRe
     h("div", { class: "vc-field" }, h("label", { for: id }, nhan), el, goiY, loiEl);
   const loiChung = h("div", { class: "vc-field-error", role: "alert", hidden: true });
 
-  const selXe = h("select", { id: "dp-tao-xe", class: "vc-input", "aria-describedby": "dp-tao-xe-error" },
+  const selXe = h("select", { id: "dp-tao-xe", class: "o", "aria-describedby": "dp-tao-xe-error" },
     h("option", { value: "" }, "Chọn xe"),
     ...l.xe.map((x) => h("option", { value: x.id, disabled: x.trangThai !== "active" }, `${x.bienSo} · ${x.soCho} chỗ · ${x.chuLaCongTy ? "xe công ty" : x.chuXe}${x.trangThai !== "active" ? " · đang bảo dưỡng" : ""}`)));
   const loiXe = oLoi("dp-tao-xe");
@@ -735,7 +734,7 @@ function moTaoChuyen(o: { opener: HTMLElement | null; onTao: (r: ChuyenChiTietRe
   const ban = new Map<string, string[]>();
   for (const k of banTx?.khung ?? []) ban.set(k.taiXeId, [...(ban.get(k.taiXeId) ?? []), k.nhan]);
   const opt = (t: TaiXeChonDto) => h("option", { value: t.partyId }, ban.has(t.partyId) ? `${t.ten} · Bận ${ban.get(t.partyId)!.join(", ")}` : t.ten);
-  const selTx = h("select", { id: "dp-tao-tai-xe", class: "vc-input", "aria-describedby": "dp-tao-tai-xe-error" },
+  const selTx = h("select", { id: "dp-tao-tai-xe", class: "o", "aria-describedby": "dp-tao-tai-xe-error" },
     h("option", { value: "" }, "Chọn tài xế"),
     congTy.length ? h("optgroup", { label: "Tài xế công ty" }, ...congTy.map(opt)) : null,
     ...[...nhaXe.entries()].map(([n, ds]) => h("optgroup", { label: `Nhà xe ${n}` }, ...ds.map(opt))));
@@ -744,8 +743,8 @@ function moTaoChuyen(o: { opener: HTMLElement | null; onTao: (r: ChuyenChiTietRe
     st.tx = selTx.value;
     baoLoi(selTx, loiTx, []);
   });
-  const oTu = h("input", { id: "dp-tao-tu", class: "vc-input", type: "time", "aria-describedby": "dp-tao-tu-error" });
-  const oDen = h("input", { id: "dp-tao-den", class: "vc-input", type: "time", "aria-describedby": "dp-tao-den-hint dp-tao-den-error" });
+  const oTu = h("input", { id: "dp-tao-tu", class: "o", type: "time", "aria-describedby": "dp-tao-tu-error" });
+  const oDen = h("input", { id: "dp-tao-den", class: "o", type: "time", "aria-describedby": "dp-tao-den-hint dp-tao-den-error" });
   const loiTu = oLoi("dp-tao-tu");
   const loiDen = oLoi("dp-tao-den");
   const goiYDen = h("div", { id: "dp-tao-den-hint", class: "vc-hint" });
@@ -761,8 +760,8 @@ function moTaoChuyen(o: { opener: HTMLElement | null; onTao: (r: ChuyenChiTietRe
     veGoiY();
   });
 
-  const chinh = h("button", { type: "button", class: "vc-btn btn btn-accent", "data-action": "tao-chuyen-gui" }, "Tạo chuyến");
-  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
+  const chinh = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-action": "tao-chuyen-gui" }, "Tạo chuyến");
+  const dong = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Đóng");
   const bang = moBangTruot({
     title: `Chuyến mới · ${ngayNgan(ngay, homNay)}`,
     body: [

@@ -1,24 +1,30 @@
 // Chi tiết xe + giấy tờ xe (/xe-chi-tiet?id=<xe> — ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/03 Chi tiet xe.dc.html).
-// Giấy tờ xếp đã hết hạn → sắp hết hạn → còn hạn → không hạn (quyết định thiết kế 3); "Lịch sử (N)" mở ngay dưới dòng (dòng cũ nền xám + "Đã thay"); "Gia hạn" =
-// dòng mới, "Sửa sai" = lý do bắt buộc (danh sách đóng của máy chủ, chỉ lý do dùng cho xe). Điện thoại: danh sách + "Thêm giấy tờ" dính đáy; máy tính (≥900px):
-// bảng, nút ở đầu thẻ. Xe đã ngừng: không thêm, không gia hạn (máy chủ trả 409 vehicle_retired) — vẫn sửa sai được. Số giấy tờ XE hiện đủ (không phải dữ liệu
-// cá nhân — giả định G4 của kế hoạch). GET /api/van-chuyen/xe/:id + /api/van-chuyen/meta (loại giấy tờ, mốc nhắc).
+// Giấy tờ xếp đã hết hạn → sắp hết hạn → còn hạn → không hạn (quyết định thiết kế 3); "Lịch sử (N)" mở ngay dưới dòng (dòng cũ + "Đã thay"); "Gia hạn" =
+// dòng mới, "Sửa sai" = lý do bắt buộc (danh sách đóng của máy chủ, chỉ lý do dùng cho xe). Xe đã ngừng: không thêm, không gia hạn (máy chủ trả 409
+// vehicle_retired) — vẫn sửa sai được. Số giấy tờ XE hiện đủ (không phải dữ liệu cá nhân — giả định G4 của kế hoạch). GET /api/van-chuyen/xe/:id +
+// /api/van-chuyen/meta (loại giấy tờ, mốc nhắc).
+// Bố cục: khuôn Chi tiết của khung gốc giao diện (ADR-0222) bằng hàm của web/khung.ts, xếp dọc một cột (không hai cột: khối giấy tờ cần kín bề ngang để
+// từ 800 hiện bảng — người điều phối quyết 24/11). Thứ tự trong mã là thứ tự của điện thoại: khối «tóm tắt xe», khối «Giấy tờ xe», thanh việc (vùng nội
+// dung từ 560 lên đầu trang: «Thêm giấy tờ», «Sửa thông tin xe»), «Thêm giấy tờ» dính đáy ở điện thoại. Khối giấy tờ rộng từ 800 hiện bảng, hẹp hơn hiện
+// danh sách dòng (do tệp kiểu quyết theo bề rộng khối).
 import { chipHan, lichSuCua, loaiThemDuocChoXe, ngayVN, tenXe, tomTatGiayToXe, xepTheoHan } from "../src/shared/giay-to-hien-thi";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { alertEl, chipEl, chipTrangThaiXe, datCrumb, loiCua, moFormGiayTo, type GiayToDong } from "./giay-to-ui";
 import { icon } from "./icons";
+import { cap, khoi, luoi, thanhViec } from "./khung";
 import { TRANG } from "../src/shared/muc-giao-dien";
 import { initShell, showError } from "./shell";
 import { trangThaiToanTrang } from "./trang-thai-he-thong";
 
 const errorEl = byId("error");
-const headEl = byId("xe-head");
-const retiredEl = byId("xe-retired");
+const vungEl = byId("xe");
 const wrapEl = byId("docs-wrap");
-const listEl = byId("docs-list");
+const retiredEl = byId("xe-retired");
 const tableEl = byId("docs-table");
-const bottomEl = byId("xe-bottom");
+const rowsEl = byId("docs-rows");
+const listEl = byId("docs-list");
+const bottomEl = byId("xe-bottom"); // thanh dính đáy viết sẵn trong trang (như web/xe-sua.ts); mỗi lần vẽ được đặt lại cuối vùng vẽ
 const themDay = byId<HTMLButtonElement>("add-doc-bottom");
 const id = new URLSearchParams(location.search).get("id") ?? "";
 const url = `/api/van-chuyen/xe/${encodeURIComponent(id)}`;
@@ -56,15 +62,20 @@ function moBang(kind: "add" | "renew" | "fix", opener: HTMLElement, d?: Api.Vehi
   });
 }
 
-function nut(chu: string, lop: string, bam: (b: HTMLButtonElement) => void): HTMLButtonElement {
-  const b = h("button", { type: "button", class: `vc-btn ${lop}` }, chu);
-  b.addEventListener("click", () => bam(b));
-  return b;
+/** Hai nút của một giấy tờ («Sửa sai», «Gia hạn»); xe đã ngừng hoặc giấy không hạn thì không có «Gia hạn». */
+function nutDong(d: Api.VehicleDocumentDto, ngung: boolean): HTMLButtonElement[] {
+  const suaSai = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Sửa sai");
+  suaSai.addEventListener("click", () => moBang("fix", suaSai, d));
+  if (!d.expiryDate || ngung) return [suaSai];
+  const giaHan = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Gia hạn");
+  giaHan.addEventListener("click", () => moBang("renew", giaHan, d));
+  return [suaSai, giaHan];
 }
 
-function nutLichSu(d: Api.VehicleDocumentDto, soDong: number, lop = "vc-btn vc-btn-text vc-hist-toggle"): HTMLButtonElement {
+/** Nút «Lịch sử (N)» mở / đóng các dòng cũ ngay dưới giấy tờ (chữ có số đếm nên không viết liền được). */
+function nutLichSu(d: Api.VehicleDocumentDto, soDong: number): HTMLButtonElement {
   const mo = moLichSu.has(d.id);
-  const b = h("button", { type: "button", class: lop, "aria-expanded": String(mo), "data-hist-for": d.id }, `Lịch sử (${soDong})`, icon("chevron-down", 16, 2));
+  const b = h("button", { type: "button", class: "nut", "data-cap": "loi", "aria-expanded": String(mo), "data-hist-for": d.id }, `Lịch sử (${soDong})`, icon("chevron-down", 16, 2));
   b.addEventListener("click", () => {
     if (moLichSu.has(d.id)) moLichSu.delete(d.id);
     else moLichSu.add(d.id);
@@ -75,114 +86,120 @@ function nutLichSu(d: Api.VehicleDocumentDto, soDong: number, lop = "vc-btn vc-b
   return b;
 }
 
+const DA_THAY = { tone: "muted", text: "Đã thay", icon: false } as const;
+
 function ve(): void {
   const ngung = xe.status === "retired";
   const hienHanh = xepTheoHan(docs.filter((d) => d.current && !d.voided));
   const tomTat = tomTatGiayToXe(hienHanh, meta.warnDays);
   const sua = `/xe-sua?id=${encodeURIComponent(xe.id)}`;
-  const themTren = nut("Thêm giấy tờ", "btn btn-primary", (b) => moBang("add", b));
-  themTren.prepend(icon("plus", 18));
   // ADR-0056 VK3-B: xe đã có đủ các loại đang dùng thì không còn gì để "Thêm" — nút tắt, chữ nói rõ phải làm gì (máy chủ vẫn chặn 409).
   const duLoai = loaiThemDuocChoXe(meta.documentTypes, docs).length === 0;
-  const ghiChuDu = "Xe đã có đủ các loại giấy tờ — dùng Gia hạn hoặc Sửa sai.";
+  const themTren = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-chi": "rong" }, "Thêm giấy tờ");
+  themTren.prepend(icon("plus", 18));
+  themTren.addEventListener("click", () => moBang("add", themTren));
   themTren.disabled = duLoai;
   themDay.disabled = duLoai;
-  bottomEl.querySelector(".dp-note")?.remove();
-  if (duLoai) bottomEl.append(h("span", { class: "dp-note" }, ghiChuDu));
-  replaceChildren(
-    headEl,
-    h(
-      "div",
-      { class: "vc-xe-head-main" },
-      h("div", { class: "vc-row-between" }, h("h1", { class: "vc-plate" }, xe.plateNumber), chipTrangThaiXe(xe.status)),
-      h("div", { class: "vc-xe-sub" }, `${tenXe(xe)} · ${xe.passengerCapacity} người `, h("span", { class: "muted" }, "(không kể tài xế)")),
-      h("div", { class: "vc-xe-sub" }, `Chủ xe: ${xe.ownerName}`), // ADR-0048 D1 (Task B3): công ty chủ hoặc nhà xe đối tác
-      h("a", { class: "vc-link-edit", href: sua }, "Sửa thông tin xe"),
-    ),
-    h("div", { class: "vc-xe-head-actions" }, h("a", { class: "vc-btn vc-btn-ghost-primary", href: sua }, "Sửa thông tin xe"), ngung ? null : themTren, ngung || !duLoai ? null : h("span", { class: "dp-note" }, ghiChuDu)),
-    alertEl(tomTat.tone, tomTat.text),
-  );
-  headEl.hidden = false;
   retiredEl.hidden = !ngung;
-  bottomEl.hidden = ngung;
 
-  // Điện thoại (<900px): mỗi giấy một khối — loại + chip, dòng "Số · cấp · hết hạn", nút Gia hạn / Sửa sai / Lịch sử.
-  const khoi = hienHanh.map((d) => {
+  // Thanh việc: nút chính đứng đầu, «Sửa thông tin xe» cạnh nó; câu «đủ loại» một hàng riêng. Ở điện thoại hai nút của thanh này ẩn (bản thứ hai của chúng:
+  // «Thêm giấy tờ» dính đáy, «Sửa thông tin xe» cuối khối tóm tắt) — chỉ câu «đủ loại» còn hiện, đứng ngay trên nút dính đáy.
+  const coCauDu = !ngung && duLoai;
+  const viec = thanhViec(
+    { id: "xe-viec", "data-len-dau": "", "data-chi": coCauDu ? undefined : "rong" },
+    ngung ? null : themTren,
+    h("a", { class: "nut", "data-cap": "phu", "data-chi": "rong", href: sua }, "Sửa thông tin xe"),
+    coCauDu ? h("p", { class: "khoi-mo-ta" }, "Xe đã có đủ các loại giấy tờ — dùng Gia hạn hoặc Sửa sai.") : null,
+  );
+
+  // Khối tóm tắt xe: các cặp nhãn – giá trị trên lưới hai nửa (khối hẹp thì một cột), rồi tình trạng giấy tờ.
+  const nua = { thuoc: { "data-cot": 6 } };
+  const tomTatXe = khoi(
+    { thuoc: { id: "xe-head" } },
+    luoi(
+      null,
+      cap("Biển số", xe.plateNumber, nua),
+      cap("Trạng thái", chipTrangThaiXe(xe.status), nua),
+      cap("Tên / đời xe", tenXe(xe), nua),
+      cap("Số người", `${xe.passengerCapacity} người (không kể tài xế)`, nua),
+      cap("Chủ xe", xe.ownerName, nua), // ADR-0048 D1 (Task B3): công ty chủ hoặc nhà xe đối tác
+    ),
+    alertEl(tomTat.tone, tomTat.text),
+    h("div", { class: "hang", "data-chi": "hep" }, h("a", { class: "nut", "data-cap": "phu", href: sua }, "Sửa thông tin xe")),
+  );
+
+  // Khối hẹp hơn 800 (điện thoại, máy tính bảng): mỗi giấy một dòng — loại + chip, dòng "Số · cấp · hết hạn", lịch sử mở ngay dưới; nút cuối dòng.
+  const dong = hienHanh.map((d) => {
     const cu = lichSuCua(d, docs);
-    const dong = [d.number ? `Số ${d.number}` : null, d.issuedDate ? `cấp ${ngayVN(d.issuedDate)}` : null, d.expiryDate ? `hết hạn ${ngayVN(d.expiryDate)}` : "không hạn"].filter(Boolean).join(" · ");
+    const phu = [d.number ? `Số ${d.number}` : null, d.issuedDate ? `cấp ${ngayVN(d.issuedDate)}` : null, d.expiryDate ? `hết hạn ${ngayVN(d.expiryDate)}` : "không hạn"].filter(Boolean).join(" · ");
     return h(
       "div",
-      { class: "vc-doc" },
-      h("div", { class: "vc-doc-top" }, h("span", { class: "vc-doc-title" }, d.typeName), chipEl(chipHan(d.daysLeft, meta.warnDays))),
-      h("div", { class: "vc-doc-line" }, dong),
+      { class: "dong", "data-giay-to": d.typeCode },
       h(
         "div",
-        { class: "vc-doc-btns" },
-        d.expiryDate && !ngung ? nut("Gia hạn", "vc-btn-line", (b) => moBang("renew", b, d)) : null,
-        nut("Sửa sai", "vc-btn-ghost", (b) => moBang("fix", b, d)),
-        cu.length ? nutLichSu(d, cu.length) : null,
-      ),
-      moLichSu.has(d.id) && cu.length
-        ? h(
-            "div",
-            { class: "vc-hist" },
-            ...cu.map((o) =>
-              h(
-                "div",
-                { class: "vc-hist-row" },
-                h("span", null, `${o.number ? `${o.number} · ` : ""}${o.issuedDate ? ngayVN(o.issuedDate) : "—"} → ${o.expiryDate ? ngayVN(o.expiryDate) : "không hạn"}`),
-                h("span", { class: "vc-pill-old" }, "Đã thay"),
+        { class: "dong-chu" },
+        h("div", null, h("strong", null, d.typeName), " ", chipEl(chipHan(d.daysLeft, meta.warnDays))),
+        h("span", { class: "o-phu" }, phu),
+        cu.length ? h("div", null, nutLichSu(d, cu.length)) : null,
+        moLichSu.has(d.id) && cu.length
+          ? h(
+              "div",
+              { class: "vc-hist" },
+              ...cu.map((o) =>
+                h(
+                  "div",
+                  { class: "vc-hist-row" },
+                  h("span", null, `${o.number ? `${o.number} · ` : ""}${o.issuedDate ? ngayVN(o.issuedDate) : "—"} → ${o.expiryDate ? ngayVN(o.expiryDate) : "không hạn"}`),
+                  chipEl(DA_THAY),
+                ),
               ),
-            ),
-          )
-        : null,
+            )
+          : null,
+      ),
+      h("div", { class: "hang" }, ...nutDong(d, ngung)), // hai nút đi cùng nhau: dòng chật thì cả cụm xuống dưới chữ
     );
   });
-  const trong = h("p", { class: "vc-empty-line" }, "Chưa có giấy tờ nào.");
-  replaceChildren(listEl, ...(khoi.length ? khoi : [trong]));
+  replaceChildren(listEl, ...dong);
 
-  // Máy tính (≥900px): bảng LOẠI · SỐ · NGÀY CẤP | HẾT HẠN | CÒN | nút; dòng cũ mở ngay dưới dòng.
+  // Khối từ 800: bảng Loại · số · ngày cấp | Hết hạn | Còn | nút; dòng cũ mở ngay dưới dòng.
   replaceChildren(
-    tableEl,
-    h("div", { class: "vc-dt-grid vc-dt-head vc-th", "aria-hidden": "true" }, h("span", null, "LOẠI · SỐ · NGÀY CẤP"), h("span", null, "HẾT HẠN"), h("span", null, "CÒN"), h("span", null, "")),
-    ...(hienHanh.length
-      ? hienHanh.map((d) => {
-          const cu = lichSuCua(d, docs);
-          const phu = [d.number ? `Số ${d.number}` : null, d.issuedDate ? `cấp ${ngayVN(d.issuedDate)}` : null].filter(Boolean).join(" · ") || "—";
-          return h(
-            "div",
-            { class: "vc-dt-item" },
-            h(
-              "div",
-              { class: "vc-dt-grid vc-dt-row" },
-              // "Lịch sử (N)" dưới tên loại (bản vẽ đặt ở cột nút rộng 250px — ba nút không vừa, chữ nút gãy dòng; ghi ở nhật ký thi công).
-              h("span", { class: "vc-dt-type" }, h("span", { class: "vc-doc-title" }, d.typeName), h("span", { class: "vc-doc-sub" }, phu), cu.length ? nutLichSu(d, cu.length, "vc-reveal-link vc-hist-toggle") : null),
-              h("span", { class: "vc-dt-exp" }, d.expiryDate ? ngayVN(d.expiryDate) : "Không hạn"),
-              h("span", null, chipEl(chipHan(d.daysLeft, meta.warnDays))),
+    rowsEl,
+    ...hienHanh.flatMap((d) => {
+      const cu = lichSuCua(d, docs);
+      const phu = [d.number ? `Số ${d.number}` : null, d.issuedDate ? `cấp ${ngayVN(d.issuedDate)}` : null].filter(Boolean).join(" · ") || "—";
+      return [
+        h(
+          "tr",
+          { "data-giay-to": d.typeCode },
+          h("td", null, d.typeName, h("span", { class: "o-phu" }, phu), cu.length ? nutLichSu(d, cu.length) : null),
+          h("td", { "data-gon": "" }, d.expiryDate ? ngayVN(d.expiryDate) : "Không hạn"),
+          h("td", null, chipEl(chipHan(d.daysLeft, meta.warnDays))),
+          h("td", null, h("div", { class: "hang" }, ...nutDong(d, ngung))),
+        ),
+        ...(moLichSu.has(d.id)
+          ? cu.map((o) =>
               h(
-                "span",
-                { class: "vc-dt-actions" },
-                nut("Sửa sai", "vc-btn-ghost", (b) => moBang("fix", b, d)),
-                d.expiryDate && !ngung ? nut("Gia hạn", "vc-btn-line", (b) => moBang("renew", b, d)) : null,
+                "tr",
+                { "data-dong-cu": "" },
+                h("td", null, h("span", { class: "o-phu" }, `↳ Dòng cũ · ${o.number ?? "—"} · cấp ${o.issuedDate ? ngayVN(o.issuedDate) : "—"}`)),
+                h("td", { "data-gon": "" }, h("span", { class: "o-phu" }, o.expiryDate ? ngayVN(o.expiryDate) : "Không hạn")),
+                h("td", null, chipEl(DA_THAY)),
+                h("td", null),
               ),
-            ),
-            ...(moLichSu.has(d.id)
-              ? cu.map((o) =>
-                  h(
-                    "div",
-                    { class: "vc-dt-grid vc-dt-hist" },
-                    h("span", null, `↳ Dòng cũ · ${o.number ?? "—"} · cấp ${o.issuedDate ? ngayVN(o.issuedDate) : "—"}`),
-                    h("span", null, o.expiryDate ? ngayVN(o.expiryDate) : "Không hạn"),
-                    h("span", null, h("span", { class: "vc-pill-old" }, "Đã thay")),
-                    h("span", null),
-                  ),
-                )
-              : []),
-          );
-        })
-      : [h("p", { class: "vc-empty-line" }, "Chưa có giấy tờ nào.")]),
+            )
+          : []),
+      ];
+    }),
   );
+  // Chưa có giấy tờ: ẩn cả bảng lẫn danh sách dòng, một câu rỗng trong khối (đúng ở mọi bề rộng khối).
+  tableEl.hidden = hienHanh.length === 0;
+  listEl.hidden = hienHanh.length === 0;
+  wrapEl.querySelector(":scope > p.rong")?.remove();
+  if (hienHanh.length === 0) wrapEl.append(h("p", { class: "rong" }, "Chưa có giấy tờ nào."));
   wrapEl.hidden = false;
+
+  bottomEl.hidden = ngung;
+  replaceChildren(vungEl, h("h1", null, xe.plateNumber), tomTatXe, wrapEl, viec, bottomEl);
 }
 
 async function napLai(): Promise<void> {

@@ -1,0 +1,150 @@
+{
+  "ghiChu": "20 màn của đợt B khung gốc (15 trang Tài xế và Vận chuyển), số màn giữ theo bảng 20/11 và bang-man-them.json của lượt 24/11. Điều phối xe mở ngày 13/11 (ngày duy nhất của kho thử có chuyến đang chạy); Xe đang chạy chụp với đồng hồ trang đặt về 13/11 10:00 giờ Việt Nam (trang này chỉ đọc lịch hôm qua, hôm nay, ngày mai theo đồng hồ máy). Màn 30b giữ ngày hôm nay để có mẫu trạng thái rỗng.",
+  "man": [
+    {
+      "so": 25,
+      "bo": "DRIVER",
+      "trang": "/tai-xe",
+      "ho": "B1 tài xế"
+    },
+    {
+      "so": 27,
+      "bo": "DRIVER_PARTNER",
+      "trang": "/tai-xe",
+      "ho": "B1 tài xế"
+    },
+    {
+      "so": 9,
+      "bo": "DRIVER",
+      "trang": "/cuoc",
+      "ho": "B1 tài xế"
+    },
+    {
+      "so": 10,
+      "bo": "DRIVER_PARTNER",
+      "trang": "/cuoc",
+      "ho": "B1 tài xế"
+    },
+    {
+      "so": 26,
+      "bo": "DRIVER",
+      "trang": "/cuoc-chuyen?id=a392dfae-6448-4fb4-a78d-782728ee4105",
+      "ho": "B1 tài xế"
+    },
+    {
+      "so": 28,
+      "bo": "DRIVER_PARTNER",
+      "trang": "/cuoc-chuyen?id=4d6060c7-83ef-454b-8395-b3ad5f7cbe76",
+      "ho": "B1 tài xế"
+    },
+    {
+      "so": 29,
+      "bo": "DRIVER_PARTNER",
+      "trang": "/ban",
+      "ho": "B1 tài xế"
+    },
+    {
+      "so": 30,
+      "bo": "ADMIN",
+      "trang": "/dieu-phoi?ngay=2026-11-13",
+      "ho": "B2 văn phòng",
+      "rongThem": [
+        1024
+      ]
+    },
+    {
+      "so": 300,
+      "bo": "ADMIN",
+      "trang": "/dieu-phoi",
+      "ho": "B2 văn phòng (rỗng)"
+    },
+    {
+      "so": 31,
+      "bo": "SALES",
+      "trang": "/dieu-phoi?ngay=2026-11-13",
+      "ho": "B2 văn phòng"
+    },
+    {
+      "so": 124,
+      "bo": "SUPER_ADMIN",
+      "trang": "/dieu-phoi?ngay=2026-11-13",
+      "ho": "B2 văn phòng"
+    },
+    {
+      "so": 32,
+      "bo": "ADMIN",
+      "trang": "/chuyen?id=4d6060c7-83ef-454b-8395-b3ad5f7cbe76",
+      "ho": "B2 văn phòng"
+    },
+    {
+      "so": 33,
+      "bo": "ADMIN",
+      "trang": "/chuyen-sua?id=4d6060c7-83ef-454b-8395-b3ad5f7cbe76",
+      "ho": "B2 văn phòng"
+    },
+    {
+      "so": 34,
+      "bo": "ADMIN",
+      "trang": "/xe-dang-chay",
+      "ho": "B2 văn phòng",
+      "gio": "2026-11-13T10:00:00+07:00"
+    },
+    {
+      "so": 35,
+      "bo": "ADMIN",
+      "trang": "/de-nghi",
+      "ho": "B2 văn phòng",
+      "rongThem": [
+        1440
+      ]
+    },
+    {
+      "so": 36,
+      "bo": "ADMIN",
+      "trang": "/xe",
+      "ho": "B2 văn phòng",
+      "rongThem": [
+        1440
+      ]
+    },
+    {
+      "so": 37,
+      "bo": "ADMIN",
+      "trang": "/xe-chi-tiet?id=b297adae-d7e8-46f9-a84a-c616b73bb58a",
+      "ho": "B2 văn phòng"
+    },
+    {
+      "so": 39,
+      "bo": "ADMIN",
+      "trang": "/lich-xe-ban",
+      "ho": "B2 văn phòng",
+      "rongThem": [
+        1440
+      ]
+    },
+    {
+      "so": 40,
+      "bo": "ADMIN",
+      "trang": "/giay-to-sap-het-han",
+      "ho": "B2 văn phòng",
+      "rongThem": [
+        1440
+      ]
+    },
+    {
+      "so": 41,
+      "bo": "ACCOUNTING",
+      "trang": "/bang-gia-xe",
+      "ho": "B2 văn phòng"
+    },
+    {
+      "so": 42,
+      "bo": "ACCOUNTING",
+      "trang": "/bang-ke-xe",
+      "ho": "B2 văn phòng",
+      "rongThem": [
+        1440
+      ]
+    }
+  ]
+}

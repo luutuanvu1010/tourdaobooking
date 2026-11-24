@@ -1,0 +1,18 @@
+[
+  { "khoa": "tai-xe", "tk": "taixe", "trang": "/tai-xe" },
+  { "khoa": "cuoc", "tk": "taixe", "trang": "/cuoc" },
+  { "khoa": "cuoc-chuyen", "tk": "taixe", "trang": "/cuoc-chuyen?id=a392dfae-6448-4fb4-a78d-782728ee4105" },
+  { "khoa": "cuoc-chuyen-dt", "tk": "taixedt", "trang": "/cuoc-chuyen?id=4d6060c7-83ef-454b-8395-b3ad5f7cbe76" },
+  { "khoa": "ban", "tk": "taixedt", "trang": "/ban" },
+  { "khoa": "dieu-phoi", "tk": "quantri", "trang": "/dieu-phoi?ngay=2026-11-13" },
+  { "khoa": "chuyen", "tk": "quantri", "trang": "/chuyen?id=4d6060c7-83ef-454b-8395-b3ad5f7cbe76" },
+  { "khoa": "chuyen-sua", "tk": "quantri", "trang": "/chuyen-sua?id=4d6060c7-83ef-454b-8395-b3ad5f7cbe76" },
+  { "khoa": "xe-dang-chay", "tk": "quantri", "trang": "/xe-dang-chay" },
+  { "khoa": "de-nghi", "tk": "quantri", "trang": "/de-nghi" },
+  { "khoa": "xe", "tk": "quantri", "trang": "/xe" },
+  { "khoa": "xe-chi-tiet", "tk": "quantri", "trang": "/xe-chi-tiet?id=b297adae-d7e8-46f9-a84a-c616b73bb58a" },
+  { "khoa": "lich-xe-ban", "tk": "quantri", "trang": "/lich-xe-ban" },
+  { "khoa": "giay-to-sap-het-han", "tk": "quantri", "trang": "/giay-to-sap-het-han" },
+  { "khoa": "bang-gia-xe", "tk": "ketoan", "trang": "/bang-gia-xe" },
+  { "khoa": "bang-ke-xe", "tk": "ketoan", "trang": "/bang-ke-xe" }
+]
