@@ -2,7 +2,24 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.42 ĐÃ LÊN PRODUCTION (gồm 3.41 việc 9 phần (d): màn Quét vé không tự tải lại trang khi máy chủ phát lại «lần quét trước đã được ghi»; và 3.42 việc 15: tên «Nhà cung cấp» thay «Người bán dịch vụ», luật chia phần quầy nhà cung cấp đọc `supplier_party_id` từ bản chụp đơn, chặn ngừng dòng «Mọi dịch vụ», đổi công ty chủ không biến công ty cũ thành nhà cung cấp) — không migration — triển khai 2026-11-24 07:59 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.43 ĐÃ LÊN PRODUCTION (ADR-0234 đợt gốc ngôn ngữ thị giác: khối phẳng không bóng, tiền một màu mực, nút phụ nền trắng, dải nhắc đầu trang nền trắng vạch màu, một họ phông và sáu cỡ chữ, mức «gọn» cho bảng Danh sách ở máy tính có chuột; mặc định núm «Nền trang», «Viền», «Phông tiêu đề» đổi) — không migration — triển khai 2026-11-24 15:03 giờ Việt Nam
+
+Ghi bởi phiên thi công đợt gốc, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ.
+
+- Ngày giờ: 2026-11-24 15:03 (giờ Việt Nam)
+- Commit: 5c6c391f4 Sổ việc khung gốc: ghi kết quả đợt gốc ngôn ngữ thị giác
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-24T08:02:14Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45351692734
+- Tệp luật đã đổi — lý do của chủ: Thêm ADR-0234 ngôn ngữ thị giác, chủ đã duyệt 24/11 (docs/adr/ADR-0234-ngon-ngu-thi-giac.md; docs/adr/README.md)
+- Migration đã áp: không có
+- Worker Version ID: c8ed15f5-4e15-45f6-aa98-dee507cab008
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (3 cảnh báo)
+- Phiên bản: 3.43; cổng phiên bản trước và sau deploy: ĐẠT
+- Thời gian: day-len 7 phút 44 giây; trien-khai 0 phút 37 giây; TỔNG 8 phút 21 giây
+- Kiểm sau triển khai (GET công khai `/app.css` và `/giao-dien.css`, 24/11 ~15:05): tệp kiểu mới (`--c-surface-alt: #f4f6f8`, 24 chỗ ghi ADR-0234); bộ núm của chủ giữ nguyên (Noto Sans, 500/600).
+- Chưa làm (để đợt khung gốc A tới F): nút việc chính duy nhất ở Hỗ trợ và màn tài xế đang là nút viền trắng; 21 nút lệch bảng động từ → cấp nút; chữ đậm trong ruột trang. Chưa thử iPhone thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.42 ĐÃ LÊN PRODUCTION (gồm 3.41 việc 9 phần (d): màn Quét vé không tự tải lại trang khi máy chủ phát lại «lần quét trước đã được ghi»; và 3.42 việc 15: tên «Nhà cung cấp» thay «Người bán dịch vụ», luật chia phần quầy nhà cung cấp đọc `supplier_party_id` từ bản chụp đơn, chặn ngừng dòng «Mọi dịch vụ», đổi công ty chủ không biến công ty cũ thành nhà cung cấp) — không migration — triển khai 2026-11-24 07:59 giờ Việt Nam
 
 Ghi bởi phiên điều phối kế hoạch 16 việc, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ. Bản 3.41 không triển khai riêng: lên cùng lượt với 3.42.
 
