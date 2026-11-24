@@ -55,6 +55,9 @@
 - Chép lại kho dữ liệu giả của máy thử trước lượt ảnh cuối (lượt bấm thử Địa điểm đã thêm một địa điểm và một khu vực thử).
 - Bước 4.
 
+- **Đợt B (15 trang Tài xế và Vận chuyển, 24/11, chạy song song đợt A theo lời chủ):** bản làm việc `claude/khung-goc-dot-b-18ab84`; hồ sơ `docs/evidence/2026-11-24-khung-goc-dot-b/` (kịch bản chụp, bảng màn, bảng đo); ảnh và số đo ngoài kho `~/tourdao-dot-b-2026-11-24/` (kho dữ liệu thử riêng, cổng 8871). **Lệch cách làm (bề mặt, ghi một lần):** ảnh đề xuất dựng từ bản nháp mã trên bản làm việc riêng (chưa nhập, chưa triển khai) thay cho lớp tiêm tạm, để thứ chủ duyệt là đúng thứ thi công; ảnh «hiện tại» chụp từ bản dựng gốc trước khi sửa. Khuôn Tổng quan dùng lần đầu: thêm một khối luật chỉ dưới `body[data-khung-goc="tong-quan"]` ở cuối phần khung, cộng ba luật bổ sung cho mọi trang đã chuyển (dòng là liên kết `a.dong`, huy hiệu cũ `.chip`/`.vc-chip` chữ thường, câu chính của `.rong` chữ thường) — báo đợt A khi gộp. Trạng thái: chờ chủ duyệt trang ảnh `https://claude.ai/artifact/FKmTm7cr5hZuPM9aH16G6F` (ba điều: hình khuôn Tổng quan, hình 15 màn, cho máy đếm nút nền đặc bỏ qua dòng thời gian Điều phối xe). Trợ lý chấm giao diện chấm một lượt (một Nặng: dòng thời gian bị ép hẹp — đã sửa bằng lưới 4/8). Chưa: gỡ tên khỏi danh sách chưa chuyển, hạ trần, dọn kiểu cũ, dòng `BANG_CI`, kịch bản bấm thử, người kiểm độc lập.
+- **Việc chung để sau (không làm trong đợt B):** dáng ô chọn (mũi tên của trình duyệt còn); hàng trang anh em (`web/dai-trang-anh-em.ts`) và hàng thẻ `.tab-phu` hai dáng khác nhau; khối kiểu bảng chứa `.ds-dong` mà không có đầu khối thì dòng đầu dính mép trên.
+
 ## Ghi chú kỹ thuật
 
 - Đo vùng chứa: `main` là vùng «trang», mỗi khối là vùng «khoi». Phần tử là vùng chứa thành khối chứa của con `position: fixed`: trang đã chuyển không đặt phần tử fixed trong `main`. Trình duyệt chưa hỗ trợ thì đứng ở bố cục hẹp nhất; **chưa thử iPhone đời cũ** (Đ6).
