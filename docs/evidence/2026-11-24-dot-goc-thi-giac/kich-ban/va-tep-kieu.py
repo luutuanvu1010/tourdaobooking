@@ -131,7 +131,7 @@ sua(".sidebar-item[aria-current=\"page\"] { color: var(--c-sidebar-text-on); fon
 # Dải nhắc: một dòng, nền trắng, một vạch màu bên trái nói mức độ; nút trong dải là lối chữ (nguyên tắc 5)
 sua(".dai { display: flex;", "color: var(--c-text-muted); background: var(--c-surface-alt);", "color: var(--c-text); background: var(--c-surface);")
 sua(".dai { display: flex;", "padding: var(--s2) var(--le-trang);", "padding: 0 var(--le-trang);")  # một dòng cao đúng 44 (vùng chạm của nút)
-sua(".dai { flex-wrap: nowrap;", "padding-top: var(--s1); padding-bottom: var(--s1);", "padding-top: 0; padding-bottom: 0;")
+sua(".dai { flex-wrap: nowrap;", " padding-top: var(--s1); padding-bottom: var(--s1);", "")  # dải gốc đã hết đệm dọc: hai khai báo này thừa (bù trần ADR-0222 Đ7a cho hai khai báo của chấm huy hiệu)
 sua(".dai[data-tong=\"bien\"] {", "color: var(--c-primary-strong); background: var(--c-primary-soft);", "box-shadow: inset var(--bw-indicator) 0 0 var(--c-primary);")
 sua(".dai[data-tong=\"cat\"] {", "color: var(--c-sand-text); background: var(--c-mat-mang-bg);", "box-shadow: inset var(--bw-indicator) 0 0 var(--c-sand);")
 sua(".dai[data-tong=\"do\"] {", "color: var(--c-danger); background: var(--c-danger-soft);", "box-shadow: inset var(--bw-indicator) 0 0 var(--c-danger);")
@@ -140,7 +140,7 @@ them_sau(".dai[data-tong=\"do\"] {", [
 ])
 sua(".dai-cau { display: -webkit-box;", "display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;", "display: block; overflow: hidden;")
 sua(".dai-cau { flex: 1;", "overflow-wrap: anywhere; font-weight: var(--fw-semibold);", "overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: var(--fw-regular);")
-sua(".dai .nut { flex: none;", "min-height: var(--h-control); }", "min-height: var(--h-control); padding-inline: var(--s2); color: var(--c-primary); background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: var(--s1); }")
+sua(".dai .nut { flex: none;", "min-height: var(--h-control); }", "min-height: var(--h-control); color: var(--c-primary); background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: var(--s1); }")
 
 # ---------- 4. Thành phần chung v2 và khung gốc ----------
 sua(".nut[data-cap=\"phu\"] {", "border-color: var(--c-btn-soft-bg);", "border-color: var(--c-btn-soft-border);")
