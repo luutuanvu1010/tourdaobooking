@@ -22,7 +22,7 @@ Bản được đo: bản chính `277fe8e12` (bản 3.42). **Không chạm bản
 | `do-thi-giac.js` | đoạn đo chạy trong trang: màu, cỡ chữ, độ đậm, giãn dòng, bo góc, viền, bóng, khoảng cách ngoài thang, tương phản, vùng chạm, dáng nút, thẻ, ô nhập, huy hiệu, biểu tượng, cách viết tiền, chuyển động, khung chung, tràn ngang |
 | `doc-token.mjs` | đọc tên và giá trị hiệu lực của mọi token ở gốc (để trình duyệt tự giải) |
 | `tong-hop.mjs` | gom số đo thành `so-lieu-may-<bộ>.md` (máy sinh) |
-| `trang-thai.mjs` | chụp 39 ảnh trạng thái: đang tải, rỗng, lỗi, không quyền, bảng trượt, hộp hỏi, bàn phím (xấp xỉ), tiêu điểm, rê chuột; mọi lời gọi ghi bị chặn trong trang |
+| `trang-thai.mjs` | chụp 38 ảnh trạng thái: đang tải, rỗng, lỗi, không quyền, bảng trượt, hộp hỏi, bàn phím (xấp xỉ), tiêu điểm, rê chuột; mọi lời gọi ghi bị chặn trong trang |
 | `lap-to-anh.py` | ghép ảnh màn đầu thành tờ ảnh để nhìn xuyên các màn |
 | `lop-kieu/phuong-an-a.css`, `-b.css`, `-c.css` | lớp kiểu XEM TRƯỚC của ba phương án, tiêm chồng nhau (B = A + B, C = A + B + C); **không phải mã sản phẩm** |
 
@@ -32,6 +32,6 @@ Các lượt đã chạy: `hien-tai` (111 màn × 390, 1.280, 1.440), `do-lai` (
 
 - **Một tài khoản chỉ được đăng nhập một nơi.** Lượt đầu để mỗi luồng tự đăng nhập, Nền tảng kết thúc phiên cũ («Tài khoản vừa đăng nhập trên máy khác») và 46 màn bị đẩy về trang Đăng nhập; đã chụp lại. Kịch bản dùng chung tài khoản phải đọc `phien.json`, không đăng nhập lại.
 - Màn Tạo đơn giữ một dải trống ở đầu trang tới 8 giây: kịch bản chờ 9 giây rồi mới chụp.
-- Kho thử có một tin quan trọng chưa đọc và các tài khoản đang trong hạn nhắc bật bảo mật hai lớp, nên **mọi màn đều có một dải nhắc**. Tần suất dải nhắc trên bản chạy thật chưa đo.
+- Kho thử có một tin quan trọng chưa đọc và các tài khoản đang trong hạn nhắc bật bảo mật hai lớp, nên **phần lớn màn có một dải nhắc** (91 trên 111 màn ở điện thoại). Tần suất dải nhắc trên bản chạy thật chưa đo.
 - Màn Đăng ký chỉ chụp được ở trạng thái «tạm ngừng nhận»: kho thử không có chính sách riêng tư đang hiệu lực nên Nền tảng từ chối mở đăng ký (409). Màn Hồ sơ tổ chức chỉ chụp được ở trạng thái không có quyền.
 - Bàn phím ảo là phép xấp xỉ (khung 390 × 508), không phải bàn phím thật.
