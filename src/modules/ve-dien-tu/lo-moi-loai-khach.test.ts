@@ -6,6 +6,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { soanCapVe, soanTraVe } from "./cap-ve.ts";
 import { kiemLo } from "./nhap-lo.ts";
+import { vnToday } from "../../shared/vn-date.ts";
 import { AT, chayLo, d1That, dem, nhatKyThu, taoCsdl, themLo, themVe } from "../../khung-thu-ve.test.ts";
 // @ts-expect-error khung kiểm toán viết bằng .mjs, không có khai báo kiểu.
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
@@ -157,6 +158,8 @@ test("TC7: migration giữ nguyên mọi dòng và mọi đối tượng, chỉ 
 // ---- Qua route ------------------------------------------------------------------------------------------------------------------------------
 const U = (n: number) => `${String(n).repeat(8)}-${String(n).repeat(4)}-4${String(n).repeat(3)}-8${String(n).repeat(3)}-${String(n).repeat(12)}`;
 const SALES = U(1);
+// Hạn dùng tính theo HÔM NAY (giờ VN): kho chỉ đếm vé còn hạn, ngày ghi cứng làm bài đỏ từ sáng hôm sau ngày đó (24/11/2026).
+const ngayCach = (soNgay: number) => vnToday(new Date(Date.now() + soNgay * 86_400_000));
 const PNG = (n: number) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return Buffer.from(u).toString("base64"); };
 
 test("TC1: tạo lô Mọi loại khách qua route, nhãn đúng ở kho, danh sách lô, lô đã huỷ, nhật ký; giá trị lạ bị từ chối", async () => {
@@ -169,7 +172,7 @@ test("TC1: tạo lô Mọi loại khách qua route, nhãn đúng ở kho, danh s
   const lo = await taoLo("ALL");
   assert.equal(lo.status, 201, lo.text);
   const loId = lo.json.loId;
-  const them = await w.call("POST", `/api/ve/lo/${loId}/ve`, { as: SALES, body: { ve: [{ noiDung: PNG(1), maVe: "1".repeat(36), tuNgay: "2026-10-24", denNgay: "2026-11-23" }] } });
+  const them = await w.call("POST", `/api/ve/lo/${loId}/ve`, { as: SALES, body: { ve: [{ noiDung: PNG(1), maVe: "1".repeat(36), tuNgay: ngayCach(-30), denNgay: ngayCach(30) }] } });
   assert.equal(them.json.themDuoc, 1, them.text);
   assert.equal((await w.call("POST", `/api/ve/lo/${loId}/xac-nhan`, { as: SALES, body: {} })).status, 200);
   assert.deepEqual((await w.call("GET", "/api/ve/kho", { as: SALES })).json.kho.map((d: { nhomKhach: string; conTrong: number }) => [d.nhomKhach, d.conTrong]), [["ALL", 1]]);
