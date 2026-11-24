@@ -167,6 +167,13 @@ test("mỗi mục loại trừ còn được nhắc trong các tệp (hết nh�
   assert.deepEqual(thua, [], `mục LOAI_TRU không còn được nhắc, xoá đi: ${thua.join(", ")}`);
 });
 
+// Người kiểm độc lập 2026-11-24: bảng kịch bản Chrome đã dời khỏi web/CLAUDE.md (15/11) nên chỉ còn tới được qua dòng trỏ này; mất dòng trỏ thì AI sửa giao diện mất lối tới bảng.
+test("web/CLAUDE.md và CLAUDE.md gốc còn trỏ tới bảng kịch bản Chrome đã dời ra docs/KICH-BAN-CHROME.md", () => {
+  for (const ten of ["web/CLAUDE.md", "CLAUDE.md"]) {
+    assert.ok(doc(ten).includes(`\`${TEP_BANG_CHROME}\``), `${ten} phải trỏ tới \`${TEP_BANG_CHROME}\`: bảng «sửa tệp nào → chạy kịch bản nào» chỉ còn ở đó`);
+  }
+});
+
 test("giữ mục §1–§10; mọi chỗ trích CLAUDE.md §N ở hook, trợ lý con, kịch bản, tài liệu sống còn trỏ được; cụm chữ được trích còn đúng mục", () => {
   const goc = doc("CLAUDE.md");
   for (let n = 1; n <= 10; n++) assert.notEqual(muc(goc, n), "", `CLAUDE.md gốc mất mục ${n}: hàng trăm chỗ trỏ theo số mục`);
