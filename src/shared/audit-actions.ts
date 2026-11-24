@@ -32,7 +32,8 @@ export const AUDIT_ACTIONS = {
   ve_xac_nhan_lo: { label: "Đưa lô vé điện tử vào kho", group: "ve" },
   ve_sua_ma_tour: { label: "Sửa dịch vụ của lô vé điện tử", group: "ve" },
   ve_mo_anh_lo_huy: { label: "Mở ảnh vé của lô đã huỷ", group: "ve" }, // chủ quyết 2/11/2026; detail không chứa mã; target_id = mã dòng vé
-  ve_bo_lo: { label: "Huỷ lô vé điện tử", group: "ve" }, // ADR-0156 Đ2 mục 3; detail: nhãn nhóm khách (KHÔNG mã vé)
+  ve_bo_lo: { label: "Huỷ lô vé điện tử", group: "ve" }, // ADR-0156 Đ2 mục 3; detail: nhãn nhóm khách (KHÔNG mã vé); lô đã cấp (ADR-0217 Đ3 mục 5): thêm số vé huỷ và lý do
+  ve_huy_ve: { label: "Huỷ vé điện tử", group: "ve" }, // ADR-0217 Đ3; detail: số sê-ri (không bí mật) + lý do; KHÔNG mã vé
   ve_doi_tran_lo: { label: "Đổi số vé tối đa mỗi lô", group: "ve" }, // ADR-0156 Đ3; detail: số cũ → số mới
   // ADR-0175 Đ1.5a: giữ vé xong mà dịch vụ còn thiếu (lúc xác nhận đơn, cấp bằng tay, cấp bù khi lô vào kho). target = ('ve', nguồn vé 'TOUR_DAO' | 'HANG_NGOAI') — hộp thư chọn người nhận
   // theo khoá này (v_aud_ledger_event); detail = «Thiếu vé · <mã dịch vụ> · <nguồn> · thiếu N» (KHÔNG mã vé, KHÔNG tên khách).
@@ -77,12 +78,20 @@ export const AUDIT_ACTIONS = {
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Khách đã trả đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order", ghiTien: true },
-  payment_recorded: { label: "Ghi khoản thu", group: "order" },
+  payment_recorded: { label: "Nhập khoản thu", group: "order" },
   // ADR-0196 — ảnh biên lai chuyển khoản (nhật ký chỉ mã ảnh, không khoá kho, không nội dung).
   payment_proof_added: { label: "Gửi ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_viewed: { label: "Mở ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purged: { label: "Gỡ hoặc quyết xoá ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purge_retried: { label: "Chạy lại xoá ảnh biên lai khỏi kho", group: "system" },
+  // ADR-0232 — Ảnh bàn giao. Chi tiết chỉ mang mã ảnh (8 ký tự đầu), không ghi chú, không lý do ẩn, không khoá kho.
+  handover_photo_added: { label: "Gửi ảnh bàn giao", group: "order" },
+  handover_photo_list_viewed: { label: "Xem các ảnh bàn giao của đơn", group: "order" },
+  handover_photo_viewed: { label: "Mở ảnh bàn giao", group: "order" },
+  handover_photo_hidden: { label: "Ẩn ảnh bàn giao", group: "order" },
+  handover_photo_erasure_marked: { label: "Đánh dấu ảnh bàn giao vào yêu cầu xoá", group: "order" },
+  handover_photo_purged: { label: "Xoá ảnh bàn giao", group: "order" },
+  handover_photo_purge_retried: { label: "Chạy lại xoá ảnh bàn giao khỏi kho", group: "system" },
   // ADR-0182 phần B: khoản nộp của đại lý theo từng đơn.
   agent_remittance_recorded: { label: "Đại lý gửi khoản nộp kèm biên lai", group: "order" },
   agent_remittance_confirmed: { label: "Kế toán xác nhận khoản nộp của đại lý", group: "order" },
@@ -134,8 +143,8 @@ export const AUDIT_ACTIONS = {
   // ("<đối tượng> · <phạm vi> · <mức>"), KHÔNG SĐT, không tiền khách.
   prc_commission_rule_added: { label: "Thêm mức hoa hồng", group: "ledger" },
   prc_commission_rule_closed: { label: "Ngừng mức hoa hồng", group: "ledger" },
-  prc_supply_term_added: { label: "Thêm điều khoản người bán", group: "ledger" },
-  prc_supply_term_closed: { label: "Ngừng điều khoản người bán", group: "ledger" },
+  prc_supply_term_added: { label: "Thêm điều khoản nhà cung cấp", group: "ledger" },
+  prc_supply_term_closed: { label: "Ngừng điều khoản nhà cung cấp", group: "ledger" },
   // ADR-0117 lần 1: Kế toán / Quản trị / Toàn quyền thêm, tắt, bật LOẠI ĐỐI TÁC — `detail` = tên loại (đã cấm số điện thoại / email trong tên), không mã thô.
   prc_partner_type_added: { label: "Thêm vai người dùng", group: "ledger" },
   prc_partner_type_off: { label: "Tắt vai người dùng", group: "ledger" },
@@ -160,6 +169,9 @@ export const AUDIT_ACTIONS = {
   prc_role_tier_closed: { label: "Ngừng áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
   prc_party_tier_set: { label: "Chọn cấp riêng cho đối tác", group: "ledger" },
   prc_party_tier_closed: { label: "Ngừng áp dụng cấp riêng của đối tác", group: "ledger" },
+  // ADR-0209 Đ4: đặt «Cấp cho đối tác tự đăng ký» của một loại (POST /api/pricing/cap-mac-dinh) — `target_type = 'ledger'`, `target_id` = mã loại; `detail` = «tên loại (mã) · cấp cũ → cấp mới»
+  // (tên cấp hoặc «Theo cấp của vai trò»; không dữ liệu cá nhân). Lô duyệt phiếu ghi cấp đã áp qua `prc_party_tier_set` (người làm = người duyệt).
+  prc_signup_tier_set: { label: "Đặt cấp cho đối tác tự đăng ký", group: "ledger" },
   // ADR-0148 Đ1: nút «Sửa» huỷ dòng chưa đơn nào chụp và thay hẳn bằng dòng mới (đi cùng `_added` / `_set` của dòng mới). `detail` = «sửa · dòng <cũ> → <mới> · huỷ dòng cũ» —
   // KHÔNG chép lý do sửa (lý do ở cột `change_reason` của dòng mới). Sửa dòng ĐÃ có đơn chụp đóng dòng cũ ⇒ đi qua `_closed`.
   prc_commission_rule_voided: { label: "Huỷ mức hoa hồng nhập sai (đã thay bằng dòng sửa)", group: "ledger" },
@@ -173,12 +185,24 @@ export const AUDIT_ACTIONS = {
   prc_transfer_fee_added: { label: "Thêm mức phí đưa đón", group: "ledger" },
   prc_transfer_fee_ended: { label: "Kết thúc mức phí đưa đón", group: "ledger" },
   prc_transfer_fee_start_set: { label: "Đặt ngày bắt đầu áp phí đưa đón", group: "ledger" },
+  // ADR-0218 Đ1.4: Kế toán / Quản trị / Toàn quyền đặt hoặc kết thúc MỨC GIẢM phí đưa đón theo cấp (route /api/pricing/giam-phi-don*) — `target_type = 'ledger'`.
+  // `detail` = «<tên cấp>: chưa đặt → 20.000đ từ 01/12/2026» / «<tên cấp> · kết thúc 30/11/2026». Chỉ tên cấp và số tiền; không tên người, SĐT, email, MST.
+  prc_transfer_fee_discount_set: { label: "Đặt mức giảm phí đưa đón", group: "ledger" },
+  prc_transfer_fee_discount_ended: { label: "Kết thúc mức giảm phí đưa đón", group: "ledger" },
+  // ADR-0218 Đ2: Quản trị / Toàn quyền tạo và kết thúc CHƯƠNG TRÌNH MIỄN PHÍ đưa đón (route /api/pricing/chuong-trinh-phi-don*) — `target_type = 'ledger'`. `detail` = «<tên chương trình> · ngày đi từ … đến … ·
+  // <phạm vi: tất cả dịch vụ / N dịch vụ / N đối tác> · gồm hoặc không gồm xe riêng» / «<tên> · kết thúc dd/mm/yyyy». Tên chương trình do người đặt, không tên khách, SĐT, email, MST.
+  prc_transfer_fee_program_created: { label: "Tạo chương trình miễn phí đưa đón", group: "ledger" },
+  prc_transfer_fee_program_ended: { label: "Kết thúc chương trình miễn phí đưa đón", group: "ledger" },
   // ADR-0168 Đ1: Toàn quyền đặt / ngừng hạn mức Trả sau của một đối tác (route /api/tra-sau/han-muc*) — `target_type = 'ledger'`, `target_id` = mã hồ sơ, không gắn đơn.
   // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
   credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },
   credit_limit_stopped: { label: "Ngừng hạn mức trả sau", group: "ledger" },
   // ADR-0178 Đ1 mục 1: Toàn quyền đổi công tắc «Khách của đối tác trả cho Công ty» (POST /api/kenh-thu-doi-tac) — `target_type = 'ledger'`, `target_id` = 'kenh-thu-doi-tac'; `detail` = «Bật» / «Tắt».
   partner_channel_set: { label: "Đổi «Khách của đối tác trả cho Công ty»", group: "ledger" },
+  // ADR-0178 Đ2 mục 1, ADR-0230 Đ1 mục 1: Toàn quyền đặt / đổi / gỡ dấu «Trả sau theo dịch vụ» (POST /api/tra-sau/dich-vu, …/go) — `target_type = 'ledger'`,
+  // `target_id` = «<GROUP|SERVICE>:<mã>»; `detail` chỉ loại đích, mã, số giờ: «SERVICE T3D: trả 24 giờ, ân hạn 6 giờ» / «GROUP NTD». Không tên, SĐT, email, MST.
+  service_credit_rule_set: { label: "Đặt Trả sau theo dịch vụ", group: "ledger" },
+  service_credit_rule_removed: { label: "Gỡ Trả sau theo dịch vụ", group: "ledger" },
   credit_ceiling_set: { label: "Đặt mức tối đa Quản trị được cấp", group: "ledger" },
   credit_tier_default_set: { label: "Đặt số gợi ý trả sau theo cấp", group: "ledger" },
   credit_due_extended: { label: "Ân hạn đơn trả sau", group: "order" },
@@ -247,6 +271,43 @@ export const AUDIT_ACTIONS = {
   party_erasure_retried: { label: "Chạy lại việc xoá dữ liệu", group: "system" },
   sessions_anonymized: { label: "Ẩn danh IP và thông tin máy đã đăng xuất", group: "system" }, // ADR-0126 đ8: chỉ số phiên + mốc kết thúc, KHÔNG IP / User-Agent
   self_submission_number_viewed: { label: "Xem đủ số giấy tờ của phiếu tự khai", group: "party" },
+  // ADR-0207 Đ6 (đợt 1 Task 6): xác minh phiếu đăng ký đối tác. target_type 'party' (KHÔNG 'staff' — không chạm tài khoản, view v_aud_cham_tai_khoan), target_id = mã phiếu (DK_…), không phải mã hồ sơ.
+  // `detail` CHỈ mã mục / mã lý do / tên loại giấy tờ — KHÔNG SĐT, email, số giấy tờ, ngày sinh, địa chỉ, khoá kho.
+  registration_item_concluded: { label: "Kết luận một mục của phiếu đăng ký", group: "party" },
+  registration_verified: { label: "Xác minh đạt phiếu đăng ký", group: "party" },
+  registration_supplement_requested: { label: "Yêu cầu bổ sung phiếu đăng ký", group: "party" },
+  registration_rejected: { label: "Từ chối phiếu đăng ký", group: "party" },
+  registration_number_viewed: { label: "Xem đủ số giấy tờ của phiếu đăng ký", group: "party" },
+  registration_file_viewed: { label: "Mở ảnh của phiếu đăng ký", group: "party" },
+  registration_approval_rejected: { label: "Từ chối duyệt phiếu đăng ký", group: "party" },
+  registration_invite_resent: { label: "Gửi lại lời mời đặt PIN", group: "party" },
+  // ADR-0207 Đ5 (rà soát cuối I-3): Nhân sự trả phiếu chờ duyệt về bước xác minh; detail CHỈ mã phiếu. ADR-0206 Đ13 (I-1): gửi lại thư báo chưa gửi được; detail CHỈ mã phiếu + mã loại thư.
+  registration_returned_to_verification: { label: "Trả phiếu đăng ký về xác minh", group: "party" },
+  registration_notice_resent: { label: "Gửi lại thư báo phiếu đăng ký", group: "party" },
+  // ADR-0213 Đ6 (mốc B1, Task 10): quản trị tổ chức. target = hồ sơ TỔ CHỨC; acting_party_id = tổ chức (PF18). detail: mã hồ sơ người + mã lý do (văn phòng làm) — KHÔNG số điện thoại, KHÔNG email.
+  org_manager_assigned: { label: "Giao người quản lý tổ chức", group: "party" },
+  org_manager_transferred: { label: "Chuyển quyền quản lý", group: "party" },
+  org_manager_removed: { label: "Gỡ người quản lý tổ chức", group: "party" },
+  org_transfer_requested: { label: "Gửi yêu cầu chuyển quyền quản lý", group: "party" },
+  org_member_removed: { label: "Gỡ thành viên tổ chức", group: "party" },
+  org_member_left: { label: "Thành viên tự rời tổ chức", group: "party" },
+  org_notice_resent: { label: "Gửi lại thư báo người quản lý cũ", group: "party" },
+  // ADR-0213 Đ7 (mốc B2, Task 15): lời mời vào tổ chức. target = hồ sơ TỔ CHỨC; acting_party_id = tổ chức. detail: mã định danh lời mời (MV_…), mã hồ sơ người nhận — KHÔNG số điện thoại, KHÔNG mã.
+  org_invite_created: { label: "Tạo lời mời vào tổ chức", group: "party" },
+  org_invite_cancelled: { label: "Huỷ lời mời vào tổ chức", group: "party" },
+  org_invite_accepted: { label: "Nhận lời mời vào tổ chức", group: "party" },
+  // ADR-0213 Đ8 (mốc B2, Task 16): chế độ thành viên (đích hồ sơ tổ chức) và nháp của thành viên qua người quản lý (đích danh người nhận tin — target_type 'staff').
+  org_member_mode_set: { label: "Đổi chế độ thành viên của tổ chức", group: "party" },
+  order_member_submitted: { label: "Gửi người quản lý xác nhận", group: "order" },
+  order_member_returned: { label: "Người quản lý trả lại đơn", group: "order" },
+  order_member_forwarded: { label: "Người quản lý gửi đơn lên Tour Đảo", group: "order" },
+  order_member_withdrawn: { label: "Rút lại yêu cầu gửi người quản lý", group: "order" }, // không phải tin (người quản lý thôi thấy nháp)
+  // ADR-0207 Đ7 (đợt 1 Task 9): người được duyệt tự đặt PIN — do CHÍNH tài khoản mới đứng tên (không dùng staff_reactivated, để không ghi «chạm tài khoản» thay một người quản trị). target = phiếu.
+  registration_activated: { label: "Tự đặt mã PIN, kích hoạt tài khoản", group: "party" },
+  // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân DON_PHIEU_DANG_KY ghi MỘT dòng mỗi lượt có việc; detail CHỈ các số đếm (KHÔNG mã phiếu, KHÔNG khoá kho, KHÔNG email).
+  registration_cleanup_run: { label: "Dọn phiếu đăng ký", group: "party" },
+  // ADR-0206 Đ9 (đợt 1 Task 12 vòng sửa 1): Toàn quyền bật / tắt «Nhận đăng ký mới» và chọn loại mở; detail CHỈ «Bật / Tắt» và mã loại (không dữ liệu cá nhân).
+  registration_policy_set: { label: "Đổi công tắc nhận đăng ký mới", group: "system" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
   party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },
@@ -351,6 +412,18 @@ export const AUDIT_ACTIONS = {
   partner_customer_policy_changed: { label: "Đổi công tắc ẩn thông tin khách", group: "system" },
   // ADR-0193 mục 1: Toàn quyền bật / tắt «Bắt buộc giờ đón cho đơn đối tác» (POST /api/cai-dat/bat-buoc-gio-don) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   pickup_time_policy_changed: { label: "Đổi công tắc bắt buộc giờ đón", group: "system" },
+  // ADR-0218 Đ3.4: Toàn quyền đổi «Hiện riêng phí đưa đón trên biên nhận khách lẻ» (POST /api/cai-dat/phi-don-bien-nhan) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
+  receipt_fee_display_changed: { label: "Đổi công tắc hiện riêng phí đưa đón trên biên nhận", group: "system" },
+  // ADR-0221 Đ1: Toàn quyền bật / tắt «Đối tác không nhập nơi đón» (POST /api/cai-dat/noi-don-doi-tac) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
+  pickup_place_policy_changed: { label: "Đổi công tắc đối tác không nhập nơi đón", group: "system" },
+  // ADR-0227 Đ1: Toàn quyền bật / tắt «Chặn đơn chưa có giờ đón khi sát ngày đón» (POST /api/cai-dat/chan-chua-gio-sat-ngay) — không gắn đơn; detail «Bật …» / «Tắt …».
+  pickup_deadline_policy_changed: { label: "Đổi công tắc chặn đơn chưa có giờ đón", group: "system" },
+  // ADR-0228 Đ1, Đ3: Toàn quyền bật / tắt «Đối tác không nhập danh sách hành khách» (POST /api/cai-dat/hanh-khach-doi-tac) và «Đơn đối tác không cần giờ đón» (POST /api/cai-dat/khong-can-gio-don)
+  // — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
+  partner_passenger_policy_changed: { label: "Đổi công tắc đối tác không nhập danh sách hành khách", group: "system" },
+  pickup_time_optional_policy_changed: { label: "Đổi công tắc đơn đối tác không cần giờ đón", group: "system" },
+  // ADR-0228 Đ2: Toàn quyền bật / tắt «Đơn đối tác không cần đủ tên khách» (POST /api/cai-dat/mien-du-ten-doi-tac) — không gắn đơn, không dữ liệu khách.
+  partner_manifest_exempt_policy_changed: { label: "Đổi công tắc đơn đối tác không cần đủ tên khách", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).
@@ -370,7 +443,15 @@ export const AUDIT_ACTIONS = {
   catalog_group_updated: { label: "Sửa nhóm dịch vụ", group: "catalog" },
   catalog_group_assigned: { label: "Đổi nhóm của dịch vụ", group: "catalog" },
   ticket_flag_changed: { label: "Đổi ô Có vé", group: "catalog" }, // ADR-0174
+  catalog_pause_added: { label: "Đặt Ngừng bán theo ngày", group: "catalog" }, // ADR-0220: detail = mã dịch vụ / tên nhóm + khoảng ngày
+  catalog_pause_ended: { label: "Kết thúc Ngừng bán theo ngày", group: "catalog" },
+  catalog_seasonal_added: { label: "Đặt giá mùa vụ", group: "catalog" }, // ADR-0229 Đ8: detail = mã dịch vụ / tên nhóm + khoảng ngày + mức tăng
+  catalog_seasonal_approved: { label: "Duyệt giá mùa vụ", group: "catalog" },
+  catalog_seasonal_ended: { label: "Kết thúc giá mùa vụ", group: "catalog" },
+  catalog_seasonal_cap_set: { label: "Đặt mức tăng tối đa của giá mùa vụ", group: "catalog" }, // ADR-0229 Đ8: detail = số %
+  ticket_support_phone_changed: { label: "Đổi ô Hotline trên vé", group: "catalog" }, // ADR-0231: targetId = mã dịch vụ, detail «Dịch vụ <mã>: đặt hotline riêng | dùng hotline công ty» — KHÔNG chứa số
   ticket_source_changed: { label: "Đổi ô Vé do ai phát", group: "catalog" }, // ADR-0175 Đ1.2: targetId = mã dịch vụ, detail «Dịch vụ <mã>: Vé hãng ngoài | Vé Tour Đảo»
+  ticket_source_group_changed: { label: "Đổi Vé do ai phát của nhóm", group: "catalog" }, // ADR-0230 Đ3: targetId = mã nhóm, detail «Nhóm <mã>: Vé hãng ngoài | Vé Tour Đảo»
   service_detail_changed: { label: "Sửa chi tiết dịch vụ", group: "catalog" }, // ADR-0201 Đ1: targetId = mã dịch vụ, detail chỉ nói trường nào đổi (không chép tên, mô tả)
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")
   // ADR-0149 Đ1: ô «Được đón không» của một dịch vụ — targetId = mã dịch vụ, detail "Theo nhóm → Không đón" (nhãn; không dữ liệu cá nhân).

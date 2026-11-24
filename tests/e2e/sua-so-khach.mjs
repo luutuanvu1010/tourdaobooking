@@ -6,9 +6,12 @@
 // ADR-0114 (chủ duyệt 2026-10-13): (6) CA 5 — đơn có giảm giá bớt khách thì phản hồi và chi tiết đơn trả `canhBaoKhuyenMai` (10 → 2 → 3 vẫn nhắc; đủ lại 10 hoặc hơn thì hết; độc lập với
 // `canhBaoTongAm`), và `lichSuSoKhach` đủ dòng chỉ cho người có `order.history.view` (CA 1, CA 5); (7) CA 6 — bớt về 0 người lớn bị 409 `thieu_nguoi_lon` ở CẢ HAI đường (văn phòng và hướng
 // dẫn viên), không ghi dòng điều chỉnh nào; bớt chừa lại người lớn thì 200.
+// Phí đưa đón Đợt C, Task 5 (sổ vàng SV-PD-24): (8) CA 8 — đơn có lượt đón 50.000 đ/khách, Kế toán sửa 2 → 3 người lớn ⇒ phí tính lại theo đơn giá đã chụp (3 × 50.000) ở chi tiết
+// đơn và phải thu của billing; dòng phí và cột tiền đã lưu không đổi; dòng điều chỉnh gồm phí. Phí bật từ hôm nay rồi tắt ở `finally` (tests/e2e/lib-phi-don.mjs).
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sqlRows, sql, vnDate } from "./lib.mjs";
 import { CAU_THIEU_NGUOI_LON } from "../../src/shared/nguoi-di-kem.ts";
+import { dungPhiDon, luotDon } from "./lib-phi-don.mjs";
 
 await ensureFakeCatalog();
 const A = await session(ACCOUNTS.salesA);
@@ -241,4 +244,29 @@ const tienDon = async (id) => (await call(ACC, "GET", `/api/orders/${id}/payment
   assert.equal(het.body.error?.code, "thieu_nguoi_lon");
   assert.equal((await sqlRows(`SELECT count(*) AS n FROM order_money_adjustment WHERE order_id = '${don.id}'`))[0].n, 1, "chỉ lần 200 có dòng");
   console.log("✓ CA 6: lập đơn / lưu nháp 400, xác nhận nháp cũ 409, văn phòng và hướng dẫn viên bớt về 0 người lớn 409 (cùng mã, cùng câu); bớt còn người lớn 200");
+}
+
+// ---- CA 8 (Phí đưa đón Đợt C, Task 5 — SV-PD-24): sửa số khách đơn có phí đưa đón ⇒ phí theo khách tính lại theo đơn giá đã chụp.
+{
+  const phi = await dungPhiDon(ADM, { nhan: "SSK", muc: 50_000 });
+  try {
+    const r = await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(7), legs: [luotDon(phi.ks.id, phi.phiDon)] })] }));
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const id = r.body.order.id;
+    assert.equal((await call(A, "POST", `/api/orders/${id}/status`, { status: "confirmed" })).status, 200);
+    const truoc = (await call(A, "GET", `/api/orders/${id}`)).body.order;
+    assert.deepEqual(truoc.phiDuaDon.dong.map((d) => [d.quantity, d.unitPrice, d.lineTotal]), [[2, 50000, 100000]]);
+    assert.equal(truoc.total, 300000);
+    const s = await sua(ACC, { id, svc: truoc.services[0].id }, 3, "THEM_NGUOI");
+    assert.equal(s.status, 200, JSON.stringify(s.body));
+    const sau = (await call(A, "GET", `/api/orders/${id}`)).body.order;
+    assert.deepEqual(sau.phiDuaDon.dong.map((d) => [d.quantity, d.unitPrice, d.lineTotal]), [[3, 50000, 150000]], "phí tính lại theo đơn giá đã chụp");
+    assert.deepEqual([sau.subtotal, sau.total], [450000, 450000]);
+    assert.equal((await tienDon(id)).phaiThu, 450000, "phải thu của billing gồm phí đã tính lại");
+    assert.deepEqual(await sqlRows(`SELECT quantity, line_total FROM order_item WHERE order_id = '${id}' AND line_kind = 'TRANSFER_FEE'`), [{ quantity: 2, line_total: 100000 }], "dòng phí đã lưu đóng băng");
+    assert.deepEqual(await sqlRows(`SELECT subtotal_before, subtotal_after FROM order_money_adjustment WHERE order_id = '${id}'`), [{ subtotal_before: 300000, subtotal_after: 450000 }], "dòng điều chỉnh gồm phí");
+    console.log("✓ CA 8: sửa số khách đơn có phí đưa đón 2 → 3 ⇒ phí 3 × 50.000 theo đơn giá đã chụp, tổng và phải thu gồm phí; dòng đã lưu không đổi");
+  } finally {
+    await phi.donDep();
+  }
 }

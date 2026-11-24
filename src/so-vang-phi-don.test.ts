@@ -1,5 +1,6 @@
 // Sổ vàng golden/phi-dua-don.json (Hiến chương 5.17; ADR-0147, ADR-0203). CHƯA có mã phí đón, nên hôm nay chỉ có LỚP 1: mỗi ca tự cân (bắt CA MẪU viết sai) —
 // khuôn, trạng thái xác nhận, dòng mức có thật và còn hiệu lực ngày xác nhận, tiền = đơn giá × số lượng, tổng = tổng các chặng, 0 đồng ⇔ nhãn «Miễn phí».
+// LỚP 3 (Đợt C, Task 2): chạy cả ca đã xác nhận qua `tinhPhiDonThuan` và so từng chặng, tổng, xác nhận được. Từ ADR-0214 (16/11/2026) hàm này KHÔNG còn nằm trên đường đơn (đơn dùng `src/shared/phi-don-chon.ts`); lớp 3 giữ có chủ đích vì «Thử tra» của màn Quản trị còn gọi đúng hàm này. Không bài nào ở đây chạy trên đường đơn nên không gỡ.
 // LỚP 2 (từ Đợt B, Task 6): chạy ca đã xác nhận qua luật thuần `src/modules/pricing/phi-don-rules.ts`; chỉ ca "da_xac_nhan" được đếm, ca còn chờ là test.todo, và danh sách MA_BAT_BUOC canh để ca không lặng lẽ rơi — không «xanh vì rỗng».
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -7,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isISODate } from "./shared/vn-date.ts";
-import { capCuaHoSoNgay, chonMucPhiDon, tinhPhiChang, type ChangTinhPhi, type DieuKienPhiDon, type MucPhiDon } from "./modules/pricing/phi-don-rules.ts";
+import { capCuaHoSoNgay, chonMucPhiDon, tinhPhiChang, tinhPhiDonThuan, type ChangDauVao, type ChangTinhPhi, type DieuKienPhiDon, type MucPhiDon } from "./modules/pricing/phi-don-rules.ts";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 type Muc = { id: string; kieu: "PER_PAX" | "PER_TRIP"; vung: string; cap: string | null; dich_vu: string | null; nhom: string | null; chieu: string | null; xe_rieng: boolean; tien: number; tu: string; den: string | null };
@@ -100,6 +101,12 @@ test("sổ vàng phí đón — ca có tiền đơn tự cân (công nợ đại
   const p = ca("SV-PD-26").chia_phan!;
   assert.equal(p.tour_dao, ca("SV-PD-26").tong_phi_don, "phí đón thuộc phần của Tour Đảo");
   assert.equal(p.tong_don, p.nguoi_ban_dich_vu! + p.tour_dao!);
+  // SV-PD-29 (chủ chốt 15/11): giảm giá cấp đơn chỉ trừ vào tiền dịch vụ, phí đón thu đủ; trần giảm giá = tổng tiền dịch vụ (trang ghép 2026-10-28 §1).
+  const g = ca("SV-PD-29").chia_phan!;
+  assert.equal(g.tour_dao, ca("SV-PD-29").tong_phi_don, "giảm giá không trừ vào phí đón");
+  assert.equal(g.nguoi_ban_dich_vu, g.nguoi_ban_dich_vu_truoc_giam! - g.giam_gia!);
+  assert.equal(g.tong_don, g.nguoi_ban_dich_vu! + g.tour_dao!);
+  assert.equal(g.giam_gia_toi_da, g.nguoi_ban_dich_vu_truoc_giam, "trần giảm giá không gồm phí đón");
 });
 
 // ---- LỚP 2: luật thuần ra đúng đáp án (ADR-0203 ĐB1; Hiến chương 5.17) ----
@@ -157,4 +164,45 @@ test("sổ vàng phí đón — lớp 2: luật thuần ra đúng đáp án", ()
     assert.equal(c.dap_an.tong_phi_don, thieu ? null : tong, `${c.ma}: tổng`);
   }
   assert.ok(soChang >= 25, `chỉ ${soChang} chặng được chạy`);
+});
+
+// ---- LỚP 3: hàm tính phí của MỘT đơn (`tinhPhiDonThuan`) ra đúng đáp án, kể cả tổng và «xác nhận được» (Đợt C, Task 2) ----
+/** Đầu vào của hàm đơn từ một ca sổ vàng: bảng + cấp dựng như lớp 2, nhóm dịch vụ lấy từ sổ. */
+export function dauVaoDon(c: Ca) {
+  const nhom = new Map<string, string | null>(Object.entries(so.dich_vu).map(([ma, d]) => [ma, d.nhom]));
+  const chang: ChangDauVao[] = c.dau_vao.chang.map((ch, i) => ({
+    legKey: `c${i + 1}`, zoneCode: ch.vung, direction: ch.chieu, exclusive: ch.xe_rieng, catalogCode: ch.dich_vu,
+    soKhachTinhTien: (ch.khach.nguoi_lon ?? 0) + (ch.khach.tre_em ?? 0) + (ch.khach.cao_tuoi ?? 0), paxOverride: ch.so_nguoi_rieng ?? null,
+  }));
+  return { bang: { batDauAp: so.ngay_bat_dau_ap, muc: bangMuc(), cap: capCuaCa(c) }, nhom, ngay: c.dau_vao.ngay_xac_nhan, chang };
+}
+test("sổ vàng phí đón — lớp 3: hàm tính phí của đơn ra đúng đáp án", () => {
+  const chay = so.cac_ca.filter((c) => c.xac_nhan.trang_thai === "da_xac_nhan");
+  for (const ma of MA_BAT_BUOC) assert.ok(chay.some((c) => c.ma === ma), `ca bắt buộc ${ma} không được rơi khỏi lớp 3`);
+  for (const c of chay) {
+    const kq = tinhPhiDonThuan(dauVaoDon(c));
+    assert.equal(kq.apDung, c.dap_an.ap_dung, `${c.ma}: áp dụng`);
+    if (!kq.apDung) { assert.equal(c.dap_an.chang.length, 0, c.ma); continue; }
+    const cap = capCuaCa(c);
+    const capChup = cap.loai === "CO_CAP" ? cap.tierCode : null;
+    let tong = 0;
+    c.dau_vao.chang.forEach((ch, i) => {
+      const k = c.dap_an.chang[i]!;
+      const nhan = `${c.ma} chặng ${i + 1}`;
+      const dong = kq.dong.find((d) => d.legKey === `c${i + 1}`);
+      const thieu = kq.thieu.find((d) => d.legKey === `c${i + 1}`);
+      if (k.ket_qua === "THIEU_MUC") { assert.equal(dong, undefined, nhan); assert.equal(thieu?.lyDo, k.ly_do, `${nhan}: lý do`); return; }
+      assert.equal(thieu, undefined, nhan);
+      assert.ok(dong, `${nhan}: phải ra dòng`);
+      assert.deepEqual([dong!.ruleId, dong!.kind, dong!.donGia, dong!.soLuong, dong!.tien, dong!.tierCode], [k.quy_tac, k.kieu, k.don_gia, k.so_luong, k.tien, k.cap_da_chup ?? null], nhan);
+      assert.equal(dong!.tierCode, capChup, `${nhan}: cấp đã chụp`);
+      // Bản chụp `fee_return_pax` = số người chiều về GỐC (`so_nguoi_rieng`), KHÔNG phải số đã kẹp (sửa sau kiểm độc lập, Nên sửa 1): sửa số khách tăng lên phải tính lại
+      // min(số gốc, số khách mới) — lưu số đã kẹp thì SV-PD-18 (2 NL + 1 em bé, chiều về 3) sửa thành 3 NL thu thiếu một khách.
+      const goc = k.kieu === "PER_PAX" && ch.chieu === "RETURN" && ch.so_nguoi_rieng != null ? ch.so_nguoi_rieng : null;
+      assert.equal(dong!.returnPax, goc, `${nhan}: số người chiều về đã chụp (gốc, không kẹp)`);
+      tong += dong!.tien;
+    });
+    assert.equal(kq.thieu.length === 0 ? tong : null, c.dap_an.tong_phi_don, `${c.ma}: tổng (null ⇔ có thiếu)`);
+    assert.equal(kq.thieu.length === 0, c.dap_an.xac_nhan_duoc, `${c.ma}: xác nhận được`);
+  }
 });

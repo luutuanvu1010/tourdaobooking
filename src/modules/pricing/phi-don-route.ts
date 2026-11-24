@@ -2,15 +2,15 @@
 // Danh sách khu vực đón đến qua `ctx.vungDon()` (gốc lắp ráp tiêm; `pricing` không import `locations`). Mỗi lệnh ghi = MỘT `db.batch`, nhật ký đi cùng lô; nhật ký chỉ ghi mã vùng / nhóm / dịch vụ / cấp
 // và số tiền. Thiếu mức không bao giờ là 0 đồng: Thử tra dùng ĐÚNG `chonMucPhiDon` + `tinhPhiChang` của phi-don-rules.ts (không tính riêng). Số tiền, số khách kiểm là số nguyên an toàn ở máy chủ.
 import { auditStatement } from "../audit";
-import { getEffectiveServices, tenCacNhom } from "../catalog";
+import { dichVuDuaDonChuaCoGiaGoc, getEffectiveServices, tenCacNhom } from "../catalog";
 import { error, json, kemLocation, readJson } from "../../shared/http";
-import type { CanhBaoPhiDonDto, MucPhiDonDto, PhiDonBatDauApResponse, PhiDonGhiResponse, PhiDonResponse, ThuTraPhiDonResponse } from "../../shared/contracts";
+import type { DichVuChuaCoPhiResponse, CanhBaoPhiDonDto, MucPhiDonDto, PhiDonBatDauApResponse, PhiDonGhiResponse, PhiDonResponse, ThuTraPhiDonResponse } from "../../shared/contracts";
 import { can } from "../../shared/permissions";
 import { route, type Route } from "../../shared/router";
 import { addDays, ngayDayDu, vnToday } from "../../shared/vn-date";
 import { nhanDong } from "../../shared/so-dai-ly-nhan";
 import { batDauApMoiNhat, cauDatBatDauAp, cauDongMucPhiDon, cauThemMucPhiDon, docMucPhiDonTu, quyTacTheoId, type DongMucPhiDon } from "./phi-don-repo";
-import { canhBaoCapCaoHon, chonMucPhiDon, chuKyDieuKien, kiemThanMucPhiDon, tinhPhiChang, vungThieuDongChung, type ChangTinhPhi, type MucPhiDon } from "./phi-don-rules";
+import { canhBaoCapCaoHon, chonMucPhiDon, chuKyDieuKien, kiemThanMucPhiDon, tinhPhiDonThuan, vungThieuDongChung } from "./phi-don-rules";
 import { groupsOf, rateTiers } from "./repository";
 import { laNgay } from "./rules";
 
@@ -59,10 +59,6 @@ async function bietMa(db: D1Database, vungDon: () => Promise<{ code: string; nam
   return { vung, cap, nhom, dichVu, biet: { vung: new Set(vung.map((v) => v.code)), cap: new Set(cap.filter((c) => c.active === 1).map((c) => c.code)), nhom: new Set(nhom.keys()), dichVu: new Set(dichVu.keys()) } };
 }
 
-const ten = (vung: readonly { code: string; name: string }[], ma: readonly string[]): string => ma.map((c) => vung.find((v) => v.code === c)?.name ?? c).join(", ");
-const THIEU_CHUNG = (vung: readonly { code: string; name: string }[], thieu: readonly string[]) =>
-  error(409, "transfer_fee_general_required", `Mỗi khu vực cần một mức chung (không nêu cấp, dịch vụ hay nhóm) còn hiệu lực. Còn thiếu: ${ten(vung, thieu)}.`);
-
 export const phiDonRoutes: Route[] = [
   route("GET", "/api/pricing/phi-don", "admin", async ({ env, url, staff, vungDon }) => {
     if (!can(staff, "admin.manage")) return FORBIDDEN();
@@ -70,8 +66,13 @@ export const phiDonRoutes: Route[] = [
     if (!laNgay(ngay)) return error(400, "invalid_input", "Ngày không hợp lệ.");
     const [dong, ap, b] = await Promise.all([docMucPhiDonTu(env.DB, ngay), batDauApMoiNhat(env.DB), bietMa(env.DB, vungDon)]);
     const nhomDv = await groupsOf(env.DB, [...b.dichVu.values()].filter((s) => s.visible).map((s) => s.code));
+    // Điểm 1: vùng đang bật chưa có dòng chung còn hiệu lực hôm nay, hoặc vào ngày bắt đầu áp nếu ở tương lai (`dong` đọc từ `ngay` hỏi; mốc kiểm đều không sớm hơn hôm nay).
+    const homNay = vnToday(new Date());
+    const mocKiem = [homNay, ...(ap?.start_date != null && ap.start_date > homNay ? [ap.start_date] : [])];
+    const dongKiem = ngay <= homNay ? dong : await docMucPhiDonTu(env.DB, homNay);
+    const thieuMa = new Set(mocKiem.flatMap((m) => vungThieuDongChung({ vung: b.vung.map((x) => x.code), muc: dongKiem.map((d) => d.muc), ngay: m })));
     return json({
-      muc: dong.map(dtoMuc), batDauAp: { ngay: ap?.start_date ?? null, tuLuc: ap?.valid_from_at ?? null }, canhBao: await canhBaoNgay(env.DB, dong, ngay),
+      muc: dong.map(dtoMuc), vungThieuMucChung: b.vung.filter((x) => thieuMa.has(x.code)), batDauAp: { ngay: ap?.start_date ?? null, tuLuc: ap?.valid_from_at ?? null }, canhBao: await canhBaoNgay(env.DB, dong, ngay),
       vung: b.vung, cap: b.cap.filter((c) => c.active === 1).map((c) => ({ code: c.code, name: c.name })), nhom: [...b.nhom].map(([code, name]) => ({ code, name })),
       dichVu: [...b.dichVu.values()].filter((s) => s.visible).map((s) => ({ code: s.code, name: s.name, nhom: nhomDv.get(s.code) ?? null })),
     } satisfies PhiDonResponse);
@@ -108,19 +109,12 @@ export const phiDonRoutes: Route[] = [
       if (v.validFrom <= row.valid_from_date) return error(400, "invalid_input", "Ngày bắt đầu của mức thay thế phải sau ngày bắt đầu của mức cũ.");
       const ketThuc = addDays(v.validFrom, -1);
       if (row.valid_to_date !== null && row.valid_to_date < ketThuc) return error(400, "invalid_input", "Mức cũ đã kết thúc sớm hơn ngày liền trước ngày bắt đầu mới — chỉ được rút ngắn, không được nới.");
-      // «Đủ mức» khi phí đang áp, tính trên trạng thái SAU lô: dòng cũ đã đóng, dòng mới đã chèn.
-      const ap = await batDauApMoiNhat(env.DB);
       const k = truoc.muc.dieuKien;
-      if (ap?.start_date != null && v.kind === "PER_PAX" && Object.keys(k).length === 1 && k.ZONE !== undefined) {
-        const vung = await vungDon();
-        if (vung.some((x) => x.code === k.ZONE)) {
-          const tatCa = await docMucPhiDonTu(env.DB, TAT_CA);
-          const sau: MucPhiDon[] = [...tatCa.map((d) => (d.muc.id === thay!.id ? { ...d.muc, validTo: ketThuc } : d.muc)), { id, kind: v.kind, amount: v.amount, validFrom: v.validFrom, validTo: v.validTo, dieuKien: v.dieuKien }];
-          for (const ngay of v.validTo ? [v.validFrom, addDays(v.validTo, 1)] : [v.validFrom]) {
-            const thieu = vungThieuDongChung({ vung: [k.ZONE], muc: sau, ngay });
-            if (thieu.length > 0) return THIEU_CHUNG(vung, thieu);
-          }
-        }
+      // ADR-0214 (thay ADR-0203 ĐB1): bỏ chốt «khu vực phải còn mức chung khi phí đang áp» — bảng không còn dùng cho đơn.
+      // Điểm 5: dòng mới kết thúc SỚM hơn dòng cũ (hoặc dòng cũ không có ngày kết thúc mà dòng mới có) ⇒ khoảng sau đó bị bỏ trống. Siết chặt, không đổi tiền của ai.
+      if (v.validTo !== null && (row.valid_to_date === null || v.validTo < row.valid_to_date)) {
+        const tu = ngayDayDu(addDays(v.validTo, 1));
+        return error(409, "transfer_fee_gap", `Mức mới kết thúc ${ngayDayDu(v.validTo)}, sớm hơn mức cũ, nên từ ${tu} ${row.valid_to_date === null ? "trở đi" : `đến ${ngayDayDu(row.valid_to_date)}`} sẽ không còn mức nào. Hãy để trống ngày kết thúc, hoặc đặt cùng ngày kết thúc với mức cũ.`);
       }
       // Dòng cũ đã đóng đúng ngày liền trước thì KHÔNG đóng lại (câu đóng sẽ không đổi gì và nhật ký «kết thúc» sẽ nói dối).
       dongCu = { ketThuc, chuKy: chuKyDieuKien(k), canDong: row.valid_to_date !== ketThuc };
@@ -148,7 +142,7 @@ export const phiDonRoutes: Route[] = [
   }),
 
   // Đường cố định (bat-dau-ap, thu-tra) khác số đoạn với `:id/ket-thuc` nên không va nhau.
-  route("POST", "/api/pricing/phi-don/bat-dau-ap", "admin", async ({ env, request, staff, vungDon }) => {
+  route("POST", "/api/pricing/phi-don/bat-dau-ap", "admin", async ({ env, request, staff }) => {
     if (!can(staff, "admin.manage")) return FORBIDDEN();
     const body = await readJson(request);
     const ngay = body?.ngay;
@@ -156,12 +150,7 @@ export const phiDonRoutes: Route[] = [
     if (!body || (ngay !== null && (typeof ngay !== "string" || !laNgay(ngay))) || (daDoc !== null && typeof daDoc !== "string")) return error(400, "invalid_input", "Ngày bắt đầu áp không hợp lệ.");
     const hien = await batDauApMoiNhat(env.DB);
     if ((hien?.valid_from_at ?? null) !== daDoc) return DA_DOI();
-    if (ngay !== null) {
-      // «Đủ mức trước khi bật» (ADR-0203 ĐB1): mọi khu vực đang bật có một mức chung còn hiệu lực ngày bắt đầu áp.
-      const [vung, dong] = await Promise.all([vungDon(), docMucPhiDonTu(env.DB, ngay)]);
-      const thieu = vungThieuDongChung({ vung: vung.map((x) => x.code), muc: dong.map((d) => d.muc), ngay });
-      if (thieu.length > 0) return THIEU_CHUNG(vung, thieu);
-    }
+    // ADR-0214 (thay ADR-0203 ĐB1): đặt ngày bắt đầu áp KHÔNG còn đòi mọi khu vực có mức chung — ngày này nay chỉ là công tắc phí do văn phòng chọn trên đơn.
     const now = new Date();
     // Mốc dòng mới = max(lúc ghi, mốc dòng mới nhất + 1 ms): hai lần đổi liền nhau không va UNIQUE (khuôn giới hạn nhập hoa hồng).
     const tuLuc = (hien && Date.parse(hien.valid_from_at) >= now.getTime() ? new Date(Date.parse(hien.valid_from_at) + 1) : now).toISOString();
@@ -175,7 +164,7 @@ export const phiDonRoutes: Route[] = [
     return json({ batDauAp: { ngay, tuLuc } } satisfies PhiDonBatDauApResponse);
   }),
 
-  route("POST", "/api/pricing/phi-don/:id/ket-thuc", "admin", async ({ env, request, params, staff, vungDon }) => {
+  route("POST", "/api/pricing/phi-don/:id/ket-thuc", "admin", async ({ env, request, params, staff }) => {
     if (!can(staff, "admin.manage")) return FORBIDDEN();
     const id = params.id!;
     const row = await quyTacTheoId(env.DB, id);
@@ -190,18 +179,8 @@ export const phiDonRoutes: Route[] = [
     const dong = await docMucPhiDonTu(env.DB, TAT_CA);
     const dich = dong.find((d) => d.muc.id === id);
     if (!dich) return error(404, "not_found", "Không tìm thấy mức phí đưa đón này.");
-    const ap = await batDauApMoiNhat(env.DB);
     const k = dich.muc.dieuKien;
-    const laChung = dich.muc.kind === "PER_PAX" && Object.keys(k).length === 1 && k.ZONE !== undefined;
-    if (ap?.start_date != null && laChung) {
-      // Phí đón đang áp: không để một khu vực đang bật hết mức chung kể từ ngày sau khi kết thúc (loại chính dòng này ra, vì dòng chưa được đóng ở CSDL).
-      const vung = await vungDon();
-      if (vung.some((x) => x.code === k.ZONE)) {
-        const sau: MucPhiDon[] = dong.map((d) => (d.muc.id === id ? { ...d.muc, validTo } : d.muc));
-        const thieu = vungThieuDongChung({ vung: [k.ZONE!], muc: sau, ngay: addDays(validTo, 1) });
-        if (thieu.length > 0) return THIEU_CHUNG(vung, thieu);
-      }
-    }
+    // ADR-0214: bỏ chốt «không kết thúc dòng chung cuối của khu vực khi phí đang áp» — bảng không còn dùng cho đơn.
     const at = new Date().toISOString();
     const res = await chayLo(env.DB, [
       cauDongMucPhiDon(env.DB, { id, denNgay: validTo, at, by: staff.id, truocLuc }),
@@ -211,6 +190,12 @@ export const phiDonRoutes: Route[] = [
     if (dongDaDong(res)) return DA_DOI();
     const moi = (await docMucPhiDonTu(env.DB, TAT_CA)).find((d) => d.muc.id === id)!;
     return json({ muc: dtoMuc(moi) } satisfies { muc: MucPhiDonDto });
+  }),
+
+  // ADR-0218 Đ1.8: dịch vụ có đưa đón mà chưa có giá gốc phí đưa đón trên Sheet — chỉ để NHẮC trước khi đặt ngày bắt đầu áp, không chặn. Ô 0 (miễn phí) không nằm trong danh sách.
+  route("GET", "/api/pricing/phi-don/dich-vu-chua-co-phi", "admin", async ({ env, staff }) => {
+    if (!can(staff, "admin.manage")) return FORBIDDEN();
+    return json({ dichVu: await dichVuDuaDonChuaCoGiaGoc(env.DB) } satisfies DichVuChuaCoPhiResponse);
   }),
 
   route("GET", "/api/pricing/phi-don/thu-tra", "admin", async ({ env, url, staff, vungDon }) => {
@@ -235,17 +220,28 @@ export const phiDonRoutes: Route[] = [
     if (!dv.has(dichVu)) return SAI("Dịch vụ không có.");
     if (cap !== "" && !tiers.some((t) => t.code === cap)) return SAI("Cấp độ đại lý không có.");
     const nhom = (await groupsOf(env.DB, [dichVu])).get(dichVu) ?? null;
-    const chang: ChangTinhPhi = { zoneCode: vung, direction: chieu, exclusive: xeRieng === "1", catalogCode: dichVu, groupCode: nhom, tierCode: cap === "" ? null : cap };
     const muc = (await docMucPhiDonTu(env.DB, ngay)).map((d) => d.muc);
-    const kq = chonMucPhiDon({ chang, ngay, muc });
     const ap = await batDauApMoiNhat(env.DB);
     const chuaApNgayNay = ap?.start_date == null || ngay < ap.start_date;
-    if (kq.trangThai === "THIEU_MUC") return json({ ketQua: { trangThai: "THIEU_MUC", lyDo: kq.lyDo }, thua: [], chuaApNgayNay } satisfies ThuTraPhiDonResponse);
-    const t = tinhPhiChang({ muc: kq.muc, direction: chieu, soKhachTinhTien: Number(soKhachRaw), paxOverride: soVeRaw ? Number(soVeRaw) : null });
-    if (!t || !Number.isSafeInteger(t.tien)) return SAI("Số khách hoặc số tiền quá lớn để tính.");
+    // Cùng MỘT hàm `tinhPhiDonThuan` với đơn thật (tiêu chí «Thử tra = đơn thật»); Thử tra không xét ngày bắt đầu áp nên đưa mốc sớm nhất, còn «chưa áp» báo riêng ở `chuaApNgayNay`.
+    let kq;
+    try {
+      kq = tinhPhiDonThuan({
+        bang: { batDauAp: TAT_CA, muc, cap: cap === "" ? { loai: "KHONG_CAP" } : { loai: "CO_CAP", tierCode: cap } },
+        nhom: new Map([[dichVu, nhom]]), ngay,
+        chang: [{ legKey: "thu-tra", zoneCode: vung, direction: chieu, exclusive: xeRieng === "1", catalogCode: dichVu, soKhachTinhTien: Number(soKhachRaw), paxOverride: soVeRaw ? Number(soVeRaw) : null }],
+      });
+    } catch (e) { if (e instanceof RangeError) return SAI("Số khách hoặc số tiền quá lớn để tính."); throw e; }
+    if (!kq.apDung) return SAI("Số khách hoặc số tiền quá lớn để tính.");
+    const thieu = kq.thieu[0];
+    if (thieu) return json({ ketQua: { trangThai: "THIEU_MUC", lyDo: thieu.lyDo === "XUNG_DOT" ? "XUNG_DOT" : "KHONG_CO_MUC" }, thua: [], chuaApNgayNay } satisfies ThuTraPhiDonResponse);
+    const d = kq.dong[0];
+    if (!d) return SAI("Số khách hoặc số tiền quá lớn để tính.");
+    // Danh sách dòng thua chỉ để giải thích; chọn mức đã nằm trong hàm của đơn, đây chỉ đọc lại phần «thua vì».
+    const chon = chonMucPhiDon({ chang: { zoneCode: vung, direction: chieu, exclusive: xeRieng === "1", catalogCode: dichVu, groupCode: nhom, tierCode: cap === "" ? null : cap }, ngay, muc });
     return json({
-      ketQua: { trangThai: "CO_MUC", mucId: kq.muc.id, kieu: kq.muc.kind, donGia: t.donGia, soLuong: t.soLuong, tien: t.tien },
-      thua: kq.thua.map((x) => ({ mucId: x.muc.id, tien: x.muc.amount, viSao: x.viSao })),
+      ketQua: { trangThai: "CO_MUC", mucId: d.ruleId, kieu: d.kind, donGia: d.donGia, soLuong: d.soLuong, tien: d.tien },
+      thua: chon.trangThai === "CO_MUC" ? chon.thua.map((x) => ({ mucId: x.muc.id, tien: x.muc.amount, viSao: x.viSao })) : [],
       chuaApNgayNay,
     } satisfies ThuTraPhiDonResponse);
   }),

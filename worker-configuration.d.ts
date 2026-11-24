@@ -13,6 +13,8 @@ interface __BaseEnv_Env {
 	BIEN_LAI?: R2Bucket;
 	// Kho ảnh đại diện dịch vụ (ADR-0201 Đ3) — khai TAY cùng lý do với HO_SO; dấu hỏi: route tải / xem ảnh trả 503 khi binding vắng.
 	ANH_DICH_VU?: R2Bucket;
+	// Kho Ảnh bàn giao (ADR-0232 Đ3) — khai TAY cùng lý do với HO_SO; dấu hỏi: route tải / xem ảnh trả 503 khi binding vắng.
+	ANH_BAN_GIAO?: R2Bucket;
 	ASSETS: Fetcher;
 	SERVICES_SHEET_ID: "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s";
 	SESSION_SECRET: string;
@@ -40,6 +42,12 @@ interface __BaseEnv_Env {
 	// OPENAI_BASE_URL tuỳ chọn (mặc định https://api.openai.com) — chỉ e2e / thử máy mình trỏ vào máy OpenAI giả. `npm run types` không sinh lại nếu .dev.vars thiếu.
 	OPENAI_API_KEY?: string;
 	OPENAI_BASE_URL?: string;
+	// BẢN DÙNG THỬ (ADR-0223) — khai TAY như trên; chỉ wrangler.demo.jsonc đặt. BAN_DUNG_THU = "bat" là biến bật (vars); KHOA_DUNG_THU là D1 thứ hai giữ
+	// trạng thái khoá; hai PIN là bí mật (`wrangler secret put … --config wrangler.demo.jsonc`). Bản chính thức / Development không có — mọi chỗ đọc phải chịu vắng.
+	BAN_DUNG_THU?: string;
+	KHOA_DUNG_THU?: D1Database;
+	DUNG_THU_PIN?: string;
+	DUNG_THU_PIN_TOAN_QUYEN?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

@@ -74,7 +74,7 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
     {
       kind: "service", index: 1, name: "Tour 4 đảo Nha Trang",
       details: [
-        { label: "Số khách", value: "2 người lớn, 1 trẻ em" }, { label: "Khởi hành", value: "25/09/2026 · 07:30" },
+        { label: "Khởi hành", value: "25/09/2026 · 07:30" }, // đặc tả 20/11: bảng bên dưới đã ghi từng loại khách ⇒ không in dòng «Số khách»
         { label: "Xe đón khách", value: "07:00 · Khách sạn Sunrise" }, { label: "Khách có mặt", value: "25/09/2026 · 06:45 · Bến Cầu Đá" },
       ],
       columns: { description: "Mô tả", quantity: "SL", unitPrice: "Đơn giá", lineTotal: "Thành tiền" },
@@ -88,7 +88,7 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
       kind: "summary",
       rows: [
         { label: "Tạm tính", value: "3.600.000 ₫", emphasis: false }, { label: "Giảm giá", value: "-100.000 ₫", emphasis: false },
-        { label: "Tổng cộng", value: "3.500.000 ₫", emphasis: true }, { label: "Khách hàng đã trả trước", value: "1.000.000 ₫", emphasis: false },
+        { label: "Tổng cộng", value: "3.500.000 ₫", emphasis: false }, { label: "Khách hàng đã trả trước", value: "1.000.000 ₫", emphasis: false }, // một số nổi bật: «Còn lại»
         { label: "Còn lại", value: "2.500.000 ₫", emphasis: true },
       ],
     },
@@ -99,7 +99,7 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
 test("dòng rỗng bị ẩn: không email/ghi chú của khách, không giờ đón, không check-in, không ngày khởi hành", () => {
   const m = build(order({ customerEmail: null, customerNote: null, services: [svc({ ...NO_TRIP })] }));
   assert.deepEqual(one(m, "customer").rows.map((r) => r.label), ["Họ tên", "Số điện thoại"]);
-  assert.deepEqual(one(m, "service").details.map((d) => d.label), ["Số khách"]);
+  assert.deepEqual(one(m, "service").details.map((d) => d.label), [], "đặc tả 20/11: bảng đã ghi từng loại khách ⇒ không còn dòng «Số khách»");
   // chuỗi chỉ có khoảng trắng cũng coi là rỗng
   assert.deepEqual(one(build(order({ customerEmail: "   ", customerNote: " \n " })), "customer").rows.map((r) => r.label), ["Họ tên", "Số điện thoại"]);
 });
@@ -224,12 +224,18 @@ test("người xem KHÔNG được biết người phụ trách (Đối tác —
   assert.ok(!JSON.stringify(build(order(), HANDLER_HIDDEN)).includes("Nguyễn Thu Hà"), "tên người lập không được in");
 });
 
-test("tổng kết: đúng số của đơn (không tự tính lại); chỉ Tổng cộng và Còn lại nổi bật; giảm giá 0 in '0 ₫'; còn lại âm giữ nguyên dấu", () => {
+test("tổng kết: đúng số của đơn (không tự tính lại); MỘT số nổi bật; không giảm giá thì không in Tạm tính / Giảm giá; không trả trước thì chỉ Tổng cộng; còn lại âm giữ nguyên dấu", () => {
   const rows = (o: OrderDetailDto) => one(build(o), "summary").rows;
   const a = rows(order({ subtotal: 12345678, discount: 0, giamGiaHieuLuc: 0, total: 12345678, paid: 5000000, remaining: 7345678 }));
   assert.deepEqual(a.map((r) => [r.label, r.value, r.emphasis]), [
-    ["Tạm tính", "12.345.678 ₫", false], ["Giảm giá", "0 ₫", false], ["Tổng cộng", "12.345.678 ₫", true], ["Khách hàng đã trả trước", "5.000.000 ₫", false], ["Còn lại", "7.345.678 ₫", true],
+    ["Tổng cộng", "12.345.678 ₫", false], ["Khách hàng đã trả trước", "5.000.000 ₫", false], ["Còn lại", "7.345.678 ₫", true],
   ]);
+  // Đặc tả 20/11: không giảm giá, chưa trả trước ⇒ chỉ một dòng, và nó nổi bật.
+  const gon = rows(order({ subtotal: 12345678, discount: 0, giamGiaHieuLuc: 0, total: 12345678, paid: 0, remaining: 12345678 }));
+  assert.deepEqual(gon.map((r) => [r.label, r.value, r.emphasis]), [["Tổng cộng", "12.345.678 ₫", true]]);
+  // Có giảm giá ⇒ đủ ba dòng đầu; vẫn một số nổi bật.
+  const giam = rows(order({ subtotal: 1000, discount: 100, giamGiaHieuLuc: 100, total: 900, paid: 0, remaining: 900 }));
+  assert.deepEqual(giam.map((r) => [r.label, r.value, r.emphasis]), [["Tạm tính", "1.000 ₫", false], ["Giảm giá", "-100 ₫", false], ["Tổng cộng", "900 ₫", true]]);
   const over = rows(order({ subtotal: 4000000, discount: 0, giamGiaHieuLuc: 0, total: 4000000, paid: 5000000, remaining: -1000000 }));
   assert.equal(over.find((r) => r.label === "Còn lại")!.value, "-1.000.000 ₫");
   // số hiển thị là số của đơn, kể cả khi lệch so với tổng các dòng (máy chủ là nơi tính; ảnh chỉ in lại)
@@ -447,7 +453,7 @@ test("HD-02-DT: hai điểm đón khác nhau ⇒ khối khách không Địa ch�
   assert.ok(!labels(one(hai, "customer").rows).includes("Địa chỉ"));
   const dv = blocksOf(hai, "service");
   assert.deepEqual(dv.map((s) => value(s.details, "Địa chỉ đón")), ["KS A", "KS B"]);
-  assert.deepEqual(labels(dv[0]!.details), ["Số lượng", "Khởi hành", "Giờ đón", "Địa chỉ đón", "Khách có mặt"]);
+  assert.deepEqual(labels(dv[0]!.details), ["Khởi hành", "Giờ đón", "Địa chỉ đón", "Khách có mặt"]); // đặc tả 20/11: bảng đã ghi từng loại khách ⇒ bỏ «Số lượng»
   // một dịch vụ có điểm đón, dịch vụ kia không ⇒ vẫn một nơi
   const mot = buildDt(order({ services: [svc({ pickupPlace: "KS A" }), svc({ id: "svc_INTERNAL_2", ...NO_TRIP })] }));
   assert.equal(value(one(mot, "customer").rows, "Địa chỉ"), "KS A");
@@ -541,4 +547,26 @@ test("HD-02-DT: nhiều người bán ⇒ giữ các dòng Phần … và câu v
   assert.ok(sauDt.some((r) => r.label === "Phần 2 · i-resort") && sauDt.some((r) => r.label === "Trả tại quầy i-resort"));
   assert.deepEqual(one(dt, "footer"), one(nb, "footer"));
   assert.match(one(dt, "footer").lines.join("\n"), /Phần 2 do i-resort bán; Tour Đảo là đối tác đặt vé\./);
+});
+
+// ---- Đợt C, Task 6: khối «Phí đưa đón» trên biên nhận (chủ 15/11, câu 3) ----
+test("khối Phí đưa đón: «Miễn phí» chỉ cho dòng đơn giá 0 đồng; dòng số lượng 0 (đơn giá > 0) in 0 ₫; đơn nháp ghi «Phí đưa đón (dự kiến)»", () => {
+  const dong = (o: Record<string, unknown>) => ({
+    id: "fee_INTERNAL", legId: "leg_INTERNAL", serviceId: "svc_INTERNAL_1", direction: "OUT" as const, zoneCode: "ZONE_INTERNAL", zoneName: "Bãi Dài",
+    kind: "PER_PAX" as const, returnPax: null, quantity: 2, unitPrice: 70000, lineTotal: 140000, description: "Phí đưa đón — chiều đi, Bãi Dài", ...o,
+  });
+  const phi = (duKien: boolean) => ({
+    dong: [dong({}), dong({ id: "fee2", direction: "RETURN", unitPrice: 0, lineTotal: 0, description: "Phí đưa đón — chiều về, Bãi Dài" }), dong({ id: "fee3", quantity: 0, lineTotal: 0 })],
+    thieu: [],
+    duKien,
+  });
+  // ADR-0218 Đ3: khách lẻ mặc định gộp phí vào giá; khối «Phí đưa đón» chỉ còn khi công tắc «Hiện riêng» bật (hoặc mẫu đối tác) ⇒ dựng với công tắc bật.
+  const buildRieng = (o: DonMau): ConfirmationModel => buildConfirmation(dungBienNhan(o, COMPANY, { daTra: o.paid, conLai: o.remaining }, null, false, true), "Lê Minh Tuấn");
+  const lay = (m: ConfirmationModel) => blocksOf(m, "service").find((b) => b.name.startsWith("Phí đưa đón"))!;
+  const nhap = lay(buildRieng(order({ phiDuaDon: phi(true) })));
+  assert.equal(nhap.name, "Phí đưa đón (dự kiến)");
+  assert.deepEqual(nhap.lines.map((l) => [l.quantity, l.lineTotal]), [["2", "140.000 ₫"], ["2", "Miễn phí"], ["0", "0 ₫"]]);
+  const daChup = lay(buildRieng(order({ status: "confirmed", confirmedAt: "2026-09-21T01:00:00.000Z", phiDuaDon: phi(false) })));
+  assert.equal(daChup.name, "Phí đưa đón");
+  assert.deepEqual(daChup.lines.map((l) => l.lineTotal), ["140.000 ₫", "Miễn phí", "0 ₫"]);
 });

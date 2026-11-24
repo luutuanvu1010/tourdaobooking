@@ -13,23 +13,24 @@ export interface LuaChon {
 
 const TIEN_TO_NCC = "ncc:";
 
-/** Câu thay form «Ghi khoản thu» khi văn phòng mở đơn mang dấu Tắt mà không có lựa chọn người thu nào (ADR-0178 Đ1 mục 2). */
+/** Câu thay form «Nhập khoản thu» khi văn phòng mở đơn mang dấu Tắt mà không có lựa chọn người thu nào (ADR-0178 Đ1 mục 2). */
 export const CAU_DOI_TAC_TU_GHI = "Đối tác lập đơn tự ghi khoản thu của đơn này.";
 
 /**
- * Ô «Người thu tiền» của form «Ghi khoản thu»: luôn có Công ty và «Tôi thu»; thêm «Khách trả cho đại lý <tên>» khi đơn có đại lý được hưởng, và mỗi quầy nhà cung cấp
+ * Ô «Người thu tiền» của form «Nhập khoản thu»: luôn có Công ty và «Tôi thu»; thêm «Khách trả cho đại lý <tên>» khi đơn có đại lý được hưởng, và mỗi quầy nhà cung cấp
  * của đơn một dòng «Khách trả tại quầy <tên>». `benKia` null (khách lẻ, nháp, chưa chụp, Đối tác) ⇒ chỉ hai dòng đầu.
  * Đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (`kenhThu.congTyThu === false`, ADR-0178 Đ1 mục 2): người thu chỉ là hồ sơ của tài khoản Đối tác đã lập đơn —
  * Đối tác ⇒ chỉ «Tôi thu»; văn phòng ⇒ «Khách trả cho đại lý <tên người lập>» khi hồ sơ người lập là bên đặt được hưởng, không thì rỗng (nơi gọi hiện `CAU_DOI_TAC_TU_GHI`).
  * Máy chủ vẫn kiểm lại (`kiemNguoiThuKenh`, trigger 0144).
  */
-export function luaChonNguoiThu(benKia: BenKiaLuaChonDto | null, kenhThu?: OrderPaymentsResponse["kenhThu"], laDoiTac = false): LuaChon[] {
+export function luaChonNguoiThu(benKia: BenKiaLuaChonDto | null, kenhThu?: OrderPaymentsResponse["kenhThu"], laDoiTac = false, chiTienMat = false): LuaChon[] {
   if (kenhThu?.congTyThu === false) {
     if (laDoiTac) return [{ value: "toi", nhan: "Tôi thu" }];
     if (kenhThu.nguoiLapLaBenDatHuong) return [{ value: "ben_dat", nhan: `Khách trả cho đại lý ${kenhThu.nguoiLapTen ?? benKia?.benDat?.ten ?? ""}`.trim() }];
     return [];
   }
-  const ds: LuaChon[] = [{ value: "cong_ty", nhan: "Công ty (vào tài khoản công ty)" }, { value: "toi", nhan: "Tôi thu" }];
+  // ADR-0225 Đ2 (đề xuất): đơn đối tác chỉ thu hộ tiền mặt ⇒ không có lựa chọn «Công ty (vào tài khoản công ty)».
+  const ds: LuaChon[] = [...(chiTienMat ? [] : [{ value: "cong_ty", nhan: "Công ty (vào tài khoản công ty)" }]), { value: "toi", nhan: "Tôi thu" }];
   if (benKia?.benDat) ds.push({ value: "ben_dat", nhan: `Khách trả cho đại lý ${benKia.benDat.ten}` });
   for (const n of benKia?.nhaCungCap ?? []) ds.push({ value: `${TIEN_TO_NCC}${n.partyId}`, nhan: `Khách trả tại quầy ${n.ten}` });
   return ds;
@@ -52,6 +53,16 @@ export function nguoiThuSuaPhanDinh(kenhThu: OrderPaymentsResponse["kenhThu"] | 
 
 /** Câu thay form «Ghi khoản thu đòi được» (phân định) ở đơn mang dấu Tắt: ADR-0178 Hệ quả — Kế toán không dùng được đường này cho đơn đó. */
 export const CAU_KHONG_GHI_DOI_DUOC = "Đơn này chỉ nhận tiền khách trả cho đối tác đã lập đơn nên Công ty không ghi khoản thu đòi được.";
+
+export type HinhThucThu = "BANK_TRANSFER" | "CASH" | "OTHER";
+/**
+ * ADR-0225 Đ2 (đề xuất): các hình thức hiện ở ô «Hình thức» của form ghi khoản thu. Đơn mang dấu «chỉ thu hộ tiền mặt»: người thu phía Tour Đảo (Công ty, «Tôi thu» của nhân viên)
+ * chỉ có «Tiền mặt»; tài khoản Đối tác tự ghi và lựa chọn «khách trả bên kia» (đại lý, quầy nhà cung cấp) giữ đủ ba. Máy chủ kiểm lại (`thuHoChiTienMat`, trigger 0184).
+ */
+export function hinhThucChoPhep(i: { chiTienMat: boolean; laDoiTac: boolean; nguoiThu: string }): HinhThucThu[] {
+  if (i.chiTienMat && !i.laDoiTac && !laBenKia(i.nguoiThu)) return ["CASH"];
+  return ["BANK_TRANSFER", "CASH", "OTHER"];
+}
 
 /** Giá trị ô chọn → trường `nguoiThu` của thân `POST /api/orders/:id/payments`. */
 export function nguoiThuTuGiaTri(v: string): LanThuInput["nguoiThu"] {

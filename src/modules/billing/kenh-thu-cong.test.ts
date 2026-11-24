@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { CHECKS, demViPham } from "../../../scripts/audit-checks.mjs";
+import { donTruocNgayAp } from "../../../tests/audit/chi-tien-mat.mjs";
 import { svc, inDays } from "../../../tests/audit/xac-nhan-khung.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
@@ -29,7 +30,7 @@ function setup(tuyChon: Record<string, unknown> = {}): W {
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(NCC, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-kt-ncc', ?, 'SUPPLIER', '2026-01-01', ?, ?)").run(NCC, AT, AT);
-  w.sqlite.exec(`INSERT INTO catalog_item (code, name, unit, price_adult, sheet_row, in_sheet, first_seen_at, updated_at) VALUES ('IRESORT', 'Vé tắm bùn i-resort', 'perPax', 300000, 1, 1, '${AT}', '${AT}')`);
+  w.sqlite.exec(`INSERT INTO catalog_item (code, name, unit, price_adult, sheet_row, in_sheet, first_seen_at, updated_at) VALUES ('IRESORT', 'Vé tắm bùn i-resort', 'perPax', 1000000, 1, 1, '${AT}', '${AT}')`);
   w.sqlite.exec(`INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZB1', 'Tour thường', 'perPax', 300000, 1, '2026-01-01', '2026-01-01')`);
   return w;
 }
@@ -38,6 +39,7 @@ async function ganNcc(w: W) {
   assert.equal(c.status, 201, c.text);
 }
 
+/** Giá danh mục IRESORT gieo 1.000.000 = giá dòng gieo bên dưới (ADR-0205: đơn Đối tác lập mà giá danh mục đã lưu lệch danh mục thì không xác nhận được). */
 /** Đơn NHÁP bằng SQL (một dịch vụ IRESORT 1.000.000, ngày đi hôm nay) rồi xác nhận qua route của người lập; HDV phụ trách. `dau` = dấu kênh thu (null = không dấu). */
 async function don(w: W, o: { owner?: string; booker?: string | null; dau?: 0 | 1 | null; tong?: number; xacNhan?: boolean } = {}): Promise<string> {
   const id = uuid();
@@ -232,6 +234,9 @@ test("QR thanh toán: đơn dấu Tắt ⇒ { coQr: false }; đơn dấu Bật v
   assert.deepEqual(r.json, { coQr: false });
   for (const dau of [1, null] as const) {
     const id = await don(w, { dau });
+    // ADR-0225 Đ2 (21/11): đơn đối tác xác nhận từ ngày áp mang dấu «chỉ thu hộ tiền mặt» ⇒ không QR (bài src/modules/billing/thu-ho-tien-mat.test.ts). Bài này đo RIÊNG
+    // luật dấu kênh thu nên đưa đơn về tình huống đơn xác nhận trước ngày áp.
+    donTruocNgayAp(w, id);
     // ADR-0182 Đ2 mục 3 (12/11): tài khoản Đối tác không còn QR giá bán lẻ ở MỌI dấu; luật dấu Bật / không dấu nay kiểm bằng văn phòng (Kế toán).
     assert.deepEqual((await w.call("GET", `/api/orders/${id}/qr-thanh-toan`, { as: PT })).json, { coQr: false });
     const q = await w.call("GET", `/api/orders/${id}/qr-thanh-toan`, { as: KT });

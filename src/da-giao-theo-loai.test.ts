@@ -71,11 +71,11 @@ test("hàm thuần dùng chung (trần giảm giá, tổng hoa hồng, dòng th�
     hoaHong: { status: "SET", kind: "PER_PAX", rateBp: null, perPax: 50_000, ruleId: "r", theoLoai: { adult: 50_000, child: 30_000, senior: 40_000 } },
     cungUng: { status: "SET", termId: "t", sellerPartyId: "ct", supplierPartyId: null, costRateBp: null },
   };
-  const dv = { id: "s1", name: "Tour", thanhTien: 1_750_000, soKhachTinh: 4, pax: { adult: 2, child: 1, senior: 1 } };
+  const dv = { id: "s1", name: "Tour", thanhTien: 1_750_000, coSoHoaHong: 1_750_000, soKhachTinh: 4, pax: { adult: 2, child: 1, senior: 1 } };
   assert.equal(tongHoaHongDon([chup], [dv], "null"), 170_000);
   assert.equal(donChoTran([chup], [dv]).tongHoaHong, 170_000);
   assert.equal(dongThuongMaiTu({ chup: [chup], dichVu: [dv] })[0]!.hoaHong, 170_000);
-  const thieu = { id: "s1", name: "Tour", thanhTien: 1_750_000, soKhachTinh: 4 };
+  const thieu = { id: "s1", name: "Tour", thanhTien: 1_750_000, coSoHoaHong: 1_750_000, soKhachTinh: 4 };
   assert.throws(() => dongThuongMaiTu({ chup: [chup], dichVu: [thieu] }), /thiếu số khách theo loại/);
   // Dịch vụ nhóm/lượt (pax null): mỗi lượt lấy số tiền người lớn.
   assert.equal(dongThuongMaiTu({ chup: [chup], dichVu: [{ ...dv, soKhachTinh: 3, pax: null }] })[0]!.hoaHong, 150_000);

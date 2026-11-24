@@ -81,6 +81,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "GET /api/auth/me": { ma: 200, ly_do: "phiên của chính mình (đăng nhập — D3)" },
   "POST /api/auth/xem-nhu-vai": { ma: 403, ly_do: "ADR-0180: chỉ Toàn quyền (quyền thật) bật xem như vai trò khác; tài xế → 403" },
   "DELETE /api/auth/xem-nhu-vai": { ma: 403, ly_do: "như trên; không phải Toàn quyền → 403" },
+  "POST /api/account/dung-thu-vai": { ma: 404, ly_do: "ADR-0223 Đ3.1: chỉ có trên bản dùng thử (BAN_DUNG_THU); bản chính / khung thử → 404; trên bản dùng thử cũng chỉ tài khoản dùng thử chọn được" },
   "PUT /api/account/thanh-duoi": { DRIVER: { ma: 400, ly_do: "ADR-0187 Đ2.3: tự phục vụ nút thanh dưới của chính mình (ô me.favorites.write = own); thân rỗng → 400" }, DRIVER_PARTNER: { ma: 403, ly_do: "ADR-0187 Đ2.3: Tài xế đối tác không có ô me.favorites.write → 403" } },
   "GET /api/bang-tin": { ma: 426, ly_do: "bắt tay Bảng tin; nhãn nhận tin tính bằng can() — DRIVER không có tat-ca/cho-nhan, chỉ nguoi:<mình>; thiếu Upgrade → 426" },
   "GET /api/dispatch/mine": { ma: 403, ly_do: "việc của hướng dẫn viên — ô contact.view / money.view của DRIVER là none" },
@@ -122,6 +123,19 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/parties/cua-toi/phieu/:pid/rut": { ma: 404, ly_do: "ADR-0124 đ1: chỉ phiếu của hồ sơ PHIÊN — mã lạ / phiếu người khác → 404 (không dò được)" },
   "POST /api/parties/cua-toi/phieu-xoa": { ma: 400, ly_do: "ADR-0126 đ2 (lát H-5; ô party.erasure.request own, hồ sơ = staff.partyId); thân rỗng thiếu xacNhan → 400 trước mọi ghi" },
   "POST /api/parties/cua-toi/phieu-xoa/:pid/rut": { ma: 404, ly_do: "ADR-0126 đ2: chỉ yêu cầu xoá của hồ sơ PHIÊN — mã lạ / của người khác → 404 (không dò được)" },
+  // ADR-0213 Đ5, Đ6 (đợt 2 đăng ký, lượt B1): các route «Tổ chức của tôi» — chỉ người đang là người quản lý / thành viên của tổ chức mới qua; tài xế không có liên kết → bị chặn, không dữ liệu đơn.
+  "GET /api/to-chuc/cua-toi": { ma: 200, ly_do: "ADR-0213 Đ5: danh sách tư cách của CHÍNH MÌNH (người quản lý / thành viên); tài xế không có liên kết → danh sách rỗng, không dữ liệu đơn" },
+  "GET /api/to-chuc/:id": { ma: 403, ly_do: "ADR-0213 Đ5: chỉ người quản lý của tổ chức xem màn tổ chức; tài xế không có liên kết → 403 trước khi đọc" },
+  "GET /api/to-chuc/:id/nhap-thanh-vien": { ma: 403, ly_do: "ADR-0213 Đ8 (Task 18 phần 1a): chỉ người quản lý của tổ chức (giữ quyền Đối tác, lập đơn được) xem nháp của thành viên; tài xế → 403 trước mọi câu đọc đơn" },
+  "POST /api/to-chuc/:id/yeu-cau-chuyen": { ma: 403, ly_do: "ADR-0213 Đ6: chỉ người quản lý của tổ chức gửi yêu cầu chuyển quyền → 403 trước mọi ghi" },
+  "POST /api/to-chuc/:id/go-thanh-vien": { ma: 403, ly_do: "ADR-0213 Đ4: chỉ người quản lý của tổ chức gỡ thành viên → 403 trước mọi ghi" },
+  "POST /api/to-chuc/:id/loi-moi": { ma: 403, ly_do: "ADR-0213 Đ7.1: chỉ người quản lý của tổ chức hoặc văn phòng tạo lời mời → 403 trước mọi ghi" },
+  "POST /api/to-chuc/:id/loi-moi/:mid/huy": { ma: 403, ly_do: "ADR-0213 Đ7.2: chỉ người quản lý của tổ chức hoặc văn phòng huỷ lời mời → 403 trước mọi ghi" },
+  "GET /api/to-chuc/loi-moi-cua-toi": { ma: 403, ly_do: "ADR-0213 Đ7.4, Đ2.6: chỉ tài khoản Đối tác lập đơn được (order.create + quyền Đối tác) xem lời mời của chính số mình → 403 ở cổng (Task 15 vòng sửa 1)" },
+  "POST /api/to-chuc/loi-moi/nhan": { ma: 403, ly_do: "ADR-0213 Đ7.4, Đ2.6: chỉ tài khoản Đối tác lập đơn được (order.create + quyền Đối tác) mới nhận lời mời vào tổ chức → 403 trước mọi ghi" },
+  "PUT /api/to-chuc/:id/che-do": { ma: 403, ly_do: "ADR-0213 Đ8.3: chỉ người quản lý có hiệu lực của tổ chức hoặc Toàn quyền đổi chế độ thành viên; tài xế → 403 trước mọi ghi" },
+  "POST /api/to-chuc/:id/roi": { ma: 404, ly_do: "ADR-0213 Đ4: chỉ thành viên của tổ chức mới rời; không phải thành viên → 404 (không dò được tổ chức có thật)" },
+  "GET /api/pricing/cap-cua-to-chuc/:id": { ma: 403, ly_do: "ADR-0213 Đ5: chỉ người quản lý của tổ chức xem cấp độ đại lý của tổ chức → 403; không dữ liệu đơn" },
   "GET /api/thong-bao": { ma: 200, ly_do: "hộp thông báo gửi cho mình (D3)" },
   "GET /api/thong-bao/tom-tat": { ma: 200, ly_do: "như trên" },
   "GET /api/thong-bao/moi-nhat": { ma: 200, ly_do: "như trên (Web Push)" },
@@ -188,6 +202,9 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
     DRIVER: { ma: 403, ly_do: "ô unavailability.self none → 403 trước mọi truy vấn" },
     DRIVER_PARTNER: { ma: 404, ly_do: "khung lạ / không phải của mình → 404 (SQL lọc driver_party_id của người gọi)" },
   },
+  // ADR-0219 Đ3: hàng chờ phiếu đăng ký và gửi lại thư sang cổng staff — ô registration.queue.view = none ở cả hai mã tài xế ⇒ 403 ở đầu thân, trước mọi truy vấn.
+  "GET /api/dang-ky/hang-cho": { ma: 403, ly_do: "ô registration.queue.view none → 403 trước mọi truy vấn; không dữ liệu phiếu" },
+  "POST /api/dang-ky/phieu/:id/gui-lai-thu": { ma: 403, ly_do: "như trên — ô registration.queue.view none → 403 trước khi đọc phiếu" },
   // ADR-0175 Đ3 (vé Tour Đảo Đợt 2): quét vé — ô ve.quet.xem = any (Tài xế công ty quét chỉ-xem), ô ve.quet.tinh = none; Tài xế đối tác không có ô nào.
   "GET /api/ve/quet/quyen": {
     DRIVER: { ma: 200, ly_do: "chỉ báo được tính đã dùng hay không ({ tinh: false }) — không dữ liệu đơn / khách / tiền" },
@@ -196,6 +213,24 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/ve/quet": {
     DRIVER: { ma: 200, ly_do: "thân rỗng = mã lạ: trả kết quả đỏ «mã lạ», không ghi lượt, không dữ liệu đơn / khách / tiền" },
     DRIVER_PARTNER: { ma: 403, ly_do: "không có ô quét vé nào → 403 ở bước đầu, trước khi đọc thân" },
+  },
+  // ADR-0232 Đ4 (Ảnh bàn giao, NGOÀI cổng đơn): Tài xế công ty có ô tải (assigned, theo chuyến) và xem (own — ảnh mình gửi) ⇒ qua cổng ô, gặp đơn / ảnh lạ ⇒ 404;
+  // Tài xế đối tác không có ô nào ⇒ 403 ở bước đầu, trước mọi tra cứu. Không route nào trả dữ liệu đơn / khách / tiền.
+  "POST /api/anh-ban-giao/don/:orderId": {
+    DRIVER: { ma: 404, ly_do: "ô order.photo.upload assigned ⇒ qua bước đầu; đơn lạ ⇒ 404 (không ghi gì)" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "không có ô Ảnh bàn giao nào ⇒ 403 trước mọi tra cứu" },
+  },
+  "GET /api/anh-ban-giao/don/:orderId/tom-tat": {
+    DRIVER: { ma: 404, ly_do: "ô order.photo.view own ⇒ qua bước đầu; đơn lạ ⇒ 404" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "như trên — 403 trước mọi tra cứu" },
+  },
+  "GET /api/anh-ban-giao/don/:orderId": {
+    DRIVER: { ma: 404, ly_do: "ô order.photo.view own ⇒ qua bước đầu; đơn lạ ⇒ 404" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "như trên — 403 trước mọi tra cứu" },
+  },
+  "GET /api/anh-ban-giao/anh/:anhId": {
+    DRIVER: { ma: 404, ly_do: "ô order.photo.view own ⇒ qua bước đầu; ảnh lạ ⇒ 404" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "như trên — 403 trước mọi tra cứu" },
   },
   "POST /api/ve/quet/:id/bo": {
     DRIVER: { ma: 400, ly_do: "thân rỗng thiếu lý do → 400 TRƯỚC khi tra lượt quét (không lộ lượt nào có thật); bỏ lượt thật còn bị chặn ở bước sau (không phải người quét / Quản trị)" },

@@ -1,42 +1,30 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Địa điểm — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Địa điểm">
+<body data-rong="vua" data-khung-goc="thiet-lap" data-title="Địa điểm">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
+  <!-- Khuôn Thiết lập của khung gốc (ADR-0222): đoạn dẫn, rồi mỗi nhóm thiết lập một khối. Nút «thêm» ở đầu khối, «Sửa» ở cuối dòng; biểu mẫu thêm và sửa mở
+       trong bảng trượt (web/locations.ts). Khối rộng từ 800 hiện bảng, hẹp hơn hiện danh sách dòng (#list-cards); cột Địa chỉ chỉ hiện khi khối rộng từ 1040.
+       Nút «Thêm địa điểm» và khối «Khu vực đón» mặc định ẩn: chỉ quản trị viên mới dùng được (máy chủ 403 với người khác). -->
   <h1>Địa điểm</h1>
-  <p class="muted">Nơi phát sinh nghiệp vụ: văn phòng, quầy vé, bến tàu, bến cảng. Địa điểm không xoá được — chỉ ngưng dùng.</p>
+  <div class="dau-trang"><p class="doan-dan">Nơi phát sinh nghiệp vụ: văn phòng, quầy vé, bến tàu, bến cảng. Địa điểm không xoá được — chỉ ngưng dùng.</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <section id="edit" class="card" hidden></section>
-  <section id="add-card" class="card" hidden>
-    <h2>Thêm địa điểm</h2>
-    <form id="add-form" class="grid three" autocomplete="off">
-      <label>Mã (chữ HOA, số, gạch dưới)<input id="add-code" type="text" maxlength="40" placeholder="QUAY_VE_05" required></label>
-      <label>Tên<input id="add-name" type="text" maxlength="100" required></label>
-      <label>Loại<select id="add-type"></select></label>
-      <label>Địa chỉ<input id="add-address" type="text" maxlength="300"></label>
-      <label>Thứ tự<input id="add-sort" type="number" min="0" max="9999" value="0"></label>
-      <div><button class="btn btn-primary" type="submit">Thêm</button></div>
-    </form>
-  </section>
-  <section id="zone-card" class="card" hidden>
-    <h2>Khu vực đón</h2>
-    <p class="muted">Nhóm các địa điểm dùng chung một mức phí đưa đón. Địa điểm chưa xếp được tính vào «Ngoài khu vực».</p>
-    <div id="zone-list" class="zone-list"></div>
-    <form id="zone-form" class="grid three" autocomplete="off">
-      <label>Mã (chữ HOA, số, gạch dưới)<input id="zone-code" type="text" maxlength="30" placeholder="BAC_NHA_TRANG" required></label>
-      <label>Tên<input id="zone-name" type="text" maxlength="60" required></label>
-      <label>Thứ tự<input id="zone-sort" type="number" min="0" max="9999" value="0"></label>
-      <div><button class="btn btn-primary" type="submit">Thêm khu vực đón</button></div>
-    </form>
-  </section>
-  <section class="card table-wrap">
-    <table class="items">
-      <thead><tr><th>Mã</th><th>Tên</th><th>Loại</th><th>Khu vực</th><th>Địa chỉ</th><th>Thứ tự</th><th>Chọn nhanh</th><th></th></tr></thead>
+  <section id="ds-khoi" class="khoi" data-kieu="bang" aria-labelledby="ds-ten">
+    <header class="khoi-dau"><h2 id="ds-ten">Địa điểm</h2></header>
+    <div class="khoi-viec" data-cho="dau"><button id="add-mo" type="button" class="nut" data-cap="chinh" hidden>Thêm địa điểm</button></div>
+    <table class="bang">
+      <thead><tr><th>Tên</th><th>Loại</th><th>Khu vực</th><th data-cot-phu>Địa chỉ</th><th data-so>Thứ tự</th><th data-so>Chọn nhanh</th><th></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
+    <div id="list-cards" class="ds-dong" data-thay-bang></div>
   </section>
-  <div id="list-cards" class="card-list"></div>
+  <section id="zone-card" class="khoi" aria-labelledby="zone-ten" hidden>
+    <header class="khoi-dau"><h2 id="zone-ten">Khu vực đón</h2></header>
+    <div class="khoi-viec" data-cho="dau"><button id="zone-mo" type="button" class="nut" data-cap="phu">Thêm khu vực đón</button></div>
+    <p class="khoi-mo-ta">Nhóm các địa điểm dùng chung một mức phí đưa đón. Địa điểm chưa xếp được tính vào «Ngoài khu vực».</p>
+    <div id="zone-list" class="ds-dong"></div>
+  </section>
 </main>
 <script type="module" src="/js/locations.js"></script>
 </body></html>

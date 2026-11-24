@@ -2,6 +2,7 @@
 import { moTrang, thanhBen } from "../src/shared/muc-giao-dien";
 import { homeRedirect } from "../src/shared/start-page";
 import { byId, h } from "./dom";
+import { icon, type IconName } from "./icons";
 import { initShell, trinhBay } from "./shell";
 import { trangThaiToanTrang } from "./trang-thai-he-thong";
 
@@ -12,7 +13,8 @@ if (!moTrang("thietLap", staff)) {
   const nav = byId("tl-muc");
   const muc = thanhBen({ staff }, "/thiet-lap").find((g) => g.nhom === "THIẾT LẬP")?.muc ?? [];
   for (const m of muc) {
-    const a = h("a", { class: "dong", href: m.href }, h("span", null, m.nhan));
+    // Việc 16: hình của mục (khai cùng chỗ với thanh bên máy tính) đứng bên trái chữ, cùng hình ở mọi khổ.
+    const a = h("a", { class: "dong", href: m.href }, m.bieuTuong && h("span", { class: "tl-muc-hinh" }, icon(m.bieuTuong as IconName, 20)), h("span", { class: "tl-muc-chu" }, m.nhan));
     const { badge, badgeClass } = trinhBay(m.trang, false);
     if (m.trang === "dichVu" && badge)
       void badge().then((n) => {

@@ -1,8 +1,9 @@
 // Ô "Đặt qua đối tác" (sổ đại lý đợt 1, Task 11; đặc tả §7) dùng ở form lập đơn và bảng "Đổi khách": văn phòng chọn đại lý / cộng tác viên đứng tên đặt đơn, TÁCH khỏi hai ô tên + SĐT khách đi tour
 // (ô tra hồ sơ khách theo SĐT điền tên khách vào đơn nên không dùng được để chọn đại lý). Tìm theo tên trong các hồ sơ (cá nhân hoặc tổ chức) đang mang vai được hưởng hoa hồng:
 // GET /api/pricing/nguoi-huong?q= (trễ 300 ms; chỉ id, tên, loại hồ sơ). Ai thấy ô: `coODatQuaDoiTac` (src/shared/phan-doi-tac-hien-thi.ts — đúng cổng của route); máy chủ vẫn kiểm lại.
+// Việc 3 (21/11/2026): người tra được hồ sơ theo số (`traDoiTacTheoSo`, nơi dùng truyền `theoSo`) gõ đủ một số điện thoại thì máy chủ tìm theo số liên hệ; nhãn, chữ gợi ý, câu rỗng theo đó.
 // Khi đã chọn, nơi dùng ẩn ô tra hồ sơ khách theo SĐT; bỏ chọn thì trở lại như cũ. Mọi nút là type="button" (ô nằm trong <form>); ô tìm là type="search" để Enter không gửi form (web/CLAUDE.md).
-import type { BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
+import { cauTimDoiTacRong, chuOTimDoiTac, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { ApiError, api, type Api } from "./api";
 import { h, replaceChildren } from "./dom";
 
@@ -21,18 +22,19 @@ const CHO_GO_MS = 300;
  * "<tên> · cá nhân|tổ chức · được hưởng hoa hồng" + liên kết "Đổi" (mọi hồ sơ `nguoi-huong` trả về đều được hưởng hoa hồng nên câu này luôn đúng). Ai thấy ô, điều kiện hiện / ẩn, các id: KHÔNG đổi.
  * Bố cục cũ (nút rời "Đặt qua đối tác", "Bỏ chọn", dòng "Đặt qua: …") đã gỡ ở Việc 9 khi bảng "Đổi khách" chuyển sang công tắc — không còn nơi nào dùng.
  */
-export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenDatChon | null) => void }): DatQuaDoiTac {
+export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenDatChon | null) => void; theoSo: boolean }): DatQuaDoiTac {
   const id = `dqdt-${++dem}`;
   let chon: BenDatChon | null = v.daChon;
   let dangTim = false;
   let seq = 0; // bỏ kết quả tìm cũ về muộn
   let timer: number | undefined;
+  const chu = chuOTimDoiTac(v.theoSo);
 
   // Gán `datChon` ở cuối hàm (sau khi `ve` đã định nghĩa); trong lúc dựng chưa có nên ép kiểu qua `unknown`.
   const root = h("div", { class: "dqdt", id: "dat-qua-doi-tac" }) as unknown as DatQuaDoiTac;
   const nutMo = h("button", { type: "button", class: "loc-nut", "data-action": "dat-qua-mo" }, "Qua đối tác");
   const nutTuDat = h("button", { type: "button", class: "loc-nut" }, "Khách lẻ");
-  const o = h("input", { type: "search", id: `${id}-q`, autocomplete: "off", maxLength: 60, placeholder: "Gõ tên đại lý / cộng tác viên", "aria-controls": `${id}-ds` });
+  const o = h("input", { type: "search", id: `${id}-q`, autocomplete: "off", maxLength: 60, placeholder: chu.goiY, "aria-controls": `${id}-ds` });
   const ds = h("div", { class: "dqdt-ket-qua", id: `${id}-ds`, "aria-live": "polite" });
   /** Nhãn "Đơn của" + công tắc hai nút; `quaDoiTac` = "Qua đối tác" đang bật (nút "Khách lẻ" khi đó là lối huỷ — mang `data-action="dat-qua-huy"`). */
   const hangChon = (quaDoiTac: boolean): HTMLElement => {
@@ -66,7 +68,7 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
     }
     if (mine !== seq) return;
     if (ketQua.length === 0) {
-      replaceChildren(ds, h("p", { class: "muted" }, o.value.trim() ? "Không có đối tác nào tên như vậy." : "Chưa có đối tác nào được hưởng hoa hồng."));
+      replaceChildren(ds, h("p", { class: "muted" }, cauTimDoiTacRong(o.value, v.theoSo)));
       return;
     }
     replaceChildren(
@@ -95,7 +97,7 @@ export function oDatQuaDoiTac(v: { daChon: BenDatChon | null; onDoi: (chon: BenD
       const loai = chon.loai ? ` · ${NHAN_LOAI[chon.loai]}` : "";
       replaceChildren(root, hangChon(true), h("p", { class: "dqdt-chon dqdt-chon-xanh" }, h("span", { class: "dqdt-chon-chu" }, h("strong", { class: "dqdt-chon-ten" }, chon.ten), `${loai} · được hưởng hoa hồng`), doiBtn));
     } else if (dangTim) {
-      replaceChildren(root, hangChon(true), h("label", { for: `${id}-q` }, "Tìm đối tác theo tên", o), ds);
+      replaceChildren(root, hangChon(true), h("label", { for: `${id}-q` }, chu.nhan, o), ds);
     } else {
       replaceChildren(root, hangChon(false));
     }

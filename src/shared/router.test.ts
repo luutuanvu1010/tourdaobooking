@@ -531,6 +531,28 @@ test("ctx.mocToiThieu: chuyển env tới hàm tiêm và trả nguyên kết qu�
   assert.deepEqual(await (await khong.fetch(new Request("http://x/api/moc"), env, {} as ExecutionContext)).json(), { moc: null });
 });
 
+// TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7; đợt 1 Task 7) — ctx.chuaKichHoat là hàm tiêm BẮT BUỘC của gốc lắp ráp: chuyển env + id tài khoản tới hàm tiêm và trả nguyên kết quả.
+test("ctx.chuaKichHoat: chuyển env + id tài khoản tới hàm tiêm, trả nguyên true/false", async () => {
+  const seen: unknown[] = [];
+  const env = { ten: "env-thu" } as unknown as Env;
+  const mod: AppModule = {
+    name: "chua-kich-hoat-gia",
+    routes: [route("GET", "/api/ckh", "staff", async (ctx) => json({ a: await ctx.chuaKichHoat("s-1"), b: await ctx.chuaKichHoat("s-2") }))],
+  };
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async () => phien(staffOf(["SALES"])),
+    injected: {
+      isAssigned: async () => false, banHang: () => ({}) as never, defaultHandlerStatement: () => null, maintenanceBlock: async () => null, partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => {}, dongBangTin: async () => {}, giaoLoDay: async () => [],
+      chuaKichHoat: async (e: Env, id: string) => { seen.push([e, id]); return id === "s-1"; },
+      taiKhoanChuaKichHoat: async () => new Set<string>(),
+    },
+  } as any);
+  assert.deepEqual(await (await app.fetch(new Request("http://x/api/ckh"), env, {} as ExecutionContext)).json(), { a: true, b: false });
+  assert.deepEqual(seen, [[env, "s-1"], [env, "s-2"]]);
+});
+
 // NHÃN NGƯỜI BẤM (ruling R-P20) — ctx.nhanNhanVien là hàm tiêm của gốc lắp ráp (van-chuyen không import staff). Thiếu hàm tiêm → null (route để
 // TRỐNG nhãn, không đoán); mảng rỗng → Map rỗng, KHÔNG gọi hàm tiêm (không truy vấn thừa); có tiêm → chuyển env + danh sách id, trả nguyên Map.
 test("ctx.nhanNhanVien (R-P20): chuyển env + id tới hàm tiêm; mảng rỗng → Map rỗng không gọi; KHÔNG tiêm → null", async () => {

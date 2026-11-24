@@ -2,6 +2,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  cachNgungDieuKhoan,
+  ngaySau,
   chonDieuKhoan, chonMuc, chupDon, giaVonDong, hoaHongDong, kiemNgayDong, kiemThanDieuKhoan, kiemThanMuc, lamTronNuaLen, moTaMuc, nguoiHuongCua, soKhachTinhHoaHong, tinhDongDoiTac,
   type DongDieuKhoan, type DongMuc, type NguoiHuong,
 } from "./rules.ts";
@@ -192,10 +194,10 @@ test("SV-TA-04b: dòng riêng bậc 6 (loại, mọi dịch vụ 10%) thắng d�
   const cu = muc({ id: "vai-cu", scope: "ALL", rateBp: 1000 });
   const r = chon(DL_A, [cu, ta], g, "DUTHUYEN", "DTH");
   assert.ok(r.trangThai === "SET" && r.bac === 6 && r.dong.id === "vai-cu");
-  assert.equal(r.trangThai === "SET" && hoaHongDong({ kind: r.dong.kind, rateBp: r.dong.rateBp, perPaxAmount: r.dong.perPaxAmount, thanhTien: 3_000_000, soKhachTinh: 1 }), 300_000);
+  assert.equal(r.trangThai === "SET" && hoaHongDong({ kind: r.dong.kind, rateBp: r.dong.rateBp, perPaxAmount: r.dong.perPaxAmount, thanhTien: 3_000_000, coSoHoaHong: 3_000_000, soKhachTinh: 1 }), 300_000);
   const sau = chon(DL_A, [{ ...cu, validTo: "2026-10-09" }, ta], g, "DUTHUYEN", "DTH");
   assert.ok(sau.trangThai === "SET" && sau.bac === 8);
-  assert.equal(sau.trangThai === "SET" && hoaHongDong({ kind: sau.dong.kind, rateBp: sau.dong.rateBp, perPaxAmount: sau.dong.perPaxAmount, thanhTien: 3_000_000, soKhachTinh: 1 }), 450_000);
+  assert.equal(sau.trangThai === "SET" && hoaHongDong({ kind: sau.dong.kind, rateBp: sau.dong.rateBp, perPaxAmount: sau.dong.perPaxAmount, thanhTien: 3_000_000, coSoHoaHong: 3_000_000, soKhachTinh: 1 }), 450_000);
 });
 
 test("SV-TA-04a: dòng riêng bậc 5 (loại, nhóm Du thuyền 8%) thắng dòng TA bậc 8 (15%): 240.000đ", () => {
@@ -203,7 +205,7 @@ test("SV-TA-04a: dòng riêng bậc 5 (loại, nhóm Du thuyền 8%) thắng dò
   const ds = [muc({ id: "vai-nhom", scope: "GROUP", groupCode: "DTH", rateBp: 800 }), mucTa("TA1", { id: "ta-dt", scope: "GROUP", groupCode: "DTH", rateBp: 1500 })];
   const r = chon(DL_A, ds, g, "DUTHUYEN", "DTH");
   assert.ok(r.trangThai === "SET" && r.bac === 5 && r.dong.id === "vai-nhom");
-  assert.equal(r.trangThai === "SET" && hoaHongDong({ kind: r.dong.kind, rateBp: r.dong.rateBp, perPaxAmount: r.dong.perPaxAmount, thanhTien: 3_000_000, soKhachTinh: 1 }), 240_000);
+  assert.equal(r.trangThai === "SET" && hoaHongDong({ kind: r.dong.kind, rateBp: r.dong.rateBp, perPaxAmount: r.dong.perPaxAmount, thanhTien: 3_000_000, coSoHoaHong: 3_000_000, soKhachTinh: 1 }), 240_000);
 });
 
 test("SV-TA-05: mức riêng của đối tác (bậc 1–3, 12%) thắng mức TA 15% cùng dịch vụ: 240.000đ", () => {
@@ -212,7 +214,7 @@ test("SV-TA-05: mức riêng của đối tác (bậc 1–3, 12%) thắng mức 
     muc({ id: "dt", targetPartyId: "dl-a", targetRoleCode: null, scope: "ALL", rateBp: 1200 })];
   const r = chon(DL_A, ds, g, "HONTAM", "VE");
   assert.ok(r.trangThai === "SET" && r.bac === 3 && r.dong.id === "dt");
-  assert.equal(r.trangThai === "SET" && hoaHongDong({ kind: r.dong.kind, rateBp: r.dong.rateBp, perPaxAmount: r.dong.perPaxAmount, thanhTien: 2_000_000, soKhachTinh: 1 }), 240_000);
+  assert.equal(r.trangThai === "SET" && hoaHongDong({ kind: r.dong.kind, rateBp: r.dong.rateBp, perPaxAmount: r.dong.perPaxAmount, thanhTien: 2_000_000, coSoHoaHong: 2_000_000, soKhachTinh: 1 }), 240_000);
 });
 
 test("chonMuc chín bậc: không khớp bậc nào ⇒ NO_RULE (không bao giờ 0); dòng nhập tay ⇒ MANUAL_LINE kể cả có mức TA; tham số gan bỏ trống vẫn chạy như sáu bậc", () => {
@@ -238,8 +240,8 @@ test("chonDieuKhoan: SERVICE > GROUP > ALL theo ngày; dòng nhập tay ⇒ MISS
 });
 
 test("làm tròn nửa lên theo dòng (điều A1): A-5 ra 125.000; ca đúng nửa đồng 1.000.004 × 12,5% ra 125.001", () => {
-  assert.equal(hoaHongDong({ kind: "RATE", rateBp: 1250, perPaxAmount: null, thanhTien: 999_999, soKhachTinh: 1 }), 125_000);
-  assert.equal(hoaHongDong({ kind: "RATE", rateBp: 1250, perPaxAmount: null, thanhTien: 1_000_004, soKhachTinh: 1 }), 125_001);
+  assert.equal(hoaHongDong({ kind: "RATE", rateBp: 1250, perPaxAmount: null, thanhTien: 999_999, coSoHoaHong: 999_999, soKhachTinh: 1 }), 125_000);
+  assert.equal(hoaHongDong({ kind: "RATE", rateBp: 1250, perPaxAmount: null, thanhTien: 1_000_004, coSoHoaHong: 1_000_004, soKhachTinh: 1 }), 125_001);
   assert.equal(lamTronNuaLen(5, 10), 1);
   assert.equal(lamTronNuaLen(4, 10), 0);
   assert.equal(lamTronNuaLen(0, 10000), 0);
@@ -257,7 +259,7 @@ test("A-1: đại lý A — 240.000 + 450.000 + 100.000 = 790.000; giá đại l
     { serviceId: "s3", catalogCode: "TOURDAO", groupCode: "TOUR", thanhTien: 1_000_000 },
   ];
   const chup = chupDon({ nguoiHuong: DL_A, ngay: "2026-10-10", dong: don, muc: ds, dieuKhoan: [dk({})] });
-  const dong = chup.map((c, i) => tinhDongDoiTac(c, { thanhTien: don[i]!.thanhTien, soKhachTinh: 1 }));
+  const dong = chup.map((c, i) => tinhDongDoiTac(c, { thanhTien: don[i]!.thanhTien, coSoHoaHong: don[i]!.thanhTien, soKhachTinh: 1 }));
   assert.deepEqual(dong.map((d) => d.hoaHong), [240_000, 450_000, 100_000]);
   assert.equal(dong.reduce((s, d) => s + (d.hoaHong ?? 0), 0), 790_000);
   assert.equal(dong.reduce((s, d) => s + (d.giaDaiLy ?? 0), 0), 5_210_000);
@@ -269,8 +271,8 @@ test("A-2: 50.000 đ/khách — 3 khách tính (em bé không tính) = 150.000, 
     muc: [muc({ targetRoleCode: "HOTEL_RECEPTION", scope: "SERVICE", catalogCode: "IRESORT", kind: "PER_PAX", rateBp: null, perPaxAmount: 50_000 })], dieuKhoan: [dk({})] });
   const truoc = soKhachTinhHoaHong({ unit: "perPax", pax: { adult: 2, child: 1, senior: 0, infant: 1 }, items: [] });
   const sau = soKhachTinhHoaHong({ unit: "perPax", pax: { adult: 3, child: 1, senior: 0, infant: 1 }, items: [] });
-  assert.equal(tinhDongDoiTac(c!, { thanhTien: 900_000, soKhachTinh: truoc }).hoaHong, 150_000);
-  assert.equal(tinhDongDoiTac(c!, { thanhTien: 1_200_000, soKhachTinh: sau }).hoaHong, 200_000);
+  assert.equal(tinhDongDoiTac(c!, { thanhTien: 900_000, coSoHoaHong: 900_000, soKhachTinh: truoc }).hoaHong, 150_000);
+  assert.equal(tinhDongDoiTac(c!, { thanhTien: 1_200_000, coSoHoaHong: 1_200_000, soKhachTinh: sau }).hoaHong, 200_000);
 });
 
 test("H7: dịch vụ tính theo nhóm đếm lượt (tổng quantity), không đếm người", () => {
@@ -282,26 +284,26 @@ test("A-3: đổi bảng sau xác nhận — bản chụp 10% vẫn tính 10%", 
   const moi = muc({ scope: "ALL", rateBp: 1200, validFrom: "2026-10-15" });
   const [c10] = chupDon({ nguoiHuong: DL_A, ngay: "2026-10-10", dong: [{ serviceId: "s", catalogCode: "X", groupCode: null, thanhTien: 1_000_000 }], muc: [cu, moi], dieuKhoan: [dk({})] });
   const [c16] = chupDon({ nguoiHuong: DL_A, ngay: "2026-10-16", dong: [{ serviceId: "s", catalogCode: "X", groupCode: null, thanhTien: 1_000_000 }], muc: [cu, moi], dieuKhoan: [dk({})] });
-  assert.equal(tinhDongDoiTac(c10!, { thanhTien: 1_000_000, soKhachTinh: 1 }).hoaHong, 100_000);
-  assert.equal(tinhDongDoiTac(c16!, { thanhTien: 1_000_000, soKhachTinh: 1 }).hoaHong, 120_000);
+  assert.equal(tinhDongDoiTac(c10!, { thanhTien: 1_000_000, coSoHoaHong: 1_000_000, soKhachTinh: 1 }).hoaHong, 100_000);
+  assert.equal(tinhDongDoiTac(c16!, { thanhTien: 1_000_000, coSoHoaHong: 1_000_000, soKhachTinh: 1 }).hoaHong, 120_000);
 });
 
 test("A-4: thiếu mức ⇒ hoa hồng null (không bao giờ tự lấy 0); ghi tay 15% ⇒ 150.000", () => {
   const ctv: NguoiHuong = { loai: "HUONG", partyId: "lan", vai: ["COLLABORATOR"] };
   const [c] = chupDon({ nguoiHuong: ctv, ngay: "2026-10-10", dong: [{ serviceId: "s", catalogCode: "HONTAM", groupCode: "VE", thanhTien: 1_000_000 }], muc: [muc({})], dieuKhoan: [dk({})] });
   assert.deepEqual(c!.hoaHong, { status: "MISSING", reason: "NO_RULE" });
-  const thieu = tinhDongDoiTac(c!, { thanhTien: 1_000_000, soKhachTinh: 1 });
+  const thieu = tinhDongDoiTac(c!, { thanhTien: 1_000_000, coSoHoaHong: 1_000_000, soKhachTinh: 1 });
   assert.equal(thieu.hoaHong, null);
   assert.equal(thieu.giaDaiLy, null);
   const tay = { ...c!, hoaHong: { status: "SET" as const, kind: "RATE" as const, rateBp: 1500, perPax: null, ruleId: null } };
-  assert.equal(tinhDongDoiTac(tay, { thanhTien: 1_000_000, soKhachTinh: 1 }).hoaHong, 150_000);
+  assert.equal(tinhDongDoiTac(tay, { thanhTien: 1_000_000, coSoHoaHong: 1_000_000, soKhachTinh: 1 }).hoaHong, 150_000);
 });
 
 test("B-3: giá vốn 80% trên thành tiền TRƯỚC giảm = 240.000", () => {
   assert.equal(giaVonDong({ costRateBp: 8000, thanhTien: 300_000 }), 240_000);
   const [c] = chupDon({ nguoiHuong: { loai: "NONE" }, ngay: "2026-10-10", dong: [{ serviceId: "s", catalogCode: "IRESORT", groupCode: "VE", thanhTien: 300_000 }], muc: [],
     dieuKhoan: [dk({}), dk({ scope: "SERVICE", catalogCode: "IRESORT", sellerPartyId: "ncc", supplierPartyId: "ncc", costRateBp: 8000 })] });
-  assert.equal(tinhDongDoiTac(c!, { thanhTien: 300_000, soKhachTinh: 1 }).giaVon, 240_000);
+  assert.equal(tinhDongDoiTac(c!, { thanhTien: 300_000, coSoHoaHong: 300_000, soKhachTinh: 1 }).giaVon, 240_000);
 });
 
 test("bên đặt cũng là nhà cung cấp của dòng ⇒ hoa hồng dòng đó RULE_CONFLICT", () => {
@@ -346,4 +348,16 @@ test("moTaMuc: lời thường cho nhật ký, không SĐT, tỷ lệ bỏ số 
   assert.equal(moTaMuc({ doiTuong: "Công ty lữ hành", scope: "GROUP", catalogCode: null, groupCode: "DTH", kind: "RATE", rateBp: 1250, perPaxAmount: null }), "Công ty lữ hành · nhóm DTH · 12,5%");
   assert.equal(moTaMuc({ doiTuong: "đối tác pty-1", scope: "SERVICE", catalogCode: "HONTAM", groupCode: null, kind: "PER_PAX", rateBp: null, perPaxAmount: 50_000 }), "đối tác pty-1 · dịch vụ HONTAM · 50.000đ/khách");
   assert.equal(moTaMuc({ doiTuong: "Cộng tác viên", scope: "ALL", catalogCode: null, groupCode: null, kind: "RATE", rateBp: 1000, perPaxAmount: null }), "Cộng tác viên · mọi dịch vụ · 10%");
+});
+
+test("việc 15: cachNgungDieuKhoan — dòng thường NGUNG; đã có ngày kết thúc KHONG_NGUNG; «Mọi dịch vụ» của công ty chủ hiện tại KHONG_NGUNG; của công ty chủ cũ NGUNG_VA_THAY; không biết công ty chủ KHONG_NGUNG", () => {
+  const d = (o: Partial<{ scope: "SERVICE" | "GROUP" | "ALL"; sellerPartyId: string; validTo: string | null }>) => ({ scope: "ALL" as const, sellerPartyId: "ct", validTo: null, ...o });
+  assert.equal(cachNgungDieuKhoan(d({ scope: "SERVICE", sellerPartyId: "ncc" }), "ct"), "NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({ scope: "GROUP" }), "ct"), "NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({ scope: "SERVICE", validTo: "2026-12-31" }), "ct"), "KHONG_NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({}), "ct"), "KHONG_NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({ sellerPartyId: "ct-cu" }), "ct"), "NGUNG_VA_THAY");
+  assert.equal(cachNgungDieuKhoan(d({ sellerPartyId: "ct-cu", validTo: "2026-12-31" }), "ct"), "KHONG_NGUNG");
+  assert.equal(cachNgungDieuKhoan(d({ sellerPartyId: "ct-cu" }), null), "KHONG_NGUNG");
+  assert.deepEqual([ngaySau("2026-11-23"), ngaySau("2026-12-31"), ngaySau("2028-02-28"), ngaySau("2027-02-28")], ["2026-11-24", "2027-01-01", "2028-02-29", "2027-03-01"]);
 });

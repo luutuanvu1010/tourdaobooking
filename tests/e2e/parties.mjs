@@ -14,7 +14,11 @@ assert.equal((await call(null, "GET", "/api/parties")).status, 401);
 let r = await call(SALES, "GET", "/api/parties/meta");
 assert.equal(r.status, 200);
 // ADR-0018: meta trả MỌI loại vai (kể cả vai cũ đã ngưng) kèm nhóm và trạng thái; vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên.
-assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), [
+// Loại đối tác do Kế toán thêm (ADR-0117: mã `LD_…`, partnerLabel = true) có thể đã do kịch bản chạy TRƯỚC trên cùng D1 của phần tạo ra (16/11, lượt
+// 43836327847: `phi-don-xac-nhan` tạo hai loại, `parties` cùng phần 12 ⇒ đỏ). Chỉ so loại CÓ SẴN; loại thêm thì phải đúng dạng `LD_…`.
+const loaiThem = r.body.roleTypes.filter((t) => t.partnerLabel === true);
+for (const t of loaiThem) assert.match(t.code, /^LD_[A-Z]{8}$/, `loại đối tác thêm phải mang mã LD_…: ${t.code}`);
+assert.deepEqual(r.body.roleTypes.filter((t) => t.partnerLabel !== true).map((t) => t.code).sort(), [
   "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "CARRIER", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "DRIVER_EXTERNAL", "DRIVER_INTERNAL", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
   "HOTEL_RECEPTION", "HR_STAFF", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_MANAGER", "SALES_STAFF", "STAFF", "SUPPLIER", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b; DRIVER_INTERNAL: ADR-0040; DRIVER_EXTERNAL, CARRIER: ADR-0048; HR_STAFF: ADR-0071; SUPPLIER: sổ đại lý đợt 1 (migration 0090)
 ]);
@@ -32,7 +36,8 @@ assert.equal(r.body.roleTypes.find((t) => t.code === "STAFF").active, false);
 assert.deepEqual(r.body.roleTypes.find((t) => t.code === "OWNER_COMPANY"), { code: "OWNER_COMPANY", name: "Công ty chủ", group: "OTHER", active: false, partnerLabel: false });
 // ADR-0048 D1: vai hồ sơ "Nhà xe đối tác" (nhóm OTHER, đang dùng — tự hiện ở ô "Thêm công việc") và quan hệ "Tài xế của" (migration *_nha_xe_doi_tac).
 assert.deepEqual(r.body.roleTypes.find((t) => t.code === "CARRIER"), { code: "CARRIER", name: "Nhà xe đối tác", group: "OTHER", active: true, partnerLabel: false });
-assert.deepEqual(r.body.relationshipTypes.map((t) => t.code), ["CONTACT_OF", "DRIVES_FOR"]);
+// ADR-0207 Đ2 mục 5 (đăng ký đối tác, migration 0171): quan hệ «Người giới thiệu của» (REFERRED_BY) do lô duyệt ghi; có mặt ở danh sách loại quan hệ.
+assert.deepEqual(r.body.relationshipTypes.map((t) => t.code), ["CONTACT_OF", "DRIVES_FOR", "REFERRED_BY"]);
 const locations = (await call(SALES, "GET", "/api/locations")).body.locations;
 const vinpearl = locations.find((l) => l.code === "CANG_VINPEARL");
 const pier = locations.find((l) => l.code === "BEN_TAU_NHA_TRANG");
@@ -277,6 +282,34 @@ console.log("✓ ADR-0013: SUPER_ADMIN sửa ADMIN được; ADMIN sửa SUPER_A
     }
   }
   console.log("✓ bốn ô tìm (hồ sơ, nhật ký, người hưởng, lịch sử trợ lý): chữ tìm dài → 200, không 500");
+}
+
+// Việc 3 (kế hoạch 16 việc, 21/11/2026): ô «Tìm đối tác» ở Tạo đơn nhận cả số điện thoại — gõ đủ số liên hệ của một đối tác (cộng tác viên, được hưởng) ⇒ ra đúng hồ sơ,
+// ở mọi cách viết số; phản hồi chỉ id, tên, loại (không kèm số); gõ tên vẫn ra như cũ. Hồ sơ chưa có số liên hệ: GET hồ sơ trả primaryPhone null + `editable` cho câu báo.
+{
+  const soCtv = randomPhone();
+  const tenCtv = `Cộng Tác Viên Tìm Số ${tag}`;
+  const ctv = (await call(SALES, "POST", "/api/parties", { kind: "PERSON", fullName: tenCtv, contacts: [{ kind: "PHONE", value: soCtv }] })).body.party;
+  assert.ok(ctv?.id, "tạo hồ sơ cộng tác viên có số liên hệ");
+  const gan = await call(ADMIN, "POST", P(`${ctv.id}/roles`), { roleTypeCode: "COLLABORATOR" });
+  assert.equal(gan.status, 201, `gán vai Cộng tác viên (được hưởng): ${JSON.stringify(gan.body)}`);
+  const cachViet = [soCtv, `+84${soCtv.slice(1)}`, soCtv.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3"), soCtv.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1.$2.$3")];
+  for (const q of cachViet) {
+    const kq = await call(SALES, "GET", `/api/pricing/nguoi-huong?q=${encodeURIComponent(q)}`);
+    assert.equal(kq.status, 200, JSON.stringify(kq.body));
+    assert.deepEqual(kq.body.ketQua, [{ partyId: ctv.id, ten: tenCtv, loai: "PERSON" }], `gõ «${q}» phải ra đúng cộng tác viên`);
+    assert.ok(!JSON.stringify(kq.body).includes(soCtv.slice(1)), "phản hồi tìm người hưởng không kèm số điện thoại");
+  }
+  const theoTen = await call(SALES, "GET", `/api/pricing/nguoi-huong?q=${encodeURIComponent(`Tìm Số ${tag}`)}`);
+  assert.ok(theoTen.body.ketQua.some((x) => x.partyId === ctv.id), "gõ tên vẫn tìm như cũ");
+  assert.equal((await call(SALES, "GET", P(ctv.id))).body.party.primaryPhone, soCtv, "nút «Điền thông tin đối tác» đọc đúng số này");
+  // Đối tác chưa có số liên hệ: không tìm ra theo số nào, GET hồ sơ trả primaryPhone null và `editable` (Bán hàng sửa được hồ sơ không gắn tài khoản ⇒ «Thêm số ở Danh bạ»).
+  const khongSo = (await call(SALES, "POST", "/api/parties", { kind: "PERSON", fullName: `Cộng Tác Viên Chưa Số ${tag}` })).body.party;
+  assert.equal((await call(ADMIN, "POST", P(`${khongSo.id}/roles`), { roleTypeCode: "COLLABORATOR" })).status, 201);
+  const xem = (await call(SALES, "GET", P(khongSo.id))).body.party;
+  assert.equal(xem.primaryPhone, null);
+  assert.equal(xem.editable, true);
+  console.log("✓ Việc 3: tìm đối tác theo số liên hệ (0…, +84…, có dấu cách / chấm) ra đúng hồ sơ, không lộ số; tên vẫn tìm được; hồ sơ chưa có số trả primaryPhone null");
 }
 
 console.log("E2E PARTIES OK");

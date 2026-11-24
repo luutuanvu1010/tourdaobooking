@@ -247,22 +247,22 @@ function chayTrenMa(c: Ca): DapAn | string {
   const latestAfter = v.lan_sua_truoc ? Object.entries(v.lan_sua_truoc).map(([serviceId, pax]) => ({ serviceId, pax })) : null;
   const than = docThanSuaSoKhach({ lyDo: v.sua.ly_do, services: Object.entries(v.sua.khach_sau).map(([id, pax]) => ({ id, pax })) });
   if (!than.ok) return `thân bị từ chối: ${than.message}`;
-  const plan = planMoneyEdit({ services, storedPax, latestAfter, body: { reason: than.nhan, services: than.services } });
+  const plan = planMoneyEdit({ services, phi: [], storedPax, latestAfter, body: { reason: than.nhan, services: than.services } });
   // Hai khoá mới (ADR-0114) dựng bằng CHÍNH các hàm máy chủ dùng, cùng cách dựng đầu vào như `nhacKhuyenMaiCuaDon` / `lichSuSoKhachCuaDon` (orders/index.ts):
   //  D1: số khách trả tiền LÚC XÁC NHẬN = số ĐÃ LƯU của mọi dịch vụ; HIỆN HÀNH = đơn sau lần bấm này (bị từ chối / y nguyên ⇒ không đổi).
   //  D2: dòng đầu = số đã lưu + tạm tính gốc (`effectiveSubtotal(dịch vụ, [])`); mỗi lần sửa = số SAU lần đó + tạm tính tính lại bằng `effectiveSubtotal` (không đọc cột đã lưu); `seq` đánh từ 1.
   const sauLanNay: readonly { serviceId: string; pax: PaxCounts }[] | null = plan.ok && plan.write ? plan.after : latestAfter;
   const paxHienHanh = (id: string): PaxCounts => sauLanNay?.find((e) => e.serviceId === id)?.pax ?? storedPax.get(id)!;
   const lanSua: { seq: number; sau: readonly { serviceId: string; pax: PaxCounts }[]; tamTinhSau: number }[] = [];
-  if (latestAfter) lanSua.push({ seq: 1, sau: latestAfter, tamTinhSau: effectiveSubtotal(services, latestAfter) });
-  if (plan.ok && plan.write) lanSua.push({ seq: lanSua.length + 1, sau: plan.after, tamTinhSau: effectiveSubtotal(services, plan.after) });
+  if (latestAfter) lanSua.push({ seq: 1, sau: latestAfter, tamTinhSau: effectiveSubtotal(services, [], latestAfter) });
+  if (plan.ok && plan.write) lanSua.push({ seq: lanSua.length + 1, sau: plan.after, tamTinhSau: effectiveSubtotal(services, [], plan.after) });
   const khoaMoi: KhoaMoi = {
     canh_bao_khuyen_mai:
       // giảm giá HIỆU LỰC của đơn hiện hành sau lần bấm này (`effectiveMoney` trên tạm tính tính lại) — đúng thứ máy chủ đọc ở `OrderDto.giamGiaHieuLuc`
-      canhBaoKhuyenMai({ giamGiaHieuLuc: effectiveMoney(effectiveSubtotal(services, sauLanNay ?? []), v.giam_gia).giamGiaHieuLuc }, soKhachTraTien(v.dich_vu.map((d) => ({ pax: storedPax.get(d.id)! }))), soKhachTraTien(v.dich_vu.map((d) => ({ pax: paxHienHanh(d.id) })))) !== null,
+      canhBaoKhuyenMai({ giamGiaHieuLuc: effectiveMoney(effectiveSubtotal(services, [], sauLanNay ?? []), v.giam_gia, 0).giamGiaHieuLuc }, soKhachTraTien(v.dich_vu.map((d) => ({ pax: storedPax.get(d.id)! }))), soKhachTraTien(v.dich_vu.map((d) => ({ pax: paxHienHanh(d.id) })))) !== null,
     lich_su_so_khach: dungLichSuSoKhach({
       dichVu: v.dich_vu.map((d) => ({ id: d.id, catalogCode: d.nguon === "danh_muc" ? "ZA1" : null, name: d.ten, pax: storedPax.get(d.id)! })),
-      tamTinhKhoiTao: effectiveSubtotal(services, []),
+      tamTinhKhoiTao: effectiveSubtotal(services, [], []),
       lanSua,
     }),
   };
@@ -272,18 +272,18 @@ function chayTrenMa(c: Ca): DapAn | string {
   }
   const receipts: ReceiptRow[] = v.da_thu > 0 ? [{ id: "r1", kind: "CUSTOMER_PAYMENT", amount: v.da_thu, collectorRole: "COMPANY", collectorPartyId: "cong-ty", reversesId: null }] : [];
   const tien = (tt: number): Tien => {
-    const phaiThu = effectiveMoney(tt, v.giam_gia).total;
+    const phaiThu = effectiveMoney(tt, v.giam_gia, 0).total;
     const s = conLai(receipts, phaiThu, "confirmed");
     return { tam_tinh: tt, phai_thu: phaiThu, con_lai: s.conLai, du: s.du };
   };
-  const hienHanh = effectiveSubtotal(services, latestAfter ?? []);
+  const hienHanh = effectiveSubtotal(services, [], latestAfter ?? []);
   const truoc = tien(plan.write ? plan.subtotalBefore : hienHanh);
   const sau = plan.write ? tien(plan.subtotalAfter) : truoc;
   const dap: DapAnTien = {
     ghi_dong_dieu_chinh: plan.write,
     truoc,
     sau,
-    canh_bao_tong_am: canhBaoGiamGiaVuot({ subtotal: sau.tam_tinh, discount: v.giam_gia }) !== null,
+    canh_bao_tong_am: canhBaoGiamGiaVuot({ discount: v.giam_gia, giamGiaHieuLuc: effectiveMoney(sau.tam_tinh, v.giam_gia, 0).giamGiaHieuLuc }) !== null,
     nhat_ky: plan.write ? ghepLyDo(doanSoKhach(plan.before, plan.after, services), plan.reason) : null,
     ...khoaMoi,
   };

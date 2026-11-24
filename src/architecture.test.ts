@@ -19,6 +19,10 @@ const WEB = join(ROOT, "web");
 /** Chiều phụ thuộc cho phép (ADR-0002 + ADR-0008). Module mới PHẢI khai ở đây. Không được có vòng. */
 const ALLOWED_EDGES: Record<string, readonly string[]> = {
   accounts: ["staff", "auth", "audit"], // ADR-0071: bỏ cạnh → maintenance (luật phoneChangeProblem đã gỡ — bảo trì miễn trừ theo quyền, không theo SĐT)
+  // ADR-0232 (Ảnh bàn giao, accepted 2026-11-22): module mới — ghi nhật ký qua audit; đọc đơn / dịch vụ / lượt đón qua view công bố v_ord_order_state, v_ord_service_key,
+  // v_ord_leg_key (cạnh → orders, chỉ tầng SQL và trigger); đọc trạng thái phiếu xoá qua view công bố v_pty_erasure_decision (cạnh → parties, chỉ tầng SQL). Không import
+  // dispatch / van-chuyen / parties: «người phụ trách», «tài xế của chuyến», số năm giữ, câu xoá theo phiếu đều do gốc lắp ráp tiêm. Không module nào import anh-ban-giao.
+  "anh-ban-giao": ["audit", "orders", "parties"],
   audit: [],
   // ADR-0024 điều 2 (sổ tiền lượt 1, accepted 2026-09-29): billing giữ lần thu, phiếu sổ, dòng nợ; lấy câu `UPDATE orders` CHƯA chạy từ orders/index.ts và câu
   // bảo vệ "còn là người phụ trách" từ dispatch/index.ts (cạnh billing → dispatch CHỈ cho câu đó — ADR-0024 đ2); nhãn người qua staff/parties; nhật ký qua audit.
@@ -79,6 +83,8 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   "tro-ly": ["audit", "staff"],
   // ADR-0153 Đ1 (ĐỀ XUẤT 2026-10-31, CHỜ CHỦ DUYỆT): kho vé điện tử. Hiện chỉ cạnh → audit (nhật ký chỉ số lượng); các cạnh staff / thongbao / catalog / orders (chỉ đọc view)
   // thêm KHI ADR được duyệt. Không module nào import ve-dien-tu (orders đi bằng tiêm ở gốc lắp ráp).
+  // dang-ky (ADR-0206 Đ2, đợt 1): phiếu đăng ký đối tác — tới parties (hồ sơ, tệp), staff (tài khoản), auth (Turnstile, bộ đếm chống dò), audit (nhật ký lệnh của người trong công ty và tác nhân). KHÔNG tới pricing: câu của pricing do gốc lắp ráp (src/index.ts) ghép vào lô duyệt (ADR-0209 Đ6).
+  "dang-ky": ["parties", "staff", "auth", "audit", "maintenance"], // + maintenance: ADR-0206 Đ8 — bảo trì BẬT chặn mọi lệnh của người đăng ký (cùng cạnh auth → maintenance); chỉ đọc trạng thái, cần chủ duyệt khi gộp
   "ve-dien-tu": ["audit", "auth", "catalog", "orders"], // + auth: ADR-0153 Đ2 — dùng lại bộ đếm chống dò (`reserveAttempts`) cho route công khai của đường dẫn khách. + orders: ADR-0153 Đ1 mục 4 — chỉ ĐỌC view công bố `v_ord_order_state` làm cổng cho câu trả vé của lô huỷ (không import mã orders). + catalog: ADR-0153 Đ1 mục 2 (đã duyệt 31/10) — chỉ ĐỌC dịch vụ qua hàm công bố getEffectiveServices để kiểm mã tour
 };
 
@@ -86,6 +92,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 const STRICT: readonly { module: string; file: string }[] = [
   { module: "auth", file: "modules/auth/repository.ts" },
   { module: "auth", file: "modules/auth/mfa-repo.ts" }, // ADR-0074 (migration 0101): SQL yếu tố hai lớp, mã dự phòng, máy tin — nghiêm từ ngày đầu (defineSql + EXPLAIN)
+  { module: "anh-ban-giao", file: "modules/anh-ban-giao/repository.ts" }, // ADR-0232 (Ảnh bàn giao, migration 0192) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/repository.ts" }, // ADR-0024 điều 1: nghiêm từ ngày đầu (sổ tiền lượt 1 — NT-R2)
   { module: "billing", file: "modules/billing/coc-repo.ts" }, // ADR-0089 (cọc đơn huỷ, migration 0079) — SIẾT theo K-A-1 (kiểm toán 2026-10-12): SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
   { module: "billing", file: "modules/billing/thay-lan-thu-repo.ts" }, // ADR-0088 đ2, đ6 (thay lần thu, migration 0083) — SIẾT theo K-A-1: SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
@@ -93,6 +100,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "billing", file: "modules/billing/dieu-chinh-repo.ts" }, // ADR-0115 đợt 1 (điều chỉnh công nợ cần duyệt, migration 0094) — nghiêm từ ngày đầu: SQL tiền đi qua defineSql + EXPLAIN
   { module: "billing", file: "modules/billing/kenh-thu-repo.ts" }, // ADR-0178 (công tắc kênh thu đối tác, migration 0144) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/tra-sau-repo.ts" }, // ADR-0168 (trả sau theo hạn mức, migration 0141) — nghiêm từ ngày đầu
+  { module: "billing", file: "modules/billing/tra-sau-dich-vu-repo.ts" }, // ADR-0178 Đ2, ADR-0230 Đ1 (dấu Trả sau theo dịch vụ, migration 0186) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/tu-ghi-repo.ts" }, // ADR-0187 Đ3 mức (a) (sổ soát tự ghi đơn mình lập, migration 0150) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/bien-lai-repo.ts" }, // ADR-0196 (ảnh biên lai chuyển khoản, migration 0158) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/khoan-nop-repo.ts" }, // ADR-0182 phần B (khoản nộp đại lý + ảnh biên lai, migration 0159) — nghiêm từ ngày đầu
@@ -100,6 +108,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/han-muc-repo.ts" }, // ADR-0032 (kế hoạch 2026-10-23 mục 3c): sổ sự kiện phân công + cài đặt hạn mức Từ chối — EXPLAIN từng câu
   { module: "dispatch", file: "modules/dispatch/ban-hang.ts" }, // ADR-0142 (migration 0138): ô Bán hàng phụ trách, lời mời có ưu tiên, chính sách giờ hành chính — EXPLAIN từng câu
+  { module: "dang-ky", file: "modules/dang-ky/repository.ts" }, // ADR-0206 Đ2 (migration 0170): nghiêm từ ngày đầu — SQL phiếu đăng ký đi qua defineSql + EXPLAIN
   { module: "feedback", file: "modules/feedback/repository.ts" },
   { module: "giao-dien", file: "modules/giao-dien/repository.ts" },
   { module: "ky-so", file: "modules/ky-so/repository.ts" }, // ADR-0080 D1 (sổ đại lý đợt 1): khoá tháng — nghiêm từ ngày đầu. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
@@ -110,6 +119,8 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "pricing", file: "modules/pricing/repository.ts" }, // ADR-0077 — sổ đại lý đợt 1: bảng mức, điều khoản người bán
   { module: "pricing", file: "modules/pricing/phi-don-repo.ts" }, // ADR-0147 Đ2: bảng phí đưa đón — nghiêm từ ngày đầu (defineSql)
+  { module: "pricing", file: "modules/pricing/giam-phi-don-repo.ts" }, // ADR-0218 Đ1.4: mức giảm phí đưa đón theo cấp — nghiêm từ ngày đầu (defineSql)
+  { module: "pricing", file: "modules/pricing/chuong-trinh-phi-don-repo.ts" }, // ADR-0218 Đ2: chương trình miễn phí đưa đón — nghiêm từ ngày đầu (defineSql)
   { module: "pricing", file: "modules/pricing/luat-ban-repo.ts" }, // ADR-0146 Đ6 (a) — luật bán theo loại đối tác: tệp DUY NHẤT nhắc prc_sales_block
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
@@ -181,8 +192,16 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "catalog", file: "modules/catalog/co-ve-repo.ts" },
   // ADR-0175 Đ1.2: ô «Vé do ai phát», mọi câu qua defineSql + EXPLAIN.
   { module: "catalog", file: "modules/catalog/nguon-ve-repo.ts" },
+  // ADR-0231: ô «Hotline trên vé», mọi câu qua defineSql + EXPLAIN.
+  { module: "catalog", file: "modules/catalog/so-ho-tro-repo.ts" },
+  // ADR-0220 Đ1: khoảng «Ngừng bán theo ngày», mọi câu qua defineSql + EXPLAIN.
+  { module: "catalog", file: "modules/catalog/ngung-ban-ngay-repo.ts" },
+  // ADR-0229 Đ1, Đ8: quy tắc «Giá mùa vụ» và trần %, mọi câu qua defineSql + EXPLAIN.
+  { module: "catalog", file: "modules/catalog/gia-mua-vu-repo.ts" },
   // ADR-0201 Đ1: chi tiết dịch vụ (tên hiển thị, mô tả), mọi câu qua defineSql + EXPLAIN.
   { module: "catalog", file: "modules/catalog/chi-tiet-repo.ts" },
+  // ADR-0218 Đ1.3: giá gốc phí đưa đón đọc từ Sheet (`ctl_service_transfer_price`, migration 0178), mọi câu qua defineSql + EXPLAIN.
+  { module: "catalog", file: "modules/catalog/phi-don-goc-repo.ts" },
   { module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" },
   // Sổ tiền lượt 1 (ADR-0024 điều 3–4 — SIẾT): câu mốc "Đã giao" / "Hoàn thành" + đọc trạng thái cho billing, mọi câu qua defineSql + EXPLAIN.
   { module: "orders", file: "modules/orders/hoan-tat-repo.ts" },
@@ -208,6 +227,14 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
  * "ngoại lệ thừa" ở cuối tệp).
  */
 const XOA_CUNG_NHAP: readonly string[] = ["orders.leg_delete_draft", "orders.passenger_delete_draft"];
+
+/**
+ * NGOẠI LỆ CÓ TÊN THỨ HAI của R-N1-9 (đợt 1 đăng ký Task 9 — ADR-0208 Đ8 việc 4; ruling điều phối: dk_upload_attempt là bảng đếm kỹ thuật như dk_email_code) — **NỚI hàng rào, CHỜ
+ * CHỦ DUYỆT** (Điều 9.4): tác nhân dọn phiếu XOÁ CỨNG dòng cũ của hai bảng KỸ THUẬT của dang-ky (mã gửi email đã hết hạn; lượt tải tệp ra khỏi cửa sổ một giờ) — như `login_attempt`, các bảng này
+ * không chứa sự thật nghiệp vụ, chỉ là bộ đếm / băm có hạn. Chỉ tên trong danh sách; bảng đích phải là một trong hai bảng; điều kiện TUỔI phải nằm TRONG câu (bài dưới). Danh sách chỉ được co lại.
+ */
+const XOA_CUNG_KY_THUAT: readonly string[] = ["dang-ky.email_code_purge", "dang-ky.upload_attempt_purge"];
+const BANG_KY_THUAT_XOA_DUOC: readonly string[] = ["dk_email_code", "dk_upload_attempt"];
 
 /**
  * NỢ CÓ TÊN, CÓ HẠN (ADR-0047 A3 "ghi nợ có tên, có hạn"): câu của tệp nửa nghiêm được đọc thẳng `audit_log` CHỈ trong lính gác `wonGuard`
@@ -236,7 +263,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
 // ky_/ky-so (ADR-0080 D1, sổ đại lý đợt 1): khoá tháng. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
 // VIEW_PREFIX thêm `ctl` (view công bố v_ctl_service_group của catalog) và `ky` (v_ky_closed_period của ky-so) — cùng khoản nới đã duyệt.
-const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui", ky_: "ky-so", vdt_: "ve-dien-tu" };
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui", ky_: "ky-so", vdt_: "ve-dien-tu", dk_: "dang-ky", abg_: "anh-ban-giao" };
 const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen", ctl: "catalog", ky: "ky-so" };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -463,7 +490,7 @@ function violations(e: Pick<SqlEntry, "module" | "sql"> & { name?: string }, opt
   const key = `${e.module}.${e.name ?? ""}`;
   const useExceptions = opts.exceptions !== false;
   // R-N1-9 (ADR-0003 điều 8): không xoá cứng bản ghi bảng MỚI — đóng hiệu lực (`valid_to`) hoặc `active = 0`. Ngoại lệ có tên XOA_CUNG_NHAP (ADR-0047).
-  if (isHardDelete(e.sql) && !(useExceptions && XOA_CUNG_NHAP.includes(key)))
+  if (isHardDelete(e.sql) && !(useExceptions && (XOA_CUNG_NHAP.includes(key) || XOA_CUNG_KY_THUAT.includes(key))))
     for (const w of writes) if (dict.tables.find((t) => t.name === w)?.legacy !== true) out.push(`xoá cứng bảng ${w} (R-N1-9: đóng hiệu lực hoặc active = 0, không DELETE/REPLACE)`);
   const parentsOfWrites = new Map<string, string[]>();
   for (const w of writes) {
@@ -1002,6 +1029,22 @@ test("ADR-0047 A1/A2 (ngoại lệ XOA_CUNG_NHAP — ĐÃ DUYỆT 2026-09-29 (l�
   }
 });
 
+test("R-N1-9 ngoại lệ XOA_CUNG_KY_THUAT (đợt 1 đăng ký Task 9, CHỜ CHỦ DUYỆT): đúng hai tên; mỗi tên THẬT là câu xoá cứng (không ngoại lệ thì đỏ), chỉ ghi một trong hai bảng kỹ thuật, có điều kiện tuổi TRONG câu", async () => {
+  await import(pathToFileURL(join(SRC, "modules/dang-ky/repository.ts")).href);
+  const entries = registeredSql();
+  assert.deepEqual([...XOA_CUNG_KY_THUAT].sort(), ["dang-ky.email_code_purge", "dang-ky.upload_attempt_purge"], "danh sách chỉ được co lại — thêm tên là NỚI, cần chủ duyệt");
+  for (const key of XOA_CUNG_KY_THUAT) {
+    const e = sqlByKey(entries, key);
+    assert.ok(e, `${key}: không còn đăng ký — bỏ khỏi XOA_CUNG_KY_THUAT (ngoại lệ thừa)`);
+    assert.ok(violations(e, { exceptions: false }).some((v) => v.startsWith("xoá cứng bảng")), `${key}: không còn xoá cứng — ngoại lệ thừa`);
+    const ghi = [...touched(e.sql).writes];
+    assert.ok(ghi.length > 0 && ghi.every((w) => BANG_KY_THUAT_XOA_DUOC.includes(w)), `${key}: chỉ được xoá ở ${BANG_KY_THUAT_XOA_DUOC.join(", ")} (ghi: ${ghi.join(", ")})`);
+    assert.match(e.sql, /\bWHERE\b[\s\S]*\b(created_at|at_ms)\s*(<|<=)\s*\?\d/, `${key}: điều kiện tuổi (mốc thời gian) phải nằm TRONG câu xoá`);
+  }
+  // Mọi câu xoá cứng khác trên hai bảng kỹ thuật vẫn bị R-N1-9 bắt (ngoại lệ theo TÊN, không theo bảng).
+  assert.ok(violations({ module: "dang-ky", name: "thu_xoa", sql: "DELETE FROM dk_email_code WHERE id = ?1" }).some((v) => /xoá cứng bảng dk_email_code/.test(v)));
+});
+
 test("ADR-0047 A3 (nợ có hạn DOC_AUDIT_LOG_WONGUARD — ĐÃ DUYỆT 2026-09-29 (lần 5), đề xuất luật mục 3): còn hạn (giờ VN); mỗi tên đang đăng ký, THẬT đọc audit_log (không ngoại lệ thì đỏ), và CHỈ qua lính gác `EXISTS (SELECT 1 FROM audit_log WHERE id = ?N)`", async () => {
   const entries = await nuaNghiemSql();
   assert.ok(DOC_AUDIT_LOG_WONGUARD.han >= vnToday(new Date()), `nợ DOC_AUDIT_LOG_WONGUARD quá hạn ${DOC_AUDIT_LOG_WONGUARD.han} — gỡ nợ hoặc chủ dự án gia hạn`);
@@ -1405,4 +1448,15 @@ test("ADR-0184 (đợt sửa 1, N): mọi lời gọi `can(` trong mã (không p
   }
   assert.ok(tong >= 400, `chống bài rỗng: thấy ${tong} lời gọi can(`);
   assert.deepEqual(sai, [], "ô viết thẳng ở mọi lời gọi can( của mã module");
+});
+
+// ADR-0213 Đ8.4 (mốc B2 Task 16): bảng «chờ người quản lý» `ord_member_submit` KHÔNG thuộc ngoại lệ xoá–chèn lại của nháp (XOA_CUNG_NHAP) — lưu nháp không xoá dòng của nó;
+// không câu SQL đăng ký nào xoá bảng này (trigger `ord_member_submit_no_delete` là lưới cuối).
+test("ADR-0213 Đ8.4: ord_member_submit ngoài XOA_CUNG_NHAP — không câu đăng ký nào xoá bảng này", () => {
+  for (const key of XOA_CUNG_NHAP) {
+    const e = registeredSql().find((x) => `${x.module}.${x.name}` === key);
+    assert.ok(!e || !/ord_member_submit/.test(e.sql), `${key} chạm ord_member_submit`);
+  }
+  const xoa = registeredSql().filter((x) => /\bDELETE\s+FROM\s+ord_member_submit\b/i.test(x.sql)).map((x) => `${x.module}.${x.name}`);
+  assert.deepEqual(xoa, []);
 });

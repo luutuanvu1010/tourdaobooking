@@ -47,7 +47,7 @@ Thanh tab dưới đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Da
    - [[Sửa giá đơn này]] để đổi đơn giá; dòng đã sửa hiện nhãn [[Khác giá danh mục]].
 6. Phần [[Đưa đón]] trên thẻ: mỗi dịch vụ phải chọn [[Đón]] hoặc [[Không đón]] (có mẫu đưa đón thì [[Đón]] chọn sẵn). Mỗi lượt có giờ đón (chạm khung giờ hoặc [[Giờ khác]]), [[Nơi đón]], [[Nơi trả]] (chọn điểm có sẵn hoặc [[Gõ tự do…]]). [[Ngày đón]] tự lấy ngày khởi hành (khác ngày: [[Đón khác ngày]]). Lượt đủ thông tin gập thành một dòng; chạm để sửa. [[Xe riêng]] và [[Xe tối thiểu]] (số chỗ, không kể tài xế) nằm trong [[Thêm chi tiết (xe riêng, số chỗ)]]. Bấm dòng [[Thông tin chuyến]] để điền [[Giờ khởi hành]] và nếu có thì [[Có mặt lúc]], [[Có mặt tại]] (khác ngày: [[Có mặt khác ngày]]), [[Ghi chú dịch vụ]].
 7. Thêm dịch vụ: lặp bước 4–6 (tối đa 20). Mỗi lúc chỉ một thẻ mở; chạm dòng gập để mở, thùng rác để bỏ.
-8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Ghi chú thanh toán]]. Đơn chưa xác nhận thì chưa ghi thu tiền được: khách trả tiền thì bấm [[Ghi khoản thu]] trên trang đơn sau khi đơn đã **xác nhận**.
+8. Khối [[Thanh toán]]: [[Giảm giá (₫)]], [[Ghi chú thanh toán]]. Đơn chưa xác nhận thì chưa ghi thu tiền được: khách trả tiền thì bấm [[Nhập khoản thu]] trên trang đơn sau khi đơn đã **xác nhận**.
 9. Khối [[Người phụ trách]] (Bán hàng): bấm [[Chọn người phụ trách]] rồi chạm tên để mời; để trống thì đơn ở [[Chờ Bán hàng nhận]]. Khối [[Hướng dẫn viên]] (nếu hiện): để trống thì đơn ở [[Chờ nhận]]. Đổi ý: [[Đổi]] hoặc [[Bỏ chọn — để Chờ Bán hàng nhận]].
 10. Xem tổng ở thanh dưới cùng (chạm để xem chi tiết; máy tính: [[Tóm tắt]]) rồi bấm [[Lưu đơn (chưa xác nhận)]]. Đơn lưu ở [[Chưa xác nhận]], rồi trang đơn mở kèm hộp ảnh biên nhận.
 
@@ -136,7 +136,7 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
     },
     {
       tieuDe: "Đơn của đối tác chờ xác nhận: kiểm vé",
-      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé, xác nhận đơn]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé, xác nhận đơn]]. Giờ đã qua hạn chốt thì bấm [[Đặt gấp]] ngay trong bảng. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+      noiDung: `Đơn đối tác gửi ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé, xác nhận đơn]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có **Ghi chú** của đối tác và ô **Giờ đón** từng lượt; lượt chưa có nơi đón có thêm ô **Nơi đón**. Ô ghi **(bắt buộc)** phải điền rồi bấm [[Còn vé, xác nhận đơn]]. Giờ qua hạn chốt thì bấm [[Đặt gấp]] ngay trong bảng. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
@@ -207,7 +207,7 @@ Huỷ được đơn bạn lập hoặc đang phụ trách. Đơn đã xếp xe 
       noiDung: `- Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ Bán hàng nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
 - Sửa số khách sau khi đã xác nhận của đơn người khác lập → người lập đơn, **Kế toán** hoặc **Quản trị** (đơn bạn lập thì tự bấm [[Sửa số khách dịch vụ]]). Dịch vụ, giá → chưa sửa được, báo **Quản trị**.
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
-- Khách trả tiền (đơn đã xác nhận): bấm [[Ghi khoản thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
+- Khách trả tiền (đơn đã xác nhận): bấm [[Nhập khoản thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.
 - Xe thiếu giấy tờ, tài xế thiếu bằng lái, thiếu nghỉ hay trái cam kết xe khi chưa tới hạn chốt → **Quản trị**.`,
     },

@@ -1,16 +1,18 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Thêm xe — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="hep" data-khuon="bieu-mau" data-tabbar="off" data-title="Thêm xe" data-back="/xe">
+<body data-rong="hep" data-khuon="bieu-mau" data-khung-goc="bieu-mau" data-tabbar="off" data-title="Thêm xe" data-back="/xe">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Thêm / sửa xe (ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/02 Them sua xe.dc.html). /xe-sua = thêm; /xe-sua?id=<xe> = sửa. -->
-  <a class="vc-back" href="/xe">‹ Xe</a>
-  <div class="vc-page-head"><h1 id="xe-title">Thêm xe</h1></div>
+  <!-- Thêm / sửa xe (ADR-0040 D1). /xe-sua = thêm; /xe-sua?id=<xe> = sửa. Khuôn Biểu mẫu của khung gốc (ADR-0222): một khối biểu mẫu trên lưới 12 cột;
+       vùng nội dung từ 560: thanh nút cuối trang (#xe-nut — việc nguy hiểm bên trái, «Huỷ» và «Lưu» bên phải); hẹp hơn: khối «Ngừng dùng xe» (#xe-stop) rồi
+       «Lưu» dính đáy (#xe-bottom). Tên trang nằm ở thanh trên; h1 chỉ để trình đọc màn hình. -->
+  <h1 id="xe-title">Thêm xe</h1>
   <div id="error" class="alert" role="alert" hidden></div>
-  <form id="xe-form" class="vc-card vc-form" autocomplete="off" novalidate hidden></form>
-  <div id="xe-stop" class="vc-stop-block" hidden></div>
-  <div id="xe-bottom" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden></div>
+  <form id="xe-form" class="khoi" autocomplete="off" novalidate hidden></form>
+  <div id="xe-nut" class="thanh-nut" data-kieu="trang" hidden></div>
+  <section id="xe-stop" class="khoi" data-chi="hep" hidden></section>
+  <div id="xe-bottom" class="thanh-day thanh-hanh-dong-cuoi" hidden></div>
 </main>
 <script type="module" src="/js/xe-sua.js"></script>
 </body></html>

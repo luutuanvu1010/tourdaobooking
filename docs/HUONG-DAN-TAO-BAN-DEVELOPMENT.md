@@ -29,7 +29,7 @@ Lệnh này tạo cơ sở dữ liệu riêng của bản Development. Kết qu�
 npx wrangler d1 create tourdao-sales-dev-db --config wrangler.dev.jsonc
 ```
 
-## Bước 2. Tạo bốn kho tệp
+## Bước 2. Tạo sáu kho tệp
 
 Mỗi lệnh dưới đây tạo một kho. Chạy lần lượt từng lệnh; nếu wrangler hỏi sửa cấu hình thì trả lời **n**.
 
@@ -51,6 +51,10 @@ npx wrangler r2 bucket create tourdao-sales-dev-bien-lai --config wrangler.dev.j
 
 ```bash
 npx wrangler r2 bucket create tourdao-sales-dev-anh-dich-vu --config wrangler.dev.jsonc
+```
+
+```bash
+npx wrangler r2 bucket create tourdao-sales-dev-anh-ban-giao --config wrangler.dev.jsonc
 ```
 
 ## Bước 3. Tạo cặp khoá thông báo điện thoại (VAPID)

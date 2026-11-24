@@ -81,6 +81,7 @@ test("(5) nơi gọi mfaEnrollWindowStatement / mfaGraceIfNullStatement = đúng
     // định nghĩa của staff/index.ts là `= (db …) =>` nên không khớp mẫu gọi
     "modules/auth/index.ts:mfaEnrollWindowStatement": { n: 1, lyDo: "đóng cửa sổ (đặt null) khi người dùng đã bật xong lớp hai — không mở thêm quyền" },
     "modules/accounts/index.ts:mfaEnrollWindowStatement": { n: 1, lyDo: "route mfa-reset: cửa sổ 24 giờ nằm CÙNG LÔ với sự kiện mfa_reset (tầng VINH_VIEN)" },
+    "ban-dung-thu.ts:mfaGraceIfNullStatement": { n: 1, lyDo: "ADR-0223 Đ2.2: lô làm sạch bản dùng thử đặt lại ân hạn của Toàn quyền demo vừa nạp lại (bản mẫu để trống hạn); chỉ chạy sau hai khoá an toàn" },
     "modules/accounts/index.ts:mfaGraceIfNullStatement": { n: 2, lyDo: "chỉ đặt ân hạn khi đang NULL (kích hoạt lại / trở thành nội bộ) — không trao quyền đăng nhập thay ai" },
   };
   assert.deepEqual(dem, Object.fromEntries(Object.entries(GHIM).map(([k, v]) => [k, v.n])));
@@ -93,4 +94,11 @@ test("(5b) accounts / auth không tự ghi cột hạn lớp hai bằng SQL thô
       assert.doesNotMatch(nenCode(readFileSync(p, "utf8")), /mfa_grace_until|mfa_enroll_until/, `${p}: ghi cột hạn lớp hai bằng SQL thô`);
     }
   }
+});
+
+test("(5) ADR-0207 Đ6 (M-4): không hành động registration_* nào thuộc nhóm staff — bước xác minh phiếu đăng ký không chạm tài khoản", () => {
+  const dk = Object.entries(AUDIT_ACTIONS).filter(([k]) => k.startsWith("registration_"));
+  assert.ok(dk.length >= 6, "chống bài rỗng: có sáu hành động registration_*");
+  assert.deepEqual(dk.filter(([, v]) => v.group === "staff").map(([k]) => k), []);
+  for (const [k] of dk) assert.ok(!xep.includes(k), `${k} không được xếp vào tầng chạm tài khoản`);
 });

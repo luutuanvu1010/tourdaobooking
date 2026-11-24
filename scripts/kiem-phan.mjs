@@ -9,8 +9,9 @@
 // chia; phần e2e không báo audit-invariants (hoặc audit đỏ); bất kỳ phần nào đỏ. Tệp này là TỆP ĐIỀU KHIỂN VIỆC KIỂM (Đ2.3): đổi nó thì day-len đòi lý do.
 //
 // Dòng lệnh (chỉ dùng trên máy GitHub; ở máy vẫn chạy `npm test` / `npm run test:e2e` như cũ):
-//   node scripts/kiem-phan.mjs ma-tran                  → in "test=[1,…]" và "e2e=[1,…]" (cho $GITHUB_OUTPUT); bảng chia hỏng ⇒ thoát 1
-//   node scripts/kiem-phan.mjs rieng --ket-qua <tệp>    → Bước 0 + typecheck + bài đo giờ (--test-concurrency=1)
+//   node scripts/kiem-phan.mjs ma-tran                  → in "test=[1,…]" và "e2e=[1,…]"; bảng chia hỏng ⇒ thoát 1 (để thử ở máy; từ ADR-0215 quy trình
+//                                                          không gọi nữa — máy gom kiểm cùng điều đó)
+//   node scripts/kiem-phan.mjs rieng --ket-qua <tệp>    → Bước 0 + typecheck + bài đo giờ (--test-concurrency=1) + đo khung gốc trên trang thật
 //   node scripts/kiem-phan.mjs test <k> --ket-qua <tệp> → phần k của npm test
 //   node scripts/kiem-phan.mjs gom <thư mục> --ket-qua <tệp> → gom mọi báo cáo; đỏ ⇒ thoát 1. (Phần e2e: node tests/e2e/run.mjs --phan k --ket-qua <tệp>)
 import { spawnSync } from "node:child_process";
@@ -21,11 +22,21 @@ import { ALL, chiaNhom } from "../tests/e2e/danh-sach.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const TEP_DO_GIO = "src/claude-guard-thoi-gian.test.ts";
-export const BUOC_RIENG = ["buoc-0", "typecheck", TEP_DO_GIO];
+export const BUOC_RIENG = ["buoc-0", "typecheck", TEP_DO_GIO, "do-khung"];
+// Lệnh đo khung gốc trên trang thật (ADR-0222 Đ7b; scripts/giao-dien/do-khung-ci.mjs tự dựng D1 tạm + wrangler dev + gieo dữ liệu) chạy CUỐI phần riêng, SAU bài
+// đo giờ (bài đó phải chạy một mình). Bước bề rộng ở lượt kiểm: BUOC_KHUNG_CI (máy thử tay vẫn bước 20) — đo 21/11/2026, xem docs/SO-HANG-RAO.md dòng «Lệnh đo khung gốc».
+export const BUOC_KHUNG_CI = 20;
+// Việc 2.4 (kế hoạch 2026-11-15): trần cho MỘT TỆP kiểm (`--test-timeout`; chạy mỗi tệp một tiến trình thì trần áp cho cả tệp — đã đo: tệp treo trong bài, tệp
+// treo ở cấp tệp và tệp xong bài mà còn giữ bộ hẹn giờ đều bị cắt đúng trần, báo tên tệp). Trước đây một tệp treo làm «npm test phần 2» chờ tới khi GitHub huỷ
+// (7 lượt). 10 phút: gấp ~5 lần tệp chậm nhất trong scripts/thoi-gian-test.json (audit-invariants ~127 giây trên GitHub), vẫn đỏ có tên trước khi bị huỷ.
+export const TRAN_TEP_MS = 600_000;
+export const CO_TRAN_TEP = `--test-timeout=${TRAN_TEP_MS}`;
 // Số phần chỉnh theo số đo (ADR-0179 Đ1.2). Lượt đầu 6/11 (4 + 6 phần, chia theo cỡ tệp): 19 phút, phần npm test chậm nhất 17,5 phút ⇒ 10 + 8 phần,
-// chia theo giây thật. Mức tối thiểu ADR (≥ 4, ≥ 6) do MIN_* canh. Kho công khai: mỗi lượt ≤ 20 việc chạy cùng lúc (giới hạn gói miễn phí).
-export const SO_PHAN_TEST = 10;
-export const SO_PHAN_E2E = 8;
+// chia theo giây thật. 16/11 (ADR-0215 Đ1.3, lượt 43819969293): 10 phần npm test chạy bài 54–333 giây (tổng ~1.280), 8 phần e2e 275–413 giây (e2e là
+// phần lâu) ⇒ 7 + 12 phần. Mức tối thiểu ADR (≥ 4, ≥ 6) do MIN_* canh. Kho công khai: mỗi lượt ≤ 20 việc chạy cùng lúc (1 phần riêng + các phần;
+// bài src/kiem-phan.test.ts khoá). Danh sách phần còn ghi thẳng ở ma trận của .github/workflows/kiem.yml — đổi số ở đây thì đổi cả ở đó.
+export const SO_PHAN_TEST = 7;
+export const SO_PHAN_E2E = 12;
 const MIN_PHAN_TEST = 4;
 const MIN_PHAN_E2E = 6;
 
@@ -170,6 +181,13 @@ export function gomKetQua(bang, baoCao, toanBo) {
     if (r.buoc0?.ok !== true) loi.push(`Bước 0 (sinh lại kho trợ lý) đỏ${r.buoc0?.doi?.length ? `: tệp sinh đổi ${r.buoc0.doi.join(", ")} — commit các tệp này` : ""}`);
     if (r.typecheck?.ok !== true) loi.push("typecheck đỏ");
     if (r.doGio?.ok !== true || !giongNhau(r.doGio?.tep, [TEP_DO_GIO]) || !laDem(r.doGio?.dem)) loi.push(`bài đo giờ của hook (${TEP_DO_GIO}) đỏ hoặc không báo số bài`);
+    // Đo khung gốc: chỉ XANH khi mã thoát 0 VÀ đo ít nhất một màn. Mã 2 (đo thiếu / không chạy được) là ĐỎ, không phải bỏ qua.
+    const k = r.doKhung;
+    const khungOk = k?.ok === true && k?.maThoat === 0 && Number.isInteger(k?.soMan) && k.soMan > 0 && Number.isInteger(k?.soO) && k.soO > 0;
+    if (!khungOk) {
+      loi.push(`đo khung gốc trên trang thật đỏ: ${!k ? "không có kết quả" : k.maThoat === 2 && k.doThieu?.length ? `đo thiếu ${k.doThieu.join(", ")}` : k.loi ?? (k.maThoat === 0 ? "không đo màn nào" : `mã thoát ${k.maThoat}`)}`);
+      baiDo.push(`đo khung gốc (scripts/giao-dien/do-khung-ci.mjs)${k?.loi ? `: ${k.loi}` : ""}`);
+    }
     congGiay(r.doGio?.giayTep);
     if (laDem(r.doGio?.dem)) {
       soBai += r.doGio.dem.tests;
@@ -244,7 +262,7 @@ const REPORTER = pathToFileURL(join(ROOT, "scripts", "dem-bai.mjs")).href;
 
 /** node --test cho danh sách tệp, in kết quả kiểu spec ra màn hình và đếm bài bằng scripts/dem-bai.mjs. */
 function chayNodeTest(files, tepDem, them = []) {
-  const r = spawnSync(process.execPath, ["--test", ...them, "--test-reporter=spec", "--test-reporter-destination=stdout", `--test-reporter=${REPORTER}`, `--test-reporter-destination=${tepDem}`, ...files], { cwd: ROOT, stdio: "inherit" });
+  const r = spawnSync(process.execPath, ["--test", CO_TRAN_TEP, ...them, "--test-reporter=spec", "--test-reporter-destination=stdout", `--test-reporter=${REPORTER}`, `--test-reporter-destination=${tepDem}`, ...files], { cwd: ROOT, stdio: "inherit" });
   let dem = null;
   try {
     dem = JSON.parse(readFileSync(tepDem, "utf8"));
@@ -283,9 +301,19 @@ async function dongLenh(argv) {
     const tc = spawnSync("npm", ["run", "typecheck"], { cwd: ROOT, stdio: "inherit" });
     console.log(`▶ bài đo giờ của hook, MỘT MÌNH (${TEP_DO_GIO}, --test-concurrency=1)`);
     const dg = chayNodeTest([TEP_DO_GIO], `${tepKq}.dem`, ["--test-concurrency=1"]);
-    const bc = { loai: "rieng", buoc0, typecheck: { ok: tc.status === 0 }, doGio: { ok: dg.ok, tep: [TEP_DO_GIO], dem: dg.dem, giayTep: dg.dem?.giayTep ?? {} } };
+    console.log(`▶ đo khung gốc trên trang thật (scripts/giao-dien/do-khung-ci.mjs, bước ${BUOC_KHUNG_CI})`);
+    const tepKhung = `${tepKq}.khung`;
+    const dk = spawnSync(process.execPath, ["scripts/giao-dien/do-khung-ci.mjs", "--buoc", String(BUOC_KHUNG_CI), "--ket-qua", tepKhung], { cwd: ROOT, stdio: "inherit" });
+    let doKhung;
+    try {
+      doKhung = JSON.parse(readFileSync(tepKhung, "utf8"));
+    } catch {
+      doKhung = { ok: false, maThoat: dk.status ?? 2, loi: "lệnh đo không ghi kết quả" };
+    }
+    if (dk.status !== 0) doKhung.ok = false;
+    const bc = { loai: "rieng", buoc0, typecheck: { ok: tc.status === 0 }, doGio: { ok: dg.ok, tep: [TEP_DO_GIO], dem: dg.dem, giayTep: dg.dem?.giayTep ?? {} }, doKhung };
     ghi(tepKq, bc);
-    return bc.buoc0.ok && bc.typecheck.ok && bc.doGio.ok ? 0 : 1;
+    return bc.buoc0.ok && bc.typecheck.ok && bc.doGio.ok && bc.doKhung.ok ? 0 : 1;
   }
   if (lenh === "test") {
     const k = Number(thamSo);

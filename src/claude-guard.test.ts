@@ -46,6 +46,11 @@ const MUST_DENY = [
   // ADR-0162 Task 5: lệnh lên chính thức, làm mới Development, và mọi đường chạm wrangler Development/R2 ngoài ba lệnh chỉ-đọc/local.
   "npm run len-chinh-thuc -- x",
   "npm run lam-moi-dev",
+  // ADR-0223: đưa mã lên bản dùng thử — chủ tự gõ.
+  "npm run len-demo",
+  "node scripts/len-demo.mjs",
+  "CI=1 npm run len-demo",
+  "./scripts/len-demo.mjs",
   "pnpm len-chinh-thuc",
   "node scripts/len-chinh-thuc.mjs x",
   "node ./scripts/lam-moi-dev.mjs",
@@ -258,6 +263,13 @@ test("trợ lý nguoi-kiem-doc-lap: chạy trên bản sao riêng, không có c�
   for (const cam of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) assert.ok(!congCu.includes(cam), `người kiểm không được có công cụ ${cam}`);
 });
 
+test("trợ lý nguoi-danh-gia-giao-dien: chỉ đọc, đúng bốn công cụ Read, Glob, Grep, Bash, không có công cụ sửa tệp", () => {
+  const dau = read(".claude/agents/nguoi-danh-gia-giao-dien.md").split("---")[1] ?? "";
+  const congCu = (dau.match(/^tools: (.*)$/m)?.[1] ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  assert.deepEqual([...congCu].sort(), ["Bash", "Glob", "Grep", "Read"], "người đánh giá giao diện phải có đúng bốn công cụ Read, Glob, Grep, Bash");
+  for (const cam of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) assert.ok(!congCu.includes(cam), `người đánh giá giao diện không được có công cụ ${cam}`);
+});
+
 test("guard-remote: script móc thật trả deny cho `npm run day-len` và `node scripts/trien-khai.mjs`", () => {
   for (const command of ["npm run day-len", "node scripts/trien-khai.mjs"]) {
     const r = spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: ROOT }), encoding: "utf8" });
@@ -369,27 +381,28 @@ test("guard-remote: script tệp (`python3 /tmp/x.py`) ghi docs/adr → hỏi; s
   assert.deepEqual(scriptPaths("python3 ~/.claude/jobs/x/tmp/duyet_0057.py && node --test src/a.test.ts && node scripts/b.mjs"), ["~/.claude/jobs/x/tmp/duyet_0057.py", "scripts/b.mjs"]);
 });
 
-test("guard-remote: script móc thật trả `ask` cho sự cố 30/9 và cho script tệp ghi ADR; im lặng khi chỉ đọc", () => {
+test("guard-remote: script móc thật — sự cố 30/9 và script tệp ghi ADR nay bị CHẶN (guard-luat, từ 15/11); vòng lặp/xargs vẫn HỎI; im lặng khi chỉ đọc", () => {
   const run = (command: string) =>
     spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: ROOT }), encoding: "utf8" });
   const hoi = (command: string) => JSON.parse(run(command).stdout || "{}").hookSpecificOutput;
+  // Từ 15/11 (vá chỗ hở): mã trình thông dịch ghi tệp luật bị guard-luat CHẶN ở bước (2), trước khi luật HỎI kịp trả ask.
   const o = hoi(SU_CO_30_9);
-  assert.equal(o?.permissionDecision, "ask");
-  assert.match(o?.permissionDecisionReason ?? "", /Sửa docs\/adr\/ phải qua công cụ Edit\/Write để chủ duyệt/);
+  assert.equal(o?.permissionDecision, "deny");
+  assert.match(o?.permissionDecisionReason ?? "", /công cụ sửa tệp/);
   const dir = mkdtempSync(join(tmpdir(), "guard-adr-"));
   const tep = join(dir, "duyet.py");
   writeFileSync(tep, 'D = "docs/adr/"\nopen(D + "README.md", "w", encoding="utf-8").write("x")\n');
-  assert.equal(hoi(`python3 ${tep} && git status --short`)?.permissionDecision, "ask", "script tệp ghi docs/adr phải hỏi");
+  assert.equal(hoi(`python3 ${tep} && git status --short`)?.permissionDecision, "deny", "script tệp tạm ghi docs/adr phải bị chặn (15/11)");
   writeFileSync(tep, 'print(open("docs/adr/README.md").read())\n');
   assert.equal(run(`python3 ${tep}`).stdout, "", "script chỉ đọc phải im lặng");
   assert.equal(run("cat docs/adr/README.md").stdout, "");
   rmSync(dir, { recursive: true, force: true });
-  // Các đường guard-luat nói rõ không thấy (vòng lặp, xargs, node -e) — ở mức móc thật vẫn phải HỎI (không im lặng).
+  // Các đường guard-luat vẫn nói rõ không thấy (vòng lặp, xargs) — ở mức móc thật vẫn phải HỎI (không im lặng).
   for (const command of [
     "for f in docs/adr/*.md; do sed -i '' 's/a/b/' \"$f\"; done",
     "grep -l proposed docs/adr/*.md | xargs sed -i '' 's/proposed/accepted/'",
-    "node -e \"require('fs').writeFileSync('docs/adr/README.md', 'x')\"",
   ]) assert.equal(hoi(command)?.permissionDecision, "ask", `móc phải hỏi: ${command}`);
+  assert.equal(hoi("node -e \"require('fs').writeFileSync('docs/adr/README.md', 'x')\"")?.permissionDecision, "deny", "node -e ghi docs/adr: chặn (15/11), không còn chỉ hỏi");
 });
 
 test("guard-remote: script móc thật — DENY (lệnh cấm hoặc guard-luat) luôn thắng ASK của luật docs/adr", () => {

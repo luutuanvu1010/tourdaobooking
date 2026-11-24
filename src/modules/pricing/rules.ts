@@ -416,7 +416,7 @@ export function kiemThanDieuKhoan(raw: unknown): Ket<ThanDieuKhoan> {
   const b = raw as Record<string, unknown>;
   const pv = docPhamVi(b);
   if (!pv.ok) return pv;
-  if (typeof b.nguoiBanPartyId !== "string" || !PARTY_RE.test(b.nguoiBanPartyId)) return { ok: false, message: "Chọn người bán." };
+  if (typeof b.nguoiBanPartyId !== "string" || !PARTY_RE.test(b.nguoiBanPartyId)) return { ok: false, message: "Chọn nhà cung cấp." };
   let costRateBp: number | null = null;
   if (b.tyLeMuaBp !== undefined && b.tyLeMuaBp !== null) {
     if (!laPhanVan(b.tyLeMuaBp)) return { ok: false, message: "Tỷ lệ mua lại phải từ 0% tới 100%." };
@@ -427,6 +427,26 @@ export function kiemThanDieuKhoan(raw: unknown): Ket<ThanDieuKhoan> {
   const gc = docGhiChu(b.ghiChu);
   if (!gc.ok) return gc;
   return { ok: true, value: { ...pv.value, sellerPartyId: b.nguoiBanPartyId, costRateBp, ...kn.value, note: gc.value } };
+}
+
+/**
+ * Việc 15 (2026-11-23) — ngừng một điều khoản được không, theo cách nào. Dòng «Mọi dịch vụ» là chỗ dựa của mọi dịch vụ chưa có điều khoản riêng: ngừng nó mà không có dòng thay
+ * thì mọi đơn mới thiếu nhà cung cấp, bị giữ ở «Khách đã trả đủ». Luật trùng khoảng (`prc_supply_term_overlap`) không cho thêm dòng thay khi dòng cũ còn mở ⇒ dòng của công ty chủ
+ * hiện tại KHÔNG ngừng được; dòng của công ty chủ CŨ (sau khi đổi công ty chủ — đặc tả sổ đại lý đợt 1 §13) ngừng được và route mở dòng thay trong cùng lô. Không biết công ty
+ * chủ ⇒ không ngừng (không đoán ai nhận dòng thay).
+ */
+export function cachNgungDieuKhoan(d: { scope: PhamVi; sellerPartyId: string; validTo: string | null }, congTyChuId: string | null): "NGUNG" | "KHONG_NGUNG" | "NGUNG_VA_THAY" {
+  if (d.validTo !== null) return "KHONG_NGUNG";
+  if (d.scope !== "ALL") return "NGUNG";
+  return congTyChuId !== null && d.sellerPartyId !== congTyChuId ? "NGUNG_VA_THAY" : "KHONG_NGUNG";
+}
+/** Việc 15: câu 409 khi ngừng dòng «Mọi dịch vụ» của công ty chủ hiện tại (một nguồn — route, bài kiểm và e2e so đúng câu này). */
+export const CAU_KHONG_NGUNG_MOI_DICH_VU = "Không ngừng được dòng «Mọi dịch vụ»: dòng này áp cho mọi dịch vụ chưa có điều khoản riêng, ngừng nó thì đơn mới bị giữ ở bước «Khách đã trả đủ». Muốn đổi nhà cung cấp cho một nhóm hay một dịch vụ, thêm điều khoản riêng cho nhóm hoặc dịch vụ đó.";
+/** Ngày dân sự kế tiếp của một ngày `YYYY-MM-DD` (dòng thay bắt đầu ngay sau ngày kết thúc của dòng cũ — không khe, không chồng). */
+export function ngaySau(ngay: string): string {
+  const d = new Date(`${ngay}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
 export function kiemNgayDong(raw: unknown, tuNgay: string): Ket<string> {

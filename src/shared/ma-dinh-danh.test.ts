@@ -16,3 +16,8 @@ test("hàng rào: không hai dòng TIEN_TO_MA trùng tiền tố, mọi tiền t
   assert.equal(new Set(ds).size, ds.length, "hai loại bản ghi trùng tiền tố mã");
   for (const t of ds) assert.match(t, /^[A-Z]{2,3}$/);
 });
+test("ADR-0217: tiền tố VE (số sê-ri vé) có trong bảng; mã sinh ra khớp hình dạng", () => {
+  assert.ok(TIEN_TO_MA.some((d) => d.tienTo === "VE"));
+  assert.match(sinhMa("VE", BYTES), /^VE_[A-Z]{8}$/);
+  assert.match(sinhMa("VE", BYTES), MA_DINH_DANH_RE);
+});

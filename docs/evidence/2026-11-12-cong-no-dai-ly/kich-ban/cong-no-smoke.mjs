@@ -1,5 +1,5 @@
 // Kịch bản Chrome + axe — màn đơn của tài khoản Đối tác sau ADR-0182 phần A (12/11): nút «Tạo biên nhận cho khách», KHÔNG còn «QR thanh toán» (giá bán lẻ),
-// nút «Xem công nợ với Tour Đảo» mở «Phiếu công nợ với Tour Đảo» theo giá đại lý có QR; đơn nháp hiện câu chờ xác nhận; văn phòng (Toàn quyền) giữ chữ «Xem ảnh gửi khách».
+// nút «Thanh toán đơn này cho công ty Tour Đảo» mở «Phiếu công nợ với Tour Đảo» theo giá đại lý có QR; đơn nháp hiện câu chờ xác nhận; văn phòng (Toàn quyền) giữ chữ «Xem ảnh gửi khách».
 // Hai khổ 390 và 1280. D1 local tạm; tên, SĐT, số tài khoản là GIẢ. Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-11-12-cong-no-dai-ly node docs/evidence/2026-11-12-cong-no-dai-ly/kich-ban/cong-no-smoke.mjs
 // Trang dùng chung kho cookie: trong mỗi khổ mở trang Đối tác trước, Toàn quyền sau cùng.
@@ -47,8 +47,8 @@ const GIA_DAI_LY = "2.430.000"; // 2 × 1.350.000 − 10%
 
 const buoc = async (khung, hau) => {
   let p = await env.as(DOITAC, `/order?id=${don.id}`, khung);
-  await p.waitFor(`[...document.querySelectorAll('button')].some((x) => x.innerText.trim() === 'Xem công nợ với Tour Đảo')`, "thẻ Thanh toán nạp xong");
-  await b.step(`${hau}-1`, `${hau}: Đối tác thấy «Tạo biên nhận cho khách» và «Xem công nợ với Tour Đảo», không còn «Xem ảnh gửi khách» và «QR thanh toán»; không tràn ngang; không mã thô${axeNote()}`, async () => {
+  await p.waitFor(`[...document.querySelectorAll('button')].some((x) => x.innerText.trim() === 'Thanh toán đơn này cho công ty Tour Đảo')`, "thẻ Thanh toán nạp xong");
+  await b.step(`${hau}-1`, `${hau}: Đối tác thấy «Tạo biên nhận cho khách» và «Thanh toán đơn này cho công ty Tour Đảo», không còn «Xem ảnh gửi khách» và «QR thanh toán»; không tràn ngang; không mã thô${axeNote()}`, async () => {
     assert.equal(await nut(p, "Tạo biên nhận cho khách"), true);
     assert.equal(await nut(p, "Xem ảnh gửi khách"), false);
     assert.equal(await nut(p, "QR thanh toán"), false, "QR giá bán lẻ không còn trên màn Đối tác");
@@ -57,8 +57,8 @@ const buoc = async (khung, hau) => {
     await chup(p, `01-doi-tac-don-${hau}`, khung);
     await axe(p, `đơn đối tác ${hau}`);
   });
-  await b.step(`${hau}-2`, `${hau}: bấm «Xem công nợ với Tour Đảo» ⇒ phiếu theo giá đại lý ${GIA_DAI_LY} ₫, có mã QR và «Lưu ảnh», nội dung chuyển khoản DL…${axeNote()}`, async () => {
-    assert.equal(await bam(p, "Xem công nợ với Tour Đảo"), true);
+  await b.step(`${hau}-2`, `${hau}: bấm «Thanh toán đơn này cho công ty Tour Đảo» ⇒ phiếu theo giá đại lý ${GIA_DAI_LY} ₫, có mã QR và «Lưu ảnh», nội dung chuyển khoản DL…${axeNote()}`, async () => {
+    assert.equal(await bam(p, "Thanh toán đơn này cho công ty Tour Đảo"), true);
     await p.waitFor(`!!document.querySelector('[data-khoi="phieu-cong-no"] [data-so="con-lai"]')`, "phiếu nạp xong");
     await sleep(500);
     const t = await chuTrang(p);
@@ -77,12 +77,12 @@ const buoc = async (khung, hau) => {
   await p.waitFor(`!!document.querySelector('[data-khoi="thanh-toan"]')`, "đơn nháp nạp xong");
   await b.step(`${hau}-3`, `${hau}: đơn nháp hiện câu «Phiếu công nợ có sau khi đơn được xác nhận.», không có nút phiếu`, async () => {
     await p.waitFor(`!!document.querySelector('[data-khoi="phieu-cong-no-chua"]')`, "câu chờ xác nhận");
-    assert.equal(await nut(p, "Xem công nợ với Tour Đảo"), false);
+    assert.equal(await nut(p, "Thanh toán đơn này cho công ty Tour Đảo"), false);
     await chup(p, `03-doi-tac-don-nhap-${hau}`, khung);
   });
   p.close();
   p = await env.as(CHU, `/order?id=${don.id}`, khung);
-  await p.waitFor(`[...document.querySelectorAll('button')].some((x) => x.innerText.trim() === 'Xem công nợ với Tour Đảo')`, "trang văn phòng nạp xong");
+  await p.waitFor(`[...document.querySelectorAll('button')].some((x) => x.innerText.trim() === 'Thanh toán đơn này cho công ty Tour Đảo')`, "trang văn phòng nạp xong");
   await b.step(`${hau}-4`, `${hau}: Toàn quyền (văn phòng) giữ chữ «Xem ảnh gửi khách» và cũng mở được phiếu công nợ${axeNote()}`, async () => {
     assert.equal(await nut(p, "Xem ảnh gửi khách"), true);
     assert.equal(await nut(p, "Tạo biên nhận cho khách"), false);

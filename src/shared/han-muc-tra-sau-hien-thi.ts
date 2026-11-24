@@ -1,7 +1,7 @@
 // Chữ hiện của Trả sau (ADR-0168, ADR-0172, ADR-0173): màn «Hạn mức trả sau», ô «Trả sau» ở Cấp độ đại lý, khối Thanh toán và nút «Ân hạn» trên đơn, mục «Trả sau của tôi».
 // Thuần, không DOM. Mốc giờ là ISO UTC của máy chủ; MỌI chỗ hiện cho người dùng đi qua `vnDateTimeText` (giờ Việt Nam, ADR-0172 Đ3 mục 4) — không cắt chuỗi ngày.
 // Lý do khoá lấy từ `CAU_KHOA_QUA_HAN` — cùng ý với câu máy chủ (`lyDoKhongTraSau`).
-import { GIO_TOI_DA, NHAN_HINH_THUC, dongTien, type HinhThucThanhToan, type TrangThaiHan } from "./tra-sau.ts";
+import { CAU_VUOT_HAN_MUC_DOI_TAC, GIO_TOI_DA, NHAN_CO_SO_TRA_SAU, NHAN_HINH_THUC, dongTien, type HinhThucThanhToan, type KetQuaKiemTraSau, type TrangThaiHan } from "./tra-sau.ts";
 import { msToVnLocal, vnDateTimeText, vnLocalToIso } from "./vn-date.ts";
 import { boDau } from "./so-cong-no-hien-thi.ts";
 
@@ -21,6 +21,13 @@ export const cauHanMuc = (d: { hanMuc: number | null; gioTra: number | null; gio
   d.hanMuc === null || d.gioTra === null
     ? "Chưa cấp"
     : `${dongTien(d.hanMuc)} · trả trong ${cauGio(d.gioTra)} · ${d.gioAnHan ? `ân hạn ${cauGio(d.gioAnHan)}` : "không ân hạn"}`;
+
+/**
+ * Ô «Trả sau» của văn phòng (Cấp độ đại lý, Hạn mức trả sau): chưa có hạn mức mà còn nợ (thường là nợ Trả sau theo dịch vụ) ⇒ «Chưa cấp hạn mức»,
+ * để người xem không hiểu nhầm là đối tác không có Trả sau nào; còn lại như `cauHanMuc`.
+ */
+export const cauHanMucVanPhong = (d: { hanMuc: number | null; gioTra: number | null; gioAnHan: number | null; dangNo: number; dangNoDichVu?: number }): string =>
+  (d.hanMuc === null || d.gioTra === null) && d.dangNo + (d.dangNoDichVu ?? 0) > 0 ? "Chưa cấp hạn mức" : cauHanMuc(d);
 
 export const nhanQuaHan = (soDon: number): string | null => (soDon > 0 ? `${soDon} đơn quá hạn` : null);
 export const nhanAnHan = (soDon: number): string | null => (soDon > 0 ? `${soDon} đơn đang trong ân hạn` : null);
@@ -79,25 +86,61 @@ export const CAU_TRA_SAU_DOI_TAC = "Bạn được trả sau. Nhận vé trướ
  * Khối chọn hình thức ở màn đặt đơn: ẩn khi bên đặt không có hạn mức; khoá (kèm lý do) khi còn đơn quá hạn.
  * `laDoiTac` (ADR-0198 Đ1: `laDoiTacTraSau` của người đang lập): đối tác thấy câu gọn không số; văn phòng giữ «Hạn mức khả dụng …».
  */
-export function cauChonTraSau(r: { coHanMuc: boolean; conDuocDung: number; coDonQuaHan: boolean; laDoiTac?: boolean }): { hien: boolean; khoa: string | null; cau: string } {
+/** ADR-0230 Đ1 mục 5: câu cho đối tác khi đơn đang soạn đủ «Trả sau theo dịch vụ» — lời thường, không chữ «hạn mức». */
+export const cauTraSauDichVuDoiTac = (gioTra: number): string => `Đơn này được trả sau: vé hiện ngay, trả Tour Đảo trong ${cauGio(gioTra)}.`;
+
+/**
+ * ADR-0230 Đ1 mục 5: `traSauDichVu` (từ `con-duoc-dung` kèm mã dịch vụ đang soạn) khác null ⇒ hiện Trả sau dù không có hạn mức; khoá khi còn đơn quá hạn. Câu: đối tác lời thường
+ * kèm số giờ; văn phòng «Trả sau theo dịch vụ · trả trong N giờ».
+ */
+export function cauChonTraSau(r: { coHanMuc: boolean; conDuocDung: number; coDonQuaHan: boolean; laDoiTac?: boolean; traSauDichVu?: { gioTra: number } | null }): { hien: boolean; khoa: string | null; cau: string } {
+  if (r.traSauDichVu) {
+    return { hien: true, khoa: r.coDonQuaHan ? CAU_KHOA_QUA_HAN : null, cau: r.laDoiTac ? cauTraSauDichVuDoiTac(r.traSauDichVu.gioTra) : `${NHAN_CO_SO_TRA_SAU.SERVICE} · trả trong ${cauGio(r.traSauDichVu.gioTra)}` };
+  }
   if (!r.coHanMuc) return { hien: false, khoa: null, cau: "" };
   return { hien: true, khoa: r.coDonQuaHan ? CAU_KHOA_QUA_HAN : null, cau: r.laDoiTac ? CAU_TRA_SAU_DOI_TAC : `Hạn mức khả dụng ${dongTien(r.conDuocDung)}` };
 }
 
 /**
- * Hai dòng đầu của mục «Trả sau của tôi» (ADR-0173 Đ3 mục 3, sửa bởi ADR-0198 Đ1.5). Đối tác: dòng một chỉ nói số giờ trả và giờ ân hạn (không số tiền), dòng hai chỉ còn số đang nợ.
+ * Hai dòng đầu của mục «Trả sau của tôi» (ADR-0173 Đ3 mục 3, sửa bởi ADR-0198 Đ1.5). Đối tác: dòng một chỉ nói số giờ trả và giờ ân hạn (không số tiền), dòng hai chỉ còn số đang nợ;
+ * đối tác chưa có hạn mức thì KHÔNG có dòng một (`null`).
  * Không phải đối tác: giữ như cũ (tóm tắt hạn mức; đang nợ kèm hạn mức khả dụng).
  */
 export function dongTraSauCuaToi(
-  r: { hanMuc: number | null; gioTra: number | null; gioAnHan: number | null; dangNo: number; conDuocDung: number | null },
+  r: { hanMuc: number | null; gioTra: number | null; gioAnHan: number | null; dangNo: number; dangNoDichVu?: number; conDuocDung: number | null },
   laDoiTac: boolean,
-): { dong1: string; dong2: string } {
-  if (!laDoiTac) return { dong1: cauHanMuc(r), dong2: `Đang nợ ${dongTien(r.dangNo)}${r.conDuocDung === null ? "" : ` · Hạn mức khả dụng ${dongTien(r.conDuocDung)}`}` };
+): { dong1: string | null; dong2: string } {
+  if (!laDoiTac) {
+    const dv = r.dangNoDichVu ?? 0;
+    const kd = r.conDuocDung === null ? "" : ` · Hạn mức khả dụng ${dongTien(r.conDuocDung)}`;
+    return { dong1: cauHanMucVanPhong(r), dong2: dv > 0 ? `Đang nợ theo hạn mức ${dongTien(r.dangNo)}${kd} · Đang nợ ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}` : `Đang nợ ${dongTien(r.dangNo)}${kd}` };
+  }
   const dong1 =
     r.hanMuc === null || r.gioTra === null
-      ? "Chưa cấp"
+      ? null // Việc 11: không hiện «Chưa cấp» cạnh số nợ (đối tác tưởng không có Trả sau); dòng hai đã nói đủ, kể cả phần Trả sau theo dịch vụ
       : `Bạn được trả sau, trả trong ${cauGio(r.gioTra)} kể từ khi đơn được xác nhận${r.gioAnHan ? `, sau đó còn ${cauGio(r.gioAnHan)} ân hạn` : ""}.`;
-  return { dong1, dong2: `Đang nợ ${dongTien(r.dangNo)}` };
+  return { dong1, dong2: cauDangNo(r, true) };
+}
+
+/**
+ * Số đang nợ Trả sau (ADR-0230 Đ1 mục 4): `dangNo` = nợ theo hạn mức, `dangNoDichVu` = nợ Trả sau theo dịch vụ (không trừ vào hạn mức). Văn phòng: hai số tách, có tên;
+ * đối tác (ADR-0198 Đ1): tổng kèm phần theo dịch vụ, không chữ «hạn mức». Không có nợ theo dịch vụ ⇒ câu cũ «Đang nợ …».
+ */
+export function cauDangNo(r: { dangNo: number; dangNoDichVu?: number }, laDoiTac: boolean): string {
+  const dv = r.dangNoDichVu ?? 0;
+  if (dv <= 0) return `Đang nợ ${dongTien(r.dangNo)}`;
+  return laDoiTac
+    ? `Đang nợ ${dongTien(r.dangNo + dv)}, trong đó đơn ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}`
+    : `Đang nợ theo hạn mức ${dongTien(r.dangNo)} · Đang nợ ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}`;
+}
+
+/**
+ * Ô «Đang nợ» của văn phòng (Hạn mức trả sau, Cấp độ đại lý — tiêu đề cột đã là «Đang nợ»): có nợ Trả sau theo dịch vụ ⇒ hai dòng đủ tên
+ * «Theo hạn mức: …» / «Trả sau theo dịch vụ: …»; không có ⇒ một dòng số tiền. Cùng chữ ở khổ 390 và 1280.
+ */
+export function dongDangNo(r: { dangNo: number; dangNoDichVu?: number }): string[] {
+  const dv = r.dangNoDichVu ?? 0;
+  return dv > 0 ? [`Theo hạn mức: ${dongTien(r.dangNo)}`, `${NHAN_CO_SO_TRA_SAU.SERVICE}: ${dongTien(dv)}`] : [dongTien(r.dangNo)];
 }
 
 /**
@@ -115,13 +158,62 @@ export function docHanMuc(raw: string): { ok: true; dong: number } | { ok: false
 }
 
 export const CAU_VE_TRA_TRUOC = "Bên đặt không còn hạn mức trả sau dùng được nên đơn này chuyển về Thanh toán ngay. Kiểm lại rồi lưu.";
+/** ADR-0224 Đ3 (chữ theo cột «Khuyến nghị»): nháp cũ «Thanh toán ngay» của đối tác mở lại lúc Trả sau dùng được ⇒ chuyển sang Trả sau, có báo. */
+export const CAU_CHUYEN_TRA_SAU = "Bạn đang được trả sau nên đơn này chuyển sang Trả sau. Kiểm lại rồi lưu.";
+/** ADR-0224 Đ2.1 (chữ theo cột «Khuyến nghị»): câu 409 khi đối tác dùng được Trả sau mà gửi «Thanh toán ngay» — không số tiền. */
+export const CAU_TRA_SAU_BAT_BUOC_DOI_TAC = "Bạn đang được trả sau nên đơn này lập theo Trả sau. Mở lại trang rồi lưu lại.";
+
+/** Trạng thái Trả sau của bên đặt cho MỘT đơn (ADR-0224): `vuot` = máy chủ vừa báo vượt mức; `chua_biet` = không đọc được hạn mức. */
+export type TrangThaiTraSau = "dung_duoc" | "qua_han" | "vuot" | "khong_co" | "chua_biet";
+
+/** Kết quả cổng hạn mức của billing (`kiemTraSau`) → trạng thái của luật `hinhThucDuocNhan`; `null` (không đọc được) ⇒ `chua_biet`. */
+export function trangThaiTuKetQua(kq: KetQuaKiemTraSau | null): TrangThaiTraSau {
+  if (kq === null) return "chua_biet";
+  if (kq.ok) return "dung_duoc";
+  return kq.ma === "co_don_qua_han" ? "qua_han" : kq.ma === "vuot_han_muc" ? "vuot" : "khong_co";
+}
+
+/**
+ * Kết quả đường hẹp `con-duoc-dung` → trạng thái của luật `hinhThucDuocNhan` ở màn Tạo đơn (ADR-0224 Đ3; ADR-0230 Đ1 mục 5). `vuot` = máy chủ vừa báo vượt mức cho đúng bên đặt này.
+ * Đủ «Trả sau theo dịch vụ» ⇒ dùng được (hoặc quá hạn) bất kể hạn mức — cùng thứ tự với cổng máy chủ (`quyetTraSau`).
+ */
+export function trangThaiTuConDuocDung(r: { coHanMuc: boolean; coDonQuaHan: boolean; traSauDichVu?: { gioTra: number } | null }, vuot: boolean): TrangThaiTraSau {
+  if (r.traSauDichVu) return r.coDonQuaHan ? "qua_han" : "dung_duoc";
+  return !r.coHanMuc ? "khong_co" : r.coDonQuaHan ? "qua_han" : vuot ? "vuot" : "dung_duoc";
+}
+/** Đường hỏi `con-duoc-dung` của màn Tạo đơn: bên đặt + mã các dòng dịch vụ đang soạn (`null` = dòng nhập tay ⇒ `nhapTay=1`). */
+export function duongConDuocDung(benDat: string, maDichVu: readonly (string | null)[]): string {
+  const ma = maDichVu.filter((m): m is string => m !== null && m !== "").map((m) => `&dv=${encodeURIComponent(m)}`).join("");
+  return `/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(benDat)}${ma}${maDichVu.some((m) => m === null) ? "&nhapTay=1" : ""}`;
+}
+
+/**
+ * ADR-0224 Đ2.4: MỘT luật cho cả cổng lưu đơn (máy chủ) và màn Tạo đơn — hình thức nào được nhận, và câu lý do khi đối tác phải dùng «Thanh toán ngay».
+ * Đối tác (`laDoiTacTraSau` của người GỬI): dùng được ⇒ chỉ Trả sau; quá hạn ⇒ chỉ Thanh toán ngay + lý do; vượt mức ⇒ cả hai + lý do (giảm đơn thì Trả sau lại được);
+ * không hạn mức ⇒ Thanh toán ngay; không đọc được ⇒ cả hai (máy chủ cho Thanh toán ngay — phía an toàn về tiền, Đ2.2).
+ * Văn phòng: như trước ADR-0224 — có hạn mức dùng được thì hai lựa chọn; câu khoá của văn phòng vẫn do `cauChonTraSau` dựng.
+ */
+export function hinhThucDuocNhan(i: { laDoiTac: boolean; traSau: TrangThaiTraSau }): { chonDuoc: readonly HinhThucThanhToan[]; lyDo: string | null } {
+  const HAI: readonly HinhThucThanhToan[] = ["PREPAID", "CREDIT"];
+  if (i.traSau === "khong_co" || i.traSau === "qua_han") return { chonDuoc: ["PREPAID"], lyDo: i.laDoiTac && i.traSau === "qua_han" ? CAU_KHOA_QUA_HAN : null };
+  if (!i.laDoiTac) return { chonDuoc: HAI, lyDo: null };
+  if (i.traSau === "dung_duoc") return { chonDuoc: ["CREDIT"], lyDo: null };
+  return { chonDuoc: HAI, lyDo: i.traSau === "vuot" ? CAU_VUOT_HAN_MUC_DOI_TAC : null };
+}
 
 /**
  * Sau khi biết hạn mức của bên đặt, đơn đang chọn hình thức nào: dùng được thì giữ nguyên; không dùng được (không hạn mức, hoặc còn đơn quá hạn)
  * thì về Trả trước KÈM câu báo nếu đang là Trả sau — không bao giờ đổi âm thầm, và luôn có một hình thức rõ ràng để gửi lên máy chủ.
+ * ADR-0224 Đ3: `chonDuoc` (từ `hinhThucDuocNhan`) — lựa chọn không còn được nhận thì chuyển sang lựa chọn được nhận, KÈM câu báo nếu người dùng đã chọn.
  */
-export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; benDatChuaNap?: boolean; chonSan?: boolean }): { chon: HinhThucThanhToan; bao: string | null } {
+export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; benDatChuaNap?: boolean; chonSan?: boolean; chonDuoc?: readonly HinhThucThanhToan[] }): { chon: HinhThucThanhToan; bao: string | null } {
   if (i.benDatChuaNap) return { chon: i.dangChon, bao: null }; // bên đặt chưa nạp xong (đang mở nháp): chưa đủ căn cứ để đổi lựa chọn của người dùng
+  const q = quyetTheoHanMuc(i);
+  if (!i.chonDuoc || i.chonDuoc.length === 0 || i.chonDuoc.includes(q.chon)) return q;
+  const chon = i.chonDuoc[0]!;
+  return { chon, bao: i.chonSan ? null : chon === "CREDIT" ? CAU_CHUYEN_TRA_SAU : CAU_VE_TRA_TRUOC };
+}
+function quyetTheoHanMuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; chonSan?: boolean }): { chon: HinhThucThanhToan; bao: string | null } {
   // ADR-0198 Đ2: đơn mới của đối tác, người dùng chưa chọn gì ⇒ dùng được thì «Trả sau», không thì «Thanh toán ngay» — KHÔNG câu báo (người dùng chưa chọn gì để mà đổi).
   if (i.chonSan) return { chon: i.c.hien && i.c.khoa === null ? "CREDIT" : "PREPAID", bao: null };
   if (i.dangChon === "PREPAID") return { chon: i.dangChon, bao: null };

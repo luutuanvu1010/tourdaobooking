@@ -14,9 +14,9 @@ type Nguon = "HANG_NGOAI" | "TOUR_DAO";
 
 async function loVaoKho(w: any, nguon: Nguon, soVe: number, lech: number) {
   const as = nguon === "TOUR_DAO" ? ACC : SALES;
-  const lo = await w.call("POST", "/api/ve/lo", { as, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo", nguon } });
+  const lo = await w.call("POST", "/api/ve/lo", { as, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo", nguon, ...(nguon === "TOUR_DAO" ? { soVeDuKien: soVe } : {}) } });
   assert.equal(lo.status, 201, lo.text);
-  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: PNG(i + 1 + lech), maVe: nguon === "TOUR_DAO" ? "TD1." + B32[i + lech]!.repeat(26) : `HN${i + 1 + lech}`, tuNgay: "2027-01-01", denNgay: "2027-12-31" }));
+  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: PNG(i + 1 + lech), maVe: nguon === "TOUR_DAO" ? "TD1." + B32[i + lech]!.repeat(26) : `HN${i + 1 + lech}`, tuNgay: "2027-01-01", denNgay: "2027-12-31", ...(nguon === "TOUR_DAO" ? { soSeri: lo.json.soSeri[i] } : {}) }));
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/ve`, { as, body: { ve } })).json.themDuoc, soVe);
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/xac-nhan`, { as, body: {} })).status, 200);
 }

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import {
-  BO_TINH, KHOA_PHI_DON, canhBaoCapCaoHon, capCuaHoSoNgay, chonMucPhiDon, chuKyDieuKien, kiemThanMucPhiDon, tinhPhiChang, vungThieuDongChung,
+  BO_TINH, KHOA_PHI_DON, canhBaoCapCaoHon, capCuaHoSoNgay, chonMucPhiDon, chuKyDieuKien, kiemThanMucPhiDon, tinhPhiChang, tinhPhiDonThuan, TRAN_MUC_PHI_DON, vungThieuDongChung,
   type ChangTinhPhi, type DieuKienPhiDon, type MucPhiDon,
 } from "./phi-don-rules.ts";
 
@@ -225,4 +225,52 @@ test("vungThieuDongChung", () => {
   assert.deepEqual(vungThieuDongChung({ vung, muc: bang, ngay: "2026-11-30" }), vung, "chưa có dòng nào còn hiệu lực");
   // dòng có thêm điều kiện (cấp, nhóm, chiều) hoặc theo chuyến không phải dòng chung
   assert.deepEqual(vungThieuDongChung({ vung: ["CR"], muc: [m("A", { ZONE: "CR", TIER: "C1" }, 0), m("B", { ZONE: "CR", EXCLUSIVE: "1" }, 0)], ngay: NGAY }), ["CR"]);
+});
+
+// ---- Đợt C, Task 2: phí của MỘT đơn ----
+const cd = (o: Partial<import("./phi-don-rules.ts").ChangDauVao> = {}) => ({ legKey: "L1", zoneCode: "CR", direction: "OUT" as const, exclusive: false, catalogCode: null, soKhachTinhTien: 2, paxOverride: null, ...o });
+const bangDon = (muc: MucPhiDon[], o: { batDauAp?: string | null; cap?: import("./phi-don-rules.ts").CapCuaHoSo } = {}) => ({ batDauAp: o.batDauAp === undefined ? "2026-12-01" : o.batDauAp, muc, cap: o.cap ?? { loai: "KHONG_CAP" as const } });
+const KHONG_NHOM = new Map<string, string | null>();
+
+test("tinhPhiDonThuan: chưa bật hoặc ngày trước ngày áp ⇒ không áp dụng", () => {
+  const muc = [m("A", { ZONE: "CR" }, 30000)];
+  assert.deepEqual(tinhPhiDonThuan({ bang: bangDon(muc, { batDauAp: null }), nhom: KHONG_NHOM, ngay: NGAY, chang: [cd()] }), { apDung: false });
+  assert.deepEqual(tinhPhiDonThuan({ bang: bangDon(muc), nhom: KHONG_NHOM, ngay: "2026-11-30", chang: [cd()] }), { apDung: false });
+  assert.equal(tinhPhiDonThuan({ bang: bangDon(muc), nhom: KHONG_NHOM, ngay: "2026-12-01", chang: [cd()] }).apDung, true);
+});
+
+test("tinhPhiDonThuan: dòng đủ trường, cấp được chụp, nhóm tra từ bản đồ, thiếu mức không thành 0, số lượng 0 không sinh dòng", () => {
+  const muc = [m("A", { ZONE: "CR" }, 30000), m("N", { ZONE: "CR", SERVICE_GROUP: "G1" }, 20000), m("C", { ZONE: "CR", TIER: "C1" }, 0)];
+  const r = tinhPhiDonThuan({
+    bang: bangDon(muc, { cap: { loai: "CO_CAP", tierCode: "C1" } }), nhom: new Map([["S1", "G1"]]), ngay: NGAY,
+    chang: [cd({ legKey: "a", catalogCode: "S1" }), cd({ legKey: "b", zoneCode: "TT" }), cd({ legKey: "c", soKhachTinhTien: 0 })],
+  });
+  assert.ok(r.apDung);
+  if (!r.apDung) return;
+  assert.deepEqual(r.dong, [{ legKey: "a", ruleId: "C", kind: "PER_PAX", zoneCode: "CR", tierCode: "C1", donGia: 0, soLuong: 2, tien: 0, returnPax: null }], "chặng c (0 khách) không sinh dòng");
+  assert.deepEqual(r.thieu, [{ legKey: "b", zoneCode: "TT", lyDo: "KHONG_CO_MUC" }], "vùng không có mức ⇒ thiếu, không phải 0");
+  // nhóm: không cấp ⇒ dòng nhóm thắng dòng chung
+  const k = tinhPhiDonThuan({ bang: bangDon(muc), nhom: new Map([["S1", "G1"]]), ngay: NGAY, chang: [cd({ catalogCode: "S1" })] });
+  assert.ok(k.apDung && k.dong[0]!.ruleId === "N" && k.dong[0]!.tierCode === null);
+});
+
+test("tinhPhiDonThuan: hai cấp ⇒ mọi chặng thiếu DAI_LY_HAI_CAP (không lùi về mức chung); xung đột ⇒ XUNG_DOT; chiều về có số người riêng ⇒ returnPax", () => {
+  const chung = m("A", { ZONE: "CR" }, 30000);
+  const h = tinhPhiDonThuan({ bang: bangDon([chung], { cap: { loai: "HAI_CAP" } }), nhom: KHONG_NHOM, ngay: NGAY, chang: [cd({ legKey: "a" }), cd({ legKey: "b", soKhachTinhTien: 0 })] });
+  assert.ok(h.apDung && h.dong.length === 0);
+  if (h.apDung) assert.deepEqual(h.thieu.map((t) => [t.legKey, t.lyDo]), [["a", "DAI_LY_HAI_CAP"], ["b", "DAI_LY_HAI_CAP"]]);
+  const x = tinhPhiDonThuan({ bang: bangDon([m("A", { ZONE: "CR", DIRECTION: "OUT" }, 1), m("B", { ZONE: "CR", DIRECTION: "OUT" }, 2)]), nhom: KHONG_NHOM, ngay: NGAY, chang: [cd()] });
+  assert.ok(x.apDung && x.thieu[0]!.lyDo === "XUNG_DOT");
+  const ve = tinhPhiDonThuan({ bang: bangDon([chung]), nhom: KHONG_NHOM, ngay: NGAY, chang: [cd({ direction: "RETURN", soKhachTinhTien: 5, paxOverride: 3 })] });
+  assert.ok(ve.apDung && ve.dong[0]!.soLuong === 3 && ve.dong[0]!.returnPax === 3 && ve.dong[0]!.tien === 90000);
+});
+
+test("điểm 4: tích đơn giá × số lượng không an toàn ⇒ ném lỗi, không cắt; mức vượt trần 5.000.000 đ bị từ chối ở kiemThanMucPhiDon", () => {
+  assert.throws(() => tinhPhiDonThuan({ bang: bangDon([m("A", { ZONE: "CR" }, TRAN_MUC_PHI_DON)]), nhom: KHONG_NHOM, ngay: NGAY, chang: [cd({ soKhachTinhTien: Number.MAX_SAFE_INTEGER })] }), RangeError);
+  const biet = { vung: new Set(["CR"]), cap: new Set<string>(), nhom: new Set<string>(), dichVu: new Set<string>() };
+  const than = (amount: number) => ({ kind: "PER_PAX", amount, validFrom: "2026-12-01", dieuKien: { ZONE: "CR" } });
+  assert.equal(TRAN_MUC_PHI_DON, 5_000_000);
+  assert.equal(kiemThanMucPhiDon(than(5_000_000), biet).ok, true);
+  const qua = kiemThanMucPhiDon(than(5_000_001), biet);
+  assert.ok(!qua.ok && qua.message.includes("5.000.000"));
 });

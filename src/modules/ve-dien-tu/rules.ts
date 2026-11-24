@@ -43,3 +43,36 @@ export function choDoiTacNop(t: { daThu: number; phaiThu: number; choNop?: numbe
   const cho = (t?.choNop ?? 0) + (t?.choXacNhan ?? 0);
   return t !== null && !thuDu(t) && cho > 0 && t.phaiThu > 0 && t.daThu + cho >= t.phaiThu;
 }
+
+// ---- ADR-0217 Đ3: huỷ vé lẻ và tình trạng vé. Thuần, không I/O. ----
+export type TinhTrangVe = "TRONG_KHO" | "DA_GIU" | "DA_GUI" | "DA_DUNG" | "DA_HUY";
+/** Nhãn người dùng thấy (ADR-0217 Phần B dùng lại). */
+export const NHAN_TINH_TRANG_VE: Readonly<Record<TinhTrangVe, string>> = { TRONG_KHO: "Trong kho", DA_GIU: "Đã giữ cho đơn", DA_GUI: "Đã gửi khách", DA_DUNG: "Đã dùng", DA_HUY: "Đã huỷ" };
+export interface DuLieuHuyVe {
+  nguon: "HANG_NGOAI" | "TOUR_DAO";
+  /** `vdt_ticket.status`. */
+  trangThai: string;
+  /** Vé đang có phân bổ mở (giữ cho một dòng dịch vụ của đơn). */
+  coPhanBoMo: boolean;
+  /** Phân bổ mở đã có dấu lộ (đã xem ảnh, đã giao, hoặc có đường dẫn khách). */
+  daLo: boolean;
+  /** Có lượt quét DA_TINH chưa bỏ. */
+  daDung: boolean;
+}
+export function tinhTrangVe(v: DuLieuHuyVe): TinhTrangVe {
+  if (v.trangThai === "VOID") return "DA_HUY";
+  if (v.daDung) return "DA_DUNG";
+  if (v.coPhanBoMo && v.daLo) return "DA_GUI";
+  if (v.coPhanBoMo) return "DA_GIU";
+  return "TRONG_KHO";
+}
+export type MaTuChoiHuyVe = "ve_da_huy" | "ve_da_dung" | "ve_hang_ngoai_da_mo";
+export type QuyetHuyVe = { loai: "HUY"; traSuat: boolean; daLo: boolean } | { loai: "TU_CHOI"; ma: MaTuChoiHuyVe };
+/** Bảng ADR-0217 Đ3 mục 2. `traSuat` = phải trả suất (phân bổ mở) rồi mới huỷ; `daLo` = khách có thể đang cầm vé ⇒ văn phòng phải gửi lại vé thay. */
+export function quyetHuyVe(v: DuLieuHuyVe): QuyetHuyVe {
+  if (v.trangThai === "VOID") return { loai: "TU_CHOI", ma: "ve_da_huy" };
+  if (v.daDung) return { loai: "TU_CHOI", ma: "ve_da_dung" };
+  const daLo = v.coPhanBoMo && v.daLo;
+  if (daLo && v.nguon === "HANG_NGOAI") return { loai: "TU_CHOI", ma: "ve_hang_ngoai_da_mo" };
+  return { loai: "HUY", traSuat: v.coPhanBoMo, daLo };
+}

@@ -208,3 +208,15 @@ test("summarizeServices(applyAdjustedPax(...)): số khách TÓM TẮT của đ�
   assert.deepEqual(out.get("o-adjusted")!.pax, { adult: 5, child: 0, senior: 0, infant: 0 }, "đơn có điều chỉnh → số khách tóm tắt là số MỚI");
   assert.deepEqual(out.get("o-plain")!.pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "đơn không có điều chỉnh → số khách tóm tắt là số GỐC");
 });
+
+test("buildSubtotalServices (Ruling R3, phí đưa đón 0169): dòng `line_kind = 'TRANSFER_FEE'` KHÔNG vào dòng của dịch vụ nào — kể cả khi (giả định) mang service_id", () => {
+  const serviceRows = [{ order_id: "o1", id: "sv1", catalog_code: "TOUR-1", name: "Tour", unit: "perPax" }];
+  const itemRows = [
+    { order_id: "o1", line_kind: "SERVICE" as const, service_id: "sv1", pax_code: "adult" as const, catalog_price: 300000, unit_price: 300000, line_total: 600000 },
+    { order_id: "o1", line_kind: "TRANSFER_FEE" as const, service_id: "sv1", pax_code: null, catalog_price: null, unit_price: 100000, line_total: 300000 },
+    { order_id: "o1", line_kind: "TRANSFER_FEE" as const, service_id: null, pax_code: null, catalog_price: null, unit_price: 20000, line_total: 40000 },
+  ];
+  assert.deepEqual(buildSubtotalServices(serviceRows, itemRows).get("o1"), [
+    { id: "sv1", catalogCode: "TOUR-1", name: "Tour", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 300000, unitPrice: 300000, lineTotal: 600000 }] },
+  ]);
+});

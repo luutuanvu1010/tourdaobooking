@@ -116,11 +116,11 @@ test("orders: hình thức khoá khi đã rời nháp; sau «Đã giao» cả ha
   run(db, "UPDATE orders SET completed_at = ?, completed_by = 's1' WHERE id = 'o2'", AT);
 });
 
-test("v_ord_don_tra_sau: chỉ đơn CREDIT, đúng tám cột (0143 thêm hai mốc giờ)", () => {
+test("v_ord_don_tra_sau: chỉ đơn CREDIT, đúng chín cột (0143 thêm hai mốc giờ; 0187 thêm credit_basis — ADR-0230)", () => {
   const db = fresh();
   donMau(db, "o1");
   donMau(db, "o2");
   run(db, "UPDATE orders SET payment_term = 'CREDIT' WHERE id = 'o2'");
-  assert.deepEqual(db.prepare("PRAGMA table_info(v_ord_don_tra_sau)").all().map((c) => c.name), ["id", "order_code", "booker_party_id", "status", "delivered_at", "credit_due_date", "credit_due_at", "credit_grace_until"]);
+  assert.deepEqual(db.prepare("PRAGMA table_info(v_ord_don_tra_sau)").all().map((c) => c.name), ["id", "order_code", "booker_party_id", "status", "delivered_at", "credit_due_date", "credit_due_at", "credit_grace_until", "credit_basis"]);
   assert.deepEqual(db.prepare("SELECT id FROM v_ord_don_tra_sau").all().map((r) => r.id), ["o2"]);
 });

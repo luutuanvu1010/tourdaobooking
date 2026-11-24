@@ -37,6 +37,7 @@ interface TaiKhoan { id: string; ten: string; permissions: PermissionCode[] }
 
 const DT_B = "88888888-8888-4888-8888-88888888888b"; // đại lý B — chủ của mọi số lạ (không quét: số của chính B)
 const PTY_B = `pty-${DT_B}`;
+const TO_CHUC_THU = "pty-abcdef01-2345-4678-8abc-def012345678"; // ADR-0213 (lượt B1): tổ chức đối tác thử, Đối tác thuần A là người quản lý
 const AT = "2026-09-01T00:00:00.000Z";
 /** Hai dịch vụ của mọi đơn mang số của B: SLX (mức riêng đ/khách của B + nhà cung cấp mua lại), SLY (mức riêng % của B; đơn đã xác nhận: Kế toán ghi tay %). */
 const DV: [string, number][] = [["SLX", 1_000_000], ["SLY", 2_000_000]];
@@ -102,7 +103,13 @@ const ROUTE_GET: string[] = [...new Set(readdirSync(MODULES).flatMap((m) => {
  * Không bao giờ dùng danh sách này để che một chỗ lộ số: chỗ lộ đi danh sách (b).
  */
 const MIEN_200: Record<string, string> = {
+  "/api/anh-ban-giao/don/:orderId/tom-tat": "ADR-0232: tóm tắt Ảnh bàn giao — chỉ số ảnh và cờ «được gửi», không tiền; Đối tác 403 (không thấy cả số lượng); bài không gieo ảnh nên không cần 200.",
+  "/api/anh-ban-giao/don/:orderId": "ADR-0232: danh sách Ảnh bàn giao — ảnh nhỏ base64, loại việc, ghi chú, người tải, giờ; không tiền; Đối tác 403; bài không gieo ảnh / kho nên không cần 200.",
+  "/api/anh-ban-giao/anh/:anhId": "ADR-0232 Đ6: thân là byte ảnh JPEG (không phải JSON, không chở tiền); mã ảnh lạ ⇒ 404 / 403; bài không gieo ảnh.",
   "/api/ve/don/:orderId": "ADR-0153 (kho vé điện tử): danh sách vé của MỘT đơn có vé giữ — bài này không nhập kho vé nên mã đơn lạ ⇒ 404; DTO chỉ SỐ LƯỢNG theo nhóm khách + cờ thu đủ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
+  "/api/ve/lo/:id/xem-truoc-huy": "ADR-0217 Đ3 mục 5: bản xem trước huỷ lô — chỉ số đếm vé (huỷ được, giữ nguyên, đơn cấp thay, vé đã gửi), không tiền, không mã; bài này không nhập kho vé nên mã lô lạ ⇒ 404 / 403; bangDien gọi bằng mã lạ nên thân vẫn được quét",
+  "/api/ve/lo/:id/ve-trong-lo": "ADR-0217 A6: danh sách vé của lô — số sê-ri, hạn, tình trạng, mã đơn khi có order.view; không tiền, không mã vé; bài này không nhập kho vé nên mã lô lạ ⇒ 404 / 403; bangDien gọi bằng mã lạ nên thân vẫn được quét",
+  "/api/ve/tim": "ADR-0217 A6: tìm vé theo số sê-ri (tham số truy vấn bắt buộc) — gọi không tham số ⇒ 400 / 403; DTO như danh sách vé của lô (không tiền, không mã vé); bài này không nhập kho vé nên không có số sê-ri thật để tìm",
   "/api/ve/lo-da-huy/:veId/anh": "Chủ quyết 2/11/2026: thân là byte ảnh vé của lô đã huỷ (không phải JSON, không chở tiền) — cần vé đã mở; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
   "/api/orders/:id/payments/:receiptId/bien-lai": "ADR-0196 Đ6: thân là byte ảnh biên lai (không phải JSON, không chở tiền) — cần khoản thu có ảnh đã lưu; bài này không gửi ảnh nên mã khoản lạ ⇒ 404 / 403 (ô payment.proof.view), không bao giờ 200",
   "/api/orders/:id/khoan-nop/:nopId/bien-lai": "ADR-0182 phần B: thân là byte ảnh biên lai khoản nộp (không phải JSON, không chở tiền) — cần khoản nộp có ảnh đã lưu; bài này không ghi khoản nộp nên mã lạ ⇒ 404 / 403 (ô dai-ly.nop.xem), không bao giờ 200",
@@ -118,6 +125,10 @@ const MIEN_200: Record<string, string> = {
   "/api/parties/:id/documents/:did/tep/:tid": "ADR-0123: thân là byte ảnh / PDF giấy tờ (không phải JSON, không chở tiền) — chỉ Toàn quyền, cần tệp đã tải lên; bài này không gieo ảnh; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
   "/api/feedback/:id/tep/:tid": "ADR-0144: thân là byte ảnh / PDF kèm tin vé (không phải JSON, không chở tiền) — cần tệp đã tải lên; bài này không gieo tệp; bangDien gọi vé thật với mã tệp lạ nên thân 404 vẫn được quét",
   "/api/parties/xac-minh/:pid": "ADR-0125 (lát H-4): chi tiết MỘT phiếu tự khai đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ ngày sinh / địa chỉ / số che / cờ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
+  "/api/dang-ky/phieu": "ADR-0206 Đ6 (đợt 1 Task 4): phiếu CỦA CHÍNH người đăng ký — cổng là cookie đăng ký (không phải tài khoản) nên không tài khoản nào của bài nhận 200 (401); DTO chỉ mã phiếu, trạng thái, nhãn, loại, tệp theo ô, bản khai trước với số che — không chở tiền; bangDien gọi không cookie nên thân 401 vẫn được quét",
+  "/api/dang-ky/phieu/:id": "ADR-0207 Đ9: chi tiết MỘT phiếu đăng ký đang chờ xác minh — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ họ tên, số che, mã mục, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
+  "/api/dang-ky/phieu/:id/xem-duyet": "ADR-0207 Đ4 (đợt 1 Task 8): màn duyệt của Nhân sự cho MỘT phiếu đang chờ duyệt — cần phiếu gieo sẵn và đã xác minh (bài này không gieo); DTO chỉ họ tên, số điện thoại, mã mục, kiểu kết luận Danh bạ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
+  "/api/dang-ky/phieu/:id/tep/:tid": "ADR-0207 Đ9 + ADR-0208 Đ3: thân là byte ảnh / PDF giấy tờ của phiếu đăng ký (không phải JSON, không chở tiền) — cần tệp chờ đã lưu, quyền xác minh và nhật ký ghi trước; bài này không gieo tệp; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
   "/api/parties/phieu-xoa/:pid": "ADR-0126 (lát H-5 việc 5): xem trước MỘT phiếu yêu cầu xoá đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ tên hồ sơ, hạn và SỐ ĐẾM, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
   "/api/pricing/muc-rieng/:id/sua": "ADR-0148 Đ1: xem trước «Sửa» MỘT gắn mức riêng của hồ sơ — bài này không gieo gắn riêng (gieo sẽ đổi bậc mức của B); DTO chỉ hôm nay / đường / hai ngày, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
 };
@@ -177,6 +188,9 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/ve/don/:orderId": [`/api/ve/don/${uuid()}`],
     "/api/ve/anh/:allocationId": [`/api/ve/anh/${"0".repeat(32)}`],
     "/api/ve/lo-da-huy/:veId/anh": [`/api/ve/lo-da-huy/${uuid()}/anh`],
+    // ADR-0217: bản xem trước huỷ lô và danh sách vé của lô — chỉ số đếm, số sê-ri, hạn, tình trạng, mã đơn khi có order.view; không tiền. Mã lô lạ ⇒ 404 — vẫn GỌI để thân được quét.
+    "/api/ve/lo/:id/xem-truoc-huy": [`/api/ve/lo/${uuid()}/xem-truoc-huy`],
+    "/api/ve/lo/:id/ve-trong-lo": [`/api/ve/lo/${uuid()}/ve-trong-lo`],
     "/ve/:token": [`/ve/${"A".repeat(43)}`],
     "/api/ve-khach/:token/anh/:slot": [`/api/ve-khach/${"A".repeat(43)}/anh/1`],
     "/api/catalog/:code/group-history": ["/api/catalog/SLX/group-history"],
@@ -190,6 +204,12 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // ADR-0126 (lát H-5 việc 5): như trên — bài không gieo phiếu xoá ⇒ mã phiếu lạ (Quản trị / Toàn quyền 404, người khác 403) — vẫn GỌI để thân được quét.
     "/api/parties/phieu-xoa/:pid": [`/api/parties/phieu-xoa/${uuid()}`],
     "/api/parties/:id/tai-khoan-nhan-tien": [`/api/parties/${PTY_B}/tai-khoan-nhan-tien`, `/api/parties/${g.congTy}/tai-khoan-nhan-tien`],
+    // ADR-0213 Đ6 (mốc B1 Task 10): màn tổ chức — hồ sơ B là cá nhân (404 cho văn phòng có ô), hồ sơ tổ chức công ty chủ trả 200 cho Quản trị / Toàn quyền; DTO chỉ mã, tên, ngày, không chở tiền.
+    // ADR-0213 Đ5 (lượt B1): hai route của người quản lý — Đối tác thuần A là người quản lý của tổ chức thử (gieo ở gieo()), nên 200 cho A và 403 cho mọi tài khoản khác; thân được quét cho cả hai.
+    "/api/to-chuc/:id": [`/api/to-chuc/${TO_CHUC_THU}`],
+    "/api/to-chuc/:id/nhap-thanh-vien": [`/api/to-chuc/${TO_CHUC_THU}/nhap-thanh-vien`], // ADR-0213 Đ8 (Task 18 phần 1a): Đối tác A (người quản lý) ⇒ 200; DTO chỉ mã đơn, tên người lập, ngày đi, cờ — không tiền
+    "/api/pricing/cap-cua-to-chuc/:id": [`/api/pricing/cap-cua-to-chuc/${TO_CHUC_THU}`],
+    "/api/parties/:id/to-chuc": [`/api/parties/${PTY_B}/to-chuc`, `/api/parties/${g.congTy}/to-chuc`],
     "/api/van-chuyen/xe/:id": [`/api/van-chuyen/xe/${g.xe}`],
     "/api/van-chuyen/xe/:id/ban": [`/api/van-chuyen/xe/${g.xe}/ban`],
     "/api/van-chuyen/mau-chang/:code": ["/api/van-chuyen/mau-chang/SLX"],
@@ -205,6 +225,7 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // chuỗi truy vấn. Nhật ký toàn hệ thống: trang đầu (100 dòng) + lọc đúng các hành động chở mức — thế giới lớn dần thì dòng cũ không rơi khỏi phép quét.
     "/api/audit": ["/api/audit?limit=100", "/api/audit?action=prc_commission_rule_added", "/api/audit?action=prc_supply_term_added", "/api/audit?action=order_terms_manual", "/api/audit?q=SL"],
     "/api/pricing/thu-tra": [`/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLX&ngay=${NGAY}`, `/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLY&ngay=${NGAY}`],
+    "/api/pricing/cap-mac-dinh/se-ap": [`/api/pricing/cap-mac-dinh/se-ap?loai=TRAVEL_AGENCY&hoSo=${PTY_B}`], // ADR-0209 Đ4 (Task 12): «cấp sẽ áp» — tên cấp hoặc câu lý do, không tiền; văn phòng xem được hoa hồng 200, Đối tác / tài khoản lai 403
     "/api/pricing/ho-so/:id/hoa-hong": [`/api/pricing/ho-so/${PTY_B}/hoa-hong`], // YC-0020: chỉ mã, tên mức, số đếm — văn phòng 200, Đối tác / tài khoản lai 403
     "/api/pricing/nguoi-huong": ["/api/pricing/nguoi-huong?q=Đại"],
     // ADR-0148 Đ1: xem trước «Sửa» (chỉ hôm nay / đường / hai ngày) — dòng mức riêng 37,29% của B và gắn loại Đại lý lữ hành → mức TA lạ; văn phòng 200, Đối tác / lai 403.
@@ -268,6 +289,10 @@ async function gieo(w: W): Promise<Gieo> {
   THUAN.forEach((t, i) => { if (!KHUNG[t.permissions[0]!]) seedStaff(w.sqlite, { id: t.id, phone: `0911000${String(i).padStart(3, "0")}`, name: `Thuần ${t.permissions[0]}`, perms: t.permissions }); });
   LAI.forEach((t, i) => seedStaff(w.sqlite, { id: t.id, phone: `0912000${String(i).padStart(3, "0")}`, name: `Lai ${t.permissions[0]}`, perms: t.permissions }));
   seedStaff(w.sqlite, { id: DT_B, phone: "0913000001", name: "Đại Lý Bê", perms: ["PARTNER"] });
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Tổ chức thử', 1, ?, ?)").run(TO_CHUC_THU, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_organization (party_id, legal_name, created_at, updated_at) VALUES (?, 'Tổ chức thử', ?, ?)").run(TO_CHUC_THU, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-sl-tc', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(TO_CHUC_THU, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES ('rel-sl-ql', ?, ?, 'MANAGER_OF', '2026-01-02', ?, ?)").run(`pty-${PARTNER}`, TO_CHUC_THU, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'Nhà cung cấp Lạ', 1, ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_organization (party_id, legal_name, created_at, updated_at) VALUES ('pty-ncc', 'Nhà cung cấp Lạ', ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-sl-ncc', 'pty-ncc', 'SUPPLIER', '2026-01-01', ?, ?)").run(AT, AT);

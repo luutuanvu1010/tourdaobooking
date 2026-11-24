@@ -13,7 +13,7 @@ export const HD_NHAN_SU: NhomHuongDan = {
   muc: [
     {
       tieuDe: "Menu của bạn",
-      noiDung: `- Máy tính: nhóm **THIẾT LẬP** có [[Quản lý tài khoản]] (nhóm này tự mở sẵn vì bạn chỉ có một nhóm).
+      noiDung: `- Máy tính: nhóm **THIẾT LẬP** có [[Quản lý tài khoản]] và [[Phiếu đăng ký đối tác]] (nhóm này tự mở sẵn vì bạn chỉ có một nhóm). Ở trang phiếu, bạn duyệt mở tài khoản cho đối tác đã được người khác xác minh.
 - Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Nhật ký thay đổi]].
 - Điện thoại: Thanh tab dưới đáy: [[Tài khoản]], [[Hỗ trợ]], [[Tôi]].
 - Mở Nền tảng là vào thẳng trang Quản lý tài khoản.`,

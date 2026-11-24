@@ -236,7 +236,7 @@ export type ThanDieuKhoanGui = PhamViNgayBody & { nguoiBanPartyId: string; tyLeM
 /** Thân `POST /api/pricing/cung-ung` từ các ô của form «Thêm điều khoản». */
 export function docThanDieuKhoan(f: FormDieuKhoan): KetDocForm<ThanDieuKhoanGui> {
   const loi: LoiO[] = [];
-  if (f.nguoiBanPartyId.trim() === "") loi.push({ truong: "nguoiBan", message: "Chọn người bán." });
+  if (f.nguoiBanPartyId.trim() === "") loi.push({ truong: "nguoiBan", message: "Chọn nhà cung cấp." });
   const pv = docPhamViNgay(f, loi);
   let tyLeMuaBp: number | undefined;
   if (!f.laCongTy && f.nguoiBanPartyId.trim() !== "") {

@@ -10,8 +10,14 @@ import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { KHUNG_MAC_DINH, type KhungGio } from "../src/shared/khung-gio-don";
 import { GHI_CHU_HUY_TOI_DA, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { can } from "../src/shared/permissions";
-import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_TIEN_KHOA_KHI_CHO, HOI_CON_VE, NHAN_KET_QUA, NHAN_NUT_XAC_NHAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, type DongGioConVe, type LuotGioConVe } from "../src/shared/xac-nhan-hien-thi";
+import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_THIEU_NOI_DON_LUOT, CAU_TIEN_KHOA_KHI_CHO, HOI_CON_VE, NHAN_KET_QUA, NHAN_NUT_XAC_NHAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, nhanNoiDonLuot, thieuNoiDonConVe, type DongGioConVe, type LuotGioConVe } from "../src/shared/xac-nhan-hien-thi";
 import { taoKhungDatGap } from "./dat-gap-ui";
+import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
+import { TEN_PHI_DUA_DON, cauThieuPhiDon } from "../src/shared/phi-don-hien-thi";
+import { NHAN_NUT_BO_DOI_PHI, NHAN_NUT_DOI_PHI, NHAN_O_LY_DO_DOI_PHI, chuSoMay, doiPhiTuO, nhanODonGia, type DoiPhiO } from "../src/shared/phi-don-doi-phi-o";
+import { CAU_VAN_PHONG_DOI_PHI_DON, type DoiPhi } from "../src/shared/phi-don-gia-goc";
+import { formGonDoiTac } from "../src/shared/form-dat-ve";
+import { taoONoiGoiY } from "./o-noi-goi-y";
 
 /** Những gì trang đơn cung cấp: tải lại đơn, báo thành công / lỗi. */
 export interface BoiCanhXacNhan {
@@ -27,8 +33,9 @@ export interface BoiCanhXacNhan {
   mocPhut: number | null;
 }
 
-function nutHanhDong(nhan: string, cls: string, action: string, chay: (nut: HTMLButtonElement) => Promise<void>): HTMLButtonElement {
-  const nut = h("button", { type: "button", class: cls, "data-action": action }, nhan);
+/** `kieu`: «nut san-ho» = nút chốt của thanh việc (màu san hô); «nut phu» = việc phụ. Viết thành chuỗi lớp ở chỗ gọi để máy so chữ nút (ADR-0167) đọc được mức của nút. */
+function nutHanhDong(nhan: string, kieu: "nut san-ho" | "nut phu", action: string, chay: (nut: HTMLButtonElement) => Promise<void>): HTMLButtonElement {
+  const nut = h("button", { type: "button", class: "nut", "data-tong": kieu === "nut san-ho" ? "san-ho" : undefined, "data-cap": kieu === "nut phu" ? "phu" : undefined, "data-action": action }, nhan);
   nut.addEventListener("click", async () => {
     nut.disabled = true;
     try {
@@ -42,7 +49,7 @@ function nutHanhDong(nhan: string, cls: string, action: string, chay: (nut: HTML
 
 /** «Gửi xác nhận» (người lập KHÔNG giữ quyền Đối tác; đơn thuộc diện cần xác nhận). */
 export function nutGuiXacNhan(c: BoiCanhXacNhan, chan: string | null): HTMLButtonElement {
-  const nut = nutHanhDong(NHAN_NUT_XAC_NHAN.send, "btn btn-accent", "gui-xac-nhan", async () => {
+  const nut = nutHanhDong(NHAN_NUT_XAC_NHAN.send, "nut san-ho", "gui-xac-nhan", async () => {
     c.xoaBao();
     try {
       await api<Api.GuiXacNhanResponse>(`/api/orders/${encodeURIComponent(c.orderId)}/gui-xac-nhan`, { method: "POST", body: {} });
@@ -57,7 +64,7 @@ export function nutGuiXacNhan(c: BoiCanhXacNhan, chan: string | null): HTMLButto
 
 /** «Rút lại» (người lập, đơn đang chờ). */
 export function nutRutLai(c: BoiCanhXacNhan): HTMLButtonElement {
-  return nutHanhDong(NHAN_NUT_XAC_NHAN.withdraw, "btn", "rut-xac-nhan", async () => {
+  return nutHanhDong(NHAN_NUT_XAC_NHAN.withdraw, "nut phu", "rut-xac-nhan", async () => {
     if (!(await hoiXacNhan({ tieuDe: "Rút lại", hauQua: "Rút lại yêu cầu xác nhận? Đơn trở về nháp để bạn sửa tiếp.", nhanNguyHiem: "Rút lại" }))) return;
     c.xoaBao();
     try {
@@ -71,7 +78,7 @@ export function nutRutLai(c: BoiCanhXacNhan): HTMLButtonElement {
 
 /** «Gửi đơn» (người lập giữ quyền Đối tác, đơn nháp đã lưu). Câu báo lấy từ máy chủ (`CAU_BAO_GUI_DON`). */
 export function nutGuiDon(c: BoiCanhXacNhan, chan: string | null): HTMLButtonElement {
-  const nut = nutHanhDong(NHAN_NUT_XAC_NHAN.submit, "btn btn-accent", "gui-don", async () => {
+  const nut = nutHanhDong(NHAN_NUT_XAC_NHAN.submit, "nut san-ho", "gui-don", async () => {
     c.xoaBao();
     try {
       const r = await api<Api.GuiDonResponse>(`/api/orders/${encodeURIComponent(c.orderId)}/gui-don`, { method: "POST", body: {} });
@@ -110,7 +117,24 @@ async function layKhung(): Promise<readonly KhungGio[]> {
   return khungCache;
 }
 
+let diemCache: readonly { id: string; nhan: string }[] | null = null;
+/**
+ * ADR-0221 Đ3: điểm danh mục đang dùng cho ô «Nơi đón» của bảng Còn vé (route mọi nhân viên đọc được; nhãn «tên · loại» như form lập đơn). Lỗi mạng → danh sách rỗng: người xét vẫn gõ tự do được,
+ * máy chủ kiểm lại điểm còn dùng khi ghi.
+ */
+async function layDiem(): Promise<readonly { id: string; nhan: string }[]> {
+  if (diemCache) return diemCache;
+  try {
+    const r = await api<Api.LocationListResponse>("/api/locations");
+    diemCache = r.locations.filter((l) => l.active).map((l) => ({ id: l.id, nhan: `${l.name} · ${l.locationTypeName.toLowerCase()}` }));
+  } catch {
+    return [];
+  }
+  return diemCache;
+}
+
 const KHAC = "khac";
+const CHI_DIA_CHI = "Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách";
 
 type DichVuDon = Order["services"][number];
 
@@ -129,6 +153,13 @@ interface OLuot {
   capMoc(ngayDon: string): void;
   /** Phần tử `gioDon` của lượt này, hoặc null nếu không cần gửi (giờ không đổi và không giấy đặt gấp). */
   phanTuGioDon(): NonNullable<Api.QuyetDinhXacNhanInput["gioDon"]>[number] | null;
+  /** ADR-0221 Đ3 — lượt đang mang chữ tạm ở nơi đón (`canNoiDon`): ô «Nơi đón» bắt buộc. null = lượt không cần ô. */
+  noiDon: {
+    /** Nơi người xét đã ghi: điểm danh mục HOẶC chữ gõ tự do (đúng một trong hai, như máy chủ đòi); null = chưa ghi. */
+    giaTri(): { pickupLocationId: string } | { pickupPlace: string } | null;
+    o: HTMLElement;
+    datLoi(cau: string | null): void;
+  } | null;
 }
 
 const nhanKhungGio = (k: KhungGio): string => `${k.tu}–${k.den}`;
@@ -207,14 +238,45 @@ function taoOLuot(lx: LuotGioConVe, s: DichVuDon, capMocTatCa: () => void, mocPh
       if (!gioKhac.hidden) gioKhac.focus();
     }
     loi.hidden = true;
+    sel.setAttribute("aria-invalid", "false"); // chọn giờ xong thì viền đỏ tắt cùng câu lỗi (trợ lý đánh giá giao diện 21/11)
     capMocTatCa();
   });
   gioKhac?.addEventListener("input", () => {
     loi.hidden = true;
     capMocTatCa();
   });
+  // ADR-0221 Đ3: lượt đối tác gửi không có nơi đón ⇒ ô «Nơi đón» bắt buộc, cùng thành phần chọn nơi với form lập đơn (điểm danh mục hoặc gõ tự do); đứng TRƯỚC ô giờ (máy chủ cũng xét nơi đón trước giờ).
+  let noiDon: OLuot["noiDon"] = null;
+  let noiEl: HTMLElement[] = [];
+  if (lx.canNoiDon) {
+    const oid = `cx-noi-${leg.id}`;
+    let chon: { pickupLocationId: string } | { pickupPlace: string } | null = null;
+    const loiNoi = h("p", { class: "cx-loi", id: `${oid}-loi`, role: "alert", hidden: true });
+    const datLoiNoi = (cau: string | null): void => {
+      loiNoi.hidden = cau === null;
+      loiNoi.textContent = cau ?? "";
+      w.o.setAttribute("aria-invalid", cau === null ? "false" : "true");
+    };
+    const w = taoONoiGoiY({
+      id: oid, dataO: `${leg.id}:noi-don`, ten: "Nơi đón", hienThi: "", laTuDo: false, diem: () => diemCache ?? [], coChuaChot: false, moTa: [loiNoi.id], chuPhuTuDo: CHI_DIA_CHI,
+      chon: (d) => {
+        if (d.loai === "diem") {
+          chon = { pickupLocationId: d.id };
+          w.dat(d.nhan, false);
+        } else if (d.loai === "tu-do") {
+          chon = { pickupPlace: d.chu };
+          w.dat(d.chu, true);
+        }
+        datLoiNoi(null);
+      },
+    });
+    w.o.classList.add("vc-input"); // ô gõ 16px
+    void layDiem(); // nạp sẵn danh sách điểm; chưa về thì người xét vẫn gõ tự do được
+    noiDon = { giaTri: () => chon, o: w.o, datLoi: datLoiNoi };
+    noiEl = [h("label", { class: "cx-truong", for: oid }, h("span", { class: "cx-nhan" }, nhanNoiDonLuot(lx.nhanChieu, s.name)), w.o), w.ds, w.bao, loiNoi];
+  }
   const luot: OLuot = {
-    leg, dichVu: s, batBuoc, giaTri,
+    leg, dichVu: s, batBuoc, giaTri, noiDon,
     oDauVao: () => (sel.value === KHAC && gioKhac !== null ? gioKhac : sel),
     datLoi: (cau) => {
       loi.hidden = cau === null;
@@ -238,12 +300,84 @@ function taoOLuot(lx: LuotGioConVe, s: DichVuDon, capMocTatCa: () => void, mocPh
   const el = h(
     "div",
     { class: "cx-luot", "data-leg-id": leg.id },
+    ...noiEl,
     h("label", { class: "cx-truong", for: id }, h("span", { class: "cx-nhan" }, nhanGioLuot(lx.nhanChieu, s.name, batBuoc)), sel),
     gioKhac,
     loi,
     vungMoc,
   );
   return { luot, el };
+}
+
+/** Khối «Phí đưa đón» của MỘT lượt đón trong bảng Còn vé (ADR-0218 Đ1.5, Task 9): số máy tính (hoặc lý do chưa tính được) + nút «Đổi phí» mở hai ô; cùng luật kiểm với biểu mẫu đơn (`doiPhiTuO` → `kiemDoiPhi`). */
+interface OPhiConVe {
+  legId: string;
+  /** Số đổi người xét đặt (`null` = giữ số máy tính / số đã đổi), hoặc câu báo (gõ sai, hoặc lượt chưa có giá mà chưa đổi) — kèm ô để đặt tiêu điểm. */
+  doc(): { ok: true; doiPhi: DoiPhi | null; bo: boolean } | { ok: false; cau: string; o: HTMLElement };
+  datLoi(cau: string | null): void;
+  el: HTMLElement;
+}
+
+interface LuotPhiConVe { /** Lượt đang mang số văn phòng đã đổi (nguồn DOI_TAY) ⇒ có nút «Bỏ đổi phí» để trả về số máy tính. */ daDoi: boolean; legId: string; direction: "OUT" | "RETURN"; tenDichVu: string; xeRieng: boolean; may: string; chuaTinhDuoc: string | null }
+
+function taoOPhiConVe(t: LuotPhiConVe): OPhiConVe {
+  const id = `cx-phi-${t.legId}`;
+  const loi = h("p", { class: "cx-loi", id: `${id}-loi`, role: "alert", hidden: true });
+  const nut = h("button", { type: "button", class: "btn", id, "data-o-phi": "nut-doi" }, NHAN_NUT_DOI_PHI) as HTMLButtonElement;
+  const gia = h("input", { type: "text", inputMode: "numeric", maxLength: 13, autocomplete: "off", class: "vc-input", id: `${id}-gia`, placeholder: "VD: 70.000", "aria-describedby": loi.id, "data-o-phi": "don-gia" }) as HTMLInputElement;
+  const lyDo = h("input", { type: "text", maxLength: 300, autocomplete: "off", class: "vc-input", id: `${id}-ly-do`, "aria-describedby": loi.id, "data-o-phi": "ly-do" }) as HTMLInputElement;
+  const oGia = h("label", { class: "cx-truong", for: gia.id }, h("span", { class: "cx-nhan" }, nhanODonGia(t.xeRieng)), gia);
+  const oLyDo = h("label", { class: "cx-truong", for: lyDo.id }, h("span", { class: "cx-nhan" }, NHAN_O_LY_DO_DOI_PHI), lyDo);
+  const nhom = h("div", { class: "dd-cot" }, oGia, oLyDo);
+  nhom.hidden = true;
+  let doi = false;
+  let bo = false;
+  const nutBo = h("button", { type: "button", class: "btn", "data-o-phi": "nut-bo", "aria-pressed": "false" }, NHAN_NUT_BO_DOI_PHI) as HTMLButtonElement;
+  nutBo.hidden = !t.daDoi;
+  const oHienTai = (): DoiPhiO => ({ doi, donGia: gia.value, lyDo: lyDo.value });
+  const datLoi = (cau: string | null): void => {
+    loi.hidden = cau === null;
+    loi.textContent = cau ?? "";
+    gia.setAttribute("aria-invalid", cau === null ? "false" : "true");
+  };
+  nutBo.addEventListener("click", () => {
+    bo = !bo;
+    nutBo.setAttribute("aria-pressed", String(bo));
+    nutBo.textContent = bo ? "Giữ số đã đổi" : NHAN_NUT_BO_DOI_PHI;
+    if (bo) { doi = false; nhom.hidden = true; nut.textContent = NHAN_NUT_DOI_PHI; }
+    datLoi(null);
+  });
+  nut.addEventListener("click", () => {
+    doi = !doi;
+    if (doi) { bo = false; nutBo.setAttribute("aria-pressed", "false"); nutBo.textContent = NHAN_NUT_BO_DOI_PHI; }
+    nhom.hidden = !doi;
+    nut.textContent = doi ? NHAN_NUT_BO_DOI_PHI : NHAN_NUT_DOI_PHI;
+    datLoi(null);
+    if (doi) gia.focus();
+  });
+  const kiem = (): void => { const kq = doiPhiTuO(oHienTai()); datLoi(kq.ok ? null : kq.cau); };
+  gia.addEventListener("input", kiem);
+  lyDo.addEventListener("input", kiem);
+  return {
+    legId: t.legId,
+    doc: () => {
+      const kq = doiPhiTuO(oHienTai());
+      if (!kq.ok) return { ok: false, cau: kq.cau, o: gia };
+      if (bo) return { ok: true, doiPhi: null, bo: true };
+      if (kq.doiPhi === null && t.chuaTinhDuoc !== null) return { ok: false, cau: t.chuaTinhDuoc, o: nut };
+      return { ok: true, doiPhi: kq.doiPhi, bo: false };
+    },
+    datLoi,
+    el: h(
+      "div",
+      { class: "cx-luot", "data-phi-leg-id": t.legId },
+      h("p", { class: "dd-phi-nhac" }, `${TEN_PHI_DUA_DON} · ${CHIEU_LABEL[t.direction]} · ${t.tenDichVu}: ${t.may}`),
+      nut,
+      nutBo,
+      nhom,
+      loi,
+    ),
+  };
 }
 
 /**
@@ -266,10 +400,23 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       await c.lamMoi({ tone: "success", text: loiBao });
     } catch (err) {
       baoLoiTaiCho(err);
-      // Ba câu 409 này nói người xét còn thiếu giờ / thiếu đặt gấp (ADR-0154 Đ1.3, Đ1.4; ADR-0193 câu (ii) `chua_gio_sat_ngay`), KHÔNG phải đơn vừa đổi: giữ bảng để không mất giờ vừa chọn.
+      // Các câu 409 này nói người xét còn thiếu giờ / thiếu đặt gấp (ADR-0154 Đ1.3, Đ1.4; ADR-0193 câu (ii) `chua_gio_sat_ngay`) / thiếu phí đưa đón (ADR-0214 Đ3 `transfer_fee_missing`), KHÔNG phải đơn vừa đổi: giữ bảng để không mất giờ, phí vừa chọn.
       // 409 / 404 khác: đơn đã đổi → tải lại.
-      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_time_required" || err.code === "short_notice_required" || err.code === "chua_gio_sat_ngay");
-      if (err instanceof ApiError && (err.status === 409 || err.status === 404) && !thieuNhapLieu) await c.lamMoi();
+      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_place_required" || err.code === "pickup_time_required" || err.code === "short_notice_required" || err.code === "chua_gio_sat_ngay" || (err.code === "transfer_fee_missing" && oPhi.length > 0));
+      // ADR-0221 Đ3: máy chủ nói còn lượt thiếu nơi đón ⇒ đánh dấu đúng các lượt đó (bảng giữ nguyên); lượt máy chủ nêu mà bảng chưa có ô (dữ liệu vừa đổi) thì câu của máy chủ ở cuối bảng đã nói.
+      if (err instanceof ApiError && err.code === "pickup_place_required") {
+        const thieu = new Set(((err.details as Api.PickupPlaceRequiredBody["error"] | undefined)?.legs ?? []).map((x) => x.legId));
+        let dau: HTMLElement | null = null;
+        for (const o of oLuot) {
+          if (o.noiDon === null || !thieu.has(o.leg.id)) continue;
+          o.noiDon.datLoi(CAU_THIEU_NOI_DON_LUOT);
+          dau ??= o.noiDon.o;
+        }
+        dau?.focus();
+      }
+      // Thiếu phí mà bảng chưa có ô (ngày áp vừa tới sau lúc mở trang): tải lại để ô hiện, và giữ lý do bằng băng (câu tại chỗ mất khi bảng dựng lại).
+      if (err instanceof ApiError && err.code === "transfer_fee_missing" && !thieuNhapLieu) await c.lamMoi({ tone: "info", text: err.message });
+      else if (err instanceof ApiError && (err.status === 409 || err.status === 404) && !thieuNhapLieu) await c.lamMoi();
     }
   };
 
@@ -289,7 +436,8 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
     for (const o of oLuot) o.capMoc(ngayDonCuaLuot(o));
   };
   const hangGio = h("div", { class: "cx-gio" });
-  for (const dv of dongGioConVe(order.services, y.vi.includes("CHOT_GIO"))) {
+  const dongConVe = dongGioConVe(order.services, y.vi.includes("CHOT_GIO"));
+  for (const dv of dongConVe) {
     const s = order.services.find((x) => x.id === dv.serviceId)!;
     hangGio.append(khoiDichVu(dv, s, oLuot, capNhatMocMoi, c.mocPhut, duocDatGap));
   }
@@ -298,14 +446,51 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
   void layKhung().then((khung) => {
     for (const o of oLuot) o.napKhung(khung);
   });
+  // ADR-0218 Đ1.5 (Task 9): mọi lượt đón mở có số máy tính (`phiDuaDon.dong`) hoặc chưa tính được (`phiDuaDon.thieu`) hiện ngay trong bảng; người xét «Đổi phí» được cả lượt đã có số, gửi cùng lệnh Còn vé.
+  // Lượt chưa tính được thì BẮT BUỘC đổi (máy chủ trả 409 nếu để trống). Người xét giữ quyền Đối tác (tài khoản lai) không được gửi số đổi (máy chủ trả 400 `transfer_fee_not_allowed`) ⇒ không nút,
+  // chỉ câu nhắc — cùng luật `formGonDoiTac` của biểu mẫu.
+  const thieuPhi = order.phiDuaDon?.thieu ?? [];
+  const tenDv = (id: string) => order.services.find((x) => x.id === id)?.name ?? "";
+  const luotPhi: LuotPhiConVe[] = [
+    ...(order.phiDuaDon?.dong ?? []).map((d) => ({ legId: d.legId, direction: d.direction, tenDichVu: tenDv(d.serviceId), xeRieng: d.kind === "PER_TRIP", may: chuSoMay(d), chuaTinhDuoc: null, daDoi: d.nguon === "DOI_TAY" })),
+    ...thieuPhi.map((t) => ({ legId: t.legId, direction: t.direction, tenDichVu: t.serviceName, xeRieng: false, daDoi: false, may: "chưa tính được", chuaTinhDuoc: cauThieuPhiDon({ direction: t.direction, tenDichVu: t.serviceName, lyDo: t.lyDo }) })),
+  ];
+  const doiTacXet = formGonDoiTac(c.staff);
+  const oPhi = doiTacXet ? [] : luotPhi.map(taoOPhiConVe);
+  const hangPhi = oPhi.length > 0
+    ? h("div", { class: "cx-gio", "data-khoi": "phi-don-con-ve" }, ...oPhi.map((x) => x.el))
+    : doiTacXet && thieuPhi.length > 0 ? h("p", { class: "muted", "data-khoi": "phi-don-con-ve" }, CAU_VAN_PHONG_DOI_PHI_DON) : null;
   const nutConVe = h("button", { type: "button", class: "btn btn-accent", "data-action": "quyet-dinh-con-ve" }, NHAN_KET_QUA.CON_VE);
+  // Tài khoản lai Đối tác + Bán hàng trên đơn còn lượt thiếu phí: không chọn được phí (máy chủ 400) nên Còn vé chắc chắn 409 ⇒ khoá nút, câu nhắc ngay trên giải thích; Hết vé, Huỷ vẫn dùng được.
+  const khoaConVe = doiTacXet && thieuPhi.length > 0;
+  nutConVe.disabled = khoaConVe;
+  if (khoaConVe && hangPhi) {
+    hangPhi.id = "cx-phi-nhac";
+    nutConVe.setAttribute("aria-describedby", hangPhi.id);
+  }
   nutConVe.addEventListener("click", async () => {
     // Lượt BẮT BUỘC chưa có giờ: báo tại chỗ, không gọi máy chủ (máy chủ vẫn từ chối 409 `pickup_time_required` nếu ai gửi thẳng).
+    // ADR-0221 Đ3: lượt cần nơi đón mà chưa ghi cũng báo tại chỗ (`thieuNoiDonConVe`, luật thuần), không gọi máy chủ (409 `pickup_place_required` nếu ai gửi thẳng). Nơi đón đứng trước giờ trong từng lượt.
     let dauTien: HTMLElement | null = null;
+    const thieuNoi = new Set(thieuNoiDonConVe(dongConVe, new Set(oLuot.filter((o) => o.noiDon !== null && o.noiDon.giaTri() !== null).map((o) => o.leg.id))));
     for (const o of oLuot) {
+      if (o.noiDon !== null) {
+        const thieuNoiLuot = thieuNoi.has(o.leg.id);
+        o.noiDon.datLoi(thieuNoiLuot ? CAU_THIEU_NOI_DON_LUOT : null);
+        if (thieuNoiLuot && dauTien === null) dauTien = o.noiDon.o;
+      }
       const thieu = o.batBuoc && o.giaTri() === null;
       o.datLoi(thieu ? CAU_THIEU_GIO_LUOT : null);
       if (thieu && dauTien === null) dauTien = o.oDauVao();
+    }
+    // ADR-0218: lượt chưa tính được mà chưa đổi / số đổi gõ sai hoặc thiếu lý do ⇒ báo tại chỗ (câu giống câu 409 / 400 của máy chủ), không gọi máy chủ.
+    const doiPhi: NonNullable<Api.QuyetDinhXacNhanInput["doiPhi"]> = [];
+    for (const x of oPhi) {
+      const d = x.doc();
+      x.datLoi(d.ok ? null : d.cau);
+      if (d.ok && d.bo) doiPhi.push({ legId: x.legId, bo: true });
+      else if (d.ok && d.doiPhi !== null) doiPhi.push({ legId: x.legId, ...d.doiPhi });
+      else if (!d.ok && dauTien === null) dauTien = d.o;
     }
     if (dauTien !== null) {
       dauTien.focus();
@@ -322,8 +507,15 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       if (g !== null) gioDon.push(g);
     }
     if (gioDon.length > 0) than.gioDon = gioDon;
+    const noiDon: NonNullable<Api.QuyetDinhXacNhanInput["noiDon"]> = [];
+    for (const o of oLuot) {
+      const n = o.noiDon?.giaTri() ?? null;
+      if (n !== null) noiDon.push({ legId: o.leg.id, ...n });
+    }
+    if (noiDon.length > 0) than.noiDon = noiDon;
+    if (doiPhi.length > 0) than.doiPhi = doiPhi;
     await guiQuyet(than, "Đã xác nhận đơn: còn vé.");
-    nutConVe.disabled = false;
+    nutConVe.disabled = khoaConVe;
   });
 
   // ---- Hết vé ----
@@ -378,6 +570,7 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
     h("div", { class: "cx-con-ve" },
       h("label", { class: "cx-truong", for: "cx-ngay" }, h("span", { class: "cx-nhan" }, "Ngày đi (đổi nếu cần)"), ngayOng),
       hangGio,
+      hangPhi,
       nutConVe,
     ),
     h("div", { class: "cx-hang-nut" }, nutHetVe, hopHuy),

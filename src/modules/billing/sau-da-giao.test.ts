@@ -28,7 +28,13 @@ const MIEN: { route: string; lyDo: string }[] = [
   { route: "POST /api/cai-dat/nhap-tay", lyDo: "đổi chính sách nhập tay toàn hệ thống, không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/xac-nhan-don", lyDo: "đổi cờ «cần xác nhận» / công tắc tự xác nhận toàn hệ thống (ADR-0136 Đ1, Đ5), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/an-thong-tin-khach", lyDo: "đổi công tắc «Ẩn thông tin khách» toàn hệ thống (ADR-0154 Đ2.1), không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/phi-don-bien-nhan", lyDo: "đổi công tắc «Hiện riêng phí đưa đón trên biên nhận khách lẻ» toàn hệ thống (ADR-0218 Đ3.4), chỉ đổi cách in, không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/bat-buoc-gio-don", lyDo: "đổi công tắc «Bắt buộc giờ đón cho đơn đối tác» toàn hệ thống (ADR-0193 mục 1), không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/chan-chua-gio-sat-ngay", lyDo: "đổi công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» toàn hệ thống (ADR-0227 Đ1), không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/noi-don-doi-tac", lyDo: "đổi công tắc «Đối tác không nhập nơi đón» toàn hệ thống (ADR-0221 Đ1), không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/hanh-khach-doi-tac", lyDo: "đổi công tắc «Đối tác không nhập danh sách hành khách» toàn hệ thống (ADR-0228 Đ1), không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/mien-du-ten-doi-tac", lyDo: "đổi công tắc «Đơn đối tác không cần đủ tên khách» toàn hệ thống (ADR-0228 Đ2), không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/khong-can-gio-don", lyDo: "đổi công tắc «Đơn đối tác không cần giờ đón» toàn hệ thống (ADR-0228 Đ3), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/ban-hang-phu-trach", lyDo: "đổi giờ hành chính của lời mời người phụ trách toàn hệ thống (ADR-0142 Đ5), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/khung-gio-don", lyDo: "đổi khung giờ đón toàn hệ thống (ADR-0134 Đ6), không ghi đơn nào, không có đơn để khoá" },
   // ADR-0089 đ8: phân loại lý do huỷ chỉ chạy trên ĐƠN ĐÃ HUỶ; đơn đã Đã giao không huỷ được (ADR-0025 đ1) ⇒ route trả 409 invalid_state "đơn chưa huỷ".
@@ -64,6 +70,10 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/gui-don": {}, // Task 3.4: Gửi đơn của Đối tác — Toàn quyền giữ ô order.submit (any) ⇒ qua cổng quyền rồi 409 order_delivered
   "POST /api/orders/:id/gui-xac-nhan": {},
   "POST /api/orders/:id/rut-xac-nhan": {},
+  // ADR-0213 Đ8 (mốc B2 Task 16): ba lệnh «chờ người quản lý» — đơn Đã giao không còn là nháp ⇒ 409 order_delivered sau cổng quyền (Toàn quyền giữ order.modify / order.submit any).
+  "POST /api/orders/:id/gui-quan-ly": {},
+  "POST /api/orders/:id/rut-gui-quan-ly": {},
+  "POST /api/orders/:id/tra-lai": { lyDo: "KHAC" },
   "POST /api/orders/:id/quyet-dinh": { ketQua: "CON_VE", yeuCauId: "99999999-9999-4999-8999-000000000099", updatedAt: "x" },
   // ADR-0030 điều 1 (nút Từ chối): chỉ CHÍNH người phụ trách qua được chốt đúng người (Toàn quyền không phụ trách → 403 có chủ ý) ⇒ dòng này gọi bằng người phụ
   // trách của đơn khoá (HDV, xem NGUOI_GOI) — vẫn phải 409 order_delivered.

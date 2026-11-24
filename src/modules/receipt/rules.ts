@@ -7,6 +7,7 @@ import type { BanChup } from "../../shared/hoa-hong-dong.ts";
 import { noiDungChuyenKhoan } from "../../shared/noi-dung-chuyen-khoan.ts";
 import { trangThaiHienThi } from "../../shared/order-status-label.ts";
 import { payloadVietQr } from "../../shared/vietqr.ts";
+import { gopPhiDonVaoDichVu } from "./gop-phi-don.ts";
 
 /**
  * Người bán của từng dịch vụ, do route đọc (`phanThuongMaiCuaDon` của orders, SAU `can(`) — chỉ ba trường cần để chia phần. `chup` mang cả mức hoa hồng, a% giá vốn,
@@ -29,12 +30,15 @@ export interface TienBienNhan {
 }
 
 const TOUR_DAO = "";
+/** Tên «Phí đưa đón» ghi thêm vào phần Tour Đảo của biên nhận (tên màn hình trong bảng tham chiếu). Dòng phí của phiếu công nợ mang tên từng chặng, không dùng hằng này. */
+export const TEN_DONG_PHI_DON = "Phí đưa đón";
 /**
  * Chia biên nhận theo người bán (ADR-0078 điều 10; đặc tả P5; sổ đại lý đợt 2 Task 8). Luật (Ruling R-80…R-83 sổ thi công):
  *  - Nhóm: người bán của dòng = `cungUng.sellerPartyId` của bản chụp; người bán là công ty chủ, thiếu người bán (MISSING — dòng nhập tay chưa ghi tay), dòng không có
  *    bản chụp (đơn xác nhận trước khi có bảng mức) ⇒ phần Tour Đảo (tới nay mọi dịch vụ đều do Tour Đảo đứng tên bán — ADR-0078 điều 3). Phần Tour Đảo đứng đầu,
  *    rồi nhà cung cấp theo thứ tự dịch vụ trên đơn.
  *  - Giảm giá hiệu lực của đơn trừ vào phần Tour Đảo trước, phần còn lại trừ lần lượt vào các phần sau (R-81) ⇒ Σ `tong` = tổng cộng của đơn.
+ *  - Phí đưa đón (Đợt C): vào phần Tour Đảo, giảm giá không trừ vào phí (chủ 15/11, SV-PD-29).
  *  - Đã trả: khoản thu «thu cho» một nhà cung cấp của phần đó tính vào phần đó; mọi khoản khác (không chọn, thu cho công ty, thu cho hồ sơ không còn là người bán
  *    trên đơn, trả lại khách) tính vào phần Tour Đảo. Phần nào nhận quá số phải trả thì phần dư chuyển sang các phần còn thiếu theo thứ tự; dư nữa (khách trả dư)
  *    ghi vào phần đầu (R-82) ⇒ Σ `daTra` = đã trả, Σ `conLai` = còn lại của đơn.
@@ -42,12 +46,18 @@ const TOUR_DAO = "";
  *  - Đơn huỷ ⇒ không phần nào (biên nhận huỷ đọc `huy`).
  * Không I/O. Không chép mức, tỷ lệ, người hưởng.
  */
-export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: NguoiBanChoBienNhan | null, tien: Pick<TienBienNhan, "daTra" | "theoThuCho" | "giamTru">): ReceiptPhanDto[] {
+export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: NguoiBanChoBienNhan | null, tien: Pick<TienBienNhan, "daTra" | "theoThuCho" | "giamTru">, tenDongPhanTourDao: readonly string[] | null = null): ReceiptPhanDto[] {
   if (order.status === "cancelled") return [];
   // Nhóm theo người bán + giảm giá trừ vào phần Tour Đảo trước (R-81): MỘT hàm `chiaPhanNguoiBan` — billing dùng cùng hàm cho trần phần của quầy (Ruling R-154).
   const chupCua = new Map((ban?.chup ?? []).map((c) => [c.serviceId, c]));
-  const ds = chiaPhanNguoiBan(order.services, (s) => nguoiBanCuaDong(chupCua.get(s.id), ban?.congTyChuId ?? null), (s) => s.items.reduce((t, it) => t + it.lineTotal, 0), order.giamGiaHieuLuc)
-    .map((p) => ({ k: p.nguoiBan ?? TOUR_DAO, dichVu: p.dong.map((s) => s.name), giam: p.giamGia, tong: p.tong, da: 0, sauGiao: 0 }));
+  // Phí đưa đón (Đợt C, Task 5; SV-PD-26, SV-PD-29): vào phần Tour Đảo, không bị giảm giá; phần Tour Đảo ghi thêm tên «Phí đưa đón» khi đơn có dòng phí.
+  const phiDong = order.phiDuaDon?.dong ?? [];
+  const phi = phiDong.reduce((t, d) => t + d.lineTotal, 0);
+  const ds = chiaPhanNguoiBan(order.services, (s) => nguoiBanCuaDong(chupCua.get(s.id)), (s) => s.items.reduce((t, it) => t + it.lineTotal, 0), order.giamGiaHieuLuc, phi)
+    .map((p) => ({
+      k: p.nguoiBan ?? TOUR_DAO, dichVu: [...p.dong.map((s) => s.name), ...(p.nguoiBan === null && phiDong.length > 0 ? (tenDongPhanTourDao ?? [TEN_DONG_PHI_DON]) : [])], // ADR-0218 Đ3: khách lẻ gộp ⇒ không chữ «Phí đưa đón», chỉ các dòng «<tên> — đưa đón» của nhà cung cấp khác
+      giam: p.giamGia, tong: p.tong, da: 0, sauGiao: 0,
+    }));
   if (ds.length === 0) return [];
   let conGiam = tien.giamTru ?? 0;
   for (const p of ds) {
@@ -109,9 +119,12 @@ export function mauBienNhan(i: { bookerLaDoiTac: boolean; nguoiLapDoiTacThuan: b
   return i.bookerLaDoiTac || i.nguoiLapDoiTacThuan ? "doi_tac" : "noi_bo";
 }
 
-export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: TienBienNhan, ban: NguoiBanChoBienNhan | null, nguoiLapDoiTacThuan: boolean): ReceiptDto {
+export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: TienBienNhan, ban: NguoiBanChoBienNhan | null, nguoiLapDoiTacThuan: boolean, hienRiengPhiDon = false): ReceiptDto {
+  const mau = mauBienNhan({ bookerLaDoiTac: order.bookerLaDoiTac, nguoiLapDoiTacThuan });
+  // ADR-0218 Đ3: khách lẻ (mẫu nội bộ) gộp phí đưa đón vào giá dịch vụ khi công tắc «Hiện riêng» tắt; tiền của đơn không đổi (`subtotal`, `total`, đã trả, còn lại đọc đúng số cũ).
+  const gop = gopPhiDonVaoDichVu(order, mau, hienRiengPhiDon, ban);
   return {
-    mau: mauBienNhan({ bookerLaDoiTac: order.bookerLaDoiTac, nguoiLapDoiTacThuan }),
+    mau,
     company: { name: company.name, taxCode: company.taxCode, address: company.address, hotline: company.hotline, email: company.email },
     orderCode: order.orderCode,
     // Chữ KHÁCH đọc (biên nhận, ảnh gửi khách): đơn nháp luôn «Chờ xác nhận», KHÔNG đi theo nhãn nội bộ «Chưa xác nhận» (ADR-0166 câu 5) — khách không cần biết
@@ -135,8 +148,12 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: T
       checkinPlace: s.checkinPlace,
       // Chỉ CỜ, không chép giá danh mục (ADR-0026 đ11): dòng nhập tay (không có giá danh mục) cũng tính là khác giá công bố.
       giaKhacCongBo: s.items.some((it) => it.catalogPrice === null || it.unitPrice !== it.catalogPrice),
-      items: s.items.map((it) => ({ description: it.description, detail: it.detail, quantity: it.quantity, unitPrice: it.unitPrice, lineTotal: it.lineTotal })),
+      items: gop.items.get(s.id) ?? s.items.map((it) => ({ description: it.description, detail: it.detail, quantity: it.quantity, unitPrice: it.unitPrice, lineTotal: it.lineTotal })),
     })),
+    // Đợt C, Task 5: dòng phí đưa đón của đơn (đơn nháp: «dự kiến», cùng số với tạm tính) — chép TỪNG trường, không mã mức / cấp / vùng.
+    phiDuaDon: gop.phiDuaDon,
+    phiDuKien: !gop.gop && (order.phiDuaDon?.duKien ?? false) && (order.phiDuaDon?.dong.length ?? 0) > 0,
+    ...(gop.dongDuaDonTourDao.length > 0 ? { dongDuaDonTourDao: gop.dongDuaDonTourDao } : {}),
     subtotal: order.subtotal,
     // ADR-0109 QĐ4: dòng "Giảm giá" gửi khách = giảm giá HIỆU LỰC (min(giảm giá, tạm tính hiện hành), máy chủ tính bằng `effectiveMoney`) để Tạm tính − Giảm giá =
     // Tổng cộng; bằng giảm giá đã lưu trừ khi bớt khách làm tạm tính nhỏ hơn. Không suy ngược `subtotal − total` (chỗ tính thứ hai — Hiến chương 5.4).
@@ -149,7 +166,7 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: T
     huy: tien.huy
       ? { nhom: tien.huy.nhom, daTra: tien.huy.daTra, dangDoiChieu: tien.huy.dangDoiChieu, hoanTruocHuy: tien.huy.hoanTruocHuy, daDuyet: tien.huy.daDuyet, daChi: tien.huy.daChi, daChuyen: tien.huy.daChuyen, daDuyetChuyen: tien.huy.daDuyetChuyen, han: tien.huy.han }
       : null,
-    phan: chiaPhanBienNhan(order, company.name, ban, tien),
+    phan: chiaPhanBienNhan(order, company.name, ban, tien, gop.tenDongPhanTourDao),
   };
 }
 
@@ -192,7 +209,9 @@ export function dungQrThanhToan(i: {
  */
 export function dungPhieuCongNo(i: {
   maDon: string;
-  phieu: { dong: readonly { name: string; hoaHong: number | null; giaDaiLy: number }[]; tong: number; daThu: number; conLai: number };
+  /** `phiDong` (Đợt C, SV-PD-25; ADR-0203 ĐB3): dòng phí đưa đón đã nằm trong `tong` — MỖI CHẶNG MỘT DÒNG, tên y như biên nhận («Phí đưa đón — chiều đi/về, <khu vực>»), để các
+   *  dòng cộng khớp tổng. Dòng mức 0 đồng (`donGia` 0) vẫn in, cờ `mienPhi` (giao diện ghi «Miễn phí»). Vắng / rỗng ⇒ không dòng phí. */
+  phieu: { dong: readonly { name: string; hoaHong: number | null; giaDaiLy: number }[]; phiDong?: readonly { ten: string; tien: number; donGia: number }[]; tong: number; daThu: number; conLai: number };
   hanTra: string | null;
   tk: { congTy: string; nganHang: string; bin: string; soTaiKhoan: string; chuTaiKhoan: string } | null;
   /** ADR-0182 phần B: phần khoản nộp. Số trên QR = `nop.tran` (Đ2 mục 7 — cùng con số với trần Đ2 mục 4); vắng ⇒ như phần A (QR = Công nợ còn lại). */
@@ -213,7 +232,12 @@ export function dungPhieuCongNo(i: {
   return {
     ok: true,
     dto: {
-      maDon: i.maDon, dong: i.phieu.dong.map((d) => ({ ten: d.name, giaDaiLy: d.giaDaiLy, thieuMuc: d.hoaHong === null })), tong, daThu, conLai, hanTra: i.hanTra, qr, ghiChuQr,
+      maDon: i.maDon,
+      dong: [
+        ...i.phieu.dong.map((d) => ({ ten: d.name, giaDaiLy: d.giaDaiLy, thieuMuc: d.hoaHong === null, mienPhi: false })),
+        ...(i.phieu.phiDong ?? []).map((d) => ({ ten: d.ten, giaDaiLy: d.tien, thieuMuc: false, mienPhi: d.donGia === 0 })),
+      ],
+      tong, daThu, conLai, hanTra: i.hanTra, qr, ghiChuQr,
       ...(i.nop ? { nop: i.nop } : {}),
     },
   };

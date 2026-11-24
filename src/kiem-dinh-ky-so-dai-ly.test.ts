@@ -161,6 +161,29 @@ test("dữ liệu do CHÍNH mã ghi ⇒ mọi kiểm mới 0: C-1 (đại lý, g
   assert.deepEqual(AC.CHECKS.filter((c) => c.code.startsWith("R-BIL") || c.code.startsWith("R-ORD-DC")).map((c) => [c.code, dem(c)]).filter((x) => x[1] !== 0), [], "mọi kiểm sổ tiền (cũ và mới) sạch trên dữ liệu do mã ghi");
 });
 
+test("ADR-0229 Đ10: đơn mùa vụ do CHÍNH mã ghi (2 × 570.000, tăng 70.000/khách, giảm 100.000 = đúng trần) ⇒ R-BIL-2 và R-ORD-DC1 sạch — kiểm định kỳ tính hoa hồng trên cơ sở bỏ phần tăng như lô «Đã giao»", async () => {
+  const { w } = await setup();
+  const d = nhap(w, { dichVu: [HONTAM(2, 570_000)], giam: 100_000 });
+  // Bản chụp mùa vụ trên dòng tiền như máy chủ ghi lúc lập đơn (Đ5); đơn còn nháp nên trigger 0189 cho ghi.
+  w.sqlite.prepare("UPDATE order_item SET base_price = 500000, seasonal_rule_id = 'qt-kd-mua', seasonal_increase = 70000 WHERE service_id = ?").run(d.svc[0]);
+  await xacNhan(w, d.id);
+  await giaoDu(w, d.id);
+  assert.equal(Number(w.q("SELECT amount AS a FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HOA_HONG'", d.id)[0].a), 100_000, "lô «Đã giao» ghi 10 % của 1.000.000, không của 1.140.000");
+  assert.deepEqual([vp(w, "R-BIL-2"), vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [0, 0, 0]);
+});
+
+test("ADR-0229 Đ10 (người kiểm độc lập 23/11): đơn mùa vụ BỚT KHÁCH sau Xác nhận (2 → 1 × 570.000, tăng 70.000) — dòng tính lại mang số tăng theo loại khách ⇒ «Đã giao» ghi 50.000, R-BIL-2 / R-ORD-DC1 sạch", async () => {
+  const { w } = await setup();
+  const d = nhap(w, { dichVu: [HONTAM(2, 570_000)], giam: 50_000 });
+  w.sqlite.prepare("UPDATE order_item SET base_price = 500000, seasonal_rule_id = 'qt-kd-mua', seasonal_increase = 70000 WHERE service_id = ?").run(d.svc[0]);
+  await xacNhan(w, d.id);
+  const sua = await w.call("POST", `/api/orders/${d.id}/handler-money-edit`, { as: HDV, body: { reason: "Khách bớt người", services: [{ id: d.svc[0], pax: { adult: 1, child: 0, senior: 0, infant: 0 } }] } });
+  assert.equal(sua.status, 200, sua.text);
+  await giaoDu(w, d.id);
+  assert.equal(Number(w.q("SELECT amount AS a FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HOA_HONG'", d.id)[0].a), 50_000, "10 % của 1 × 500.000 (dòng tính lại bỏ phần tăng)");
+  assert.deepEqual([vp(w, "R-BIL-2"), vp(w, "R-ORD-DC1"), vp(w, "R-ORD-DC1w")], [0, 0, 0]);
+});
+
 test("R-BIL-2: dòng hoa hồng lệch 1 đồng ⇒ 1 (lỗi); phiếu «Đã giao» trước mốc ⇒ 0 lỗi, 1 cảnh báo (R-BIL-2w); thiếu dòng giá vốn ⇒ 1", async () => {
   const { w } = await setup();
   const a = await donDaGiao(w, { dichVu: [HONTAM(1, 1_000_000), IRESORT(2)] });

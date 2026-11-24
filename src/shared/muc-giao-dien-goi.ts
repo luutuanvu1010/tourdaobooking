@@ -13,6 +13,7 @@ export const GOI_CHINH = {
   danhBa: "GET /api/parties",
   dichVu: "GET /api/catalog/quan-ly-ban", // ADR-0169 Đ4: đường đọc chung của Quản trị, Toàn quyền, Quản lý bán hàng (màn đủ còn gọi thêm /api/catalog/admin)
   taiKhoan: "GET /api/staff",
+  phieuDangKy: "GET /api/dang-ky/hang-cho", // ADR-0219 Đ3
   phien: "GET /api/sessions",
   diaDiem: "GET /api/locations",
   loaiGiayToNguoi: "GET /api/parties/documents/meta",

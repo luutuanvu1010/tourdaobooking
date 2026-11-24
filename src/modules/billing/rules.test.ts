@@ -114,7 +114,7 @@ const chupThieu = (serviceId: string, reason: "NO_RULE" | "RULE_CONFLICT" | "MAN
   serviceId, beneficiaryPartyId: reason === "NOT_CAPTURED" ? null : ben, hoaHong: { status: "MISSING", reason },
   cungUng: reason === "NOT_CAPTURED" || reason === "MANUAL_LINE" ? { status: "MISSING" } : { status: "SET", termId: "t", sellerPartyId: CT, supplierPartyId: null, costRateBp: null },
 });
-const dv = (id: string, name: string, thanhTien: number, soKhachTinh = 1) => ({ id, name, thanhTien, soKhachTinh });
+const dv = (id: string, name: string, thanhTien: number, soKhachTinh = 1) => ({ id, name, thanhTien, coSoHoaHong: thanhTien, soKhachTinh });
 
 test("sinhPhieuDaGiao C-1 (ADR-0079): tour 5.000.000, hoa hồng 500.000, giảm giá bên đặt chịu 250.000 ⇒ ĐÚNG hai dòng; cùng dòng giữ hộ 3.000.000 ⇒ đại lý nợ 2.750.000", () => {
   const dongC1 = dongThuongMaiTu({ chup: [chupSet("s1", DAI_LY, { rateBp: 1000 })], dichVu: [dv("s1", "Tour đảo", 5_000_000)] });
@@ -228,7 +228,7 @@ test("lyDoGiuThuongMai: bốn câu lời thường cố định (task-3-brief) +
   assert.deepEqual(c({ trangThai: "THIEU", ma: "terms_missing", dichVu: ["Tour đảo"], canChupBu: true }),
     ["terms_missing", "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán cài mức rồi bấm Chụp bù.", "Kế toán"]);
   assert.deepEqual(c({ trangThai: "THIEU", ma: "terms_missing", dichVu: ["Dịch vụ nhập tay"], canChupBu: false }),
-    ["terms_missing", "Thiếu mức hoa hồng / người bán cho Dịch vụ nhập tay — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.", "Kế toán"]);
+    ["terms_missing", "Thiếu mức hoa hồng / nhà cung cấp cho Dịch vụ nhập tay — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.", "Kế toán"]);
   assert.deepEqual(c({ trangThai: "THIEU", ma: "booker_not_beneficiary", dichVu: ["Tour đảo"], canChupBu: false }),
     ["booker_not_beneficiary", "Bên đặt của đơn không thuộc danh sách được hưởng hoa hồng — Văn phòng sửa bên đặt hoặc Kế toán ghi mức tay.", "Văn phòng hoặc Kế toán"]);
   assert.deepEqual(c({ trangThai: "VUOT", dichVu: ["Vé i-resort"] }), ["terms_exceed_price", "Mức hoa hồng / giá vốn cài cho Vé i-resort vượt giá bán — Kế toán xem lại.", "Kế toán"]);
@@ -238,7 +238,7 @@ test("lyDoGiuThuongMai: bốn câu lời thường cố định (task-3-brief) +
 
 test("cauLoiCsdlThuongMai: dịch lỗi lớp CSDL (0112) ra lời thường — không lộ mã thô; lỗi khác ⇒ null", () => {
   assert.equal(cauLoiCsdlThuongMai(new Error("D1_ERROR: delivered_terms: đơn còn dịch vụ chưa chụp mức hoặc thiếu mức hoa hồng / người bán — Kế toán xử lý: SQLITE_CONSTRAINT")),
-    "Thiếu mức hoa hồng / người bán cho một dịch vụ của đơn — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.");
+    "Thiếu mức hoa hồng / nhà cung cấp cho một dịch vụ của đơn — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.");
   assert.equal(cauLoiCsdlThuongMai(new Error("commercial_exceeds_gross: tổng hoa hồng và giá vốn vượt thành tiền trước giảm của đơn")),
     "Mức hoa hồng / giá vốn cài cho đơn này vượt giá bán — Kế toán xem lại.", "câu của ADR-0079 điều 6 («cho đơn này»)");
   const LOI_MA = "Số hoa hồng / giảm giá bên đặt chịu / giá vốn tính ra không khớp sổ — chưa ghi gì; báo người phụ trách hệ thống.";
@@ -459,7 +459,7 @@ const chup = (serviceId: string, o: { huong?: string | null; lyDo?: "BOOKER_NOT_
   hoaHong: o.lyDo ? { status: "MISSING", reason: o.lyDo } : o.huong === null ? { status: "NONE" } : { status: "SET", kind: "RATE", rateBp: 1000, perPax: null, ruleId: "m1" },
   cungUng: o.ncc ? { status: "SET", termId: "t", sellerPartyId: o.ncc, supplierPartyId: o.ncc, costRateBp: 8000 } : { status: "MISSING" },
 } as BanChup);
-const phan = (cs: BanChup[], o: { duKien?: boolean; chuaChup?: boolean; giamGiaHieuLuc?: number } = {}) => ({ duKien: false, chuaChup: false, congTyChuId: CT, giamGiaHieuLuc: 0, ...o, chup: cs, dichVu: cs.map((c, i) => ({ id: c.serviceId, thanhTien: (i + 1) * 100_000 })) });
+const phan = (cs: BanChup[], o: { duKien?: boolean; chuaChup?: boolean; giamGiaHieuLuc?: number } = {}) => ({ duKien: false, chuaChup: false, congTyChuId: CT, giamGiaHieuLuc: 0, ...o, chup: cs, dichVu: cs.map((c, i) => ({ id: c.serviceId, thanhTien: (i + 1) * 100_000, coSoHoaHong: (i + 1) * 100_000 })) });
 
 test("benDatHuong / nhaCungCapCuaDon (đặc tả P4): đọc từ bản chụp; nháp, chưa chụp, khách lẻ, «không thuộc loại được hưởng», hai bên khác nhau ⇒ không có", () => {
   assert.equal(benDatHuong(phan([chup("a"), chup("b", { lyDo: "NO_RULE" })])), DAI_LY, "thiếu mức vẫn là bên đặt được hưởng");
@@ -478,7 +478,9 @@ test("benDatHuong / nhaCungCapCuaDon (đặc tả P4): đọc từ bản chụp;
   assert.deepEqual([...nhaCungCapCuaDon(phan(ba, { giamGiaHieuLuc: 150_000 }))], [["ncc", 400_000]], "giảm nằm gọn trong phần Tour Đảo");
   assert.deepEqual([...nhaCungCapCuaDon(phan(ba, { giamGiaHieuLuc: 250_000 }))], [["ncc", 350_000]], "phần dư 50.000 trừ vào quầy");
   assert.deepEqual([...nhaCungCapCuaDon(phan(ba, { giamGiaHieuLuc: 900_000 }))], [["ncc", 0]]);
-  assert.deepEqual([...nhaCungCapCuaDon({ ...phan(ba), congTyChuId: null })], [], "không đọc được công ty chủ ⇒ như biên nhận: mọi dòng vào phần Tour Đảo");
+  // Việc 15 (2026-11-23): phần quầy đọc nhà cung cấp mua lại TRONG bản chụp (`nguoiBanCuaDong`), không so với công ty chủ hôm nay ⇒ không cần đọc công ty chủ; vẫn khớp biên nhận
+  // (cùng hàm). Trước đây «không đọc được công ty chủ ⇒ mọi dòng vào phần Tour Đảo».
+  assert.deepEqual([...nhaCungCapCuaDon({ ...phan(ba), congTyChuId: null })], [["ncc", 400_000]], "không đọc được công ty chủ: phần quầy vẫn theo bản chụp, như biên nhận");
 });
 
 test("phanChuaThuNhaCungCap (đặc tả P4): trừ lần thu còn hiệu lực «thu cho» nhà cung cấp, kể cả lời khai đang chờ; bỏ lần thu đang bị thay", () => {

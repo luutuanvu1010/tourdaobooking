@@ -30,7 +30,7 @@ const dem = (tests: number, skipped = 0, todo = 0) => ({ tests, pass: tests, fai
 /** Báo cáo đủ và xanh cho bảng nhỏ — từng ca sửa đúng một chỗ. */
 function baoCaoDu(bang: Bang): any[] {
   return [
-    { loai: "rieng", buoc0: { ok: true, doi: [] }, typecheck: { ok: true }, doGio: { ok: true, tep: [lib.TEP_DO_GIO], dem: dem(3) } },
+    { loai: "rieng", buoc0: { ok: true, doi: [] }, typecheck: { ok: true }, doGio: { ok: true, tep: [lib.TEP_DO_GIO], dem: dem(3) }, doKhung: { ok: true, maThoat: 0, soMan: 4, soO: 316, khongDat: 0, doThieu: [] } },
     ...bang.test.map((tep, i) => ({ loai: "test", phan: i + 1, tep, ok: true, dem: dem(tep.length * 10, 1, 0), baiDo: [] })),
     ...bang.e2e.map((ds, i) => ({ loai: "e2e", phan: i + 1, kichBan: ds.map((ten) => ({ ten, ok: true, giay: 2 })), audit: true, ok: true })),
   ];
@@ -48,6 +48,28 @@ test("bảng chia THẬT: phần riêng đủ ba bước; npm test ≥ 4 phần,
   assert.deepEqual(lib.kiemBangChia(bang, { tests, e2e: ALL }), []);
   assert.ok(!bang.test.flat().includes(lib.TEP_DO_GIO), "bài đo giờ chỉ ở phần riêng");
   for (const p of [...bang.test, ...bang.e2e]) assert.ok(p.length > 0, "không phần nào rỗng");
+});
+
+// ADR-0215 Đ1.2–Đ1.3: bảng phần ghi THẲNG trong quy trình (không còn việc «Chia phần» in ra lúc chạy) ⇒ phải khớp hằng số; tổng việc chạy cùng lúc ≤ 20
+// (trần gói GitHub miễn phí — vượt thì lượt kiểm tự xếp hàng, chậm đi chứ không nhanh lên).
+test("quy trình kiem.yml: danh sách phần npm test / e2e khớp SO_PHAN_TEST / SO_PHAN_E2E; 1 phần riêng + các phần ≤ 20 việc cùng lúc", () => {
+  const yml = readFileSync(new URL("../.github/workflows/kiem.yml", import.meta.url), "utf8");
+  const day = (n: number) => `[${Array.from({ length: n }, (_, i) => i + 1).join(", ")}]`;
+  const maTran = [...yml.matchAll(/^\s+phan: (\[[\d, ]+\])$/gm)].map((m) => m[1]);
+  assert.deepEqual(maTran, [day(lib.SO_PHAN_TEST), day(lib.SO_PHAN_E2E)], "ma trận phần (npm test rồi e2e) phải đúng 1…SO_PHAN_*");
+  assert.ok(1 + lib.SO_PHAN_TEST + lib.SO_PHAN_E2E <= 20, `1 + ${lib.SO_PHAN_TEST} + ${lib.SO_PHAN_E2E} việc vượt trần 20 của gói miễn phí`);
+});
+
+// ADR-0222 Đ7(b): đo khung gốc chạy trong phần riêng (không thêm việc). Máy GitHub là Linux: Chrome phải qua scripts/chrome-ci.sh (bộ bọc mặc định trỏ Chrome
+// macOS); phần riêng cần đủ giờ cho typecheck + bài đo giờ + dựng máy thử và đo.
+test("quy trình kiem.yml: phần riêng có CHROME_BIN = scripts/chrome-ci.sh và trần giờ ≥ 30 phút; phần riêng gồm bước do-khung", () => {
+  const yml = readFileSync(new URL("../.github/workflows/kiem.yml", import.meta.url), "utf8");
+  const rieng = /^  rieng:\n([\s\S]*?)\n  test:/m.exec(yml)?.[1] ?? "";
+  assert.match(rieng, /CHROME_BIN: \$\{\{ github\.workspace \}\}\/scripts\/chrome-ci\.sh/);
+  assert.ok(Number(/timeout-minutes: (\d+)/.exec(rieng)?.[1]) >= 30, "phần riêng cần trần giờ ≥ 30 phút");
+  assert.match(rieng, /kiem-phan\.mjs rieng/);
+  assert.ok(lib.BUOC_RIENG.includes("do-khung"));
+  assert.ok(existsSync(new URL("../scripts/chrome-ci.sh", import.meta.url)));
 });
 
 test("bảng chia e2e: mỗi phần là DÃY CON của ALL (giữ ràng buộc thứ tự: feedback trước maintenance, passkey cuối…); phanE2e(k) = phần k", () => {
@@ -113,6 +135,13 @@ test("gomKetQua (ADR-0179 tiêu chí 2): thiếu báo cáo / phần chạy thi�
     ["Bước 0 đổi tệp sinh", (bc) => ((bc[0].buoc0 = { ok: false, doi: ["docs/x.json"] }), bc), /Bước 0/],
     ["typecheck đỏ", (bc) => ((bc[0].typecheck = { ok: false }), bc), /typecheck/],
     ["bài đo giờ đỏ", (bc) => ((bc[0].doGio.ok = false), bc), /đo giờ/],
+    // ADR-0222 Đ7(b): lệnh đo khung gốc trên trang thật. Thiếu kết quả, có ô không đạt, đo thiếu hay không chạy được (mã 2) đều ĐỎ — không bao giờ coi là bỏ qua.
+    ["thiếu kết quả đo khung gốc", (bc) => (delete bc[0].doKhung, bc), /khung gốc/],
+    ["đo khung gốc có ô không đạt", (bc) => ((bc[0].doKhung = { ok: false, maThoat: 1, khongDat: 3, loi: "3 ô không đạt" }), bc), /khung gốc/],
+    ["đo khung gốc đo thiếu (mã 2)", (bc) => ((bc[0].doKhung = { ok: false, maThoat: 2, doThieu: ["/order-new"], loi: "đo thiếu: /order-new" }), bc), /khung gốc.*đo thiếu/],
+    ["đo khung gốc ok mà mã ≠ 0", (bc) => ((bc[0].doKhung = { ok: true, maThoat: 2 }), bc), /khung gốc/],
+    ["đo khung gốc ok, đủ số màn/ô mà mã 2", (bc) => ((bc[0].doKhung = { ok: true, maThoat: 2, soMan: 4, soO: 316, khongDat: 0, doThieu: [] }), bc), /khung gốc/],
+    ["đo khung gốc không đo màn nào", (bc) => ((bc[0].doKhung = { ok: true, maThoat: 0, soMan: 0, soO: 0 }), bc), /khung gốc/],
     ["báo cáo không đọc được", (bc) => [...bc, "rác"], /không đọc được/],
   ];
   for (const [ten, sua, re] of hong) {
@@ -240,4 +269,15 @@ test("bảng giây npm test là ĐỒNG HỒ TƯỜNG cả tệp đo trên GitHu
   assert.ok(co >= 0.9 * ds.length, `chỉ ${co}/${ds.length} tệp có số đo — chép giayTuong của lượt kiểm gần nhất vào scripts/thoi-gian-test.json`);
   // Bước gom gợi ý chép ĐỒNG HỒ TƯỜNG (giayTuong), không phải giây các bài.
   assert.match(readFileSync(new URL("../scripts/kiem-phan.mjs", import.meta.url), "utf8"), /chép vào scripts\/thoi-gian-test\.json khi cần chia lại\): có trong tệp ket-qua-tong, khoá giayTuong/);
+});
+
+// Việc 2.4 (kế hoạch 2026-11-15): tệp kiểm treo phải đỏ CÓ TÊN trong trần, không làm cả phần chờ tới khi GitHub huỷ (7 lượt «npm test phần 2» bị huỷ).
+test("trần mỗi tệp kiểm (--test-timeout): một nguồn ở kiem-phan.mjs, cả npm test lẫn phần GitHub đều dùng; nằm giữa 3 và 15 phút", () => {
+  const l = lib as Lib & { TRAN_TEP_MS: number; CO_TRAN_TEP: string };
+  assert.ok(l.TRAN_TEP_MS >= 180_000 && l.TRAN_TEP_MS <= 900_000, `trần ${l.TRAN_TEP_MS} ms`);
+  assert.equal(l.CO_TRAN_TEP, `--test-timeout=${l.TRAN_TEP_MS}`);
+  const kp = readFileSync(new URL("../scripts/kiem-phan.mjs", import.meta.url), "utf8");
+  assert.match(kp, /spawnSync\(process\.execPath, \["--test", CO_TRAN_TEP,/, "phần GitHub (chayNodeTest) mang trần");
+  const ct = readFileSync(new URL("../scripts/chay-test.mjs", import.meta.url), "utf8");
+  assert.match(ct, /\["--test", CO_TRAN_TEP, \.\.\.chinh\]/, "bộ chính của npm test mang trần");
 });

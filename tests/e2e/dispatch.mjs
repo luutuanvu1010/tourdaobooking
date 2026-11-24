@@ -778,7 +778,7 @@ try {
   }
   const mine14 = mineList.find((x) => x.orderId === o14.id);
   assert.equal(mine14.status, "confirmed", "o14 đã xác nhận: trường status phải là 'confirmed'");
-  assert.deepEqual(Object.keys(mine14).sort(), ["customerName", "customerPhone", "orderCode", "orderId", "services", "status", "total"]);
+  assert.deepEqual(Object.keys(mine14).sort(), ["customerName", "customerPhone", "orderCode", "orderId", "services", "status", "total", "traLucCheckin"]); // ADR-0230 Đ2: «Việc của tôi» nhắc đơn «Trả lúc check-in»
   assert.deepEqual(
     Object.keys(mine14.services[0]).sort(),
     ["catalogCode", "checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "editablePaxCodes", "id", "name", "note", "pax", "pickupPlace", "pickupTime"].sort(),

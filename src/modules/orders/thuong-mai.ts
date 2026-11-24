@@ -64,12 +64,16 @@ export interface PhanThuongMai {
   chuaChup: boolean;
   chup: readonly BanChup[];
   /** `pax` = số khách HIỆN HÀNH theo loại (ADR-0133); null = dịch vụ tính theo nhóm/lượt (soKhachTinh là số lượt). */
-  dichVu: readonly { id: string; name: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[];
+  /** `coSoHoaHong` (ADR-0229 Đ10): cơ sở hoa hồng theo tỷ lệ — thành tiền trừ phần tăng giá mùa vụ (`tienChoHoaHong`). */
+  dichVu: readonly { id: string; name: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[];
   ten: ReadonlyMap<string, string>;
   congTyChuId: string | null;
   /** Giảm giá HIỆU LỰC của đơn (`OrderDto.giamGiaHieuLuc`, số do `effectiveMoney` trả — cùng số biên nhận in). Billing dùng để tính trần phần của quầy nhà cung cấp SAU giảm
    *  giá bằng CÙNG hàm chia của biên nhận (`chiaPhanNguoiBan`, Ruling R-154). Không vào DTO thương mại (`dungThuongMai` chép theo danh sách trắng). */
   giamGiaHieuLuc: number;
+  /** Σ phí đưa đón HIỆN HÀNH của đơn (Đợt C, Task 5). KHÔNG vào hoa hồng, chia phần người bán hay trần quầy nhà cung cấp; billing chỉ cộng vào thành tiền trước giảm (`gross`) để
+   *  gross − phải thu = giảm giá hiệu lực. Không vào DTO thương mại. */
+  phiDon: number;
   /** Mã dịch vụ mà bản chụp hiện hành là bản GHI TAY (cột `source = 'MANUAL'`); vắng = không dòng nào. */
   ghiTay?: ReadonlySet<string>;
 }
@@ -106,11 +110,11 @@ export const chuaCoBanChup = (serviceId: string): BanChup => ({ serviceId, benef
  * MỘT công thức `tinhDongDoiTac`; tổng hoa hồng / giá đại lý = null khi còn dòng thiếu mức (không cộng nửa vời, không tự lấy 0).
  */
 /** Tiền từng dòng theo bản chụp (dòng không có bản chụp ⇒ thiếu mức «chưa chụp»): MỘT chỗ gọi `tinhDongDoiTac` cho DTO lẫn tổng hoa hồng của trần giảm giá (Task 7). */
-function tinhCacDong<D extends { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }>(chup: readonly BanChup[], dichVu: readonly D[]) {
+function tinhCacDong<D extends { id: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }>(chup: readonly BanChup[], dichVu: readonly D[]) {
   const theoDichVu = new Map(chup.map((c) => [c.serviceId, c] as const));
   return dichVu.map((dv) => {
     const c = theoDichVu.get(dv.id) ?? chuaCoBanChup(dv.id);
-    return { dv, c, t: tinhDongDoiTac(c, { thanhTien: dv.thanhTien, soKhachTinh: dv.soKhachTinh, pax: dv.pax }) };
+    return { dv, c, t: tinhDongDoiTac(c, { thanhTien: dv.thanhTien, coSoHoaHong: dv.coSoHoaHong, soKhachTinh: dv.soKhachTinh, pax: dv.pax }) };
   });
 }
 
@@ -121,10 +125,10 @@ export const nguoiHuongCuaDon = (chup: readonly BanChup[]): string | null => chu
 /** Bên đặt mang vai bên ngoài không còn được hưởng (dòng thiếu mức `BOOKER_NOT_BENEFICIARY`) — vòng sửa Task 7 (M-1), chọn câu báo riêng. */
 export const benDatKhongHuongDon = (chup: readonly BanChup[]): boolean => chup.some((c) => c.hoaHong.status === "MISSING" && c.hoaHong.reason === "BOOKER_NOT_BENEFICIARY");
 /** Đơn có ÍT NHẤT MỘT dòng hoa hồng lớn hơn thành tiền của dòng (ADR-0161 Đ5) — cùng phép tính dòng với `tongHoaHongDon`, chọn câu báo trần cho đúng. */
-export const coDongVuotDon = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]): boolean =>
+export const coDongVuotDon = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]): boolean =>
   tinhCacDong(chup, dichVu).some((d) => dongVuotThanhTien(d.t));
 /** Dữ liệu trần giảm giá của đơn từ bản chụp + tiền dòng (dòng thiếu mức và dòng vượt thành tiền tính 0 — ADR-0079 điều 8, ADR-0161 Đ5). */
-export const donChoTran = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]) => ({
+export const donChoTran = (chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[]) => ({
   coNguoiHuong: coNguoiHuongDon(chup), tongHoaHong: tongHoaHongDon(chup, dichVu, "tinh0") ?? 0, beneficiaryPartyId: nguoiHuongCuaDon(chup), benDatKhongHuong: benDatKhongHuongDon(chup),
   coDongVuot: coDongVuotDon(chup, dichVu),
 });
@@ -134,7 +138,7 @@ export const donChoTran = (chup: readonly BanChup[], dichVu: readonly { id: stri
  * R-ORD-DC1 — thận trọng, trần chỉ thấp hơn): dòng thiếu mức tính 0 VÀ dòng có hoa hồng lớn hơn thành tiền của dòng cũng tính 0 (ADR-0161 Đ5, `hoaHongTinhTran`); "null" cho CẢNH BÁO
  * (số GỐC của bản chụp, không đoán khi còn dòng thiếu). Chỉ có HAI chế độ — kiểm định kỳ gọi "tinh0" nên tự theo luật trần. Cùng phép tính dòng với DTO phần thương mại (`tinhCacDong`).
  */
-export function tongHoaHongDon(chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[], thieu: "tinh0" | "null"): number | null {
+export function tongHoaHongDon(chup: readonly BanChup[], dichVu: readonly { id: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax: { adult: number; child: number; senior: number } | null }[], thieu: "tinh0" | "null"): number | null {
   const dong = tinhCacDong(chup, dichVu);
   if (thieu === "null" && dong.some((d) => d.t.hoaHong === null)) return null;
   return dong.reduce((s, d) => s + (thieu === "tinh0" ? hoaHongTinhTran(d.t) : (d.t.hoaHong ?? 0)), 0);
@@ -168,11 +172,11 @@ export function dungThuongMai(v: { laDoiTac: boolean; xemNguoiBan: boolean } & P
         const h = c.hoaHong;
         const cu = c.cungUng;
         const d: ThuongMaiDongVanPhong = {
-          serviceId: dv.id, ten: dv.name, thanhTien: dv.thanhTien, soKhachTinh: dv.soKhachTinh,
+          serviceId: dv.id, ten: dv.name, thanhTien: dv.thanhTien, coSoHoaHong: dv.coSoHoaHong, soKhachTinh: dv.soKhachTinh,
           muc: h.status === "SET" ? nhanMuc({ kind: h.kind, rateBp: h.rateBp, perPax: h.perPax, theoLoai: h.theoLoai }) : null,
           hoaHong: t.hoaHong, giaDaiLy: t.giaDaiLy, ghiTay: v.ghiTay?.has(dv.id) ?? false,
           thieu: h.status === "MISSING" ? NHAN_LY_DO_THIEU[h.reason] : null,
-          nguoiBan: cu.status === "SET" ? { ten: v.ten.get(cu.sellerPartyId) ?? HO_SO_KHONG_CON, laCongTy: v.congTyChuId !== null && cu.sellerPartyId === v.congTyChuId } : null,
+          nguoiBan: cu.status === "SET" ? { ten: v.ten.get(cu.sellerPartyId) ?? HO_SO_KHONG_CON, laCongTy: cu.supplierPartyId === null } : null,
         };
         // Tỷ lệ mua lại và giá vốn của nhà cung cấp: chỉ người có `supply.terms.view` (Bán hàng KHÔNG).
         if (v.xemNguoiBan && cu.status === "SET" && cu.supplierPartyId !== null && cu.costRateBp !== null && t.giaVon !== null) d.nhaCungCap = { tyLeMua: nhanTyLeBp(cu.costRateBp), giaVon: t.giaVon };
@@ -209,9 +213,9 @@ function docHoaHongTay(raw: unknown): Ket<NonNullable<ThanGhiTay["hoaHong"]>> {
   return { ok: false, message: "Chọn kiểu mức: tỷ lệ phần trăm hoặc số tiền mỗi khách." };
 }
 function docNguoiBanTay(raw: unknown): Ket<NonNullable<ThanGhiTay["nguoiBan"]>> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Người bán không hợp lệ." };
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Nhà cung cấp không hợp lệ." };
   const b = raw as Record<string, unknown>;
-  if (typeof b.partyId !== "string" || !MA_HO_SO_RE.test(b.partyId)) return { ok: false, message: "Chọn người bán." };
+  if (typeof b.partyId !== "string" || !MA_HO_SO_RE.test(b.partyId)) return { ok: false, message: "Chọn nhà cung cấp." };
   if (!coGiaTri(b.tyLeMuaBp)) return { ok: true, value: { partyId: b.partyId } };
   if (!laPhanVan(b.tyLeMuaBp)) return { ok: false, message: "Tỷ lệ mua lại phải từ 0% tới 100%." };
   return { ok: true, value: { partyId: b.partyId, tyLeMuaBp: b.tyLeMuaBp } };
@@ -235,7 +239,7 @@ export function kiemThanGhiTay(raw: unknown): Ket<ThanGhiTay> {
     if (!n.ok) return n;
     than.nguoiBan = n.value;
   }
-  if (!than.hoaHong && !than.nguoiBan) return { ok: false, message: "Gửi ít nhất một phần: mức hoa hồng hoặc người bán." };
+  if (!than.hoaHong && !than.nguoiBan) return { ok: false, message: "Gửi ít nhất một phần: mức hoa hồng hoặc nhà cung cấp." };
   return { ok: true, value: than };
 }
 
@@ -292,7 +296,7 @@ export function moTaGhiTay(truoc: BanChup, sau: BanChup, tenDichVu: string, ten:
   if (cu.status === "SET" && moi.status === "SET" && cu.sellerPartyId === moi.sellerPartyId) {
     if (cu.costRateBp !== moi.costRateBp) phan.push(`đổi tỷ lệ mua lại của ${tenBen(moi.sellerPartyId)}`);
   } else if (!(cu.status === "MISSING" && moi.status === "MISSING")) {
-    phan.push(`người bán ${cu.status === "SET" ? tenBen(cu.sellerPartyId) : "chưa có"} → ${moi.status === "SET" ? tenBen(moi.sellerPartyId) : "chưa có"}`);
+    phan.push(`nhà cung cấp ${cu.status === "SET" ? tenBen(cu.sellerPartyId) : "chưa có"} → ${moi.status === "SET" ? tenBen(moi.sellerPartyId) : "chưa có"}`);
   }
   const noiDung = phan.length > 0 ? phan.join("; ") : `${sau.hoaHong.status === "SET" ? b : "giữ nguyên"} (đánh dấu ghi tay)`;
   return `${maskLongDigits(tenDichVu)}: ${noiDung}`;

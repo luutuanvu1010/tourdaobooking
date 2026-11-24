@@ -1,9 +1,11 @@
 // SQL của các bảng module parties sở hữu (pty_*). Mọi câu đi qua defineSql (ADR-0002 điều 8(b)) và import bằng đuôi .ts để bài kiểm
 // kiến trúc nạp được tệp này. Câu SQL TĨNH: tham số tuỳ chọn viết `?N IS NULL OR …`; tham số đánh số ?N để dùng lại một giá trị.
 // Đọc địa điểm CHỈ qua view công bố v_loc_location_label (ADR-0008); không đụng bảng loc_* trực tiếp.
+import { O_TEP_TO_CHUC } from "../../shared/dang-ky-o-tep.ts";
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { ContactInput, OrgFields, PersonName, RelationshipInput, RoleInput } from "./rules.ts";
 import type { GioiTinh } from "../../shared/xung-ho.ts";
+import { dkienTuView, tinhDauXacMinh, type DauXacMinh, type DuKienXacMinh } from "../../shared/dau-xac-minh.ts";
 import { composePersonName } from "./rules.ts";
 import type { LoaiTep } from "./tep.ts";
 import type { ChamTaiKhoan, LoaiCham } from "./xac-minh.ts";
@@ -469,7 +471,7 @@ const ROLE_ROW_OF = defineSql(
 const RELATIONSHIP_ENDS = defineSql(
   "parties",
   "relationship_ends",
-  "SELECT from_party_id, to_party_id FROM pty_party_relationship WHERE id = ?1 AND (from_party_id = ?2 OR to_party_id = ?2)",
+  "SELECT from_party_id, to_party_id, relationship_type_code FROM pty_party_relationship WHERE id = ?1 AND (from_party_id = ?2 OR to_party_id = ?2)",
 );
 const REOPEN_ROLE = defineSql(
   "parties",
@@ -505,9 +507,9 @@ export async function roleRowOf(db: D1Database, partyId: string, roleId: string)
   const r = await db.prepare(ROLE_ROW_OF).bind(roleId, partyId).first<{ role_group: string; role_type_code: string }>();
   return r ? { group: r.role_group, code: r.role_type_code } : null;
 }
-export async function relationshipEnds(db: D1Database, partyId: string, relationshipId: string): Promise<{ from: string; to: string } | null> {
-  const r = await db.prepare(RELATIONSHIP_ENDS).bind(relationshipId, partyId).first<{ from_party_id: string; to_party_id: string }>();
-  return r ? { from: r.from_party_id, to: r.to_party_id } : null;
+export async function relationshipEnds(db: D1Database, partyId: string, relationshipId: string): Promise<{ from: string; to: string; typeCode: string } | null> {
+  const r = await db.prepare(RELATIONSHIP_ENDS).bind(relationshipId, partyId).first<{ from_party_id: string; to_party_id: string; relationship_type_code: string }>();
+  return r ? { from: r.from_party_id, to: r.to_party_id, typeCode: r.relationship_type_code } : null;
 }
 export const reopenRoleStatement = (db: D1Database, partyId: string, roleId: string, actorId: string, at: string): D1PreparedStatement =>
   db.prepare(REOPEN_ROLE).bind(roleId, partyId, at, actorId);
@@ -550,6 +552,11 @@ const LIST_DOC_TYPES = defineSql(
   "list_person_document_types",
   "SELECT code, name, has_expiry, sort_order, active, updated_at FROM pty_person_document_type ORDER BY sort_order, code",
 );
+// Danh mục loại giấy tờ của TỔ CHỨC (ADR-0122 đ2) cho phần tổ chức của phiếu đăng ký (ADR-0212 Đ4): mã, tên loại, cờ hạn, cờ bật — không số. Tên để ô «Giấy phép thêm» của biểu mẫu công khai (đợt 2 Task 8).
+const LIST_ORG_DOC_TYPES = defineSql("parties", "list_org_document_types_for_registration", "SELECT code, name, has_expiry, active FROM pty_organization_document_type ORDER BY sort_order, code");
+export async function listOrgDocumentTypes(db: D1Database): Promise<{ code: string; name: string; has_expiry: number; active: number }[]> {
+  return (await db.prepare(LIST_ORG_DOC_TYPES).all<{ code: string; name: string; has_expiry: number; active: number }>()).results;
+}
 const LIST_LICENSE_CLASSES = defineSql("parties", "list_license_classes", "SELECT code, name, sort_order, active, updated_at FROM pty_license_class ORDER BY sort_order, code");
 
 export async function listPersonDocuments(db: D1Database, partyId: string, onlyCurrent: boolean): Promise<PersonDocRow[]> {
@@ -1116,18 +1123,18 @@ export async function listTepChoXoa(db: D1Database, doDangTruoc: string): Promis
 // ---- Chính sách riêng tư + đồng ý + phiếu tự khai (ADR-0124, ADR-0126 đ1; lát H-3 Gói 2) ---------------------------------------------------------------
 // Câu đọc phiếu KHÔNG chọn document_number (số đủ không bao giờ rời CSDL qua đường "của tôi"). Mọi câu chạm pty_self_submission chỉ dùng trong route /api/parties/cua-toi*
 // (rào src/tu-khai-khong-len-nhan.test.ts — Hiến chương 5.23).
-export interface PolicyRow { id: string; version: number; purposes: string; body: string; valid_from_at: string; erasure_days: number | null; session_retention_days: number | null }
+export interface PolicyRow { id: string; version: number; purposes: string; body: string; valid_from_at: string; erasure_days: number | null; session_retention_days: number | null; photo_retention_years: number | null }
 export interface PhieuRow {
   id: string; subject_kind: string; status: string; policy_id: string; birth_date: string | null; address_value: string | null; document_type_code: string | null;
   type_name: string | null; number_key: string | null; license_class_code: string | null; class_name: string | null; issued_date: string | null;
   issued_place: string | null; expiry_date: string | null; created_at: string; decided_at: string | null; da_xoa: number;
 }
 const CURRENT_POLICY = defineSql("parties", "current_privacy_policy",
-  "SELECT id, version, purposes, body, valid_from_at, erasure_days, session_retention_days FROM pty_privacy_policy WHERE valid_from_at <= ?1 ORDER BY version DESC LIMIT 1");
+  "SELECT id, version, purposes, body, valid_from_at, erasure_days, session_retention_days, photo_retention_years FROM pty_privacy_policy WHERE valid_from_at <= ?1 ORDER BY version DESC LIMIT 1");
 const MAX_POLICY_VERSION = defineSql("parties", "max_privacy_policy_version", "SELECT COALESCE(MAX(version), 0) AS v FROM pty_privacy_policy");
 const INSERT_POLICY = defineSql("parties", "insert_privacy_policy",
-  `INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, erasure_days, session_retention_days)
-   VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?5, ?6, ?7, ?8)`);
+  `INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, erasure_days, session_retention_days, covers_org_data, covers_other_files, photo_retention_years)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`);
 // Phiên bản chính sách mà quyết định MỚI NHẤT của hồ sơ là DONG_Y (vòng sửa 1, ruling I-2: rút được mọi phiên bản đang đồng ý, không chỉ bản hiện hành).
 // Cùng khuôn "mới nhất" với trigger 0105 pty_self_submission_consent_ins và bất biến R-PTY-13 (created_at DESC, rowid DESC).
 const CONSENTED_POLICIES = defineSql("parties", "consented_policies_of_party",
@@ -1154,6 +1161,14 @@ export async function hanGiuPhienNgay(db: D1Database, nowIso: string = new Date(
   const r = await db.prepare(HAN_GIU_PHIEN).bind(nowIso).first<{ ngay: number | null }>();
   return r?.ngay ?? null;
 }
+// ADR-0232 Đ2, Đ10 — số năm giữ Ảnh bàn giao của bản chính sách đang hiệu lực (cùng lọc hiệu lực với CURRENT_POLICY; bản mới nhất thắng, kể cả khi rỗng). Gốc lắp ráp
+// tiêm vào ctx.soNamGiuAnh của anh-ban-giao. Rỗng ⇒ bản hiện hành chưa có mục ảnh ⇒ không nhận ảnh mới.
+const SO_NAM_GIU_ANH = defineSql("parties", "privacy_policy_photo_retention_years",
+  "SELECT photo_retention_years AS nam FROM pty_privacy_policy WHERE valid_from_at <= ?1 ORDER BY version DESC LIMIT 1");
+export async function soNamGiuAnh(db: D1Database, nowIso: string = new Date().toISOString()): Promise<number | null> {
+  const r = await db.prepare(SO_NAM_GIU_ANH).bind(nowIso).first<{ nam: number | null }>();
+  return r?.nam ?? null;
+}
 export const chinhSachHienHanh = (db: D1Database, nowIso: string): Promise<PolicyRow | null> => db.prepare(CURRENT_POLICY).bind(nowIso).first<PolicyRow>();
 export async function phienBanLonNhat(db: D1Database): Promise<number> {
   return (await db.prepare(MAX_POLICY_VERSION).first<{ v: number }>())?.v ?? 0;
@@ -1161,8 +1176,8 @@ export async function phienBanLonNhat(db: D1Database): Promise<number> {
 /** `hanXuLyXoaNgay` → cột `erasure_days`, `hanGiuPhienNgay` → `session_retention_days` (ADR-0126 đ2, đ8): null = chưa có số; con số do người đăng nhập, mã không gieo. */
 export const dangChinhSachStatement = (
   db: D1Database,
-  v: { id: string; version: number; mucDich: string; noiDung: string; at: string; actorId: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null },
-): D1PreparedStatement => db.prepare(INSERT_POLICY).bind(v.id, v.version, v.mucDich, v.noiDung, v.at, v.actorId, v.hanXuLyXoaNgay, v.hanGiuPhienNgay);
+  v: { id: string; version: number; mucDich: string; noiDung: string; at: string; actorId: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null; coPhanToChuc: boolean; coTepKhac?: boolean; soNamGiuAnh: number | null },
+): D1PreparedStatement => db.prepare(INSERT_POLICY).bind(v.id, v.version, v.mucDich, v.noiDung, v.at, v.actorId, v.hanXuLyXoaNgay, v.hanGiuPhienNgay, v.coPhanToChuc ? 1 : 0, v.coTepKhac ? 1 : 0, v.soNamGiuAnh);
 export async function phienBanDangDongY(db: D1Database, partyId: string): Promise<{ id: string; version: number }[]> {
   return (await db.prepare(CONSENTED_POLICIES).bind(partyId).all<{ id: string; version: number }>()).results;
 }
@@ -1601,3 +1616,778 @@ export function anDanhStatements(db: D1Database, v: { id: string; partyId: strin
 }
 export const datChoXoaAnhHetGiuStatement = (db: D1Database, v: { tepId: string; actorId: string; at: string; homNay: string }): D1PreparedStatement =>
   db.prepare(DAT_CHO_XOA_ANH_HET_GIU).bind(v.tepId, v.actorId, v.at, v.homNay);
+
+// ---- Tệp chờ của phiếu đăng ký (ADR-0208 Đ1, Đ2, Đ5, Đ7; migration 0171) — bảng pty_registration_attachment. Chỉ parties ghi; khoá kho và băm là N3, không ra DTO/nhật ký. ----
+const INSERT_TEP_CHO = defineSql(
+  "parties",
+  "insert_registration_attachment",
+  `INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9
+   WHERE ?10 IS NULL OR (SELECT count(*) FROM pty_registration_attachment WHERE registration_id = ?2) < ?10`,
+);
+const GO_TEP_CHO_CUA_O = defineSql(
+  "parties",
+  "purge_registration_attachment_slot",
+  `UPDATE pty_registration_attachment SET purged_at = ?3, purge_reason = ?4, content_hash = NULL, updated_at = ?3
+   WHERE registration_id = ?1 AND slot = ?2 AND purged_at IS NULL AND transferred_at IS NULL
+     AND id <> ?5 AND EXISTS (SELECT 1 FROM pty_registration_attachment WHERE id = ?5)`,   // chỉ gỡ tệp cũ KHI tệp mới đã được chèn (trần phiếu có thể từ chối câu chèn)
+);
+// Người đăng ký tự gỡ tệp chờ của MỘT ô (đợt 2 Task 8): chỉ chạy khi câu liền trước trong lô (dòng lịch sử `GO_TEP` của dang-ky, có điều kiện trạng thái phiếu) đã đổi dòng.
+const GO_TEP_CHO_CUA_O_NEU_TRUOC_DOI = defineSql(
+  "parties",
+  "purge_registration_attachment_slot_if_prev",
+  `UPDATE pty_registration_attachment SET purged_at = ?3, purge_reason = ?4, content_hash = NULL, updated_at = ?3
+   WHERE registration_id = ?1 AND slot = ?2 AND purged_at IS NULL AND transferred_at IS NULL AND changes() > 0`,
+);
+export const goTepChoCuaONeuTruocDoiStatement = (db: D1Database, v: { registrationId: string; slot: string; at: string; lyDo: string }): D1PreparedStatement =>
+  db.prepare(GO_TEP_CHO_CUA_O_NEU_TRUOC_DOI).bind(v.registrationId, v.slot, v.at, v.lyDo);
+const GO_TEP_CHO_CUA_PHIEU = defineSql(
+  "parties",
+  "purge_registration_attachment_all",
+  `UPDATE pty_registration_attachment SET purged_at = ?2, purge_reason = ?3, content_hash = NULL, updated_at = ?2
+   WHERE registration_id = ?1 AND purged_at IS NULL AND transferred_at IS NULL`,
+);
+const MARK_TEP_CHO_STORED = defineSql(
+  "parties",
+  "mark_registration_attachment_stored",
+  "UPDATE pty_registration_attachment SET stored_at = ?2, updated_at = ?2 WHERE id = ?1 AND stored_at IS NULL AND purged_at IS NULL",
+);
+const FIND_TEP_CHO_TRUNG = defineSql(
+  "parties",
+  "find_registration_attachment_same_hash",
+  `SELECT id, storage_key, stored_at FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND slot = ?2 AND content_hash = ?3 AND purged_at IS NULL AND transferred_at IS NULL`,
+);
+const DEM_TEP_CHO = defineSql(
+  "parties",
+  "count_registration_attachment",
+  "SELECT count(*) AS n FROM pty_registration_attachment WHERE registration_id = ?1",
+);
+const TEP_CHO_THEO_O = defineSql(
+  "parties",
+  "registration_attachment_by_slot",
+  `SELECT slot, stored_at FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND purged_at IS NULL AND transferred_at IS NULL ORDER BY slot, created_at`,
+);
+const TEP_CHO_DA_GO = defineSql(
+  "parties",
+  "registration_attachment_purged_pending_r2",
+  `SELECT id, storage_key FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND purged_at IS NOT NULL AND r2_deleted_at IS NULL AND transferred_at IS NULL ORDER BY created_at, id`,
+);
+const MARK_TEP_CHO_R2_DELETED = defineSql(
+  "parties",
+  "mark_registration_attachment_r2_deleted",
+  "UPDATE pty_registration_attachment SET r2_deleted_at = ?2, updated_at = ?2 WHERE id = ?1 AND purged_at IS NOT NULL AND r2_deleted_at IS NULL AND transferred_at IS NULL",
+);
+// Ô của phần tổ chức lấy từ MỘT nguồn (src/shared/dang-ky-o-tep.ts, ADR-0233): GPKD, giấy phép thêm, «Tệp khác của tổ chức». Mã ô đã qua khuôn [A-Z0-9_] (CHECK 0171) nên ghép vào câu tĩnh an toàn.
+// Nối lúc duyệt: giấy phép thêm → dòng giấy phép thêm ?6 (chỉ khi có); mọi ô tổ chức khác (GPKD, «Tệp khác của tổ chức») → dòng GPKD ?5 (ADR-0233 Đ2).
+const SQL_O_TO_CHUC = O_TEP_TO_CHUC.map((o) => {
+  if (!/^[A-Z0-9_]+$/.test(o)) throw new Error("mã ô tệp sai khuôn");
+  return `'${o}'`;
+}).join(", ");
+// Lúc duyệt (ADR-0208 Đ5): chèn dòng pty_attachment DÙNG LẠI mã và khoá kho của dòng chờ; nối vào dòng giấy tờ vừa tạo; đánh dấu đã chuyển + băm về rỗng; phần còn lại (chưa lưu) nhận quyết gỡ.
+// Ô của PHẦN TỔ CHỨC (GPKD, GIAY_PHEP_THEM — ADR-0212 Đ4) KHÔNG BAO GIỜ đi về hồ sơ người: ba câu của hồ sơ người lọc chúng ra (nợ Task 5 → Task 7); ba câu `…_org` dưới đây chuyển chúng
+// sang hồ sơ TỔ CHỨC, nối dòng giấy tờ tổ chức đúng loại.
+const CHUYEN_TEP_CHO_CHEN = defineSql(
+  "parties",
+  "transfer_registration_attachment_insert",
+  `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+   SELECT id, ?2, storage_key, content_kind, byte_size, content_hash, stored_at, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN (${SQL_O_TO_CHUC})`,
+);
+const CHUYEN_TEP_CHO_NOI = defineSql(
+  "parties",
+  "transfer_registration_attachment_link",
+  `INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by)
+   SELECT id, 'PERSON_DOCUMENT', ?2, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN (${SQL_O_TO_CHUC})`,
+);
+const CHUYEN_TEP_CHO_DANH_DAU = defineSql(
+  "parties",
+  "transfer_registration_attachment_mark",
+  `UPDATE pty_registration_attachment SET transferred_at = ?2, content_hash = NULL, updated_at = ?2, updated_by = ?3
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN (${SQL_O_TO_CHUC})`,
+);
+// Tệp của phần tổ chức → hồ sơ tổ chức ?2. Ô GPKD nối dòng GPKD ?5; ô GIAY_PHEP_THEM nối dòng giấy phép thêm ?6 — CHỈ khi có dòng đó (không khai giấy phép thêm ⇒ ảnh ở lại, câu gỡ phần còn
+// lại của lô quyết gỡ). Cùng điều kiện ở cả ba câu ⇒ cùng tập dòng.
+const DIEU_KIEN_TEP_TO_CHUC = `registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL
+     AND slot IN (${SQL_O_TO_CHUC}) AND (slot <> 'GIAY_PHEP_THEM' OR ?6 IS NOT NULL)`;
+const CHUYEN_TEP_CHO_CHEN_TO_CHUC = defineSql(
+  "parties",
+  "transfer_registration_attachment_insert_org",
+  `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+   SELECT id, ?2, storage_key, content_kind, byte_size, content_hash, stored_at, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
+   WHERE ${DIEU_KIEN_TEP_TO_CHUC}`,
+);
+const CHUYEN_TEP_CHO_NOI_TO_CHUC = defineSql(
+  "parties",
+  "transfer_registration_attachment_link_org",
+  `INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by)
+   SELECT id, 'ORG_DOCUMENT', CASE slot WHEN 'GIAY_PHEP_THEM' THEN ?6 ELSE ?5 END, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
+   WHERE ${DIEU_KIEN_TEP_TO_CHUC} AND ?2 IS NOT NULL`,
+);
+const CHUYEN_TEP_CHO_DANH_DAU_TO_CHUC = defineSql(
+  "parties",
+  "transfer_registration_attachment_mark_org",
+  `UPDATE pty_registration_attachment SET transferred_at = ?3, content_hash = NULL, updated_at = ?3, updated_by = ?4
+   WHERE ${DIEU_KIEN_TEP_TO_CHUC} AND ?2 IS NOT NULL AND ?5 IS NOT NULL`,
+);
+
+export const insertTepChoStatement = (
+  db: D1Database,
+  v: { id: string; registrationId: string; slot: string; key: string; loai: LoaiTep; kichThuoc: number; bam: string; at: string; actorRef: string; toiDa: number | null },
+): D1PreparedStatement => db.prepare(INSERT_TEP_CHO).bind(v.id, v.registrationId, v.slot, v.key, v.loai, v.kichThuoc, v.bam, v.at, v.actorRef, v.toiDa);
+export const goTepChoCuaOStatement = (db: D1Database, v: { registrationId: string; slot: string; at: string; lyDo: string; tepMoiId: string }): D1PreparedStatement =>
+  db.prepare(GO_TEP_CHO_CUA_O).bind(v.registrationId, v.slot, v.at, v.lyDo, v.tepMoiId);
+export const goTepChoCuaPhieuStatement = (db: D1Database, v: { registrationId: string; at: string; lyDo: string }): D1PreparedStatement =>
+  db.prepare(GO_TEP_CHO_CUA_PHIEU).bind(v.registrationId, v.at, v.lyDo);
+export async function markTepChoStored(db: D1Database, id: string, at: string): Promise<number> {
+  return (await db.prepare(MARK_TEP_CHO_STORED).bind(id, at).run()).meta.changes ?? 0;
+}
+export interface TepChoTrungRow { id: string; storage_key: string; stored_at: string | null }
+export const findTepChoTrung = (db: D1Database, registrationId: string, slot: string, bam: string): Promise<TepChoTrungRow | null> =>
+  db.prepare(FIND_TEP_CHO_TRUNG).bind(registrationId, slot, bam).first<TepChoTrungRow>();
+export async function demTepChoCuaPhieu(db: D1Database, registrationId: string): Promise<number> {
+  return (await db.prepare(DEM_TEP_CHO).bind(registrationId).first<{ n: number }>())?.n ?? 0;
+}
+export async function tepChoTheoO(db: D1Database, registrationId: string): Promise<{ slot: string; stored_at: string | null }[]> {
+  return (await db.prepare(TEP_CHO_THEO_O).bind(registrationId).all<{ slot: string; stored_at: string | null }>()).results;
+}
+export async function tepChoDaGoCanXoaKho(db: D1Database, registrationId: string): Promise<{ id: string; storage_key: string }[]> {
+  return (await db.prepare(TEP_CHO_DA_GO).bind(registrationId).all<{ id: string; storage_key: string }>()).results;
+}
+export async function markTepChoR2Deleted(db: D1Database, id: string, at: string): Promise<number> {
+  return (await db.prepare(MARK_TEP_CHO_R2_DELETED).bind(id, at).run()).meta.changes ?? 0;
+}
+export const chuyenTepChoStatements = (db: D1Database, v: { registrationId: string; partyId: string; documentId: string; approverId: string; at: string }): D1PreparedStatement[] => [
+  db.prepare(CHUYEN_TEP_CHO_CHEN).bind(v.registrationId, v.partyId, v.at, v.approverId),
+  db.prepare(CHUYEN_TEP_CHO_NOI).bind(v.registrationId, v.documentId, v.at, v.approverId),
+  db.prepare(CHUYEN_TEP_CHO_DANH_DAU).bind(v.registrationId, v.at, v.approverId),
+];
+export const chuyenTepChoToChucStatements = (
+  db: D1Database, v: { registrationId: string; orgPartyId: string; gpkdDocId: string; extraDocId: string | null; approverId: string; at: string },
+): D1PreparedStatement[] => {
+  const tham = [v.registrationId, v.orgPartyId, v.at, v.approverId, v.gpkdDocId, v.extraDocId] as const;
+  return [CHUYEN_TEP_CHO_CHEN_TO_CHUC, CHUYEN_TEP_CHO_NOI_TO_CHUC, CHUYEN_TEP_CHO_DANH_DAU_TO_CHUC].map((q) => db.prepare(q).bind(...tham));
+};
+
+// ---- Bước xác minh phiếu đăng ký (ADR-0207 Đ2, ADR-0208 Đ3, ADR-0210 Đ1; đợt 1 Task 6) ----
+const HO_SO_THEO_SO = defineSql(
+  "parties",
+  "party_ids_by_document_number",
+  "SELECT DISTINCT d.party_id AS id FROM pty_person_document d WHERE d.number_key = ?1 AND d.voided_at IS NULL AND d.erased_at IS NULL",
+);
+/** Mã hồ sơ cá nhân đang giữ một dòng giấy tờ CÒN HIỆU LỰC (chưa huỷ, chưa ẩn danh) mang đúng số chuẩn hoá. Chỉ mã, không số. */
+export async function maHoSoTheoSoGiayTo(db: D1Database, numberKey: string): Promise<string[]> {
+  return (await db.prepare(HO_SO_THEO_SO).bind(numberKey).all<{ id: string }>()).results.map((r) => r.id);
+}
+const MUC_XAC_MINH_BAT_BUOC = defineSql(
+  "parties",
+  "verification_requirement_of_kind",
+  "SELECT item_kind, item_code FROM v_pty_verification_requirement WHERE subject_kind = ?1 ORDER BY item_kind, item_code",
+);
+export async function mucXacMinhBatBuocCua(db: D1Database, subjectKind: "PERSON" | "ORGANIZATION"): Promise<{ item_kind: string; item_code: string }[]> {
+  return (await db.prepare(MUC_XAC_MINH_BAT_BUOC).bind(subjectKind).all<{ item_kind: string; item_code: string }>()).results;
+}
+// Dấu xác minh (ADR-0210 Đ2, Đ3): đọc DỮ KIỆN từ view công bố rồi đưa qua hàm thuần dùng chung. Chỉ ba màn của Đ3 gọi hàm này (bài src/dau-xac-minh-chi-de-biet.test.ts canh).
+const DU_KIEN_XAC_MINH = defineSql(
+  "parties",
+  "verification_facts_of_parties",
+  `SELECT party_id, item_kind, item_code, last_outcome, ever_passed, doc_id, expiry_date, is_partner, anonymized
+   FROM v_pty_verification_facts WHERE party_id IN (SELECT value FROM json_each(?1))`,
+);
+/**
+ * Dấu của từng hồ sơ trong `partyIds`. `coTaiKhoan` = tập hồ sơ CÓ tài khoản (do người gọi biết — view không đọc bảng tài khoản); `homNay` = `vnToday` (ngày giờ Việt Nam).
+ * Hồ sơ không có trong CSDL hoặc khách lẻ ⇒ null (không hiện dấu).
+ */
+export async function dauXacMinhTheoHoSo(db: D1Database, partyIds: readonly string[], homNay: string, coTaiKhoan: ReadonlySet<string>): Promise<Map<string, DauXacMinh | null>> {
+  const ids = [...new Set(partyIds)];
+  const kq = new Map<string, DauXacMinh | null>(ids.map((id) => [id, null]));
+  if (ids.length === 0) return kq;
+  const hang = (await db.prepare(DU_KIEN_XAC_MINH).bind(JSON.stringify(ids)).all<Record<string, unknown>>()).results;
+  const theoHoSo = new Map<string, DuKienXacMinh[]>();
+  for (const h of hang) {
+    const id = String(h.party_id);
+    const ds = theoHoSo.get(id) ?? [];
+    ds.push(dkienTuView(h));
+    theoHoSo.set(id, ds);
+  }
+  for (const [id, ds] of theoHoSo) kq.set(id, tinhDauXacMinh(ds, homNay, coTaiKhoan.has(id)));
+  return kq;
+}
+export interface TepChoXemRow { id: string; slot: string; content_kind: string; storage_key: string; stored_at: string | null }
+const TEP_CHO_DE_XEM_DS = defineSql(
+  "parties",
+  "registration_attachment_for_review_list",
+  `SELECT id, slot, content_kind, storage_key, stored_at FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND purged_at IS NULL AND transferred_at IS NULL AND stored_at IS NOT NULL ORDER BY slot, created_at`,
+);
+const TEP_CHO_DE_XEM_MOT = defineSql(
+  "parties",
+  "registration_attachment_for_review_one",
+  `SELECT id, slot, content_kind, storage_key, stored_at FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND id = ?2 AND purged_at IS NULL AND transferred_at IS NULL AND stored_at IS NOT NULL`,
+);
+export async function tepChoDeXemDs(db: D1Database, registrationId: string): Promise<TepChoXemRow[]> {
+  return (await db.prepare(TEP_CHO_DE_XEM_DS).bind(registrationId).all<TepChoXemRow>()).results;
+}
+export const tepChoDeXemMot = (db: D1Database, registrationId: string, id: string): Promise<TepChoXemRow | null> =>
+  db.prepare(TEP_CHO_DE_XEM_MOT).bind(registrationId, id).first<TepChoXemRow>();
+// Gỡ mọi tệp chờ của phiếu CHỈ KHI câu liền trước trong lô đổi đúng dòng (`changes() > 0`): phiếu bị người khác xử lý giữa chừng thì tệp ở lại (Task 6, từ chối).
+const GO_TEP_CHO_CUA_PHIEU_NEU_TRUOC_DOI = defineSql(
+  "parties",
+  "purge_registration_attachment_all_if_prev",
+  `UPDATE pty_registration_attachment SET purged_at = ?2, purge_reason = ?3, content_hash = NULL, updated_at = ?2
+   WHERE registration_id = ?1 AND purged_at IS NULL AND transferred_at IS NULL AND changes() > 0`,
+);
+// Tác nhân dọn phiếu đăng ký (ADR-0208 Đ8 việc 3; đợt 1 Task 9) — quét TOÀN BẢNG, không theo một phiếu:
+// (a) tệp «tải dở dang» quá mốc (chưa lưu, chưa gỡ, chưa chuyển, tạo trước ?1) ⇒ quyết gỡ TAI_LEN_DO_DANG; điều kiện nằm TRONG câu (tệp vừa lưu xong trong khe không bị đụng);
+// (b) mọi tệp đã quyết gỡ mà kho chưa xoá (hàng «chờ xoá» — xoá kho hỏng ở lô trước, hay lần rút thứ hai không chạy lại) ⇒ xoá kho rồi đánh dấu. Không bao giờ chạm dòng đã chuyển.
+const GO_TEP_CHO_DO_DANG = defineSql(
+  "parties",
+  "purge_registration_attachment_stalled",
+  `UPDATE pty_registration_attachment SET purged_at = ?2, purge_reason = 'TAI_LEN_DO_DANG', content_hash = NULL, updated_at = ?2
+   WHERE stored_at IS NULL AND purged_at IS NULL AND transferred_at IS NULL AND created_at <= ?1`,
+);
+const TEP_CHO_CHO_XOA_TOAN_BANG = defineSql(
+  "parties",
+  "registration_attachment_purged_pending_r2_all",
+  `SELECT id, storage_key FROM pty_registration_attachment
+   WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND transferred_at IS NULL ORDER BY purged_at, id LIMIT ?1`,
+);
+export async function goTepChoDoDang(db: D1Database, moc: string, at: string): Promise<number> {
+  return (await db.prepare(GO_TEP_CHO_DO_DANG).bind(moc, at).run()).meta.changes ?? 0;
+}
+export async function tepChoChoXoaToanBang(db: D1Database, toiDa: number): Promise<{ id: string; storage_key: string }[]> {
+  return (await db.prepare(TEP_CHO_CHO_XOA_TOAN_BANG).bind(toiDa).all<{ id: string; storage_key: string }>()).results;
+}
+export const goTepChoCuaPhieuNeuTruocDoiStatement = (db: D1Database, v: { registrationId: string; at: string; lyDo: string }): D1PreparedStatement =>
+  db.prepare(GO_TEP_CHO_CUA_PHIEU_NEU_TRUOC_DOI).bind(v.registrationId, v.at, v.lyDo);
+
+// ---- Lô DUYỆT phiếu đăng ký (ADR-0207 Đ5; đợt 1 Task 8) ----
+// Mọi câu dưới đây là câu CHƯA CHẠY cho lô duyệt do gốc lắp ráp ghép (dang-ky không đọc / ghi bảng pty_*). Mã dòng do người gọi SINH SẴN (dòng xác minh trỏ được tới dòng giấy tờ),
+// giá trị đã đọc từ bản khai bất biến TRƯỚC lô; KHÔNG câu nào đọc kết quả câu khác của lô. Câu chốt của dang-ky (trigger dk_decision_guard) làm hỏng CẢ lô khi phiếu không còn hợp lệ,
+// nên các câu này không mang điều kiện thắng riêng. Câu chèn có `NOT EXISTS` chỉ để KHÔNG chép trùng vào hồ sơ có sẵn (vai đã mở, liên hệ đã có).
+const DK_MO_HO_SO = defineSql("parties", "registration_open_party",
+  "INSERT INTO pty_party (id, party_kind, display_name, active, created_at, created_by, updated_at, updated_by) VALUES (?1, 'PERSON', ?2, 1, ?3, ?4, ?3, ?4)");
+const DK_MO_NGUOI = defineSql("parties", "registration_open_person",
+  `INSERT INTO pty_person (party_id, family_name, middle_name, given_name, gender, birth_date, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7, ?6, ?7)`);
+// Vai với Tour Đảo (không gắn nơi) từ hôm nay; hồ sơ có sẵn đã MỞ đúng vai này thì không chèn (vai đóng trùng ngày ⇒ trigger chồng lấn làm hỏng lô — route báo 409).
+const DK_MO_VAI = defineSql("parties", "registration_open_role",
+  `INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, NULL, ?4, NULL, ?5, ?6, ?5, ?6
+   WHERE NOT EXISTS (SELECT 1 FROM pty_party_role o WHERE o.party_id = ?2 AND o.role_type_code = ?3 AND o.location_id IS NULL AND o.valid_to_date IS NULL)`);
+const DK_NGAY_SINH = defineSql("parties", "registration_set_birth_date",
+  "UPDATE pty_person SET birth_date = ?2, updated_at = ?3, updated_by = ?4 WHERE party_id = ?1");
+// Liên hệ: chỉ chèn khi hồ sơ CHƯA có liên hệ đang mở cùng loại, cùng khoá so; là liên hệ chính khi hồ sơ chưa có liên hệ chính cùng loại (chỉ mục pty_contact_primary_uq).
+const DK_LIEN_HE = defineSql("parties", "registration_add_contact",
+  `INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, label, is_primary, valid_from_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, NULL,
+          CASE WHEN EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = ?2 AND c.contact_kind_code = ?3 AND c.is_primary = 1 AND c.valid_to_date IS NULL) THEN 0 ELSE 1 END,
+          ?6, ?7, ?8, ?7, ?8
+   WHERE NOT EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = ?2 AND c.contact_kind_code = ?3 AND c.value_normalized = ?5 AND c.valid_to_date IS NULL)`);
+// Dòng giấy tờ: hồ sơ có sẵn đã có dòng HIỆN HÀNH cùng loại (GPLX: cùng hạng) thì dòng mới là dòng GIA HẠN — previous_id tính TRONG câu (khuôn ACCEPT_DOCUMENT; dạng VALUES một dòng
+// để bài ranh giới SQL không thấy câu đọc bảng con của module khác). Trigger sẵn có canh số CCCD thuộc đúng một người.
+const DK_GIAY_TO = defineSql("parties", "registration_add_document",
+  `INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, issued_date, issued_place, expiry_date,
+     previous_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9,
+     (SELECT d.id FROM pty_person_document d WHERE d.party_id = ?2 AND d.document_type_code = ?3 AND d.license_class_code IS ?6
+        AND d.voided_at IS NULL AND d.erased_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)
+        ORDER BY d.created_at DESC, d.id DESC LIMIT 1),
+     ?10, ?11, ?10, ?11)`);
+// Dòng xác minh: người tạo = NGƯỜI XÁC MINH, giờ = GIỜ XÁC MINH (ADR-0207 Đ5 câu 5) — không phải người / giờ duyệt. Cờ = Toàn quyền làm cả hai bước (Đ1).
+const DK_XAC_MINH = defineSql("parties", "registration_add_verification",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, 'DA_XAC_MINH', NULL, ?6, ?7, ?8, ?7, ?8)`);
+// HO_TEN chỉ «đạt» khi tên ĐANG CÓ của hồ sơ (ghép họ, đệm, tên theo đúng luật composePersonName: bỏ phần rỗng, nối bằng một dấu cách) BẰNG tên khai ?6 (I2 vòng sửa 1,
+// phương án a). Hồ sơ mới: câu 2 vừa chèn đúng tên khai nên luôn ghi. Gắn hồ sơ có sẵn khác tên: không ghi dòng HO_TEN, không đổi tên hồ sơ.
+const DK_XAC_MINH_TEN = defineSql("parties", "registration_add_name_verification",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, p.party_id, 'ATTRIBUTE', NULL, 'HO_TEN', 'DA_XAC_MINH', NULL, ?3, ?4, ?5, ?4, ?5 FROM pty_person p
+   WHERE p.party_id = ?2 AND COALESCE(NULLIF(p.family_name, '') || ' ', '') || COALESCE(NULLIF(p.middle_name, '') || ' ', '') || p.given_name = ?6`);
+// Dòng đồng ý — câu LUÔN chạy của lô duyệt nên mang LÍNH GÁC TRẠNG THÁI hồ sơ đích (I1 vòng sửa 1): hồ sơ vừa bị ngưng / gộp sau lúc kiểm trước lô ⇒ party_id NULL ⇒ NOT NULL làm hỏng CẢ lô.
+const DK_DONG_Y = defineSql("parties", "registration_add_consent",
+  `INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, (SELECT g.id FROM pty_party g WHERE g.id = ?2 AND g.active = 1 AND g.merged_into_id IS NULL), ?3, 'DONG_Y', ?4, ?5, ?4, ?5)`);
+// Quan hệ giới thiệu, cùng lính gác cho hồ sơ NGƯỜI GIỚI THIỆU (from_party_id NULL ⇒ hỏng cả lô).
+const DK_GIOI_THIEU = defineSql("parties", "registration_add_referral",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, (SELECT g.id FROM pty_party g WHERE g.id = ?2 AND g.active = 1 AND g.merged_into_id IS NULL), ?3, 'REFERRED_BY', ?4, NULL, ?5, ?6, ?5, ?6)`);
+const DK_SO_O_HO_SO_KHAC = defineSql("parties", "registration_cccd_elsewhere",
+  `SELECT 1 AS x FROM pty_person_document d WHERE d.document_type_code = 'CCCD' AND d.number_key = ?1 AND d.voided_at IS NULL AND (?2 IS NULL OR d.party_id <> ?2) LIMIT 1`);
+
+export const dkMoHoSoStatements = (db: D1Database, v: { partyId: string; name: PersonName; gender: string | null; actorId: string; at: string }): D1PreparedStatement[] => [
+  db.prepare(DK_MO_HO_SO).bind(v.partyId, composePersonName(v.name), v.at, v.actorId),
+  db.prepare(DK_MO_NGUOI).bind(v.partyId, v.name.family, v.name.middle, v.name.given, v.gender, v.at, v.actorId),
+];
+export const dkMoVaiStatement = (db: D1Database, v: { id: string; partyId: string; roleCode: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_MO_VAI).bind(v.id, v.partyId, v.roleCode, v.today, v.at, v.actorId);
+export const dkNgaySinhStatement = (db: D1Database, v: { partyId: string; birthDate: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_NGAY_SINH).bind(v.partyId, v.birthDate, v.at, v.actorId);
+export const dkLienHeStatement = (db: D1Database, v: { id: string; partyId: string; kind: string; value: string; valueNormalized: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_LIEN_HE).bind(v.id, v.partyId, v.kind, v.value, v.valueNormalized, v.today, v.at, v.actorId);
+export const dkGiayToStatement = (db: D1Database, v: { id: string; partyId: string; doc: PersonDocValues; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_GIAY_TO).bind(v.id, v.partyId, v.doc.typeCode, v.doc.number, v.doc.numberKey, v.doc.classCode, v.doc.issuedDate, v.doc.issuedPlace, v.doc.expiryDate, v.at, v.actorId);
+export const dkXacMinhStatement = (
+  db: D1Database,
+  v: { id: string; partyId: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT" | "ORG_DOCUMENT"; targetId: string | null; attributeCode: string | null; co: 0 | 1; verifiedBy: string; verifiedAt: string },
+): D1PreparedStatement => db.prepare(DK_XAC_MINH).bind(v.id, v.partyId, v.targetKind, v.targetId, v.attributeCode, v.co, v.verifiedAt, v.verifiedBy);
+export const dkXacMinhTenStatement = (db: D1Database, v: { id: string; partyId: string; tenKhai: string; co: 0 | 1; verifiedBy: string; verifiedAt: string }): D1PreparedStatement =>
+  db.prepare(DK_XAC_MINH_TEN).bind(v.id, v.partyId, v.co, v.verifiedAt, v.verifiedBy, v.tenKhai);
+export const dkDongYStatement = (db: D1Database, v: { id: string; partyId: string; policyId: string; consentedAt: string; staffId: string }): D1PreparedStatement =>
+  db.prepare(DK_DONG_Y).bind(v.id, v.partyId, v.policyId, v.consentedAt, v.staffId);
+export const dkGioiThieuStatement = (db: D1Database, v: { id: string; referrerPartyId: string; partyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_GIOI_THIEU).bind(v.id, v.referrerPartyId, v.partyId, v.today, v.at, v.actorId);
+export async function dkSoCanCuocOHoSoKhac(db: D1Database, numberKey: string, partyId: string | null): Promise<boolean> {
+  return (await db.prepare(DK_SO_O_HO_SO_KHAC).bind(numberKey, partyId).first()) !== null;
+}
+
+// ---- Phần TỔ CHỨC của phiếu đăng ký: đối chiếu Danh bạ tổ chức và kiểm trước lô (ADR-0212 Đ5; đợt 2 Task 6) ----
+// Mã số thuế ở hồ sơ lưu «chữ số, có thể có dấu '-'» (0011); khoá của phiếu là 10 số [+ '-' + 3 số] (`chuanHoaMaSoThue`). So bằng cách bỏ '-' và khoảng trắng CẢ HAI bên.
+// Chỉ trả mã hồ sơ — không mã số thuế, không số GPKD.
+const DK_TO_CHUC_THEO_MST = defineSql("parties", "registration_org_by_tax",
+  `SELECT p.id FROM pty_party p JOIN pty_organization o ON o.party_id = p.id
+   WHERE p.party_kind = 'ORGANIZATION' AND p.active = 1 AND p.merged_into_id IS NULL AND o.tax_code IS NOT NULL
+     AND replace(replace(o.tax_code, '-', ''), ' ', '') = replace(replace(?1, '-', ''), ' ', '')`);
+const DK_TO_CHUC_THEO_GPKD = defineSql("parties", "registration_org_by_gpkd",
+  `SELECT DISTINCT p.id FROM pty_organization_document d JOIN pty_party p ON p.id = d.party_id
+   WHERE d.document_type_code = 'GPKD' AND d.number_key = ?1 AND d.voided_at IS NULL AND p.active = 1 AND p.merged_into_id IS NULL`);
+const DK_TO_CHUC_DE_SO_TEN = defineSql("parties", "registration_orgs_for_name_match",
+  `SELECT p.id, p.display_name, o.legal_name FROM pty_party p LEFT JOIN pty_organization o ON o.party_id = p.id
+   WHERE p.party_kind = 'ORGANIZATION' AND p.active = 1 AND p.merged_into_id IS NULL`);
+// Lưới của trigger pty_organization_document_gpkd_one_org_ins: dòng GPKD chưa huỷ mang khoá này ở hồ sơ KHÁC `?2` (null = mọi hồ sơ), BẤT KỂ hồ sơ đó đang dùng hay không (trigger cũng vậy).
+const DK_GPKD_O_TO_CHUC_KHAC = defineSql("parties", "registration_gpkd_elsewhere",
+  `SELECT 1 AS x FROM pty_organization_document d WHERE d.document_type_code = 'GPKD' AND d.number_key = ?1 AND d.voided_at IS NULL AND (?2 IS NULL OR d.party_id <> ?2) LIMIT 1`);
+// Mã số thuế đã nằm ở hồ sơ tổ chức KHÁC `?2` chưa gộp (ADR-0212 Đ5 mục 4).
+const DK_MST_O_TO_CHUC_KHAC = defineSql("parties", "registration_tax_elsewhere",
+  `SELECT 1 AS x FROM pty_organization o JOIN pty_party p ON p.id = o.party_id
+   WHERE p.merged_into_id IS NULL AND o.tax_code IS NOT NULL AND replace(replace(o.tax_code, '-', ''), ' ', '') = replace(replace(?1, '-', ''), ' ', '') AND (?2 IS NULL OR o.party_id <> ?2) LIMIT 1`);
+// ---- Lô DUYỆT: phần tổ chức (ADR-0212 Đ6; đợt 2 Task 7). Câu CHƯA CHẠY, mã dòng sinh sẵn, giá trị đọc từ bản khai bất biến TRƯỚC lô. ----
+// Hồ sơ tổ chức CÓ SẴN: chỉ điền cột pháp lý đang TRỐNG (người lạ không ghi đè tên pháp lý / mã số thuế / email hoá đơn của một công ty có sẵn — Đ5 mục 3; ruling T7-2). Hồ sơ mới: giá trị
+// đã nằm trong câu chèn hồ sơ (newOrganizationStatements) nên câu này không đổi gì.
+const DK_GIA_TRI_TO_CHUC = defineSql("parties", "registration_org_fill_legal",
+  `UPDATE pty_organization SET legal_name = COALESCE(legal_name, ?2), tax_code = COALESCE(tax_code, ?3), address = COALESCE(address, ?4), invoice_email = COALESCE(invoice_email, ?5),
+          updated_at = ?6, updated_by = ?7
+   WHERE party_id = ?1 AND (legal_name IS NULL AND ?2 IS NOT NULL OR tax_code IS NULL AND ?3 IS NOT NULL OR address IS NULL AND ?4 IS NOT NULL OR invoice_email IS NULL AND ?5 IS NOT NULL)`);
+// Dòng giấy tờ tổ chức: hồ sơ đã có dòng HIỆN HÀNH cùng loại ⇒ dòng mới là dòng GIA HẠN (previous_id tính TRONG câu — khuôn registration_add_document). Trigger một-GPKD-một-tổ-chức là lưới cuối.
+const DK_GIAY_TO_TO_CHUC = defineSql("parties", "registration_add_org_document",
+  `INSERT INTO pty_organization_document (id, party_id, document_type_code, document_number, number_key, issued_date, issued_place, expiry_date, previous_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
+     (SELECT d.id FROM pty_organization_document d WHERE d.party_id = ?2 AND d.document_type_code = ?3 AND d.voided_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM pty_organization_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)
+        ORDER BY d.created_at DESC, d.id DESC LIMIT 1),
+     ?9, ?10, ?9, ?10)`);
+// Dòng xác minh THUỘC TÍNH của tổ chức: chỉ ghi khi giá trị ĐANG CÓ của hồ sơ bằng giá trị khai ?7 (mã số thuế so bỏ '-' và khoảng trắng) — khuôn registration_add_name_verification:
+// gắn hồ sơ có sẵn mang giá trị khác thì không khẳng định gì. Người tạo = người xác minh, giờ = giờ xác minh.
+const DK_XAC_MINH_TO_CHUC = defineSql("parties", "registration_add_org_attribute_verification",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, o.party_id, 'ATTRIBUTE', NULL, ?3, 'DA_XAC_MINH', NULL, ?4, ?5, ?6, ?5, ?6 FROM pty_organization o
+   WHERE o.party_id = ?2 AND ?7 IS NOT NULL
+     AND (CASE ?3 WHEN 'TEN_PHAP_LY' THEN o.legal_name WHEN 'DIA_CHI_TO_CHUC' THEN o.address WHEN 'EMAIL_HOA_DON' THEN o.invoice_email
+            WHEN 'MA_SO_THUE' THEN replace(replace(o.tax_code, '-', ''), ' ', '') END)
+         = (CASE ?3 WHEN 'MA_SO_THUE' THEN replace(replace(?7, '-', ''), ' ', '') ELSE ?7 END)`);
+// «Người liên hệ của» (CONTACT_OF; người → tổ chức). Bỏ qua khi đã có dòng cùng cặp còn hiệu lực từ hôm nay trở đi (chỉ mục pty_relationship_open_uq và trigger chồng lấn ngày sẽ làm hỏng
+// CẢ lô — điều phối PF7). Lính gác: hồ sơ tổ chức hết dùng / gộp ⇒ to_party_id NULL ⇒ hỏng cả lô.
+const DK_LIEN_HE_CUA_TO_CHUC = defineSql("parties", "registration_add_contact_of_org",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, (SELECT g.id FROM pty_party g WHERE g.id = ?3 AND g.party_kind = 'ORGANIZATION' AND g.active = 1 AND g.merged_into_id IS NULL), 'CONTACT_OF', ?4, NULL, ?5, ?6, ?5, ?6
+   WHERE NOT EXISTS (SELECT 1 FROM pty_party_relationship r WHERE r.from_party_id = ?2 AND r.to_party_id = ?3 AND r.relationship_type_code = 'CONTACT_OF'
+                       AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?4))`);
+// «Người quản lý của» (MANAGER_OF; người → tổ chức MỚI sinh trong cùng lô duyệt — ADR-0213 Đ6, mốc B1 Task 13). Lính gác NULL-on-invalid: hồ sơ tổ chức hết dùng / gộp ⇒ to_party_id NULL ⇒
+// hỏng CẢ lô. Lớp cuối: trigger hai đầu (người là hồ sơ cá nhân; tổ chức đang mang vai được hưởng — câu mở vai của tổ chức đứng TRƯỚC), chỉ mục một người quản lý mỗi tổ chức.
+const DK_QUAN_LY_TO_CHUC = defineSql("parties", "registration_add_manager_of_org",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, (SELECT g.id FROM pty_party g WHERE g.id = ?3 AND g.party_kind = 'ORGANIZATION' AND g.active = 1 AND g.merged_into_id IS NULL), 'MANAGER_OF', ?4, NULL, ?5, ?6, ?5, ?6`);
+export const dkQuanLyToChucStatement = (db: D1Database, v: { id: string; personPartyId: string; orgPartyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_QUAN_LY_TO_CHUC).bind(v.id, v.personPartyId, v.orgPartyId, v.today, v.at, v.actorId);
+export interface OrgDocInsert { id: string; typeCode: string; number: string; numberKey: string; issuedDate: string | null; issuedPlace: string | null; expiryDate: string | null }
+export const dkGiaTriToChucStatement = (db: D1Database, v: { partyId: string; legalName: string | null; taxCode: string | null; address: string | null; invoiceEmail: string | null; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_GIA_TRI_TO_CHUC).bind(v.partyId, v.legalName, v.taxCode, v.address, v.invoiceEmail, v.at, v.actorId);
+export const dkGiayToToChucStatement = (db: D1Database, v: { partyId: string; doc: OrgDocInsert; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_GIAY_TO_TO_CHUC).bind(v.doc.id, v.partyId, v.doc.typeCode, v.doc.number, v.doc.numberKey, v.doc.issuedDate, v.doc.issuedPlace, v.doc.expiryDate, v.at, v.actorId);
+export const dkXacMinhToChucStatement = (db: D1Database, v: { id: string; partyId: string; attributeCode: string; giaTriKhai: string | null; co: 0 | 1; verifiedBy: string; verifiedAt: string }): D1PreparedStatement =>
+  db.prepare(DK_XAC_MINH_TO_CHUC).bind(v.id, v.partyId, v.attributeCode, v.co, v.verifiedAt, v.verifiedBy, v.giaTriKhai);
+export const dkLienHeCuaToChucStatement = (db: D1Database, v: { id: string; personPartyId: string; orgPartyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_LIEN_HE_CUA_TO_CHUC).bind(v.id, v.personPartyId, v.orgPartyId, v.today, v.at, v.actorId);
+
+export async function dkToChucTheoMst(db: D1Database, taxKey: string): Promise<string[]> {
+  return (await db.prepare(DK_TO_CHUC_THEO_MST).bind(taxKey).all<{ id: string }>()).results.map((r) => r.id);
+}
+export async function dkToChucTheoGpkd(db: D1Database, gpkdKey: string): Promise<string[]> {
+  return (await db.prepare(DK_TO_CHUC_THEO_GPKD).bind(gpkdKey).all<{ id: string }>()).results.map((r) => r.id);
+}
+export async function dkToChucDeSoTen(db: D1Database): Promise<{ id: string; display_name: string; legal_name: string | null }[]> {
+  return (await db.prepare(DK_TO_CHUC_DE_SO_TEN).all<{ id: string; display_name: string; legal_name: string | null }>()).results;
+}
+export async function dkGpkdOToChucKhac(db: D1Database, gpkdKey: string, partyId: string | null): Promise<boolean> {
+  return (await db.prepare(DK_GPKD_O_TO_CHUC_KHAC).bind(gpkdKey, partyId).first()) !== null;
+}
+export async function dkMstOToChucKhac(db: D1Database, taxKey: string, partyId: string | null): Promise<boolean> {
+  return (await db.prepare(DK_MST_O_TO_CHUC_KHAC).bind(taxKey, partyId).first()) !== null;
+}
+
+// ---- Tổ chức: người quản lý, thành viên, yêu cầu chuyển, thư báo người quản lý cũ (ADR-0213 Đ2.4–Đ2.8, Đ6; mốc B1 Task 10) ---------------------------------------
+// «Vai được hưởng» của tổ chức ở tầng dữ liệu = vai nhóm bên ngoài HOẶC loại đối tác (cùng định nghĩa trigger pty_relationship_org_link_org và bất biến R-TC-4).
+const TC_CO_VAI = (cot: string) => `EXISTS (SELECT 1 FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code
+  WHERE r.party_id = ${cot} AND r.valid_to_date IS NULL AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))`;
+/**
+ * Lính gác của lô tổ chức (NULL-on-invalid trên `valid_from_date` NOT NULL — lô hỏng ở lỗi NOT NULL nhận ra được, trước mọi trigger chồng lấn):
+ * - lệnh CHUYỂN (?gOld khác NULL): dòng người quản lý cũ ?gOld VỪA được CHÍNH lô này đóng với `replaced_by_id` = ?gNew — người khác đã chuyển trước thì sai;
+ * - lệnh GIAO lần đầu (?gOld NULL): tổ chức ?org chưa có người quản lý đang mở.
+ */
+const TC_GAC = (gOld: string, gNew: string, org: string) => `(CASE WHEN ${gOld} IS NULL
+    THEN NOT EXISTS (SELECT 1 FROM pty_party_relationship g WHERE g.to_party_id = ${org} AND g.relationship_type_code = 'MANAGER_OF' AND g.valid_to_date IS NULL)
+    ELSE EXISTS (SELECT 1 FROM pty_party_relationship g WHERE g.id = ${gOld} AND g.to_party_id = ${org} AND g.replaced_by_id = ${gNew}) END)`;
+/** Lỗi lính gác của lô tổ chức (route dịch thành 409 «Người quản lý của tổ chức vừa thay đổi»). */
+export const LOI_GAC_TO_CHUC = /NOT NULL constraint failed: pty_party_relationship\.valid_from_date|UNIQUE constraint failed: pty_party_relationship/;
+
+const TC_HO_SO = defineSql(
+  "parties",
+  "tc_ho_so",
+  `SELECT p.id, p.party_kind, p.display_name, p.active, p.merged_into_id, ${TC_CO_VAI("p.id")} AS co_vai FROM pty_party p WHERE p.id = ?1`,
+);
+export interface TcHoSo { id: string; kind: string; ten: string; active: boolean; daGop: boolean; coVaiDoiTac: boolean }
+export async function tcHoSo(db: D1Database, id: string): Promise<TcHoSo | null> {
+  const r = await db.prepare(TC_HO_SO).bind(id).first<{ id: string; party_kind: string; display_name: string; active: number; merged_into_id: string | null; co_vai: number }>();
+  return r ? { id: r.id, kind: r.party_kind, ten: r.display_name, active: r.active === 1, daGop: r.merged_into_id !== null, coVaiDoiTac: r.co_vai === 1 } : null;
+}
+
+const TC_LIEN_KET_MO = defineSql(
+  "parties",
+  "tc_lien_ket_mo",
+  `SELECT r.id, r.from_party_id, r.relationship_type_code, r.valid_from_date, p.display_name FROM pty_party_relationship r JOIN pty_party p ON p.id = r.from_party_id
+   WHERE r.to_party_id = ?1 AND r.relationship_type_code IN ('MANAGER_OF', 'MEMBER_OF') AND r.valid_to_date IS NULL
+   ORDER BY r.relationship_type_code, p.display_name, r.id`,
+);
+export interface TcLienKet { id: string; personPartyId: string; loai: "MANAGER_OF" | "MEMBER_OF"; tuNgay: string; ten: string }
+export async function tcLienKetMo(db: D1Database, org: string): Promise<TcLienKet[]> {
+  const { results } = await db.prepare(TC_LIEN_KET_MO).bind(org).all<{ id: string; from_party_id: string; relationship_type_code: "MANAGER_OF" | "MEMBER_OF"; valid_from_date: string; display_name: string }>();
+  return results.map((r) => ({ id: r.id, personPartyId: r.from_party_id, loai: r.relationship_type_code, tuNgay: r.valid_from_date, ten: r.display_name }));
+}
+
+// Tổ chức mà MỘT người đang gắn (ADR-0213 Đ3.1; Task 11): nguồn danh sách «Tư cách». Chỉ ứng viên — gốc lắp ráp lọc lại bằng `nguoiQuanLyCoHieuLuc` (Đ2.8, một định nghĩa)
+// và vai được hưởng của tổ chức (pricing). Không đọc tài khoản (parties không đọc bảng staff).
+const TC_TO_CHUC_CUA_NGUOI = defineSql(
+  "parties",
+  "tc_to_chuc_cua_nguoi",
+  `SELECT r.to_party_id, r.relationship_type_code FROM pty_party_relationship r
+   WHERE r.from_party_id = ?1 AND r.relationship_type_code IN ('MANAGER_OF', 'MEMBER_OF') AND r.valid_to_date IS NULL
+   ORDER BY r.to_party_id`,
+);
+export async function tcToChucCuaNguoi(db: D1Database, person: string): Promise<{ orgPartyId: string; loai: "MANAGER_OF" | "MEMBER_OF" }[]> {
+  const { results } = await db.prepare(TC_TO_CHUC_CUA_NGUOI).bind(person).all<{ to_party_id: string; relationship_type_code: "MANAGER_OF" | "MEMBER_OF" }>();
+  return results.map((r) => ({ orgPartyId: r.to_party_id, loai: r.relationship_type_code }));
+}
+
+// ---- Chế độ thành viên của tổ chức (ADR-0213 Đ8.2, Đ8.3; mốc B2 Task 16) — bảng chỉ thêm pty_org_member_mode. Hiện hành = dòng mới nhất có valid_from_at <= ?2; không dòng ⇒ null
+// (nơi gọi hiểu là «Soạn và gửi», mặc định Đ8.2). ?1 tổ chức, ?2 lúc xét.
+const TC_CHE_DO = defineSql(
+  "parties",
+  "tc_che_do",
+  `SELECT mode FROM pty_org_member_mode WHERE org_party_id = ?1 AND valid_from_at <= ?2 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+export async function tcCheDo(db: D1Database, org: string, luc: string): Promise<"CHI_SOAN" | "SOAN_VA_GUI" | null> {
+  return (await db.prepare(TC_CHE_DO).bind(org, luc).first<{ mode: "CHI_SOAN" | "SOAN_VA_GUI" }>())?.mode ?? null;
+}
+// Mốc mới nhất của chế độ thành viên (để dòng sau đi sau dòng trước). ?1 tổ chức.
+const TC_CHE_DO_MOC = defineSql("parties", "tc_che_do_moc", "SELECT MAX(valid_from_at) AS moc FROM pty_org_member_mode WHERE org_party_id = ?1");
+export async function tcCheDoMoc(db: D1Database, org: string): Promise<string | null> {
+  return (await db.prepare(TC_CHE_DO_MOC).bind(org).first<{ moc: string | null }>())?.moc ?? null;
+}
+// Dòng chế độ mới. ?1 id, ?2 tổ chức, ?3 chế độ, ?4 hiệu lực từ, ?5 lúc ghi, ?6 người làm. Va UNIQUE(org, valid_from_at) ⇒ người gọi trả 409 (hai lần đổi cùng lúc).
+const TC_DAT_CHE_DO = defineSql(
+  "parties",
+  "tc_dat_che_do",
+  `INSERT INTO pty_org_member_mode (id, org_party_id, mode, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)`,
+);
+export const tcDatCheDoStatement = (db: D1Database, v: { id: string; org: string; cheDo: "CHI_SOAN" | "SOAN_VA_GUI"; tu: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(TC_DAT_CHE_DO).bind(v.id, v.org, v.cheDo, v.tu, v.at, v.by);
+
+// Liên kết của tổ chức đã đóng TỪ ngày ?2 trở đi — lệnh mở lại cùng loại cho cùng người trong ngày đó sẽ vướng trigger chống chồng lấn (Đ2.9); route báo trước lô.
+const TC_DONG_TU_NGAY = defineSql(
+  "parties",
+  "tc_dong_tu_ngay",
+  `SELECT from_party_id, relationship_type_code FROM pty_party_relationship
+   WHERE to_party_id = ?1 AND relationship_type_code IN ('MANAGER_OF', 'MEMBER_OF') AND valid_to_date IS NOT NULL AND valid_to_date >= ?2`,
+);
+export async function tcLienKetDongTuNgay(db: D1Database, org: string, ngay: string): Promise<{ personPartyId: string; loai: string }[]> {
+  const { results } = await db.prepare(TC_DONG_TU_NGAY).bind(org, ngay).all<{ from_party_id: string; relationship_type_code: string }>();
+  return results.map((r) => ({ personPartyId: r.from_party_id, loai: r.relationship_type_code }));
+}
+
+const TC_YEU_CAU_MO = defineSql(
+  "parties",
+  "tc_yeu_cau_mo",
+  `SELECT q.id, q.proposed_person_party_id, p.display_name, q.created_at FROM pty_org_transfer_request q JOIN pty_party p ON p.id = q.proposed_person_party_id
+   WHERE q.org_party_id = ?1 AND q.status = 'MO' ORDER BY q.created_at, q.id`,
+);
+export async function tcYeuCauMo(db: D1Database, org: string): Promise<{ id: string; personPartyId: string; ten: string; luc: string }[]> {
+  const { results } = await db.prepare(TC_YEU_CAU_MO).bind(org).all<{ id: string; proposed_person_party_id: string; display_name: string; created_at: string }>();
+  return results.map((r) => ({ id: r.id, personPartyId: r.proposed_person_party_id, ten: r.display_name, luc: r.created_at }));
+}
+
+// Thư báo người quản lý cũ mới nhất của tổ chức (Ruling R5: trạng thái nằm trên dòng MANAGER_OF vừa đóng).
+const TC_THU_MOI_NHAT = defineSql(
+  "parties",
+  "tc_thu_moi_nhat",
+  `SELECT id, from_party_id, notice_state, valid_to_date FROM pty_party_relationship
+   WHERE to_party_id = ?1 AND relationship_type_code = 'MANAGER_OF' AND notice_state IS NOT NULL ORDER BY valid_to_date DESC, updated_at DESC, id LIMIT 1`,
+);
+export async function tcThuMoiNhat(db: D1Database, org: string): Promise<{ relationshipId: string; personPartyId: string; trangThai: "CHO" | "DA_GUI" | "KHONG_EMAIL"; ngay: string } | null> {
+  const r = await db.prepare(TC_THU_MOI_NHAT).bind(org).first<{ id: string; from_party_id: string; notice_state: "CHO" | "DA_GUI" | "KHONG_EMAIL"; valid_to_date: string }>();
+  return r ? { relationshipId: r.id, personPartyId: r.from_party_id, trangThai: r.notice_state, ngay: r.valid_to_date } : null;
+}
+
+// Email liên hệ đang mở của một hồ sơ (chỉ để GỬI thư báo — không bao giờ vào nhật ký, DTO, câu lỗi, log).
+const TC_EMAIL = defineSql(
+  "parties",
+  "tc_email",
+  `SELECT value FROM pty_contact_point WHERE party_id = ?1 AND contact_kind_code = 'EMAIL' AND valid_to_date IS NULL ORDER BY is_primary DESC, valid_from_date DESC, id LIMIT 1`,
+);
+export async function tcEmailCua(db: D1Database, partyId: string): Promise<string | null> {
+  return (await db.prepare(TC_EMAIL).bind(partyId).first<{ value: string }>())?.value ?? null;
+}
+
+// Người quản lý đang mở + hai vế của «có hiệu lực» mà parties tự trả lời (hồ sơ chưa gộp, tổ chức còn vai). Vế tài khoản do gốc lắp ráp hỏi staff.
+const TC_QUAN_LY_MO = defineSql(
+  "parties",
+  "tc_quan_ly_mo",
+  `SELECT r.from_party_id, pp.merged_into_id, ${TC_CO_VAI("r.to_party_id")} AS co_vai
+   FROM pty_party_relationship r JOIN pty_party pp ON pp.id = r.from_party_id
+   WHERE r.to_party_id = ?1 AND r.relationship_type_code = 'MANAGER_OF' AND r.valid_to_date IS NULL`,
+);
+export async function tcQuanLyMo(db: D1Database, org: string): Promise<{ personPartyId: string; daGop: boolean; toChucCoVai: boolean } | null> {
+  const r = await db.prepare(TC_QUAN_LY_MO).bind(org).first<{ from_party_id: string; merged_into_id: string | null; co_vai: number }>();
+  return r ? { personPartyId: r.from_party_id, daGop: r.merged_into_id !== null, toChucCoVai: r.co_vai === 1 } : null;
+}
+
+// ---- Câu ghi (chưa chạy) ----
+// Đóng người quản lý đang mở. ?1 id, ?2 tổ chức, ?3 ngày, ?4 replaced_by_id (NULL khi gỡ), ?5 notice_state (NULL khi gỡ), ?6 lúc, ?7 người
+const TC_DONG_QUAN_LY = defineSql(
+  "parties",
+  "tc_dong_quan_ly",
+  `UPDATE pty_party_relationship SET valid_to_date = ?3, replaced_by_id = ?4, notice_state = ?5, updated_at = ?6, updated_by = ?7
+   WHERE id = ?1 AND to_party_id = ?2 AND relationship_type_code = 'MANAGER_OF' AND valid_to_date IS NULL`,
+);
+export const tcDongQuanLyStatement = (db: D1Database, v: { id: string; org: string; ngay: string; thay: string | null; thu: "CHO" | "KHONG_EMAIL" | null; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(TC_DONG_QUAN_LY).bind(v.id, v.org, v.ngay, v.thay, v.thu, v.at, v.by);
+
+// Đóng một thành viên đang mở. ?1 id, ?2 tổ chức, ?3 ngày, ?4 lúc, ?5 người
+const TC_DONG_THANH_VIEN = defineSql(
+  "parties",
+  "tc_dong_thanh_vien",
+  `UPDATE pty_party_relationship SET valid_to_date = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND to_party_id = ?2 AND relationship_type_code = 'MEMBER_OF' AND valid_to_date IS NULL`,
+);
+export const tcDongThanhVienStatement = (db: D1Database, v: { id: string; org: string; ngay: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(TC_DONG_THANH_VIEN).bind(v.id, v.org, v.ngay, v.at, v.by);
+
+// Như trên, có lính gác của lô giao / chuyển (người mới đang là thành viên). ?6 gOld, ?7 gNew
+const TC_DONG_THANH_VIEN_GAC = defineSql(
+  "parties",
+  "tc_dong_thanh_vien_gac",
+  `UPDATE pty_party_relationship SET valid_to_date = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND to_party_id = ?2 AND relationship_type_code = 'MEMBER_OF' AND valid_to_date IS NULL AND ${TC_GAC("?6", "?7", "?2")}`,
+);
+export const tcDongThanhVienGacStatement = (db: D1Database, v: { id: string; org: string; ngay: string; at: string; by: string; gOld: string | null; gNew: string }): D1PreparedStatement =>
+  db.prepare(TC_DONG_THANH_VIEN_GAC).bind(v.id, v.org, v.ngay, v.at, v.by, v.gOld, v.gNew);
+
+// Mở một liên kết (mã dòng sinh sẵn). Lính gác NULL-on-invalid ở valid_from_date. ?1 id, ?2 người, ?3 tổ chức, ?4 loại, ?5 ngày, ?6 gOld, ?7 gNew, ?8 lúc, ?9 người làm
+const TC_MO_LIEN_KET = defineSql(
+  "parties",
+  "tc_mo_lien_ket",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, CASE WHEN ${TC_GAC("?6", "?7", "?3")} THEN ?5 ELSE NULL END, NULL, ?8, ?9, ?8, ?9`,
+);
+export const tcMoLienKetStatement = (
+  db: D1Database, v: { id: string; person: string; org: string; loai: "MANAGER_OF" | "MEMBER_OF"; ngay: string; gOld: string | null; gNew: string; at: string; by: string },
+): D1PreparedStatement => db.prepare(TC_MO_LIEN_KET).bind(v.id, v.person, v.org, v.loai, v.ngay, v.gOld, v.gNew, v.at, v.by);
+
+// Yêu cầu chuyển đang mở của tổ chức → Đã xử lý (lệnh giao / chuyển của văn phòng). ?1 tổ chức, ?2 lúc, ?3 người
+const TC_DONG_YEU_CAU = defineSql(
+  "parties",
+  "tc_dong_yeu_cau",
+  `UPDATE pty_org_transfer_request SET status = 'DA_XU_LY', closed_at = ?2, closed_by = ?3, updated_at = ?2, updated_by = ?3 WHERE org_party_id = ?1 AND status = 'MO'`,
+);
+export const tcDongYeuCauStatement = (db: D1Database, org: string, at: string, by: string): D1PreparedStatement => db.prepare(TC_DONG_YEU_CAU).bind(org, at, by);
+
+// Yêu cầu chuyển mới — chỉ khi tổ chức chưa có yêu cầu đang mở. ?1 id, ?2 tổ chức, ?3 tài khoản gửi, ?4 người đề xuất, ?5 lúc
+const TC_TAO_YEU_CAU = defineSql(
+  "parties",
+  "tc_tao_yeu_cau",
+  `INSERT INTO pty_org_transfer_request (id, org_party_id, requested_by_staff_id, proposed_person_party_id, status, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, 'MO', ?5, ?3, ?5, ?3 WHERE NOT EXISTS (SELECT 1 FROM pty_org_transfer_request q WHERE q.org_party_id = ?2 AND q.status = 'MO')`,
+);
+export const tcTaoYeuCauStatement = (db: D1Database, v: { id: string; org: string; staffId: string; person: string; at: string }): D1PreparedStatement =>
+  db.prepare(TC_TAO_YEU_CAU).bind(v.id, v.org, v.staffId, v.person, v.at);
+
+// Thư đã gửi: CHO → DA_GUI (một câu sau khi gửi xong; dòng không còn CHO thì không đổi). ?1 id, ?2 lúc
+const TC_DAT_DA_GUI = defineSql(
+  "parties",
+  "tc_dat_da_gui",
+  `UPDATE pty_party_relationship SET notice_state = 'DA_GUI', updated_at = ?2 WHERE id = ?1 AND notice_state = 'CHO'`,
+);
+export async function tcDatThuDaGui(db: D1Database, id: string, at: string): Promise<void> {
+  await db.prepare(TC_DAT_DA_GUI).bind(id, at).run();
+}
+
+// ---- Lời mời vào tổ chức (ADR-0213 Đ7; mốc B2 Task 15) ----------------------------------------------------------------------------------------------------
+// Bảng pty_org_invite (migration 0176). Mã 8 ký tự không bao giờ vào đây — chỉ code_hash. phone_key không bao giờ ra DTO, nhật ký, câu báo (chỉ để so).
+// «Đang mở» của một tổ chức = MO còn hạn hoặc GIU_CHO_PHIEU (lời mời đang giữ cho phiếu không hết hạn). Ngày tính trần = ngày Việt Nam (mốc đầu ngày do route truyền vào, ISO UTC).
+const LM_CHINH_SACH = defineSql(
+  "parties",
+  "lm_chinh_sach",
+  `SELECT per_org_per_day, open_per_org, per_phone_per_day, code_days, wrong_per_hour FROM pty_org_invite_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC, id DESC LIMIT 1`,
+);
+export interface LmChinhSach { per_org_per_day: number; open_per_org: number; per_phone_per_day: number; code_days: number; wrong_per_hour: number }
+export const lmChinhSach = (db: D1Database, at: string): Promise<LmChinhSach | null> => db.prepare(LM_CHINH_SACH).bind(at).first<LmChinhSach>();
+
+const LM_DEM_TO_CHUC_NGAY = (org: string, dauNgay: string) => `(SELECT COUNT(*) FROM pty_org_invite d WHERE d.org_party_id = ${org} AND d.created_at >= ${dauNgay})`;
+const LM_DEM_TO_CHUC_MO = (org: string, at: string) => `(SELECT COUNT(*) FROM pty_org_invite d WHERE d.org_party_id = ${org} AND (d.status = 'GIU_CHO_PHIEU' OR (d.status = 'MO' AND d.expires_at > ${at})))`;
+const LM_DEM_SO_NGAY = (so: string, dauNgay: string) => `(SELECT COUNT(*) FROM pty_org_invite d WHERE d.phone_key = ${so} AND d.created_at >= ${dauNgay})`;
+// Tạo lời mời: trần NẰM TRONG câu (hai lệnh song song không vượt trần). ?1 id, ?2 tổ chức, ?3 số chuẩn hoá, ?4 băm mã, ?5 hạn, ?6 lúc, ?7 người tạo, ?8 đầu ngày VN (ISO UTC)
+const LM_TAO = defineSql(
+  "parties",
+  "lm_tao",
+  `INSERT INTO pty_org_invite (id, org_party_id, phone_key, code_hash, status, expires_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, 'MO', ?5, ?6, ?7, ?6, ?7 FROM pty_org_invite_policy c
+   WHERE c.id = (SELECT id FROM pty_org_invite_policy WHERE valid_from_at <= ?6 ORDER BY valid_from_at DESC, id DESC LIMIT 1)
+     AND ${LM_DEM_TO_CHUC_NGAY("?2", "?8")} < c.per_org_per_day AND ${LM_DEM_TO_CHUC_MO("?2", "?6")} < c.open_per_org AND ${LM_DEM_SO_NGAY("?3", "?8")} < c.per_phone_per_day`,
+);
+export const lmTaoStatement = (
+  db: D1Database, v: { id: string; org: string; phoneKey: string; codeHash: string; expiresAt: string; at: string; by: string; dauNgay: string },
+): D1PreparedStatement => db.prepare(LM_TAO).bind(v.id, v.org, v.phoneKey, v.codeHash, v.expiresAt, v.at, v.by, v.dauNgay);
+
+// Ba số đếm của trần — đọc SAU khi câu tạo khớp 0 dòng, để chọn câu trả lời (409 nói thật / 429 trung tính). CÙNG biểu thức với câu tạo. ?1 tổ chức, ?2 số, ?3 lúc, ?4 đầu ngày
+const LM_DEM = defineSql(
+  "parties",
+  "lm_dem",
+  `SELECT ${LM_DEM_TO_CHUC_NGAY("?1", "?4")} AS to_chuc_ngay, ${LM_DEM_TO_CHUC_MO("?1", "?3")} AS to_chuc_mo, ${LM_DEM_SO_NGAY("?2", "?4")} AS so_ngay`,
+);
+export async function lmDem(db: D1Database, v: { org: string; phoneKey: string; at: string; dauNgay: string }): Promise<{ toChucNgay: number; toChucMo: number; soNgay: number }> {
+  const r = await db.prepare(LM_DEM).bind(v.org, v.phoneKey, v.at, v.dauNgay).first<{ to_chuc_ngay: number; to_chuc_mo: number; so_ngay: number }>();
+  return { toChucNgay: Number(r?.to_chuc_ngay ?? 0), toChucMo: Number(r?.to_chuc_mo ?? 0), soNgay: Number(r?.so_ngay ?? 0) };
+}
+
+const LM_COT = `i.id, i.org_party_id, i.phone_key, i.status, i.expires_at, i.held_registration_id, i.created_by, i.created_at, p.display_name AS org_name`;
+export interface LmDong {
+  id: string; org_party_id: string; phone_key: string; status: "MO" | "GIU_CHO_PHIEU" | "DA_DUNG" | "DA_HUY" | "HET_HAN"; expires_at: string; held_registration_id: string | null;
+  created_by: string | null; created_at: string; org_name: string;
+}
+const LM_THEO_BAM = defineSql("parties", "lm_theo_bam", `SELECT ${LM_COT} FROM pty_org_invite i JOIN pty_party p ON p.id = i.org_party_id WHERE i.code_hash = ?1`);
+export const lmTheoBam = (db: D1Database, hash: string): Promise<LmDong | null> => db.prepare(LM_THEO_BAM).bind(hash).first<LmDong>();
+const LM_THEO_ID = defineSql("parties", "lm_theo_id", `SELECT ${LM_COT} FROM pty_org_invite i JOIN pty_party p ON p.id = i.org_party_id WHERE i.id = ?1`);
+export const lmTheoId = (db: D1Database, id: string): Promise<LmDong | null> => db.prepare(LM_THEO_ID).bind(id).first<LmDong>();
+
+// Lời mời còn dùng được của MỘT tổ chức (màn tổ chức: mã định danh, trạng thái, hạn — không số điện thoại).
+const LM_CUA_TO_CHUC = defineSql(
+  "parties",
+  "lm_cua_to_chuc",
+  `SELECT id, status, expires_at, created_at FROM pty_org_invite WHERE org_party_id = ?1 AND (status = 'GIU_CHO_PHIEU' OR (status = 'MO' AND expires_at > ?2)) ORDER BY created_at DESC, id`,
+);
+export async function lmCuaToChuc(db: D1Database, org: string, at: string): Promise<{ id: string; trangThai: "MO" | "GIU_CHO_PHIEU"; hetHan: string; taoLuc: string }[]> {
+  const { results } = await db.prepare(LM_CUA_TO_CHUC).bind(org, at).all<{ id: string; status: "MO" | "GIU_CHO_PHIEU"; expires_at: string; created_at: string }>();
+  return results.map((r) => ({ id: r.id, trangThai: r.status, hetHan: r.expires_at, taoLuc: r.created_at }));
+}
+// Lời mời MỞ còn hạn gửi tới MỘT số (người được mời xem của chính mình — Đ7.4).
+const LM_CUA_SO = defineSql(
+  "parties",
+  "lm_cua_so",
+  `SELECT i.id, i.org_party_id, i.expires_at, p.display_name AS org_name FROM pty_org_invite i JOIN pty_party p ON p.id = i.org_party_id
+   WHERE i.phone_key = ?1 AND i.status = 'MO' AND i.expires_at > ?2 ORDER BY i.created_at DESC, i.id`,
+);
+export async function lmCuaSo(db: D1Database, phoneKey: string, at: string): Promise<{ id: string; orgPartyId: string; tenToChuc: string; hetHan: string }[]> {
+  const { results } = await db.prepare(LM_CUA_SO).bind(phoneKey, at).all<{ id: string; org_party_id: string; expires_at: string; org_name: string }>();
+  return results.map((r) => ({ id: r.id, orgPartyId: r.org_party_id, tenToChuc: r.org_name, hetHan: r.expires_at }));
+}
+
+// ---- Câu ghi (chưa chạy) ----
+// Huỷ lời mời còn mở / đang giữ (người mời hoặc văn phòng). ?1 id, ?2 tổ chức, ?3 lúc, ?4 người
+const LM_HUY = defineSql(
+  "parties",
+  "lm_huy",
+  `UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = ?4, cancelled_at = ?3, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND org_party_id = ?2 AND status IN ('MO', 'GIU_CHO_PHIEU')`,
+);
+export const lmHuyStatement = (db: D1Database, v: { id: string; org: string; at: string; by: string }): D1PreparedStatement => db.prepare(LM_HUY).bind(v.id, v.org, v.at, v.by);
+
+/** Lỗi lính gác của lô lời mời: lời mời vừa đổi giữa lúc đọc và lúc ghi (NULL-on-invalid trên cột status NOT NULL — cả lô hỏng). */
+export const LOI_GAC_LOI_MOI = /NOT NULL constraint failed: pty_org_invite\.status/;
+// Lính gác NULL-on-invalid: CHỈ cột status nhận NULL khi không hợp lệ; mọi cột khác giữ nguyên giá trị cũ trong trường hợp đó (để trigger hình dạng không bắn trước — lỗi luôn là
+// «NOT NULL constraint failed: pty_org_invite.status», route nhận ra bằng LOI_GAC_LOI_MOI).
+const LM_GIU_HOP_LE = `((status = 'MO' OR (status = 'GIU_CHO_PHIEU' AND held_registration_id = ?2)) AND expires_at > ?4 AND phone_key = ?3)`;
+const LM_DUNG_HOP_LE = `(status = 'MO' AND expires_at > ?4 AND phone_key = ?2)`;
+const LM_DUNG_PHIEU_HOP_LE = `(status = 'GIU_CHO_PHIEU' AND held_registration_id = ?2 AND phone_key = ?3)`;
+// Giữ chỗ cho phiếu lúc GỬI (Đ7.5). Lính gác NULL-on-invalid: lời mời không còn mở (hoặc không đang giữ cho chính phiếu này), quá hạn, khác số ⇒ status NULL ⇒ cả lô gửi hỏng.
+// ?1 id, ?2 phiếu, ?3 số của bản khai, ?4 lúc
+const LM_GIU_CHO = defineSql(
+  "parties",
+  "lm_giu_cho",
+  `UPDATE pty_org_invite SET
+     status = CASE WHEN ${LM_GIU_HOP_LE} THEN 'GIU_CHO_PHIEU' ELSE NULL END,
+     held_registration_id = CASE WHEN ${LM_GIU_HOP_LE} THEN ?2 ELSE held_registration_id END, updated_at = ?4, updated_by = NULL
+   WHERE id = ?1`,
+);
+export const lmGiuChoStatement = (db: D1Database, v: { id: string; registrationId: string; phoneKey: string; at: string }): D1PreparedStatement =>
+  db.prepare(LM_GIU_CHO).bind(v.id, v.registrationId, v.phoneKey, v.at);
+// Bỏ giữ chỗ (phiếu kết thúc không duyệt, bản khai đổi số): về MỞ nếu còn hạn, HẾT HẠN nếu đã quá. Chỉ lời mời ĐANG giữ cho đúng phiếu này. ?1 id, ?2 phiếu, ?3 lúc, ?4 người làm
+const LM_BO_GIU = defineSql(
+  "parties",
+  "lm_bo_giu",
+  `UPDATE pty_org_invite SET status = CASE WHEN expires_at > ?3 THEN 'MO' ELSE 'HET_HAN' END, held_registration_id = NULL, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND held_registration_id = ?2 AND status = 'GIU_CHO_PHIEU'`,
+);
+export const lmBoGiuStatement = (db: D1Database, v: { id: string; registrationId: string; at: string; by: string | null }): D1PreparedStatement =>
+  db.prepare(LM_BO_GIU).bind(v.id, v.registrationId, v.at, v.by);
+// Người đã có tài khoản nhận lời mời (Đ7.4). Lính gác NULL-on-invalid: còn MỞ, còn hạn, số trùng số đăng nhập. ?1 id, ?2 số đăng nhập, ?3 tài khoản, ?4 lúc
+const LM_DUNG = defineSql(
+  "parties",
+  "lm_dung",
+  `UPDATE pty_org_invite SET status = CASE WHEN ${LM_DUNG_HOP_LE} THEN 'DA_DUNG' ELSE NULL END,
+     used_by_staff_id = CASE WHEN ${LM_DUNG_HOP_LE} THEN ?3 ELSE used_by_staff_id END, used_at = CASE WHEN ${LM_DUNG_HOP_LE} THEN ?4 ELSE used_at END, updated_at = ?4, updated_by = ?3
+   WHERE id = ?1`,
+);
+export const lmDungStatement = (db: D1Database, v: { id: string; phoneKey: string; staffId: string; at: string }): D1PreparedStatement =>
+  db.prepare(LM_DUNG).bind(v.id, v.phoneKey, v.staffId, v.at);
+// Lô duyệt phiếu dùng lời mời đang giữ (Đ7.5). Lính gác: đang giữ cho ĐÚNG phiếu này, số của bản khai đang duyệt trùng. Không xét hạn (giữ chỗ không hết hạn).
+// ?1 id, ?2 phiếu, ?3 số đăng nhập của bản khai, ?4 tài khoản mới, ?5 lúc, ?6 người duyệt
+const LM_DUNG_PHIEU = defineSql(
+  "parties",
+  "lm_dung_phieu",
+  `UPDATE pty_org_invite SET status = CASE WHEN ${LM_DUNG_PHIEU_HOP_LE} THEN 'DA_DUNG' ELSE NULL END,
+     used_by_staff_id = CASE WHEN ${LM_DUNG_PHIEU_HOP_LE} THEN ?4 ELSE used_by_staff_id END, used_at = CASE WHEN ${LM_DUNG_PHIEU_HOP_LE} THEN ?5 ELSE used_at END, updated_at = ?5, updated_by = ?6
+   WHERE id = ?1`,
+);
+export const lmDungPhieuStatement = (db: D1Database, v: { id: string; registrationId: string; phoneKey: string; staffId: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(LM_DUNG_PHIEU).bind(v.id, v.registrationId, v.phoneKey, v.staffId, v.at, v.by);
+// «Thành viên của» mở từ lời mời vừa dùng TRONG CÙNG lô (câu đứng ngay sau câu dùng): chỉ chèn khi lời mời đã DA_DUNG đúng lúc ?5. ?1 id, ?2 người, ?3 tổ chức, ?4 ngày, ?5 lúc, ?6 người làm, ?7 lời mời
+const LM_THANH_VIEN = defineSql(
+  "parties",
+  "lm_thanh_vien",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, 'MEMBER_OF', ?4, NULL, ?5, ?6, ?5, ?6
+   WHERE EXISTS (SELECT 1 FROM pty_org_invite i WHERE i.id = ?7 AND i.org_party_id = ?3 AND i.status = 'DA_DUNG' AND i.used_at = ?5)`,
+);
+export const lmThanhVienStatement = (db: D1Database, v: { id: string; person: string; org: string; ngay: string; at: string; by: string; inviteId: string }): D1PreparedStatement =>
+  db.prepare(LM_THANH_VIEN).bind(v.id, v.person, v.org, v.ngay, v.at, v.by, v.inviteId);
+
+// Tác nhân dọn (Ruling R6): lời mời MỞ quá hạn ⇒ HẾT HẠN (giữ chỗ không bao giờ hết hạn ở đây). ?1 lúc, ?2 người làm (mã tác nhân)
+const LM_HET_HAN = defineSql(
+  "parties",
+  "lm_het_han",
+  `UPDATE pty_org_invite SET status = 'HET_HAN', updated_at = ?1, updated_by = ?2 WHERE status = 'MO' AND expires_at <= ?1`,
+);
+export const lmHetHanStatement = (db: D1Database, at: string, by: string): D1PreparedStatement => db.prepare(LM_HET_HAN).bind(at, by);
+/** Dấu ẩn danh thay số điện thoại của lời mời đã kết thúc quá hạn giữ. */
+export const DAU_AN_DANH_LOI_MOI = "(đã ẩn)";
+// Lời mời đã kết thúc (dùng / huỷ / hết hạn) từ trước ?1 ⇒ thay số bằng dấu ẩn danh, ghi erased_at. Dòng cuối không đổi gì ngoài hai cột này, nên updated_at = lúc kết thúc. ?1 mốc, ?2 lúc, ?3 người làm
+const LM_AN_DANH = defineSql(
+  "parties",
+  "lm_an_danh",
+  `UPDATE pty_org_invite SET phone_key = '${DAU_AN_DANH_LOI_MOI}', erased_at = ?2, updated_at = ?2, updated_by = ?3
+   WHERE status IN ('DA_DUNG', 'DA_HUY', 'HET_HAN') AND erased_at IS NULL AND updated_at <= ?1`,
+);
+export const lmAnDanhStatement = (db: D1Database, moc: string, at: string, by: string): D1PreparedStatement => db.prepare(LM_AN_DANH).bind(moc, at, by);

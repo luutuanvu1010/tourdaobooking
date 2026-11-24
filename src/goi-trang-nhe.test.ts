@@ -94,7 +94,41 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // nội dung mặc định khi chưa lưu, kiểm hình dạng nội dung trong thân 503). Đã bỏ bộ kiểm đầy đủ khỏi gói này (máy chủ kiểm hai đầu). Trần = đúng số đo. Chủ dự án duyệt
 // 13/11/2026 (nút ở khung bước tiếp theo), nguyên văn «Duyệt cả hai» — trả lời câu «Bạn duyệt văn bản quyết định ADR-0202 và cho nới trần trang Đơn hàng thêm 1 KB chứ?».
 // Đo lại sau khi gộp main có chi tiết dịch vụ (ADR-0201): 114.528 (+4 byte do bộ rút gọn đặt lại tên biến) — tổng +1.036, vẫn trong mức «thêm 1 KB» chủ đã duyệt.
-const TRAN_ORDERS = 114_528;
+// Nới 114.528 → 114.890 (+362, đăng ký đối tác đợt 1, ADR-0206…0210, 16/11/2026): thêm các ô quyền mới (`registration.queue.view`, `registration.policy.write`,
+// `registration.agent.purge`, `partner.signup_tier.write`, `verification.requirement.write`) và các route công khai/ghi của đăng ký vào danh sách dùng chung mà gói Đơn hàng
+// nhúng (bản đồ quyền, `KHONG_VE`); không mã giao diện nào vào gói này. Trần = đúng số đo, không khoảng dư. Chủ dự án duyệt 16/11/2026 (chat, khung «Duyệt theo khuyến nghị»
+// cho câu «Nới trần dung lượng trang Đơn hàng thêm 362 byte»).
+// Nới 114.890 → 114.923 (ADR-0213 Đ6, mốc B1 Task 10, 16/11/2026): ô quyền mới `partner.org.manager.write` vào bản đồ quyền dùng chung, bảy hành động nhật ký `org_*` vào `audit-actions.ts`
+// và hai bảng phân loại lịch sử (chỉ dữ liệu; đo thật 114.923 byte, +33 so với trần cũ). Không mã giao diện nào vào gói Đơn hàng. Trần = đúng số đo (cách lần duyệt 16/11 trước). Mức +33 này ĐÃ được chủ dự án duyệt (theo người điều phối, 17/11/2026).
+// Nới 114.923 → 115.103 (ADR-0213 Đ5, ruling R13, mốc B1 Task 12, 16/11/2026): `can()` dùng chung nhận cờ `quanLyBenDat` — danh sách bảy ô `O_NHAN_QUAN_LY_BEN_DAT` và một vế
+// trong `allows()` (luật quyền phải ở MỘT nơi, giao diện cùng import). Đo thật 115.103 byte (+180). Không mã giao diện nào vào gói Đơn hàng. Trần = đúng số đo. Chủ dự án duyệt 17/11/2026 (chat, nguyên văn: «Duyệt nới 180 byte»).
+// SIẾT 115.103 → 114.976 (kiểm toàn mốc B2, m5, 17/11/2026): đo thật sau mọi thay đổi giao diện của mốc B2 (Task 15–18) — gói Đơn hàng 114.976 byte (Task 15 vòng sửa 1 gom tiền tố
+// danh sách bí mật làm gói nhỏ lại). Trần = đúng số đo, không khoảng dư; chỉ siết, không nới — các dòng duyệt ở trên giữ làm lịch sử.
+// Nới 114.890 → 114.978 (+88, Đợt 2 sau kiểm toán, đặc tả 2026-11-16 «lấy lại được dữ liệu», 16/11/2026): thêm ô quyền `audit.money.daily` và tác nhân
+// SOAT_TIEN_HANG_NGAY vào bản đồ quyền mà gói Đơn hàng nhúng; không mã giao diện nào vào gói này. Trần = đúng số đo. CHỜ chủ dự án duyệt con số này (hỏi cùng báo cáo Đợt 2).
+// Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 114.976 của nhánh + 88 của main (ô `audit.money.daily`) = đo thật 115.064 byte, đúng tổng hai phần thêm,
+// không thêm byte nào do việc gộp. Phần +88 của main vẫn theo dòng «CHỜ chủ dự án duyệt» ở trên. Trần = đúng số đo.
+// Nới 115.064 → 115.438 (ADR-0219 Đ2, Đ3, chủ duyệt 18/11/2026 «Duyệt ADR-0219, thi công luôn đi»): ba ô quyền mới `registration.verify`, `registration.verify.attachment`,
+// `registration.approve` vào bản đồ quyền dùng chung (hai ô xác minh gọn qua một hàm `xacMinhDangKy`), và trang mới /phieu-dang-ky vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của
+// `muc-giao-dien.ts` (chỉ dữ liệu điều hướng; ADR quyết hàng chờ sang trang riêng). Đo thật 115.438 byte (+374), trần = đúng số đo (người kiểm độc lập 18/11: không để dư). Không mã nghiệp vụ nào vào gói Đơn hàng.
+// Nới 115.438 → 116.518 (khung gốc giao diện, ADR-0222, 21/11/2026): trang Đơn hàng chuyển sang khuôn Danh sách — thẻ đơn (web/order-card.ts) mang thêm lớp và vùng ô
+// của bảng lưới, gói nhúng khuôn cột của bảng (src/shared/bang-don.ts, 365 byte) và ba hàm nhỏ của web/khung.ts (309 byte: `khuonCot`, `datKhuonBang`, `o`).
+// Đã rút trước khi nới: phần tự soát khuôn bảng chỉ còn trong bài kiểm (`soatKhuonBang` không vào gói), hàng tiêu đề cột viết sẵn trong public/orders.html.
+// Đo thật 116.418 byte; trần = đúng số đo (người kiểm độc lập 21/11 nhắc: không để dư). Không nhật ký thay đổi, không mã nghiệp vụ mới. ADR-0222 mục «Hệ quả»
+// đã báo trước lần nới này; CHƯA có lời duyệt riêng của chủ dự án cho con số.
+// Nới 116.418 → 118.543 (+2.125, Việc 16 kế hoạch 16 việc 21/11/2026): 25 mục THIẾT LẬP của thanh bên có biểu tượng — 19 hình mới trong web/icons.ts (mỗi hình
+// một path, viền chung của họ «vé» và họ «loại giấy tờ» viết một lần) và trường `bieuTuong` của 25 dòng trong muc-giao-dien.ts (viết qua `tl()` cho gọn).
+// Đã rút trước khi nới: hình chỉ dùng ở thẻ con của ba màn nằm riêng ở web/hinh-the-phu.ts (không vào gói này); khai dòng bằng `tl()` bớt ~630 byte.
+// Đo thật 118.543 byte; trần = đúng số đo. Chủ dự án duyệt 21/11/2026 (chat, nguyên văn: «Duyệt 2.125 byte»).
+// Nới 118.543 → 118.690 (+147, Việc 6 — ADR-0226): thẻ đơn hiện số nợ đối tác của Kế toán thuần, nhãn do máy chủ gửi (bớt từ +715), nhãn nợ không ẩn trong bảng thẳng cột.
+// Chủ dự án duyệt 22/11/2026 qua phiên điều phối (câu 2, nguyên văn: «Duyệt đề xuất» — kèm nới trần gói trang Đơn hàng 147 byte cho việc 6).
+// Nới 118.690 → 118.922 (+232, Việc 13 — ADR-0232 Ảnh bàn giao): bốn ô quyền mới `order.photo.upload` / `view` / `hide` / `purge` vào bản đồ quyền dùng chung và
+// bảy nhãn nhật ký `handover_photo_*` vào bảng nhãn dùng chung (gói Đơn hàng nhúng cả hai); không mã giao diện ảnh nào vào gói này (web/anh-ban-giao.ts chỉ ở trang chi tiết đơn).
+// Đo thật sau gộp main 23/11 (có Việc 14): 118.922 byte; trần = đúng số đo. Chủ dự án duyệt 23/11/2026 (chat ở phiên Việc 13, nguyên văn: «duyệt nới trần gói trang Đơn hàng 232 byte, tiếp»).
+// Nới 118.922 → 119.044 (+122, Việc 10 — ADR-0229 Giá mùa vụ), đo thật sau gộp main 23/11 (có Việc 13): +89 là ba ô quyền `catalog.seasonal.write/approve/cap` trong bảng quyền dùng chung
+// (chủ dự án duyệt 23/11/2026, chat, nguyên văn «duyệt cả ba theo khuyến nghị»), +33 là điều kiện mở màn hẹp Dịch vụ & giá cho người giữ ô giá mùa vụ trong `dungManHepDichVu`
+// (chủ dự án duyệt 23/11/2026, chat, nguyên văn «Duyệt 118.812» — số đo trên nền 118.690 trước khi gộp Việc 13). Trần = đúng số đo.
+const TRAN_ORDERS = 119_044;
 
 function dung(trang: string) {
   const r = buildSync({

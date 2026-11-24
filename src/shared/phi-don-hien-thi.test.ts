@@ -106,7 +106,7 @@ test("cauKetQuaThuTra: có mức theo khách, theo chuyến, miễn phí", () =>
 
 test("cauKetQuaThuTra: thiếu mức và hai mức khác tiền cùng bậc", () => {
   const thieu = cauKetQuaThuTra({ ketQua: { trangThai: "THIEU_MUC", lyDo: "KHONG_CO_MUC" }, thua: [] }, ten);
-  assert.deepEqual(thieu, ["Chưa có mức cho tình huống này. Khi phí được cộng vào đơn, đơn như vậy sẽ không xác nhận được."]);
+  assert.deepEqual(thieu, ["Bảng chưa có mức cho tình huống này. Bảng chỉ để tham khảo: phí trên đơn do văn phòng chọn ở từng lượt đón."]);
   const xd = cauKetQuaThuTra({ ketQua: { trangThai: "THIEU_MUC", lyDo: "XUNG_DOT" }, thua: [] }, ten);
   assert.equal(xd.length, 1);
   assert.match(xd[0]!, /hai mức/);
@@ -134,4 +134,82 @@ test("dieuKienGui: dựng lại đủ khoá từ dòng đã đọc; xe riêng th
     dieuKienGui(muc({ dieuKien: { cap: "T3", nhom: "HT", chieu: "RETURN", xeRieng: true } }).dieuKien),
     [{ khoa: "ZONE", giaTri: "BD_CR" }, { khoa: "TIER", giaTri: "T3" }, { khoa: "SERVICE_GROUP", giaTri: "HT" }, { khoa: "DIRECTION", giaTri: "RETURN" }, { khoa: "EXCLUSIVE", giaTri: "1" }],
   );
+});
+
+// ---- Đợt C, Task 6: phí đưa đón trên trang đơn và biên nhận (chủ 15/11, câu 3: «Miễn phí», «dự kiến») ----
+import { CHU_DU_KIEN, CHU_MIEN_PHI, cauThieuPhiDon, chuThanhTienPhi, dongPhiTrenDon, tenKhoiPhiDon } from "./phi-don-hien-thi.ts";
+import type { PhiDuaDonCuaDonDto, PhiDuaDonDto } from "./contracts.ts";
+
+const tien = (n: number): string => `${soTienChu(n)} ₫`;
+const soTienChu = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const dongPhi = (o: Partial<PhiDuaDonDto> = {}): PhiDuaDonDto => ({
+  id: "f1", legId: "l1", serviceId: "s1", direction: "OUT", zoneCode: "BD_CR", zoneName: "Bãi Dài – Cam Ranh", kind: "PER_PAX", returnPax: null,
+  quantity: 2, unitPrice: 70_000, lineTotal: 140_000, description: "Phí đưa đón — chiều đi, Bãi Dài – Cam Ranh", ...o,
+});
+
+test("chuThanhTienPhi: «Miễn phí» CHỈ khi đơn giá đã chụp là 0 đồng; số lượng về 0 với đơn giá > 0 in số 0 đồng (không phải «Miễn phí»)", () => {
+  assert.equal(chuThanhTienPhi({ unitPrice: 0, lineTotal: 0 }, tien), CHU_MIEN_PHI);
+  assert.equal(chuThanhTienPhi({ unitPrice: 70_000, lineTotal: 140_000 }, tien), "140.000 ₫");
+  assert.equal(chuThanhTienPhi({ unitPrice: 70_000, lineTotal: 0 }, tien), "0 ₫", "dịch vụ bớt còn em bé ⇒ dòng phí 0 × đơn giá, không gọi là miễn phí");
+});
+
+test("tenKhoiPhiDon: đơn nháp ghi «dự kiến», đơn đã chụp không ghi", () => {
+  assert.equal(tenKhoiPhiDon(true), `Phí đưa đón (${CHU_DU_KIEN})`);
+  assert.equal(tenKhoiPhiDon(false), "Phí đưa đón");
+  assert.equal(CHU_DU_KIEN, "dự kiến");
+});
+
+test("dongPhiTrenDon: mỗi chặng một dòng — chiều, khu vực, dòng phụ số khách × đơn giá, thành tiền; mức 0 đồng in «Miễn phí»; theo chuyến ghi «chuyến»; không lộ mã thô", () => {
+  const p: PhiDuaDonCuaDonDto = {
+    dong: [
+      dongPhi(),
+      dongPhi({ id: "f2", legId: "l2", direction: "RETURN", unitPrice: 0, lineTotal: 0, description: "Phí đưa đón — chiều về, Bãi Dài – Cam Ranh" }),
+      dongPhi({ id: "f3", legId: "l3", kind: "PER_TRIP", quantity: 1, unitPrice: 300_000, lineTotal: 300_000, zoneName: "Ngoài khu vực", zoneCode: "NGOAI_VUNG" }),
+      dongPhi({ id: "f4", legId: "l4", quantity: 0, lineTotal: 0 }),
+    ],
+    thieu: [],
+    duKien: false,
+  };
+  const r = dongPhiTrenDon(p, tien);
+  assert.equal(r.tieuDe, "Phí đưa đón");
+  assert.deepEqual(r.dong, [
+    { nhan: "Chiều đi · Bãi Dài – Cam Ranh", chiTiet: "2 khách × 70.000 ₫", giaTri: "140.000 ₫" },
+    { nhan: "Chiều về · Bãi Dài – Cam Ranh", chiTiet: null, giaTri: CHU_MIEN_PHI },
+    { nhan: "Chiều đi · Ngoài khu vực", chiTiet: "1 chuyến × 300.000 ₫", giaTri: "300.000 ₫" },
+    { nhan: "Chiều đi · Bãi Dài – Cam Ranh", chiTiet: "0 khách × 70.000 ₫", giaTri: "0 ₫" },
+  ]);
+  assert.deepEqual(r.thieu, []);
+  assert.doesNotMatch(JSON.stringify(r), KHONG_MA_THO);
+});
+
+test("dongPhiTrenDon: đơn nháp ghi «dự kiến»; lượt đón máy chưa tính được ⇒ câu băng báo ĐÚNG câu 409 của lúc xác nhận (ADR-0218 Đ1.2, không trùng lặp), kể cả khi chưa có dòng nào", () => {
+  const p: PhiDuaDonCuaDonDto = {
+    dong: [],
+    thieu: [
+      { legId: "l1", serviceId: "s1", serviceName: "Tour lặn biển", direction: "OUT", lyDo: "O_TRONG" },
+      { legId: "l2", serviceId: "s1", serviceName: "Tour lặn biển", direction: "OUT", lyDo: "O_TRONG" },
+      { legId: "l3", serviceId: "s1", serviceName: "Tour lặn biển", direction: "RETURN", lyDo: "O_TRONG" },
+      { legId: "l4", serviceId: "s2", serviceName: "Tour Đảo Khỉ", direction: "OUT", lyDo: "HAI_CAP" },
+    ],
+    duKien: true,
+  };
+  const r = dongPhiTrenDon(p, tien);
+  assert.equal(r.tieuDe, "Phí đưa đón (dự kiến)");
+  assert.deepEqual(r.dong, []);
+  assert.deepEqual(r.thieu, [
+    cauThieuPhiDon({ direction: "OUT", tenDichVu: "Tour lặn biển", lyDo: "O_TRONG" }),
+    cauThieuPhiDon({ direction: "RETURN", tenDichVu: "Tour lặn biển", lyDo: "O_TRONG" }),
+    cauThieuPhiDon({ direction: "OUT", tenDichVu: "Tour Đảo Khỉ", lyDo: "HAI_CAP" }),
+  ]);
+  assert.equal(r.thieu[0], "Dịch vụ Tour lặn biển chưa có giá gốc phí đưa đón cho lượt đón chiều đi. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.");
+  assert.match(r.thieu[2]!, /hai cấp độ đại lý/);
+  assert.doesNotMatch(r.thieu.join(" "), KHONG_MA_THO);
+});
+
+// ĐỔI CÓ CHỦ ĐÍCH 17/11 (ADR-0214): bảng mức không còn chặn xác nhận đơn — câu thiếu mức của Thử tra không được nói «không xác nhận được».
+test("CHU_THIEU_MUC của Thử tra: nói bảng chỉ để tham khảo, không nói đơn bị chặn xác nhận (ADR-0214)", async () => {
+  const { CHU_THIEU_MUC } = await import("./phi-don-hien-thi.ts");
+  assert.doesNotMatch(CHU_THIEU_MUC, /Khi phí được cộng vào đơn/);
+  assert.doesNotMatch(CHU_THIEU_MUC, /không xác nhận được/);
+  assert.match(CHU_THIEU_MUC, /tham khảo/);
 });

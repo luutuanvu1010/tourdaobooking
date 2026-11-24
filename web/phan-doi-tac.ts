@@ -23,6 +23,11 @@ export interface PhanDoiTacVao {
   giamGiaHieuLuc: number;
   /** Sổ đại lý đợt 2 (Task 12): sau «Chụp bù» thành công, trang đơn tải lại cả đơn (lý do giữ «Đã giao» đổi theo). */
   daChupBu?: () => void;
+  /**
+   * H3 (đặc tả 2026-11-20-sua-giao-dien-bon-y-cua-chu.md): nút «Thanh toán đơn này cho công ty Tour Đảo» của tài khoản Đối tác. Khối «Hoa hồng của bạn» dựng xong thì dời nút
+   * xuống cuối khối (dưới «Tổng giá đại lý»); khối ẩn hoặc lỗi thì trả nút về chỗ gốc `veCho` ở thẻ Thanh toán — nút không bao giờ mất.
+   */
+  nutCuoi?: { el: HTMLElement; veCho: HTMLElement } | null;
 }
 
 type Ket = { kieu: "co"; res: Api.ThuongMaiResponse } | { kieu: "an" } | { kieu: "loi"; message: string };
@@ -39,6 +44,9 @@ async function doc(orderId: string): Promise<Ket> {
 /** Một ô "nhãn — giá trị" của lưới dòng dịch vụ. */
 const o = (nhan: string, ...noiDung: Child[]): HTMLElement => h("div", { class: "pdt-o" }, h("dt", { class: "muted" }, nhan), h("dd", null, ...noiDung));
 
+/** Đầu khối của khung gốc (ADR-0222): `host` là một khối của trang đơn, tên khối nằm trong đầu khối. */
+const dauKhoi = (ten: string): HTMLElement => h("header", { class: "khoi-dau" }, h("h2", null, ten));
+
 export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promise<void> {
   /** Danh sách nhà cung cấp + hồ sơ Tour Đảo cho khối "Người bán": chỉ gọi khi có `supply.terms.view`; lỗi ⇒ null (bảng chỉ còn phần hoa hồng). Gọi nền một lần, dùng lại ở mọi lần mở bảng. */
   let nguoiBan: Promise<Api.SupplyTermListResponse | null> | null = null;
@@ -46,14 +54,21 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
   if (v.coGhiTay && v.xemNguoiBan) void layNguoiBan();
 
   function veLoi(message: string): void {
-    const thu = h("button", { type: "button", class: "btn", "data-action": "tai-lai-phan-doi-tac" }, "Tải lại");
+    const thu = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "tai-lai-phan-doi-tac" }, "Tải lại");
     thu.addEventListener("click", () => void napLai());
-    replaceChildren(host, h("h2", null, TIEU_DE_LOI), h("p", { class: "alert", role: "alert" }, message), thu);
+    traNutCuoi();
+    replaceChildren(host, dauKhoi(TIEU_DE_LOI), h("div", { class: "khoi-viec" }, thu), h("p", { class: "alert", role: "alert" }, message));
     host.hidden = false;
   }
 
+  /** Trả nút cuối khối về thẻ Thanh toán TRƯỚC khi khối này bị dựng lại thành lỗi / ẩn (replaceChildren sẽ gỡ nút khỏi trang). */
+  function traNutCuoi(): void {
+    if (v.nutCuoi) v.nutCuoi.veCho.append(v.nutCuoi.el);
+  }
+
   function ve(res: Api.ThuongMaiResponse): void {
-    replaceChildren(host, ...("vanPhong" in res ? veVanPhong(res.vanPhong) : veDoiTac(res.doiTac)));
+    if ("vanPhong" in res) traNutCuoi();
+    replaceChildren(host, ...("vanPhong" in res ? veVanPhong(res.vanPhong) : [...veDoiTac(res.doiTac), v.nutCuoi ? h("div", { class: "thanh-nut pdt-nut-cuoi" }, v.nutCuoi.el) : null]));
     host.hidden = false;
   }
 
@@ -61,6 +76,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     const r = await doc(v.orderId);
     if (r.kieu === "co") ve(r.res);
     else if (r.kieu === "an") {
+      traNutCuoi();
       replaceChildren(host);
       host.hidden = true;
     } else veLoi(r.message);
@@ -73,7 +89,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     nut?.addEventListener("click", () => void moGhiTay(d, nut));
     return h(
       "article",
-      { class: canh ? "pdt-dong is-thieu" : "pdt-dong", "data-service-id": d.serviceId },
+      { class: canh ? "pdt-dong muc-con is-thieu" : "pdt-dong muc-con", "data-service-id": d.serviceId },
       h("div", { class: "pdt-dong-dau" }, h("h3", { class: "pdt-ten" }, d.ten), d.ghiTay ? h("span", { class: "chip chip-muted" }, "ghi tay") : null),
       h(
         "dl",
@@ -83,7 +99,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
         o("Mức", d.muc ?? "—"),
         o("Hoa hồng", d.hoaHong === null ? "—" : vnd(d.hoaHong)),
         o("Giá đại lý", chuGiaDaiLy(d, vnd)),
-        o("Người bán", d.nguoiBan ? d.nguoiBan.ten : "—"),
+        o("Nhà cung cấp", d.nguoiBan ? d.nguoiBan.ten : "—"),
       ),
       canh ? h("p", { class: "pdt-canh" }, canh) : null,
       d.nhaCungCap ? h("p", { class: "pdt-ncc muted" }, chuNhaCungCap(d.nhaCungCap, vnd)) : null,
@@ -99,7 +115,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     const coNut = hienNutGhiTay(v.coGhiTay, d);
     const daChup = !d.duKien && !d.chuaChup;
     return [
-      h("h2", null, TIEU_DE_VAN_PHONG),
+      dauKhoi(TIEU_DE_VAN_PHONG),
       h("p", { class: "pdt-nguoi-huong" }, nhanNguoiHuong(d)),
       trangThai ? h("p", { class: "pdt-trang-thai" }, h("span", { class: "chip chip-muted" }, trangThai)) : null,
       hienNutChupBu(v.coGhiTay, d) ? khoiChupBu() : null,
@@ -143,7 +159,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
   // ---- dạng Đối tác: chỉ số tiền của mình ----
   function veDoiTac(d: Api.ThuongMaiDoiTacDto): Child[] {
     return [
-      h("h2", null, TIEU_DE_DOI_TAC),
+      dauKhoi(TIEU_DE_DOI_TAC),
       d.duKien ? h("p", { class: "pdt-trang-thai" }, h("span", { class: "chip chip-muted" }, "Dự kiến — tính theo bảng mức hôm nay, chưa lưu")) : null,
       d.choCongTyCaiMuc ? h("p", { class: "pdt-cho-muc" }, CAU_CHO_CAI_MUC) : null,
       h(
@@ -152,7 +168,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
         ...d.dong.map((x) =>
           h(
             "article",
-            { class: "pdt-dong", "data-service-id": x.serviceId },
+            { class: "pdt-dong muc-con", "data-service-id": x.serviceId },
             h("div", { class: "pdt-dong-dau" }, h("h3", { class: "pdt-ten" }, x.ten)),
             h("dl", { class: "pdt-luoi pdt-luoi-doi-tac" }, o("Thành tiền", vnd(x.thanhTien)), o("Hoa hồng", chuHoaHongDoiTac(x.hoaHong, vnd)), o("Giá đại lý", chuGiaDaiLy(x, vnd))),
           ),
@@ -227,7 +243,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
       ? h(
           "fieldset",
           { class: "pick-list", id: "ghi-tay-nguoi-ban" },
-          h("legend", { class: "pick-legend" }, "Người bán"),
+          h("legend", { class: "pick-legend" }, "Nhà cung cấp"),
           radio("ghi-tay-ban", "KHONG_DOI", "Không đổi", true, () => ((loaiNguoiBan = "KHONG_DOI"), capNhatHienThi())),
           congTyChuId !== null ? radio("ghi-tay-ban", "TOUR_DAO", "Tour Đảo", false, () => ((loaiNguoiBan = "TOUR_DAO"), capNhatHienThi())) : null,
           dsNhaCungCap.length > 0 ? radio("ghi-tay-ban", "NHA_CUNG_CAP", "Nhà cung cấp", false, () => ((loaiNguoiBan = "NHA_CUNG_CAP"), capNhatHienThi())) : null,

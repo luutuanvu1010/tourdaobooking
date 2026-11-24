@@ -39,12 +39,12 @@ export const BAI_VIEC: readonly BaiViec[] = [
       `Ảnh của lô đã huỷ lưu ${NGAY_LUU_ANH_LO_HUY} ngày`,
       `Đường dẫn cho khách hết hạn sau ngày dùng cuối ${NGAY_HAN_DUONG_DAN_SAU_NGAY_DUNG} ngày`,
     ],
-    neo: ["web/ve-kho.ts", "public/ve-kho.html", "web/ve-don.ts", "src/shared/ve-nhap-lo.ts", "src/modules/ve-dien-tu/index.ts", "src/modules/ve-dien-tu/rules.ts", "src/modules/ve-dien-tu/repository.ts", "src/modules/ve-dien-tu/nhap-lo.ts", "src/modules/ve-dien-tu/cap-ve.ts", "src/modules/ve-dien-tu/noi-orders.ts", "src/modules/ve-dien-tu/duong-dan-khach.ts"],
+    neo: ["web/ve-kho.ts", "public/ve-kho.html", "web/ve-don.ts", "src/shared/ve-nhap-lo.ts", "src/modules/ve-dien-tu/index.ts", "src/modules/ve-dien-tu/rules.ts", "src/modules/ve-dien-tu/repository.ts", "src/modules/ve-dien-tu/nhap-lo.ts", "src/modules/ve-dien-tu/cap-ve.ts", "src/modules/ve-dien-tu/noi-orders.ts", "src/modules/ve-dien-tu/duong-dan-khach.ts", "web/ve-kho-huy.ts"],
     moDau: "Máy chống được trùng vé, nhưng không biết vé có đúng loại hay không, nên phần khai lô vẫn phụ thuộc vào người nhập.",
     noiDung: `### Các bước
 1. **Tải vé từ nhà cung cấp.** Mỗi lần chỉ tải đúng một sản phẩm, một loại khách, một khoảng ngày dùng. Giữ nguyên ảnh gốc, vì ảnh nén quá nhỏ có thể không đọc được QR.
 2. **Nhập vào kho.** Chọn dịch vụ và loại khách, gõ tên sản phẩm, chọn ngày dùng, chọn các ảnh vé rồi bấm [[Nhập lô vé]]. Giữ nguyên trang này cho tới khi gửi xong. Ảnh hỏng hoặc trùng bị loại kèm tên tệp, các ảnh còn lại vẫn vào kho.
-3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]].
+3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]]. Muốn biết sản phẩm nào sắp hết, xem khối **Số vé còn** và bấm **Hết vé**, **Còn 1 đến 5**, **Còn trên 5**. Thanh **Lọc theo dịch vụ** ở đầu trang (chọn một nhóm dịch vụ, hoặc gõ tên, mã, tên in trên vé, không dấu cũng được) thu hẹp cùng lúc Số vé còn, Lô trong kho và Lô đã huỷ gần đây; lọc ra trống thì bấm [[Xoá lọc]].
 4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ; đơn trả sau thì vé mở trước, trừ khi đơn đã quá hạn còn nợ; với đơn do đối tác lập, chỉ tính tiền đã về công ty (đối tác tự ghi «Tôi thu» chưa đủ để mở). Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay. Khi đơn tăng số khách, vé thêm chỉ hiện cho khách sau khi đơn thu đủ; vé khách đã mở rồi thì vẫn xem được.
 
 ### Điều dễ sai
@@ -53,7 +53,10 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Chỉ chọn «Mọi loại khách» khi vé thật sự dùng chung, như vé Harbour tiêu chuẩn.
 - Chưa chắc khách lấy thì đừng bấm nút mở vé hay tạo đường dẫn: mọi vé của đơn bị coi là đã lộ, và vé đã lộ không về lại kho, kể cả khi đơn huỷ.
 - Không chụp màn hình vé hay gửi mã vé vào nhóm chat chung, vì mã QR có giá trị như tiền.
+- Dời ngày đi của đơn đã có vé thì vé không còn hợp ngày mới bị thu lại: vé chưa mở về kho, vé đã mở bị vô hiệu dù khách còn giữ ảnh. Máy tự giữ vé hợp ngày mới nếu kho còn; kho thiếu thì đơn báo còn thiếu vé. Vé đã quét thì giữ nguyên.
 - Vé Tour Đảo đã quét thì dòng «Đã dùng» của dịch vụ trên đơn tăng lên. Đơn có vé đã dùng không huỷ được; phải bỏ lượt quét trước.
+- Mỗi vé Tour Đảo có **số sê-ri** dạng VE_ và tám chữ cái, in trên ảnh vé và hiện ở danh sách vé của lô. Số này không bí mật nên gọi tên vé được, nhưng một mình nó không cho khách đi: mã trong QR mới là bí mật.
+- Huỷ vé hay huỷ lô mà vé đã gửi khách thì khách còn cầm vé cũ, vé đó quét ra đỏ «Vé đã huỷ». Máy cấp vé thay từ kho nhưng không tự báo ai: bạn phải gửi lại vé thay cho khách.
 
 ### Khi gặp sự cố
 | Gặp | Làm gì |
@@ -61,16 +64,20 @@ export const BAI_VIEC: readonly BaiViec[] = [
 | Nhập xong máy báo dịch vụ đang tắt ô «Có vé» | Báo Quản trị bật ô này ở màn Dịch vụ & giá. Sau đó đơn chưa tới ngày đi sẽ báo thiếu vé và cấp được vé. |
 | Lỗi giữa chừng khi nhập | Bấm [[Huỷ lô]] rồi nhập lại từ đầu. |
 | Nhập xong mới thấy khai sai, chưa có vé nào được giữ | Bấm [[Huỷ lô]] rồi nhập lại cho đúng. |
-| Khai sai và đã có vé được giữ | Không huỷ được lô và chưa có nút gỡ từng vé. Gửi yêu cầu hỗ trợ ngay. |
+| Khai sai và đã có vé được giữ cho đơn | Bấm [[Huỷ lô]] ở lô đó, đọc con số máy hiện (bao nhiêu vé huỷ, bao nhiêu vé giữ nguyên vì đã dùng, bao nhiêu đơn được cấp vé thay), ghi lý do rồi xác nhận. Có vé đã gửi khách thì gõ đúng số vé đó vào ô xác nhận, vì khách còn cầm vé cũ nhưng vé đó hết dùng được; máy chưa tự báo ai, nên bạn mở từng đơn đó và gửi lại vé thay. Lô hãng ngoài đã cấp chỉ Quản lý bán hàng, Quản trị và Toàn quyền huỷ được; Bán hàng vẫn huỷ được lô nhập dở chưa cấp cho đơn nào. |
+| Một vé sai hoặc cần thu hồi | Gõ số sê-ri của vé vào ô «Số sê-ri của vé» rồi bấm [[Tìm vé]], hoặc bấm [[Xem vé]] ở lô chứa vé. Bấm [[Huỷ vé]], ghi lý do. Vé đang giữ cho đơn thì máy cấp vé khác; vé đã gửi khách thì gõ lại bốn chữ cuối số sê-ri để xác nhận, rồi phải gửi lại vé thay. Vé đã dùng không huỷ được; vé hãng ngoài đã mở cũng không. Vé hãng ngoài chỉ Quản lý bán hàng, Quản trị và Toàn quyền huỷ được. |
+| Huỷ nhầm một vé hãng ngoài | Vé chưa từng giữ cho đơn thì nhập lại đúng ảnh vé đó vào một lô là được. Ở danh sách vé của lô, dòng vé đã huỷ ghi huỷ lúc nào, ai huỷ, lý do, và «Nhập lại được», «Đã nhập lại» hoặc «Không nhập lại được». Vé từng giữ cho đơn không nhập lại được. |
+| Lô hoặc vé nhiều, không thấy hết | Danh sách chia trang, mỗi trang 50 dòng: bấm «Trang sau» và «Trang trước», hoặc tìm vé theo số sê-ri. |
 | Ảnh bị loại vì không đọc được QR | Tải lại ảnh gốc từ nhà cung cấp, vì chưa gõ tay được mã vé. |
 | Cần tra soát vé của lô đã huỷ | Mở ảnh ở khối **Lô đã huỷ gần đây**. Vé đã mở bị khoá hẳn, không nhập lại được, nên chỉ mở khi thật cần. |
+| Vé Tour Đảo cần in số điện thoại riêng của dịch vụ | Báo Quản trị đặt ô «Hotline trên vé» ở màn Dịch vụ & giá; chưa đặt thì vé in hotline công ty. Khi tạo vé vẫn sửa được số cho riêng lô đó. Vé đã tạo giữ số cũ. |
 | Gửi đường dẫn cho nhầm người | Bấm [[Thu hồi]]. Việc này chỉ đóng đường dẫn; người đó đã lưu ảnh thì vé vẫn dùng được. |
 
 ### Nền tảng chưa làm được
 - Nhập vé từ tệp PDF hoặc gõ tay mã vé.
 - Tự đọc ngày dùng và loại vé trên ảnh để so với phần đã khai.
 - Tự cấp vé cho đơn đang thiếu khi kho vừa có thêm, và báo khi kho sắp hết.
-- Gỡ từng vé khỏi kho.
+- Tự báo người phụ trách đơn khi vé đã gửi khách bị huỷ: người huỷ phải tự mở đơn và gửi lại vé thay.
 - Tự gửi Zalo, mua vé tự động, đối soát tiền mua vé.
 
 ### Nền tảng không thể làm
@@ -86,15 +93,18 @@ export const BAI_VIEC: readonly BaiViec[] = [
     nhomViec: "Quét vé",
     trang: "quetVe",
     o: ["ve.quet.xem"],
-    gioiHan: ["Người quét tự bỏ lượt quét trong 5 phút; sau đó nhờ Quản trị", "Cùng một mã quét lại trong 3 giây chỉ tính một lần"],
-    neo: ["web/quet-ve.ts", "public/quet-ve.html", "src/shared/ket-qua-quet.ts"],
+    gioiHan: ["Người quét tự bỏ lượt quét trong 5 phút; sau đó nhờ Quản trị", "Cùng một mã trong 3 giây chỉ gửi một lần; vé còn trước camera thì 3 giây sau được kiểm lại"],
+    neo: ["web/quet-ve.ts", "web/quet-ve-may.ts", "public/quet-ve.html", "src/shared/ket-qua-quet.ts"],
     moDau: "Màn hình hiện ba màu kèm chữ lớn: xanh là vé hợp lệ, vàng là cần bạn xác nhận, đỏ là không dùng được. Chỉ quét được vé Tour Đảo.",
     noiDung: `### Các bước
 1. Mở **Quét vé** rồi bấm [[Bật camera]]. Lần đầu máy hỏi quyền camera, hãy cho phép.
 2. Hướng camera vào mã trên vé của khách. Máy tự đọc và hiện kết quả cả màn hình.
 3. Xanh thì cho khách đi. Vàng thì đọc câu báo; vẫn cho khách đi thì bấm [[Xác nhận cho đi]]. Đỏ thì không cho đi, đọc câu báo để biết lý do.
-4. Bấm [[Quét tiếp]] để quét vé kế tiếp.
-5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé.
+4. Bấm [[Quét tiếp]] để quét vé kế tiếp. Vé vừa quét còn nằm trước camera thì máy hiện dòng nhắc: muốn kiểm lại ngay thì bấm [[Quét lại vé này]], không thì 3 giây sau máy tự kiểm lại (vé đã tính rồi sẽ hiện đỏ «Đã dùng»).
+5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé. Camera trong trang đang bật sẽ tắt khi bấm nút này; chụp xong bấm [[Bật camera]] để quét tiếp bằng camera.
+6. Mã trên vé hỏng hoặc in mờ thì gõ **số sê-ri** in trên vé (dạng VE_ và tám chữ cái, chữ thường hay có khoảng trắng đều được) vào ô «Số sê-ri in trên vé», bấm [[Tra số sê-ri]]. Máy tra như khi quét nhưng luôn hiện màu vàng «nhập tay» vì số in trên vé ai nhìn cũng chép được: kiểm đúng vé trước mặt rồi bấm [[Xác nhận cho đi]]; lượt đó ghi «nhập tay» trong nhật ký. Vé hãng ngoài không tra được ở đây. Vé đỏ «Vé đã huỷ» thì không cho đi, báo văn phòng gửi lại vé thay.
+7. Mạng yếu thì máy tự gửi lại hai lần; vẫn không được thì hiện «Không gửi được». Kiểm tra Wi-Fi hoặc 4G rồi bấm **Thử lại**. Chưa thấy kết quả xanh thì chưa cho khách đi.
+8. Nếu hiện «Lần quét trước đã được ghi» (mạng làm mất kết quả của lần quét vừa rồi), bấm [[Quét tiếp]] để kiểm lại vé. Báo đỏ «Đã dùng» với giờ vừa rồi và tên của bạn nghĩa là lần trước đã tính vé hợp lệ: cho khách đi.
 
 ### Điều dễ sai
 - Tài xế công ty chỉ xem vé có hợp lệ không; lượt quét của họ không tính vào số vé đã đi.
@@ -119,7 +129,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 
 ### Điều dễ sai
 - Chênh lệch dương không có nghĩa là khách vắng: có thể khách chưa quét hoặc quét chưa kịp. Hỏi người phụ trách trước khi kết luận.
-- Đơn đã huỷ không có trong bảng; vé đã mở rồi mà đơn bị huỷ nằm ở «Đã huỷ» của sổ vé.
+- Đơn đã huỷ không có trong bảng; vé đã mở rồi mà đơn bị huỷ, hoặc đơn bị dời sang ngày vé không còn hợp, nằm ở «Đã huỷ» của sổ vé.
 - Sổ vé tính cả kho, không đổi theo ngày chọn.`,
   },
   {
@@ -186,7 +196,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
     neo: ["web/o-tra-sau.ts", "web/an-han-tra-sau.ts", "src/shared/han-muc-tra-sau-hien-thi.ts"],
     moDau: "Đối tác được cấp hạn mức trả sau thì đặt được đơn trả sau: vé mở trước, tiền thu sau trong thời hạn trả tính bằng giờ (ADR-0172). Quản trị và Toàn quyền cấp, điều chỉnh, đóng hạn mức; Kế toán chỉ xem.",
     noiDung: `### Các bước
-1. Mở **Cấp độ đại lý**, tìm đối tác, bấm chữ ở cột **Trả sau** của dòng đó (đối tác chưa có hạn mức thì ô ghi «Chưa cấp»).
+1. Mở **Cấp độ đại lý**, tìm đối tác, bấm chữ ở cột **Trả sau** của dòng đó (đối tác chưa có hạn mức thì ô ghi «Chưa cấp», hoặc «Chưa cấp hạn mức» nếu đối tác đang nợ đơn Trả sau theo dịch vụ).
 2. Bảng mở ra đã điền sẵn số gợi ý của cấp (nếu có). Sửa **Hạn mức (đồng)**, **Thời hạn trả (giờ)** và **Ân hạn (giờ)** nếu cần.
 3. Bấm [[Cấp hạn mức]]. Đối tác đã có hạn mức thì nút ghi [[Điều chỉnh hạn mức]]: bấm để lưu số mới.
 
@@ -196,7 +206,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Đổi số mới chỉ áp cho đơn xác nhận sau đó; đơn đã xác nhận giữ hạn trả cũ.
 - Quản trị chỉ đặt được hạn mức tới **Mức tối đa Quản trị được cấp** do Toàn quyền đặt ở khối **Hạn mức trả sau** cuối màn. Chưa có mức này thì Quản trị chưa cấp được cho ai.
 - Không ai tự cấp hạn mức trả sau cho hồ sơ của chính mình.
-- Đối tác không thấy con số hạn mức, chỉ thấy mình được trả sau và số giờ phải trả. Đơn mới đối tác lập được chọn sẵn «Trả sau»; đơn vượt hạn mức thì đối tác được báo chọn Thanh toán ngay hoặc liên hệ Tour Đảo.
+- Đối tác không thấy con số hạn mức, chỉ thấy mình được trả sau và số giờ phải trả. Đối tác đang được trả sau chỉ thấy lựa chọn «Trả sau», không tự chọn Thanh toán ngay được; muốn một đơn trả ngay thì văn phòng lập hộ. «Thanh toán ngay» chỉ hiện lại cho đối tác khi còn đơn quá hạn, hoặc khi đơn vượt hạn mức (đối tác được báo chọn Thanh toán ngay hoặc liên hệ Tour Đảo).
 - Bấm [[Đóng hạn mức]] (rồi xác nhận ở hộp hỏi) thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu. Muốn giữ thì bấm «Giữ hạn mức». Đối tác còn nợ thì chưa ngừng tài khoản hay gỡ vai trò đối tác được.
 - Ngay dưới khối **Hạn mức trả sau** có thẻ **Khách của đối tác trả cho Công ty**: chỉ Toàn quyền bật, tắt. Tắt thì đơn đối tác lập từ lúc đó chỉ do chính đối tác ghi khoản thu và không có QR thanh toán; đơn đã lập giữ nguyên.
 
@@ -217,7 +227,8 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
 2. Bấm **Xem đơn nợ** để xem từng đơn còn nợ, hạn trả (giờ Việt Nam) và trạng thái; bấm mã đơn để mở đơn.
 
 ### Điều dễ sai
-- «Quá hạn, đang trong ân hạn» chỉ là lời báo, chưa chặn gì. «Quá hạn» nghĩa là đã hết ân hạn: đối tác không đặt thêm đơn trả sau được cho tới khi thu đủ.`,
+- «Quá hạn, đang trong ân hạn» chỉ là lời báo, chưa chặn gì. «Quá hạn» nghĩa là đã hết ân hạn: đối tác không đặt thêm đơn trả sau được cho tới khi thu đủ.
+- Cột «Đang nợ» có thể có hai dòng: «Theo hạn mức» và «Trả sau theo dịch vụ». Chỉ dòng thứ nhất trừ vào hạn mức khả dụng; nợ Trả sau theo dịch vụ không có trần, chỉ có hạn trả.`,
   },
   {
     id: "giao-dien",
@@ -241,26 +252,23 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
   },
   {
     id: "phi-don",
-    tieuDe: "Đặt phí đưa đón theo khu vực",
+    tieuDe: "Bật phí đưa đón trên đơn",
     nhomViec: "Cài đặt",
     trang: "phiDon",
     o: ["admin.manage"],
     gioiHan: [],
     neo: ["web/phi-don.ts", "public/phi-don.html", "src/shared/phi-don-hien-thi.ts"],
-    moDau: "Hiện phí đưa đón chưa được cộng vào đơn; bảng này để chuẩn bị trước. Phí đưa đón tính theo bảng mức của từng khu vực đón. Khi phí được cộng vào đơn, thiếu mức thì đơn không xác nhận được, Nền tảng không bao giờ tự tính 0 đồng; muốn miễn phí thì đặt một mức 0 đồng.",
+    moDau: "Từ ADR-0218 phí đưa đón do Nền tảng tự tính từ giá gốc trên Sheet dịch vụ, trừ mức giảm theo cấp độ đại lý. Màn Phí đưa đón giữ ngày bắt đầu áp, danh sách dịch vụ chưa có giá gốc và chương trình miễn phí; từ ngày bắt đầu áp, mỗi lượt đón trên đơn có một dòng phí.",
     noiDung: `### Các bước
-1. Mở **Phí đưa đón**. Bấm [[＋ Thêm mức phí]], chọn khu vực, đi chung hay xe riêng, gõ số tiền (0 là miễn phí) và ngày bắt đầu, rồi bấm [[Lưu mức phí]].
-2. Mỗi khu vực cần ít nhất một mức chung (không chọn cấp, dịch vụ hay nhóm). Mức riêng hơn (theo cấp, dịch vụ, nhóm, chiều) được ưu tiên khi khớp.
-3. Muốn xem một đơn sẽ bị tính bao nhiêu, điền khối **Thử tra** rồi bấm [[Thử tra]]. Kết quả ghi mức nào được dùng và vì sao các mức khác không được dùng.
-4. Khi mọi khu vực đã có mức chung, bấm [[Đặt ngày bắt đầu áp]] để bắt đầu tính phí. Thiếu khu vực nào thì màn báo đúng tên khu vực đó.
-
-### Đổi giá và kết thúc mức
-- Đổi số tiền: bấm [[Đổi mức phí]] ở dòng đó, gõ số tiền mới và ngày bắt đầu. Mức cũ tự kết thúc vào ngày liền trước.
-- Ngừng một mức: bấm [[Kết thúc mức]]. Khi phí đang áp, mức chung cuối cùng của một khu vực không kết thúc được.
-- Muốn dừng tính phí: bấm [[Tắt phí đưa đón]]. Các mức đã đặt vẫn còn.
+1. Mở **Phí đưa đón**, bấm [[Đặt ngày bắt đầu áp]] và chọn ngày. Không cần nhập bảng mức. Trước ngày đó đơn không có dòng phí.
+2. Xem phần nhắc «dịch vụ chưa có giá gốc phí đưa đón»: dịch vụ nào còn trống ô giá gốc trên Sheet thì đơn có lượt đón của dịch vụ đó không xác nhận được. Nhập giá gốc trên Sheet (ghi 0 nếu miễn phí), hoặc văn phòng bấm Đổi phí trên đơn để đặt số riêng kèm lý do.
+3. Muốn miễn phí đưa đón theo đợt: mở khối **Chương trình miễn phí đưa đón**, chọn khoảng ngày đi, và phạm vi (tất cả dịch vụ, một số dịch vụ hoặc một số đối tác). Đơn chưa xác nhận có ngày đón trong khoảng thì phí là 0 đồng; đơn đã xác nhận giữ phí đã chụp.
+4. Đơn do Đối tác gửi: nếu Nền tảng tính được phí thì đơn xác nhận luôn; không tính được thì người kiểm vé đặt số lúc bấm [[Còn vé, xác nhận đơn]].
+5. Muốn dừng tính phí: bấm [[Tắt phí đưa đón]]. Đơn đã xác nhận giữ nguyên phí đã chụp.
 
 ### Điều dễ sai
-- Khung màu vàng trên bảng là lời nhắc: một cấp đang trả cao hơn bên không có cấp. Vẫn lưu được, chỉ nhắc để xem lại.
-- Mức đã đặt không xoá được, chỉ kết thúc hoặc đổi.`,
+- Phí của đơn tính từ giá gốc trên Sheet, trừ mức giảm theo cấp (Kế toán đặt ở màn Cấp độ đại lý); đổi cấp độ cũng đổi phí của các đơn chưa xác nhận.
+- Ô giá gốc để trống khác số 0: trống là chưa có giá, đơn bị giữ; số 0 là miễn phí.
+- Bảng mức theo khu vực và khối **Thử tra** nay nằm trong khối gập «luật cũ, không dùng cho đơn»; vẫn còn để tra cứu, không tính vào đơn.`,
   },
 ];

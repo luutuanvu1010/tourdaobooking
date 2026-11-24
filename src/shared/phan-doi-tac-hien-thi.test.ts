@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { PERMISSION_CODES, can, isOffice, type PermissionCode } from "./permissions.ts";
 import {
   CAU_CHO_CAI_MUC, CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, MOI_KHACH_TOI_DA, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, demLyDo, docThanGhiTay,
-  CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutDienDoiTac, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type FormGhiTay,
+  CAU_DOI_TAC_CHUA_CO_SDT, baoDoiTacChuaCoSdt, cauTimDoiTacRong, chuOTimDoiTac, soTimDoiTac, traDoiTacTheoSo, doiTacThieuVaiTro, docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutDienDoiTac, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type FormGhiTay,
 } from "./phan-doi-tac-hien-thi.ts";
 
 const staff = (...permissions: PermissionCode[]) => ({ id: "s1", permissions });
@@ -215,7 +215,7 @@ test("Thực tập (chỉ INTERN) THẤY công tắc «Đơn của» — theo b�
 test("canhBaoHaMucTay: đơn 1.000.000, hoa hồng 10% = 100.000, giảm 100.000; hạ xuống 5% ⇒ báo chênh 50.000; giữ 10% / tăng / Không đổi / ô sai / không người hưởng ⇒ không báo", async () => {
   const { canhBaoHaMucTay } = await import("./phan-doi-tac-hien-thi.ts");
   const vnd = (n: number) => `${n.toLocaleString("vi-VN")} ₫`;
-  const dto = { nguoiHuong: { ten: "Đại Lý A" }, dong: [{ serviceId: "s1", thanhTien: 1_000_000, soKhachTinh: 1, hoaHong: 100_000 }] };
+  const dto = { nguoiHuong: { ten: "Đại Lý A" }, dong: [{ serviceId: "s1", thanhTien: 1_000_000, coSoHoaHong: 1_000_000, soKhachTinh: 1, hoaHong: 100_000 }] };
   const f = (p: Partial<FormGhiTay>): FormGhiTay => ({ kieu: "RATE", tyLe: "", moiKhach: "", nguoiBan: { loai: "KHONG_DOI" }, lyDo: "", ...p });
   const cau = canhBaoHaMucTay({ dto, serviceId: "s1", form: f({ tyLe: "5" }), giamGiaHieuLuc: 100_000, dinhDang: vnd });
   assert.ok(cau);
@@ -229,7 +229,7 @@ test("canhBaoHaMucTay: đơn 1.000.000, hoa hồng 10% = 100.000, giảm 100.000
   assert.equal(canhBaoHaMucTay({ dto: { ...dto, nguoiHuong: null }, serviceId: "s1", form: f({ tyLe: "5" }), giamGiaHieuLuc: 100_000, dinhDang: vnd }), null);
   assert.ok(canhBaoHaMucTay({ dto, serviceId: "s1", form: f({ kieu: "PER_PAX", moiKhach: "40.000" }), giamGiaHieuLuc: 100_000, dinhDang: vnd })?.includes(vnd(60_000)), "mỗi khách × số khách tính");
   // Dòng khác thiếu mức tính 0 (R-73, như kiểm định kỳ R-ORD-DC1).
-  const hai = { ...dto, dong: [...dto.dong, { serviceId: "s2", thanhTien: 500_000, soKhachTinh: 1, hoaHong: null }] };
+  const hai = { ...dto, dong: [...dto.dong, { serviceId: "s2", thanhTien: 500_000, coSoHoaHong: 500_000, soKhachTinh: 1, hoaHong: null }] };
   assert.ok(canhBaoHaMucTay({ dto: hai, serviceId: "s1", form: f({ tyLe: "5" }), giamGiaHieuLuc: 100_000, dinhDang: vnd })?.includes(vnd(50_000)));
 });
 
@@ -283,4 +283,52 @@ test("hienNutDienDoiTac: khớp đúng cổng của GET /api/parties/:id trên m
     if (hienNutDienDoiTac(w, AGENCY)) assert.ok(isOffice(w) && can(w, "party.view"), q.join("+"));
   }
   assert.match(CAU_DOI_TAC_CHUA_CO_SDT, /chưa có số điện thoại/);
+});
+
+// Việc 3 (kế hoạch 16 việc, 21/11/2026): ô «Tìm đối tác» của form lập đơn nhận cả số điện thoại. Nhánh tìm theo số chỉ mở cho người VỐN tra được hồ sơ theo số
+// (cùng cổng GET /api/parties/lookup: văn phòng + party.view) — Thực tập qua cổng tìm người hưởng nhưng không có party.view, nên không được thêm lối «số này của ai».
+test("traDoiTacTheoSo: đúng cổng tra hồ sơ theo số (văn phòng + party.view) trên mọi tập quyền; Thực tập, Đối tác không", () => {
+  for (const q of [["SALES"], ["ADMIN"], ["SUPER_ADMIN"], ["ACCOUNTING"]] as PermissionCode[][]) assert.equal(traDoiTacTheoSo(staff(...q)), true, q.join("+"));
+  for (const q of [["INTERN"], ["PARTNER"], ["FIELD"], ["HR"], ["DRIVER"]] as PermissionCode[][]) assert.equal(traDoiTacTheoSo(staff(...q)), false, q.join("+"));
+  const n = PERMISSION_CODES.length;
+  for (let mask = 0; mask < 1 << n; mask++) {
+    const w = staff(...PERMISSION_CODES.filter((_, i) => mask & (1 << i)));
+    assert.equal(traDoiTacTheoSo(w), isOffice(w) && can(w, "party.view"));
+  }
+});
+
+test("soTimDoiTac: số Việt Nam đầy đủ (0…, +84…, có dấu cách / chấm / gạch) → số đã chuẩn hoá; tên, số thiếu chữ số, hoặc người không tra được theo số → null", () => {
+  const ban = staff("SALES");
+  assert.equal(soTimDoiTac(ban, "0905123456"), "0905123456");
+  assert.equal(soTimDoiTac(ban, "+84 905 123 456"), "0905123456");
+  assert.equal(soTimDoiTac(ban, "0905.123.456"), "0905123456");
+  assert.equal(soTimDoiTac(ban, " 0905-123-456 "), "0905123456");
+  assert.equal(soTimDoiTac(ban, "Đại lý Biển Xanh"), null, "tên ⇒ tìm theo tên như cũ");
+  assert.equal(soTimDoiTac(ban, "0905"), null, "số thiếu chữ số ⇒ không tìm theo số");
+  assert.equal(soTimDoiTac(ban, ""), null);
+  assert.equal(soTimDoiTac(staff("INTERN"), "0905123456"), null, "Thực tập: không có lối tìm theo số");
+});
+
+test("chuOTimDoiTac: người tìm được theo số thấy nhãn + chữ gợi ý nói cả số điện thoại; còn lại giữ chữ cũ (chỉ theo tên)", () => {
+  assert.deepEqual(chuOTimDoiTac(true), { nhan: "Tìm đối tác theo tên hoặc số điện thoại", goiY: "Gõ tên hoặc số điện thoại" });
+  assert.deepEqual(chuOTimDoiTac(false), { nhan: "Tìm đối tác theo tên", goiY: "Gõ tên đại lý / cộng tác viên" });
+});
+
+test("cauTimDoiTacRong: ô trống, không thấy theo tên / số, và số gõ chưa đủ chữ số (chỉ người tìm được theo số mới được nhắc gõ đủ)", () => {
+  assert.equal(cauTimDoiTacRong("", true), "Chưa có đối tác nào được hưởng hoa hồng.");
+  assert.equal(cauTimDoiTacRong("  ", false), "Chưa có đối tác nào được hưởng hoa hồng.");
+  assert.equal(cauTimDoiTacRong("Biển Xanh", false), "Không có đối tác nào tên như vậy.");
+  assert.equal(cauTimDoiTacRong("Biển Xanh", true), "Không có đối tác nào có tên hoặc số điện thoại này.");
+  assert.equal(cauTimDoiTacRong("0905123456", true), "Không có đối tác nào có tên hoặc số điện thoại này.", "số đủ mà không thấy");
+  assert.equal(cauTimDoiTacRong("0905 12", true), "Gõ đủ 10 số để tìm theo số điện thoại.");
+  assert.equal(cauTimDoiTacRong("+84 9", true), "Gõ đủ 10 số để tìm theo số điện thoại.");
+  assert.equal(cauTimDoiTacRong("0905 12", false), "Không có đối tác nào tên như vậy.", "Thực tập không tìm theo số nên không được nhắc gõ số");
+});
+
+test("baoDoiTacChuaCoSdt: người xem sửa được hồ sơ → câu + lối «Thêm số ở Danh bạ»; không sửa được (hồ sơ gắn tài khoản) → nói rõ ai thêm được số + lối mở hồ sơ; không bao giờ tự chép số", () => {
+  const sua = baoDoiTacChuaCoSdt({ id: "pty-1", editable: true });
+  assert.deepEqual(sua, { cau: CAU_DOI_TAC_CHUA_CO_SDT, nhanLienKet: "Thêm số ở Danh bạ", href: "/parties?id=pty-1" });
+  const khong = baoDoiTacChuaCoSdt({ id: "pty-1", editable: false });
+  assert.deepEqual(khong, { cau: `${CAU_DOI_TAC_CHUA_CO_SDT} Nhờ Quản trị hoặc Toàn quyền thêm số.`, nhanLienKet: "Mở hồ sơ ở Danh bạ", href: "/parties?id=pty-1" });
+  assert.equal(baoDoiTacChuaCoSdt({ id: "a b&c", editable: true }).href, "/parties?id=a%20b%26c", "mã hồ sơ được mã hoá vào đường dẫn");
 });

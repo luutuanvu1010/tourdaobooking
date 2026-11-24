@@ -117,6 +117,13 @@ const TIM_HUONG = defineSql("pricing", "find_beneficiaries",
   `SELECT l.id, l.display_name, l.party_kind FROM v_pty_party_label l
    WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)
      AND (?1 = '' OR l.display_name LIKE '%' || ?1 || '%' ESCAPE '\\') ORDER BY l.display_name LIMIT 20`);
+// Việc 3 (kế hoạch 16 việc, 21/11/2026): tìm người hưởng theo SỐ ĐIỆN THOẠI. ?1 = mảng JSON id hồ sơ do parties trả theo số liên hệ đang mở (`findPartiesByPhone` —
+// pricing không đọc bảng liên hệ); giữ ĐÚNG hai điều kiện của TIM_HUONG (hồ sơ còn dùng + mang vai được hưởng đang bật). Không trả liên hệ.
+const TIM_HUONG_TRONG = defineSql("pricing", "find_beneficiaries_among",
+  `SELECT l.id, l.display_name, l.party_kind FROM v_pty_party_label l
+   WHERE l.id IN (SELECT value FROM json_each(?1)) AND l.active = 1
+     AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)
+   ORDER BY l.display_name LIMIT 20`);
 // ===== Mức TA dùng chung (ADR-0117 lần 2, migration 0096): prc_rate_tier (mức), prc_role_tier (gắn loại↔mức theo ngày). Khoá tên `name_key` do máy chủ ghi, không đọc ra. =====
 const MUC_TA_TAT_CA = defineSql("pricing", "rate_tiers_all", "SELECT code, name, active, note, created_at, created_by, updated_at, updated_by FROM prc_rate_tier ORDER BY name_key, code");
 const MUC_TA_MA = defineSql("pricing", "rate_tier_by_code", "SELECT code, name, active, note, created_at, created_by, updated_at, updated_by FROM prc_rate_tier WHERE code = ?1");
@@ -195,6 +202,40 @@ const GIOI_HAN_THEM = defineSql("pricing", "entry_limit_insert",
   `INSERT INTO prc_entry_limit_policy (id, max_rate_bp, amount_step, valid_from_at, created_at, created_by, updated_at, updated_by)
    SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6 WHERE (SELECT max(valid_from_at) FROM prc_entry_limit_policy) = ?7`);
 
+// ===== Cấp cho đối tác tự đăng ký (ADR-0209; migration 0172) =====
+// MỘT đoạn «dòng hiệu lực của loại X lúc T» cho cả đọc lẫn ghi: `valid_from_at` lớn nhất ≤ T (UNIQUE theo loại + mốc nên không hoà). Đoạn nhận hai chỗ giữ tham số đặt tên ở nơi dùng.
+const HIEU_LUC = (loai: string, luc: string) =>
+  `(SELECT e.id FROM prc_signup_tier_policy e WHERE e.role_type_code = ${loai} AND e.valid_from_at <= ${luc} ORDER BY e.valid_from_at DESC LIMIT 1)`;
+const CS_DK_HIEU_LUC = defineSql("pricing", "signup_tier_effective_all",
+  `SELECT p.id, p.role_type_code, p.tier_code, p.valid_from_at FROM prc_signup_tier_policy p WHERE p.id = ${HIEU_LUC("p.role_type_code", "?1")}`);
+const CS_DK_CUA_LOAI = defineSql("pricing", "signup_tier_effective_of_role",
+  `SELECT p.id, p.tier_code, t.name AS tier_name FROM prc_signup_tier_policy p LEFT JOIN prc_rate_tier t ON t.code = p.tier_code WHERE p.id = ${HIEU_LUC("?1", "?2")}`);
+// Đặt chính sách: khoá lạc quan = dòng người đặt đã thấy (?6; NULL = chưa có dòng nào) phải còn là dòng MỚI NHẤT của loại (không xét mốc ≤ ?4: lệnh của người khác lấy mốc SAU
+// mốc của mình nhưng ghi TRƯỚC thì vẫn bị bắt) — người khác vừa đặt ⇒ 0 dòng ⇒ 409, nhật ký `changes() > 0` không ghi.
+const CS_DK_THEM = defineSql("pricing", "signup_tier_insert",
+  `INSERT INTO prc_signup_tier_policy (id, role_type_code, tier_code, valid_from_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5
+   WHERE (SELECT e.id FROM prc_signup_tier_policy e WHERE e.role_type_code = ?2 ORDER BY e.valid_from_at DESC LIMIT 1) IS ?6`);
+// Câu 8 của lô duyệt phiếu đăng ký (ADR-0209 Đ3). WHERE lặp ĐÚNG mọi trigger BEFORE INSERT của prc_party_tier để câu chèn 0 dòng thay vì làm hỏng lô:
+//   prc_party_tier_tier_ok (cấp đang bật), prc_party_tier_party_ok (hồ sơ đang mở vai thuộc loại được hưởng còn bật — nguyên văn, đọc v_pty_open_role; câu mở vai đứng trước trong lô),
+//   prc_party_tier_overlap (bản 0126: dòng chưa huỷ có ngày kết thúc ≥ ngày bắt đầu mới, vì dòng mới không có ngày kết thúc), born_clean / replaces_ok (bốn cột huỷ / thay để NULL).
+// Thêm: dòng chính sách vẫn là dòng hiệu lực người duyệt đã đọc (?7) — người đặt vừa đổi giữa lúc bấm ⇒ bỏ qua, nhật ký không ghi sai cấp; dòng đó không phải «không đặt»;
+// vai người duyệt chọn còn trong danh sách được hưởng đang bật (view công bố v_prc_beneficiary_role). Ngày bắt đầu = ngày duyệt giờ Việt Nam (?4, nơi gọi truyền), không date('now').
+const CS_DK_AP = defineSql("pricing", "signup_tier_apply_on_approval",
+  `INSERT INTO prc_party_tier (id, party_id, tier_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, p.tier_code, ?4, NULL, ?5, ?6, ?5, ?6 FROM prc_signup_tier_policy p
+   WHERE p.id = ?7 AND p.id = ${HIEU_LUC("?3", "?5")}
+     AND p.tier_code IS NOT NULL
+     AND EXISTS (SELECT 1 FROM prc_rate_tier t WHERE t.code = p.tier_code AND t.active = 1)
+     AND EXISTS (SELECT 1 FROM v_prc_beneficiary_role vb WHERE vb.role_type_code = ?3)
+     AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = ?2)
+     AND NOT EXISTS (SELECT 1 FROM prc_party_tier o WHERE o.voided_at IS NULL AND o.party_id = ?2 AND COALESCE(o.valid_to_date, '9999-12-31') >= ?4)`);
+
+// «Cấp sẽ áp» (ADR-0209 Đ3; Task 12 mục I-1): hồ sơ đã có cấp riêng chưa huỷ, khoảng ngày giao [ngày duyệt, mãi mãi) — ĐÚNG điều kiện NOT EXISTS cuối của CS_DK_AP.
+const CS_DK_CO_CAP_RIENG = defineSql("pricing", "signup_tier_party_has_tier",
+  `SELECT 1 AS co FROM prc_party_tier o WHERE o.voided_at IS NULL AND o.party_id = ?1 AND COALESCE(o.valid_to_date, '9999-12-31') >= ?2 LIMIT 1`);
+export const coCapRiengTuNgay = async (db: D1Database, partyId: string, ngay: string): Promise<boolean> => (await db.prepare(CS_DK_CO_CAP_RIENG).bind(partyId, ngay).first()) !== null;
+
 export const allRules = async (db: D1Database) => (await db.prepare(MUC_TAT_CA).all<RuleRow>()).results;
 export const rulesOn = async (db: D1Database, ngay: string) => (await db.prepare(MUC_NGAY).bind(ngay).all<RuleRow>()).results;
 export const ruleById = (db: D1Database, id: string) => db.prepare(MUC_ID).bind(id).first<RuleRow>();
@@ -264,6 +305,8 @@ export const huongCuaHoSo = async (db: D1Database, partyId: string): Promise<{ p
 export const groupsOf = async (db: D1Database, codes: readonly string[]): Promise<Map<string, string | null>> =>
   new Map((await db.prepare(NHOM_CUA).bind(JSON.stringify(codes)).all<{ catalog_code: string; group_code: string | null }>()).results.map((r) => [r.catalog_code, r.group_code]));
 export const findBeneficiaries = async (db: D1Database, q: string) => (await db.prepare(TIM_HUONG).bind(q).all<{ id: string; display_name: string; party_kind: "PERSON" | "ORGANIZATION" }>()).results;
+export const findBeneficiariesAmong = async (db: D1Database, partyIds: readonly string[]) =>
+  partyIds.length ? (await db.prepare(TIM_HUONG_TRONG).bind(JSON.stringify(partyIds)).all<{ id: string; display_name: string; party_kind: "PERSON" | "ORGANIZATION" }>()).results : [];
 export const suppliers = async (db: D1Database) => (await db.prepare(NHA_CUNG_CAP).all<{ id: string; display_name: string }>()).results;
 export const rateTiers = async (db: D1Database) => (await db.prepare(MUC_TA_TAT_CA).all<TierRow>()).results;
 export const rateTierByCode = (db: D1Database, code: string) => db.prepare(MUC_TA_MA).bind(code).first<TierRow>();
@@ -312,5 +355,14 @@ export const roleRulesForTierLink = async (db: D1Database, roleTypeCode: string,
 export interface GioiHanNhapRow { max_rate_bp: number; amount_step: number; valid_from_at: string }
 /** Dòng giới hạn nhập đang hiệu lực (`valid_from_at` lớn nhất); null chỉ khi bảng rỗng (không xảy ra sau migration 0137 — dòng gieo, bảng chỉ-thêm). */
 export const gioiHanNhapMoiNhat = (db: D1Database): Promise<GioiHanNhapRow | null> => db.prepare(GIOI_HAN_MOI_NHAT).first<GioiHanNhapRow>();
-export const cauThemGioiHanNhap = (db: D1Database, v: { id: string; tranTyLeBp: number; buocTien: number; tuLuc: string; tuLucDaDoc: string; at: string; by: string }): D1PreparedStatement =>
+export interface CsDangKyRow { id: string; role_type_code: string; tier_code: string | null; valid_from_at: string }
+/** Dòng chính sách hiệu lực lúc `luc` của MỌI loại có dòng (loại chưa từng đặt thì vắng). */
+export const csDangKyHieuLuc = async (db: D1Database, luc: string) => (await db.prepare(CS_DK_HIEU_LUC).bind(luc).all<CsDangKyRow>()).results;
+/** Dòng chính sách hiệu lực lúc `luc` của MỘT loại (kèm tên cấp, không lọc cấp đang bật — câu áp tự xét). */
+export const csDangKyCuaLoai = (db: D1Database, loai: string, luc: string) => db.prepare(CS_DK_CUA_LOAI).bind(loai, luc).first<{ id: string; tier_code: string | null; tier_name: string | null }>();
+export const cauThemCsDangKy = (db: D1Database, v: { id: string; loai: string; tierCode: string | null; at: string; by: string; dangHieuLuc: string | null }): D1PreparedStatement =>
+  db.prepare(CS_DK_THEM).bind(v.id, v.loai, v.tierCode, v.at, v.by, v.dangHieuLuc);
+export const cauApCsDangKy = (db: D1Database, v: { id: string; partyId: string; roleCode: string; ngayDuyet: string; at: string; approverId: string; policyId: string }): D1PreparedStatement =>
+  db.prepare(CS_DK_AP).bind(v.id, v.partyId, v.roleCode, v.ngayDuyet, v.at, v.approverId, v.policyId);
+export const cauThemGioiHanNhap =(db: D1Database, v: { id: string; tranTyLeBp: number; buocTien: number; tuLuc: string; tuLucDaDoc: string; at: string; by: string }): D1PreparedStatement =>
   db.prepare(GIOI_HAN_THEM).bind(v.id, v.tranTyLeBp, v.buocTien, v.tuLuc, v.at, v.by, v.tuLucDaDoc);

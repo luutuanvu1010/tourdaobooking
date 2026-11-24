@@ -5,7 +5,8 @@
 // thì trả "ask" (hỏi chủ; luật `adr-bash-write`, chủ quyết "Siết lại" 30/9). THỨ TỰ CỐ ĐỊNH, deny luôn thắng ask:
 //   (1) evaluateDenyOnly (KHÔNG chạy phần xét docs/adr) → deny thì in deny; (2) guard-luat → deny thì in deny; (3) chỉ khi CẢ HAI đã qua mới
 //   chạy evaluateBash đầy đủ (xét docs/adr) không script → ask thì nhớ lại; (4) rồi mới đọc tệp script (I/O có thể chậm) và gọi lại evaluateBash
-//   kèm nội dung script → ask thì in ask. Để phần xét docs/adr (có regex, có thể còn lỗ quay lui mũ chưa biết) không thể chặn đường vào bước
+//   kèm nội dung script → ask thì in ask. Từ 2026-11-15, giữa đọc tệp và ask có bước (4a): danhGiaScriptLuat (guard-luat) — tệp script tạm
+//   ghi tệp luật ⇒ deny (mã trình thông dịch trong `-e`/`-c`/heredoc đã bị guard-luat chặn ngay ở bước (2)). Để phần xét docs/adr (có regex, có thể còn lỗ quay lui mũ chưa biết) không thể chặn đường vào bước
 //   (2) của guard-luat — người kiểm độc lập 5/10 đo được một lỗ như vậy ở ADR_HINT (đã vá), chỗ này đổi THỨ TỰ để lớp phòng vệ không chỉ dựa
 //   vào từng regex đúng, mà cấu trúc móc tự nó không cho lỗi ở (3)/(4) nuốt mất deny của (1)/(2).
 // Lỗi nội bộ/đầu vào hỏng → KHÔNG chặn (không khoá cả phiên); lớp thứ hai của lệnh cấm là permissions.deny, còn tệp luật thì cửa chính vẫn là luật `ask`
@@ -16,7 +17,7 @@ import { dirname, resolve } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { evaluateBash, evaluateDenyOnly, mentionsGitMerge, scriptPaths } from "./guard-remote-lib.mjs";
-import { danhGiaGhiLuat, gocKho } from "./guard-luat-lib.mjs";
+import { danhGiaGhiLuat, danhGiaScriptLuat, gocKho } from "./guard-luat-lib.mjs";
 
 const out = (decision, reason) =>
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: decision, permissionDecisionReason: reason } }));
@@ -72,13 +73,31 @@ if (remote.deny) {
 // (4) Luật HỎI docs/adr (30/9): đọc nội dung tệp script chạy bằng trình thông dịch (`python3 ~/.claude/jobs/…/duyet.py`) để thấy nó có ghi docs/adr không.
 // Chỉ tệp thường (ống FIFO tên x.py sẽ làm treo), ≤ 256 KB; tệp lỗi/không có thì bỏ qua (không chặn).
 const scripts = [];
+const tepScript = [];
 for (const p of scriptPaths(command)) {
   try {
     const file = resolve(cwd, p.replace(/^~(?=\/)/, homedir()));
     const st = statSync(file);
-    if (st.isFile() && st.size <= 256_000) scripts.push(readFileSync(file, "utf8"));
+    if (st.isFile() && st.size <= 256_000) {
+      const content = readFileSync(file, "utf8");
+      scripts.push(content);
+      tepScript.push({ path: file, content });
+    }
   } catch {
     /* bỏ qua */
+  }
+}
+// (4a) Từ 2026-11-15: tệp script NGOÀI thư mục mã của kho ghi tệp luật ⇒ DENY (guard-luat), xét TRƯỚC `ask` để deny vẫn thắng ask.
+if (tepScript.length) {
+  let luatScript = { deny: false };
+  try {
+    luatScript = danhGiaScriptLuat(command, tepScript, { cwd, root: gocKho(dirname(fileURLToPath(import.meta.url))) });
+  } catch {
+    luatScript = { deny: false };
+  }
+  if (luatScript.deny) {
+    out("deny", luatScript.reason);
+    process.exit(0);
   }
 }
 const verdict = scripts.length ? evaluateBash(command, { branch, scripts }) : remote;

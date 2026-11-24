@@ -69,6 +69,18 @@ const INSERT_STAFF = defineSql(
   "insert",
   `INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id, mfa_grace_until) VALUES (?1, '', ?2, ?3, 'sales', 1, ?4, ?5, ?6)`,
 );
+// Biến thể TẮT (ADR-0207 Đ5; đợt 1 Task 7): tài khoản sinh lúc DUYỆT phiếu đăng ký, `active = 0` tới khi người đăng ký tự đặt PIN (Đ6). Không ghi hạn lớp hai (chỉ vai bên ngoài — bài cham-tai-khoan.test.ts ghim tập câu ghi cột đó).
+const INSERT_STAFF_INACTIVE = defineSql(
+  "staff",
+  "insert_inactive",
+  `INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES (?1, '', ?2, ?3, 'sales', 0, ?4, ?5)`,
+);
+// Kích hoạt (ADR-0207 Đ6): đặt PIN + bật + đẩy credentials_changed_at. `active = 0` trong WHERE: lệnh lặp / tài khoản đã bật KHÔNG bị ghi đè PIN.
+const SET_PIN_ACTIVATE = defineSql(
+  "staff",
+  "set_pin_activate",
+  "UPDATE staff SET pin_hash = ?2, active = 1, credentials_changed_at = ?3 WHERE id = ?1 AND active = 0",
+);
 // ADR-0074: hai mốc của cổng lớp hai ở đăng nhập (module auth đọc qua `mfaDeadlinesOf` của index.ts — không đọc thẳng bảng staff).
 const MFA_DEADLINES = defineSql("staff", "mfa_deadlines", "SELECT mfa_grace_until, mfa_enroll_until FROM staff WHERE id = ?1");
 export async function mfaDeadlinesRow(db: D1Database, id: string): Promise<{ mfa_grace_until: string | null; mfa_enroll_until: string | null } | null> {
@@ -157,6 +169,12 @@ export const insertStaffStatement = (
   db: D1Database, v: { id: string; phone: string; pinHash: string; createdAt: string; partyId: string; mfaGraceUntil: string | null },
 ): D1PreparedStatement => db.prepare(INSERT_STAFF).bind(v.id, v.phone, v.pinHash, v.createdAt, v.partyId, v.mfaGraceUntil);
 
+export const insertStaffInactiveStatement = (
+  db: D1Database, v: { id: string; phone: string; pinHash: string; createdAt: string; partyId: string },
+): D1PreparedStatement => db.prepare(INSERT_STAFF_INACTIVE).bind(v.id, v.phone, v.pinHash, v.createdAt, v.partyId);
+
+export const setPinActivateStatement = (db: D1Database, id: string, pinHash: string, at: number): D1PreparedStatement => db.prepare(SET_PIN_ACTIVATE).bind(id, pinHash, at);
+
 export const updateStaffStatement = (db: D1Database, id: string, patch: { phone?: string; active?: boolean }, losesAdmin: boolean): D1PreparedStatement =>
   db.prepare(UPDATE_STAFF).bind(id, patch.phone ?? null, patch.active === undefined ? null : patch.active ? 1 : 0, losesAdmin ? 1 : 0);
 
@@ -209,6 +227,13 @@ export async function phonesByParty(db: D1Database): Promise<{ partyId: string; 
 export async function partiesWithAccount(db: D1Database, partyIds: readonly string[]): Promise<Set<string>> {
   if (partyIds.length === 0) return new Set();
   return new Set((await db.prepare(ACCOUNTS_OF_PARTIES).bind(JSON.stringify(partyIds)).all<{ party_id: string }>()).results.map((r) => r.party_id));
+}
+// ADR-0213 (mốc B1 Task 14): hồ sơ nào trong tập có liên kết «Người quản lý của» / «Thành viên của» đang mở (view công bố v_pty_org_link) — cho màn Quản lý tài khoản: tài khoản chỉ làm cho tổ chức
+// không phải «thiếu vai trò». Chỉ đọc khoá.
+const PARTIES_WITH_ORG_LINK = defineSql("staff", "parties_with_org_link", "SELECT DISTINCT person_party_id AS party_id FROM v_pty_org_link WHERE person_party_id IN (SELECT value FROM json_each(?1))");
+export async function partiesWithOrgLink(db: D1Database, partyIds: readonly string[]): Promise<Set<string>> {
+  if (partyIds.length === 0) return new Set();
+  return new Set((await db.prepare(PARTIES_WITH_ORG_LINK).bind(JSON.stringify(partyIds)).all<{ party_id: string }>()).results.map((r) => r.party_id));
 }
 export const insertAdjustmentStatement = (
   db: D1Database,

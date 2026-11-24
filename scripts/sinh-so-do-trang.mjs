@@ -6,7 +6,7 @@
 //      - danh sách trang: `PAGES` của src/shared/sw-policy.ts (trừ /login và trang chỉ chuyển hướng không có script);
 //      - tiêu đề trang: `<title>X — Island Booking System</title>` của public/<trang>.html (trang "/" là public/index.html);
 //      - bố cục (e) theo THỨ TỰ TỆP: `<h2>`/`<h3>` mở một mục; `<button>`, `<a class="…btn…">` thuộc mục gần nhất phía trên; khối `form-actions` /
-//        `vc-bottom-bar` mở mục "Thanh nút cuối trang". Phần dựng trong web/X.ts (`h("h2"|"h3"|"button"|"a", …, "Nhãn")`, chuỗi LITERAL) ghi riêng là
+//        `vc-bottom-bar` / `thanh-nut`, `thanh-day` của khung gốc (ADR-0222) mở mục "Thanh nút cuối trang". Phần dựng trong web/X.ts (`h("h2"|"h3"|"button"|"a", …, "Nhãn")`, chuỗi LITERAL) ghi riêng là
 //        "dựng khi trang chạy": danh sách mục và danh sách nút, KHÔNG gán nút vào mục (thứ tự trong mã không phải vị trí trên màn hình);
 //      - menu: bảng mục src/shared/muc-giao-dien.ts — THANH_TAB rồi THANH_BEN (nhãn theo đường trang); NHÓM menu (HẰNG NGÀY / VẬN CHUYỂN / TIỀN / THIẾT LẬP /
 //        CHÂN MENU) từ THANH_BEN. Dòng trang Tôi dựng từ TRANG_TOI (không phải chuỗi literal): nhãn chèn vào phần "dựng khi trang chạy" của /account ở chú thích
@@ -92,7 +92,7 @@ export function boCucHtml(html) {
     muc = { muc: ten, nut: [] };
     out.push(muc);
   };
-  const re = /<(h[1-3])\b[^>]*>([^<]*)<\/\1>|<button\b[^>]*>([^<]+)<\/button>|<a\b[^>]*class="[^"]*\bbtn\b[^"]*"[^>]*>([^<]+)<\/a>|class="[^"]*\b(?:form-actions|vc-bottom-bar|chan-dinh)\b/g;
+  const re = /<(h[1-3])\b[^>]*>([^<]*)<\/\1>|<button\b[^>]*>([^<]+)<\/button>|<a\b[^>]*class="[^"]*\b(?:btn|nut)\b[^"]*"[^>]*>([^<]+)<\/a>|class="[^"]*\b(?:form-actions|vc-bottom-bar|chan-dinh|thanh-day|thanh-nut)\b/g;
   for (const m of s.matchAll(re)) {
     if (m[1]) {
       if (m[1] === "h1") continue; // tiêu đề trang
@@ -101,7 +101,7 @@ export function boCucHtml(html) {
     } else if (m[3] ?? m[4]) {
       if (!muc) moMuc("Đầu trang");
       themNhan(muc.nut, m[3] ?? m[4], "nút (HTML)");
-    } else moMuc(THANH_CUOI);
+    } else if (muc?.muc !== THANH_CUOI) moMuc(THANH_CUOI); // khung gốc (ADR-0222): thanh nút cuối trang ở máy tính và thanh dính đáy ở điện thoại là MỘT mục
   }
   return out;
 }
@@ -113,8 +113,14 @@ export function boCucHtml(html) {
 export function boCucTs(src) {
   const s = boChuThich(src);
   const out = { muc: [], nut: [] };
-  const re = /h\(\s*"(button|a|h2|h3)"\s*,\s*(?:\{[^{}]*\}|null)\s*,\s*(?:"([^"\n]+)"|'([^'\n]+)')/g;
+  // Khung gốc (ADR-0222): tên khối dựng bằng `khoi({ tieuDe: "Tên", … })` của web/khung.ts (trang có thể nhập hàm đó dưới tên `khoiKhung`) cũng là tiêu đề mục —
+  // nhánh thứ hai của biểu thức. Chỉ nhận `tieuDe` đứng ĐẦU tham số của đúng hàm đó: `tieuDe` của hộp hỏi xác nhận (`hoiXacNhan`) không phải tiêu đề mục.
+  const re = /h\(\s*"(button|a|h2|h3)"\s*,\s*(?:\{[^{}]*\}|null)\s*,\s*(?:"([^"\n]+)"|'([^'\n]+)')|\bkhoi(?:Khung)?\(\s*\{\s*tieuDe:\s*"([^"\n]+)"/g;
   for (const m of s.matchAll(re)) {
+    if (m[4] !== undefined) {
+      themNhan(out.muc, m[4], "tiêu đề mục (web)");
+      continue;
+    }
     const chu = m[2] ?? m[3];
     if (m[1] === "h2" || m[1] === "h3") themNhan(out.muc, chu, "tiêu đề mục (web)");
     else themNhan(out.nut, chu, "nút (web)");

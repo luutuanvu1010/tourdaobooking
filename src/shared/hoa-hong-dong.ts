@@ -58,13 +58,17 @@ export interface DongPhanDoiTac {
  * `tien.pax` (ADR-0133): số khách HIỆN HÀNH theo loại của dòng; `null` = dịch vụ tính theo nhóm/lượt (khi đó `soKhachTinh` là số lượt). Chỉ cần khi bản chụp mang ba số theo loại:
  * có ba số mà thiếu `pax` (undefined) ⇒ ném lỗi, không đoán. Không có ba số ⇒ như cũ.
  */
-export function tinhDongDoiTac(c: BanChup, tien: { thanhTien: number; soKhachTinh: number; pax?: { adult?: number; child?: number; senior?: number } | null }): DongPhanDoiTac {
+/**
+ * `coSoHoaHong` (ADR-0229 Đ10, BẮT BUỘC — không mặc định để không nơi gọi nào quên): cơ sở của hoa hồng theo TỶ LỆ = thành tiền trừ phần tăng giá mùa vụ (`coSoHoaHong` ở
+ * src/shared/gia-mua-vu.ts); đơn không mùa vụ thì bằng `thanhTien`. Hoa hồng theo số tiền mỗi khách / theo loại / theo lượt không dùng. Giá vốn và giá đại lý vẫn trên `thanhTien`.
+ */
+export function tinhDongDoiTac(c: BanChup, tien: { thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax?: { adult?: number; child?: number; senior?: number } | null }): DongPhanDoiTac {
   const h = c.hoaHong;
   const theoLoai = h.status === "SET" && h.kind === "PER_PAX" ? (h.theoLoai ?? null) : null;
   if (theoLoai && tien.pax === undefined) throw new Error("tinhDongDoiTac: bản chụp có số tiền theo loại nhưng thiếu số khách theo loại (pax)");
   const hoaHong = h.status === "NONE" ? 0 : h.status === "MISSING" ? null
     : theoLoai ? (tien.pax ? hoaHongTheoLoai(theoLoai, tien.pax) : hoaHongTheoLuot(theoLoai, tien.soKhachTinh))
-    : hoaHongDong({ kind: h.kind, rateBp: h.rateBp, perPaxAmount: h.perPax, thanhTien: tien.thanhTien, soKhachTinh: tien.soKhachTinh });
+    : hoaHongDong({ kind: h.kind, rateBp: h.rateBp, perPaxAmount: h.perPax, thanhTien: tien.coSoHoaHong, soKhachTinh: tien.soKhachTinh });
   const cu = c.cungUng;
   const giaVon = cu.status === "SET" && cu.supplierPartyId !== null && cu.costRateBp !== null ? giaVonDong({ costRateBp: cu.costRateBp, thanhTien: tien.thanhTien }) : null;
   return { serviceId: c.serviceId, thanhTien: tien.thanhTien, soKhachTinh: tien.soKhachTinh, hoaHong, giaDaiLy: hoaHong === null ? null : tien.thanhTien - hoaHong, giaVon };
@@ -93,7 +97,8 @@ export type MucGhiTay = { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; mo
  * trần dùng cho lúc nhập giảm giá và cho kiểm định kỳ R-ORD-DC1 — hai số khác mục đích nên không dùng chung một hàm.
  */
 export function chenhGiamGiaSauGhiTay(v: {
-  dong: readonly { serviceId: string; thanhTien: number; soKhachTinh: number; hoaHong: number | null }[];
+  /** `coSoHoaHong` (ADR-0229 Đ10): mức tỷ lệ mới tính trên cơ sở đã bỏ phần tăng mùa vụ — cùng số sẽ vào sổ. */
+  dong: readonly { serviceId: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; hoaHong: number | null }[];
   serviceId: string;
   moi: MucGhiTay;
   giamGiaHieuLuc: number;
@@ -101,7 +106,7 @@ export function chenhGiamGiaSauGhiTay(v: {
   const d = v.dong.find((x) => x.serviceId === v.serviceId);
   if (!d) return null;
   const dongMoi = hoaHongDong({
-    kind: v.moi.kieu, rateBp: v.moi.kieu === "RATE" ? v.moi.tyLeBp : null, perPaxAmount: v.moi.kieu === "PER_PAX" ? v.moi.moiKhach : null, thanhTien: d.thanhTien, soKhachTinh: d.soKhachTinh,
+    kind: v.moi.kieu, rateBp: v.moi.kieu === "RATE" ? v.moi.tyLeBp : null, perPaxAmount: v.moi.kieu === "PER_PAX" ? v.moi.moiKhach : null, thanhTien: d.coSoHoaHong, soKhachTinh: d.soKhachTinh,
   });
   const tongHoaHong = v.dong.reduce((t, x) => t + (x.serviceId === v.serviceId ? dongMoi : (x.hoaHong ?? 0)), 0);
   const chenh = v.giamGiaHieuLuc - tongHoaHong;

@@ -80,5 +80,22 @@ test("vé hợp lệ: người có quyền tính → DA_TINH; tài xế (quyenTi
 
 test("mọi mã đều có câu chữ tiếng Việt có dấu", () => {
   for (const [ma, cau] of Object.entries(CAU_QUET)) assert.ok(cau.length > 3, ma);
-  assert.equal(Object.keys(CAU_QUET).length, 10);
+  assert.equal(Object.keys(CAU_QUET).length, 11);
+});
+
+test("ADR-0217 Đ2: gõ số sê-ri luôn thêm cảnh báo vàng NHAP_TAY, đứng sau mọi điều đỏ và sau ba cảnh báo vàng cũ; xác nhận rồi mới ghi", () => {
+  const nhap = (xn: object = {}) => ({ homNay: HOM_NAY, quyenTinh: true, xacNhan: { lechNgay: false, chuaThu: false, vuotKhach: false, ...xn } });
+  assert.deepEqual(ketQuaQuet(ve({ nhapTay: true }), nhap()), { mau: "VANG", ma: "NHAP_TAY", ghi: null }, "mọi kiểm khác xanh vẫn vàng");
+  assert.deepEqual(ketQuaQuet(ve({ nhapTay: true }), nhap({ nhapTay: true })), { mau: "XANH", ma: "HOP_LE", ghi: "DA_TINH" });
+  assert.equal(ketQuaQuet(ve({ nhapTay: true, ngayDi: "2026-11-12" }), nhap()).ma, "LECH_NGAY", "cảnh báo cũ hỏi trước");
+  assert.equal(ketQuaQuet(ve({ nhapTay: true, ngayDi: "2026-11-12" }), nhap({ lechNgay: true })).ma, "NHAP_TAY");
+  // điều đỏ đứng trước: không có vàng để xác nhận
+  assert.equal(ketQuaQuet(ve({ nhapTay: true, trangThaiVe: "VOID" }), nhap()).ma, "VE_DA_HUY");
+  assert.equal(ketQuaQuet(ve({ nhapTay: true, daDung: { luc: "2026-11-10T01:00:00.000Z", nguoi: "An" } }), nhap()).ma, "DA_DUNG");
+  assert.deepEqual(ketQuaQuet(null, nhap()), { mau: "DO", ma: "KHONG_PHAI_VE_TD", ghi: null });
+  // Tài xế công ty vẫn chỉ xem: xác nhận rồi cũng chỉ CHI_XEM
+  assert.equal(ketQuaQuet(ve({ nhapTay: true }), { ...nhap({ nhapTay: true }), quyenTinh: false }).ghi, "CHI_XEM");
+  // quét QR (không nhapTay) không đổi
+  assert.equal(ketQuaQuet(ve(), nhap()).ma, "HOP_LE");
+  assert.match(CAU_QUET.NHAP_TAY, /nhập tay/i);
 });

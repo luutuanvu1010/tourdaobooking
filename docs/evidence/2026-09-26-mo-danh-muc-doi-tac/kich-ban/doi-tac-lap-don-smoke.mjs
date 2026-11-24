@@ -52,8 +52,8 @@ const PAX = 2;
 const DONG_TIEN = "2 người lớn × 1.350.000 = 2.700.000"; // dòng tiền là CHỮ (thiết kế lại 18/10, Task 6)
 const CUSTOMER = "Khách Đối Tác Thử";
 const GOI_Y_GIAM_GIA = "Giảm giá cho khách"; // src/shared/form-dat-ve.ts: GOI_Y_GIAM_GIA_DOI_TAC
-const GOI_Y_GHI_CHU = "Thời gian đón"; // GOI_Y_GHI_CHU_DOI_TAC
-const NHAN_GHI_CHU = "Ghi chú"; // NHAN_GHI_CHU_DOI_TAC
+const GOI_Y_GHI_CHU = "Ví dụ: đón lúc 7 giờ 30 tại sảnh"; // GOI_Y_GHI_CHU_DOI_TAC (đổi 20/11/2026, đặc tả tối ưu giao diện Tạo đơn)
+const NHAN_GHI_CHU = "Ghi chú đưa đón"; // NHAN_GHI_CHU_DOI_TAC (đổi 20/11/2026)
 const GHI_CHU_GON = "Đón 7h sáng"; // ghi chú gõ ở dòng Ghi chú gọn (bước 3)
 const O_GHI_CHU_GON = `document.querySelector('input[data-trip-gon="note"]')`;
 const DAI_VANG = "Tài khoản của bạn chưa được gán vai trò đối tác: lập và lưu nháp được, nhưng chưa gửi được đơn. Vui lòng báo Tour Đảo."; // src/shared/phan-doi-tac-hien-thi.ts: CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO

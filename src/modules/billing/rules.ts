@@ -594,7 +594,7 @@ export interface PhanChoNguoiThu {
   chuaChup: boolean;
   chup: readonly BanChup[];
   dichVu: readonly { id: string; thanhTien: number }[];
-  /** Công ty chủ — người bán nào khác hồ sơ này là nhà cung cấp (cùng luật nhóm của biên nhận, `nguoiBanCuaDong`). */
+  /** Công ty chủ hiện tại. KHÔNG dùng để chia phần (việc 15: phần nhà cung cấp đọc `supplierPartyId` của bản chụp — `nguoiBanCuaDong`), chỉ còn để đối chiếu. */
   congTyChuId: string | null;
   /** Giảm giá hiệu lực của đơn — trần phần của quầy tính SAU giảm (Ruling R-154). */
   giamGiaHieuLuc: number;
@@ -620,7 +620,8 @@ export function nhaCungCapCuaDon(phan: PhanChoNguoiThu | null): Map<string, numb
   const out = new Map<string, number>();
   if (!phan || phan.duKien || phan.chuaChup) return out;
   const chupCua = new Map(phan.chup.map((c) => [c.serviceId, c]));
-  for (const p of chiaPhanNguoiBan(phan.dichVu, (d) => nguoiBanCuaDong(chupCua.get(d.id), phan.congTyChuId), (d) => d.thanhTien, phan.giamGiaHieuLuc)) {
+  // Phí đưa đón 0 (Đợt C, Task 5): phí luôn thuộc phần Tour Đảo, không bao giờ vào phần quầy nhà cung cấp ⇒ trần «thu cho» quầy không tăng vì phí.
+  for (const p of chiaPhanNguoiBan(phan.dichVu, (d) => nguoiBanCuaDong(chupCua.get(d.id)), (d) => d.thanhTien, phan.giamGiaHieuLuc, 0)) {
     if (p.nguoiBan !== null) out.set(p.nguoiBan, p.tong);
   }
   return out;
@@ -701,12 +702,12 @@ export type TinhTrangThuongMai =
  * `dichVu`, không theo `chup`: dòng không có bản chụp (vắng khỏi `chup`) ra hoa hồng / giá vốn null — không bao giờ lặng lẽ biến mất khỏi kiểm.
  */
 /** `pax` = số khách hiện hành theo loại (ADR-0133) — BẮT BUỘC có khi bản chụp mang ba số theo loại (thiếu thì `tinhDongDoiTac` ném lỗi, không đoán); null = dịch vụ tính theo nhóm/lượt. */
-export function dongThuongMaiTu(v: { chup: readonly BanChup[]; dichVu: readonly { id: string; name: string; thanhTien: number; soKhachTinh: number; pax?: { adult?: number; child?: number; senior?: number } | null }[] }): DongThuongMai[] {
+export function dongThuongMaiTu(v: { chup: readonly BanChup[]; dichVu: readonly { id: string; name: string; thanhTien: number; coSoHoaHong: number; soKhachTinh: number; pax?: { adult?: number; child?: number; senior?: number } | null }[] }): DongThuongMai[] {
   const theoDichVu = new Map(v.chup.map((c) => [c.serviceId, c] as const));
   return v.dichVu.map((d) => {
     const c = theoDichVu.get(d.id);
     if (!c) return { orderServiceId: d.id, tenDichVu: d.name, thanhTien: d.thanhTien, hoaHong: null, giaVon: null, nhaCungCapPartyId: null };
-    const t = tinhDongDoiTac(c, { thanhTien: d.thanhTien, soKhachTinh: d.soKhachTinh, pax: d.pax });
+    const t = tinhDongDoiTac(c, { thanhTien: d.thanhTien, coSoHoaHong: d.coSoHoaHong, soKhachTinh: d.soKhachTinh, pax: d.pax }); // ADR-0229 Đ10: hoa hồng ghi sổ lúc «Đã giao» trên cơ sở bỏ phần tăng mùa vụ
     const nhaCungCapPartyId = c.cungUng.status === "SET" ? c.cungUng.supplierPartyId : null;
     return { orderServiceId: d.id, tenDichVu: d.name, thanhTien: d.thanhTien, hoaHong: t.hoaHong, giaVon: t.giaVon, nhaCungCapPartyId };
   });
@@ -796,7 +797,7 @@ export function lyDoGiuThuongMai(t: TinhTrangThuongMai, anGiaVon?: boolean): LyD
       return { ma: "booker_not_beneficiary", cau: "Bên đặt của đơn không thuộc danh sách được hưởng hoa hồng — Văn phòng sửa bên đặt hoặc Kế toán ghi mức tay.", aiXuLy: "Văn phòng hoặc Kế toán" };
     }
     if (t.canChupBu) return { ma: "terms_missing", cau: "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán cài mức rồi bấm Chụp bù.", aiXuLy: "Kế toán" };
-    return { ma: "terms_missing", cau: `Thiếu mức hoa hồng / người bán cho ${tenDichVu(t.dichVu, "một dịch vụ của đơn")} — ${CAU_THIEU_MUC_DA_CHUP}.`, aiXuLy: "Kế toán" };
+    return { ma: "terms_missing", cau: `Thiếu mức hoa hồng / nhà cung cấp cho ${tenDichVu(t.dichVu, "một dịch vụ của đơn")} — ${CAU_THIEU_MUC_DA_CHUP}.`, aiXuLy: "Kế toán" };
   }
   if (t.trangThai === "VUOT") {
     if (anGiaVon) return { ma: "terms_exceed_price", cau: CAU_VUOT_CHUNG, aiXuLy: "Kế toán" };
@@ -1074,4 +1075,17 @@ export function ngayPhatSinh(input: { chon: unknown; homNay: string; laKeToan: b
   if (input.chon > input.homNay) return { ok: false, message: "Ngày phát sinh không được sau hôm nay." };
   if (input.kyDaKhoa(input.chon)) return { ok: false, message: cauKyKhoa(kyCua(input.chon)), khoa: true };
   return { ok: true, value: input.chon };
+}
+
+/**
+ * ADR-0226 (Việc 6, chủ chọn 6D): «Tour Đảo đã thu hộ tiền mặt» của MỘT đơn đại lý = Σ khoản thu của khách bằng TIỀN MẶT còn hiệu lực, do người phía Tour Đảo thu (vai Công ty hoặc nhân viên,
+ * không phải bên đặt / quầy nhà cung cấp), không đang chờ Kế toán đối chiếu — tức phần tiền mặt nằm trong «Đã thu» của phiếu công nợ (nhân viên cầm hộ được tin như `soChuaVeCongTy`, ADR-0170 Đ2).
+ * Luật thuần; chỉ để HIỂN THỊ, không vào số nợ (số nợ vẫn là `tinhConLai`). Kẹp trên bằng `daThu` của phiếu (người kiểm độc lập 21/11, mục Vừa): khoản khai / cọc còn ở tay người thu đã bị
+ * trừ khỏi «Đã thu», nên thu hộ không bao giờ hiện lớn hơn số đã trừ vào nợ.
+ */
+export function thuHoTienMat(i: { receipts: readonly (ReceiptRow & { method: string })[]; bookerPartyId: string | null; choXacNhan: ReadonlySet<string>; daThu: number }): number {
+  return Math.min(i.daThu, hieuLuc(i.receipts)
+    .filter((r) => r.kind === "CUSTOMER_PAYMENT" && r.method === "CASH" && (r.collectorRole === "COMPANY" || r.collectorRole === "STAFF") && !i.choXacNhan.has(r.id)
+      && (r.collectorPartyId === null || r.collectorPartyId !== i.bookerPartyId))
+    .reduce((s, r) => s + r.amount, 0));
 }

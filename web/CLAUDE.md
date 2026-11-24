@@ -9,7 +9,7 @@
   - **"Riêng của Tour Đảo Booking"** (kích thước điện thoại/PWA): cần kích thước hay giá trị giao diện mới thì **thêm token vào nhóm này**, không viết cứng.
   - Màu/chữ mới (thương hiệu hay chức năng), hoặc đổi giá trị nhóm đầu: **hỏi chủ**.
 - **Thiết kế màn hình** (bố cục, trạng thái, nội dung chữ): `docs/superpowers/specs/2026-09-19-a2-giao-dien-design.md`; trang nào gọi API nào: `docs/SYSTEM-DESIGN.md` §9; iPhone/PWA: `docs/PWA-IPHONE.md`.
-- **Bản thiết kế gốc và ảnh tham chiếu:** `docs/design/a2-mockup/` (trong `refs/`: `tourdaovn-design-brief.md`, `tourdaovn-tokens.css`); ảnh giao diện thật: `docs/evidence/`.
+- **Bản thiết kế gốc và ảnh tham chiếu:** `docs/design/a2-mockup/` (trong `refs/`: `tourdaovn-design-brief.md`, `tourdaovn-tokens.css`); ảnh giao diện thật: chụp vào `docs/evidence/<đợt>/`, chỉ nằm trên máy (`.gitignore` chặn, không commit — ADR-0215 Đ3); gửi chủ xem bằng tệp đính kèm trong phiên.
 
 ## Luật
 - **Không `innerHTML`.** Dựng DOM bằng `h()` ở `web/dom.ts`.
@@ -37,5 +37,7 @@
 - Widget Turnstile ở `web/login.ts`: id khung **không được** là `turnstile`; không gọi `turnstile.ready()`; `theme: "light"` (app chỉ có giao diện sáng); phải **hỏi lại** cấu hình sau 403/503 vì `siteKey` từng kẹt `null` — đừng bỏ. Chi tiết: `docs/CHANGE-GUIDE.md` công thức l ("Bẫy widget").
 
 ## Sửa tệp nào thì chạy lại kịch bản Chrome nào
-Chạy `npm run build:web` trước. Cần Chrome + axe-core **ngoài repo**; cách chạy `tests/e2e/README.md`. Các trang dùng **chung kho cookie**: trang của tài khoản nào phải mở **sau cùng**.
+Chạy `npm run build:web` trước. Cần Chrome; axe-core có sẵn sau `npm ci` (đặt `AXE_JS=$PWD/node_modules/axe-core/axe.min.js`); cách chạy `tests/e2e/README.md`. Các trang dùng **chung kho cookie**: trang của tài khoản nào phải mở **sau cùng**.
 Bảng «sửa tệp nào → chạy kịch bản nào»: `docs/KICH-BAN-CHROME.md` (chuyển nguyên văn từ đây ngày 2026-11-15 vì trần cỡ tệp, ADR-0160). Sửa tệp ở `web/`, `public/` thì mở bảng đó để chọn đúng kịch bản.
+
+**Người chấm giao diện (từ 2026-11-20):** sửa giao diện và chạy kịch bản xong thì giao trợ lý `nguoi-danh-gia-giao-dien` chấm các màn đã đổi TRƯỚC khi đưa ảnh cho chủ. Nó tự chạy `node scripts/giao-dien/do-man.mjs` và chấm theo `docs/TIEU-CHI-GIAO-DIEN.md`. Phát hiện mức Nặng trở lên: sửa, hoặc nêu rõ trong báo cáo cho chủ. Người thi công không tự chấm màn của mình (N8). Trợ lý này không thay người kiểm độc lập (`nguoi-kiem-doc-lap`) của việc lớn.

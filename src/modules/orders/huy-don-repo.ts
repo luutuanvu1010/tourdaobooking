@@ -22,13 +22,29 @@ const HUY_DON = defineSql(
   `UPDATE orders SET status = 'cancelled', updated_at = ?1 WHERE id = ?2 AND status = ?3 AND updated_at = ?4`,
 );
 
-/** Hai câu đầu của lô huỷ (lý do → đổi trạng thái). `at` = mốc mới của đơn; `homNay` = ngày huỷ (ngày VN, máy chủ truyền). */
+/**
+ * ADR-0213 Đ8.4 + chủ duyệt 17/11/2026 («Áp cả ba», Q1): huỷ NHÁP còn dòng «chờ người quản lý» mở ⇒ khép dòng đó bằng DON_HUY trong CÙNG lô. Cùng điều kiện khoá lạc quan với câu
+ * đổi trạng thái (đứng NGAY TRƯỚC nó: hai câu cùng áp hoặc cùng không). Không đọc `changes()` — câu này không chen vào chuỗi `changes() > 0` của nhật ký huỷ / khúc chuyến nối sau.
+ * ?1 đơn, ?2 lúc (mốc mới), ?3 người huỷ, ?4 trạng thái đã đọc, ?5 `updated_at` đã đọc.
+ */
+const KHEP_CHO_QUAN_LY_KHI_HUY = defineSql(
+  "orders",
+  "member_submit_close_on_cancel",
+  `UPDATE ord_member_submit SET status = 'DON_HUY', closed_at = ?2, closed_by = ?3, updated_at = ?2, updated_by = ?3
+   WHERE order_id = ?1 AND status = 'MO' AND EXISTS (SELECT 1 FROM orders WHERE id = ?1 AND status = ?4 AND updated_at = ?5)`,
+);
+
+/**
+ * Các câu đầu của lô huỷ (lý do → [nháp: khép dòng chờ người quản lý] → đổi trạng thái). Câu đổi trạng thái LUÔN là phần tử CUỐI (nơi gọi đọc thắng ở đó).
+ * `at` = mốc mới của đơn; `homNay` = ngày huỷ (ngày VN, máy chủ truyền).
+ */
 export function cauHuyCoLyDo(
   db: D1Database,
   input: { orderId: string; staffId: string; from: string; prevUpdatedAt: string; at: string; homNay: string; lyDo: LyDoHuy },
 ): D1PreparedStatement[] {
   return [
     db.prepare(LY_DO_NEU_CON_TRANG_THAI).bind(crypto.randomUUID(), input.orderId, input.lyDo.ma, input.lyDo.nhom, input.lyDo.ghiChu, input.homNay, input.at, input.staffId, input.from, input.prevUpdatedAt),
+    ...(input.from === "draft" ? [db.prepare(KHEP_CHO_QUAN_LY_KHI_HUY).bind(input.orderId, input.at, input.staffId, input.from, input.prevUpdatedAt)] : []),
     db.prepare(HUY_DON).bind(input.at, input.orderId, input.from, input.prevUpdatedAt),
   ];
 }

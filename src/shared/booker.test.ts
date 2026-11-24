@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NO_BOOKER_TEXT, benDatChoTaiKhoan, benDatDoiTacBiCam, bookerPayload, canPickMatch, describeBookerChange, doiTacTrungSo, lookupReady, matchNote, parseBooker } from "./booker.ts";
+import { NO_BOOKER_TEXT, benDatChoTaiKhoan, benDatDoiTacBiCam, chonTuCach, tuCachCuaDon, type TuCachDong, bookerPayload, canPickMatch, describeBookerChange, doiTacTrungSo, lookupReady, matchNote, parseBooker } from "./booker.ts";
 
 const U = "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0";
 
@@ -76,27 +76,27 @@ test("describeBookerChange: chỉ tên, null khi không đổi", () => {
 
 test("benDatChoTaiKhoan (ADR-0077 đ3 (i), thu hẹp): Đối tác có hồ sơ được hưởng ⇒ chính hồ sơ đó, bất kể thân gửi gì", () => {
   const nhieu = [{ kind: "none" }, { kind: "existing", partyId: "pty-khac" }, { kind: "new", fullName: "A", phone: "0901234567" }] as const;
-  for (const guiLen of nhieu) assert.deepEqual(benDatChoTaiKhoan({ laDoiTac: true, partyId: "pty-minh", laNguoiHuong: true, guiLen }), { kind: "existing", partyId: "pty-minh" });
+  for (const guiLen of nhieu) assert.deepEqual(benDatChoTaiKhoan({ laDoiTac: true, benThayMat: "pty-minh", laNguoiHuong: true, guiLen }), { kind: "existing", partyId: "pty-minh" });
 });
 
 test("benDatChoTaiKhoan: Đối tác có hồ sơ nhưng KHÔNG được hưởng, Đối tác chưa gắn hồ sơ, hoặc không phải Đối tác ⇒ giữ nguyên điều thân gửi", () => {
   const guiLen = { kind: "existing", partyId: "pty-khac" } as const;
-  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, partyId: "pty-minh", laNguoiHuong: false, guiLen }), guiLen);
-  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, partyId: null, laNguoiHuong: false, guiLen }), guiLen);
-  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, partyId: null, laNguoiHuong: true, guiLen }), guiLen, "không có hồ sơ thì không thể ghi hồ sơ của tài khoản");
-  assert.equal(benDatChoTaiKhoan({ laDoiTac: false, partyId: "pty-minh", laNguoiHuong: true, guiLen }), guiLen, "tài khoản không giữ quyền Đối tác không bị ép");
-  assert.equal(benDatChoTaiKhoan({ laDoiTac: false, partyId: "pty-minh", laNguoiHuong: false, guiLen: { kind: "none" } }).kind, "none");
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, benThayMat: "pty-minh", laNguoiHuong: false, guiLen }), guiLen);
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, benThayMat: null, laNguoiHuong: false, guiLen }), guiLen);
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: true, benThayMat: null, laNguoiHuong: true, guiLen }), guiLen, "không có hồ sơ thì không thể ghi hồ sơ của tài khoản");
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: false, benThayMat: "pty-minh", laNguoiHuong: true, guiLen }), guiLen, "tài khoản không giữ quyền Đối tác không bị ép");
+  assert.equal(benDatChoTaiKhoan({ laDoiTac: false, benThayMat: "pty-minh", laNguoiHuong: false, guiLen: { kind: "none" } }).kind, "none");
 });
 
 test("benDatDoiTacBiCam (K1, lời chủ 2026-10-09): tài khoản Đối tác gửi hồ sơ CÓ SẴN đang được hưởng mà khác hồ sơ của chính mình và khác bên đặt đang lưu ⇒ bị cấm", () => {
-  const goc = { laDoiTac: true, partyId: "pty-minh", guiLen: { kind: "existing", partyId: "pty-dai-ly" }, guiLaNguoiHuong: true, benDatDangLuu: null } as const;
+  const goc = { laDoiTac: true, benThayMat: "pty-minh", guiLen: { kind: "existing", partyId: "pty-dai-ly" }, guiLaNguoiHuong: true, benDatDangLuu: null } as const;
   assert.equal(benDatDoiTacBiCam(goc), true);
   assert.equal(benDatDoiTacBiCam({ ...goc, benDatDangLuu: "pty-khac-nua" }), true, "bên đặt đang lưu là hồ sơ khác thì không được miễn");
-  assert.equal(benDatDoiTacBiCam({ ...goc, partyId: null }), true, "chưa gắn hồ sơ: luật này vẫn cấm (đường lập đơn trả 409 trước, đường đổi khách trả 403)");
+  assert.equal(benDatDoiTacBiCam({ ...goc, benThayMat: null }), true, "chưa gắn hồ sơ: luật này vẫn cấm (đường lập đơn trả 409 trước, đường đổi khách trả 403)");
 });
 
 test("benDatDoiTacBiCam: các ngoại lệ — bên đặt đang lưu, chính hồ sơ của tài khoản, hồ sơ không được hưởng, không gửi hồ sơ có sẵn, không giữ quyền Đối tác", () => {
-  const goc = { laDoiTac: true, partyId: "pty-minh", guiLen: { kind: "existing", partyId: "pty-dai-ly" }, guiLaNguoiHuong: true, benDatDangLuu: null } as const;
+  const goc = { laDoiTac: true, benThayMat: "pty-minh", guiLen: { kind: "existing", partyId: "pty-dai-ly" }, guiLaNguoiHuong: true, benDatDangLuu: null } as const;
   assert.equal(benDatDoiTacBiCam({ ...goc, benDatDangLuu: "pty-dai-ly" }), false, "văn phòng đã gắn đúng bên này lên nháp: Đối tác lưu lại nháp không bị chặn");
   assert.equal(benDatDoiTacBiCam({ ...goc, guiLen: { kind: "existing", partyId: "pty-minh" } }), false, "chọn đúng hồ sơ của chính mình");
   assert.equal(benDatDoiTacBiCam({ ...goc, guiLaNguoiHuong: false }), false, "khách lẻ / tổ chức không được hưởng: luật khác lo");
@@ -118,4 +118,31 @@ test("doiTacTrungSo: không hồ sơ nào là người được hưởng → nul
   assert.equal(doiTacTrungSo([{ id: "pty-a", displayName: "Khách A" }], [{ partyId: "pty-z", ten: "Z" }]), null);
   assert.equal(doiTacTrungSo([{ id: "pty-a", displayName: "Khách A" }], []), null);
   assert.equal(doiTacTrungSo([], [{ partyId: "pty-b", ten: "B" }]), null);
+});
+
+// ---- ADR-0213 Đ3 (mốc B1 Task 11): chọn tư cách theo từng đơn — hàm thuần, gốc lắp ráp đưa danh sách tư cách của người gọi -----------------------------------
+const CA_NHAN: TuCachDong = { partyId: "pty-nam", ten: "Nam", laToChuc: false, loai: "CA_NHAN" };
+const SUNRISE: TuCachDong = { partyId: "pty-sunrise", ten: "Khách sạn Sunrise", laToChuc: true, loai: "MANAGER" };
+
+test("chonTuCach: không có tư cách nào ⇒ đường hôm nay (chon null) khi không gửi; gửi một tư cách ⇒ 403 (không còn thay mặt)", () => {
+  for (const t of [undefined, null, ""]) assert.deepEqual(chonTuCach([], t), { ok: true, chon: null });
+  assert.deepEqual(chonTuCach([], "pty-sunrise"), { ok: false, loi: "KHONG_CON_THAY_MAT" });
+});
+
+test("chonTuCach: vắng ⇒ tư cách cá nhân nếu có; chỉ có tư cách tổ chức mà vắng ⇒ phải chọn; gửi đúng ⇒ tư cách đó; ngoài danh sách ⇒ không còn thay mặt; sai kiểu ⇒ không hợp lệ", () => {
+  assert.deepEqual(chonTuCach([CA_NHAN, SUNRISE], undefined), { ok: true, chon: CA_NHAN });
+  assert.deepEqual(chonTuCach([CA_NHAN], null), { ok: true, chon: CA_NHAN });
+  assert.deepEqual(chonTuCach([SUNRISE], undefined), { ok: false, loi: "CAN_CHON" });
+  assert.deepEqual(chonTuCach([CA_NHAN, SUNRISE], "pty-sunrise"), { ok: true, chon: SUNRISE });
+  assert.deepEqual(chonTuCach([CA_NHAN, SUNRISE], "pty-nam"), { ok: true, chon: CA_NHAN });
+  assert.deepEqual(chonTuCach([CA_NHAN], "pty-sunrise"), { ok: false, loi: "KHONG_CON_THAY_MAT" });
+  assert.deepEqual(chonTuCach([CA_NHAN], 12), { ok: false, loi: "KHONG_HOP_LE" });
+});
+
+test("tuCachCuaDon: CA_NHAN ⇒ CA_NHAN; MANAGER, MEMBER ⇒ TO_CHUC; NULL (đơn văn phòng, đơn trước B1) hay giá trị lạ ⇒ null", () => {
+  assert.equal(tuCachCuaDon("CA_NHAN"), "CA_NHAN");
+  assert.equal(tuCachCuaDon("MANAGER"), "TO_CHUC");
+  assert.equal(tuCachCuaDon("MEMBER"), "TO_CHUC");
+  assert.equal(tuCachCuaDon(null), null);
+  assert.equal(tuCachCuaDon("XYZ"), null);
 });

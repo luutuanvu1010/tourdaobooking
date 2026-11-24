@@ -54,6 +54,7 @@ assert.equal((await datCo("SERVICE", "ZXN1", true)).status, 200);
 assert.equal((await datCo("SERVICE", "ZXN2", false)).status, 200);
 assert.equal((await datCongTac(false)).status, 200);
 const ngay = vnDate(3);
+let phiDaBat = false;
 
 try {
   // ---- (a) + (b) + (c) -------------------------------------------------------------------------------------------------------------------------------------
@@ -227,7 +228,28 @@ try {
   } else {
     console.log("- BỎ QUA (p)(r): không dựng được tài khoản lai Bán hàng + Đối tác");
   }
+
+  // ---- (s) phí đưa đón do văn phòng chọn (ADR-0214, Task 4) -----------------------------------------------------------------------------------------------
+  // Bật phí từ hôm nay (đầu ca phải đang tắt — kịch bản phí trước đã dọn); `finally` tắt lại.
+  const apDau = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp;
+  assert.equal(apDau.ngay, null, "(s) đầu ca: phí đưa đón đang tắt");
+  assert.equal((await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: vnDate(0), tuLucDaDoc: apDau.tuLuc })).status, 200);
+  phiDaBat = true;
+  const s1 = await lap(SALES, [dichVu("ZXN1", ngay, [chang(ngay, "07:00")])]);
+  r = await gui(SALES, s1.id);
+  assert.deepEqual([r.status, r.body?.error?.code, r.body?.error?.message], [409, "transfer_fee_missing", "Dịch vụ Dịch vụ xác nhận thử chưa có giá gốc phí đưa đón cho lượt đón chiều đi. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận."], JSON.stringify(r.body));
+  const s2 = await lap(SALES, [dichVu("ZXN1", ngay, [{ ...chang(ngay, "07:00"), doiPhi: { donGia: 25_000, lyDo: "Báo giá riêng" } }])]);
+  assert.equal((await gui(SALES, s2.id)).status, 201);
+  // ADR-0218 Đ1.5: người xét ĐỔI ĐƯỢC cả lượt đã có số (chặn «Lượt đón này đã có phí đưa đón» của ADR-0214 bỏ); để nguyên số người lập đã đổi: Còn vé không kèm doiPhi.
+  assert.equal((await quyet(SALES_B, s2.id, "CON_VE")).status, 200);
+  assert.deepEqual(await sqlRows(`SELECT fee_calc_source, quantity, unit_price, line_total FROM order_item WHERE order_id = '${s2.id}' AND line_kind = 'TRANSFER_FEE'`), [{ fee_calc_source: "DOI_TAY", quantity: 2, unit_price: 25_000, line_total: 50_000 }]);
+  assert.equal((await sqlRows(`SELECT total FROM orders WHERE id = '${s2.id}'`))[0].total, 250_000);
+  console.log("✓ (s): phí đưa đón chưa chọn ⇒ Gửi kiểm vé 409 «Chọn phí đưa đón cho lượt đón …»; số người lập đổi đi tới Còn vé, xác nhận chụp 25.000 × 2");
 } finally {
+  if (phiDaBat) {
+    const ap = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp;
+    if (ap.ngay !== null) await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: null, tuLucDaDoc: ap.tuLuc });
+  }
   // Trả D1 chung về như lúc đầu: bỏ cờ hai mã thử, công tắc về giá trị cũ.
   await datCo("SERVICE", "ZXN1", false);
   await datCo("SERVICE", "ZXN2", false);

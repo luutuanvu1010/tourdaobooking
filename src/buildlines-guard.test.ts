@@ -86,3 +86,37 @@ test("hàng rào DK-T2-01: buildLines chỉ được gọi ở các chỗ đã r
   for (const c of findCalls()) byFile[c.file] = (byFile[c.file] ?? 0) + 1;
   assert.deepEqual(byFile, ALLOWED, "Chỗ gọi buildLines khác danh sách đã rà. Dịch vụ ĐÃ LƯU (sửa sau xác nhận, overlay đọc) phải đi qua service-rules.ts:storedServiceLines.");
 });
+
+// ĐỔI CÓ CHỦ ĐÍCH 15/11 (phí đưa đón Đợt C, Task 5; trang ghép 2026-10-28 §6 «cập nhật ba bài canh nguồn dòng tiền cho nguồn dòng mới»): dòng phí đưa đón (`line_kind = 'TRANSFER_FEE'`)
+// là nguồn dòng tiền thứ hai của `order_item`. Nó KHÔNG BAO GIỜ đi qua `buildLines` / `storedServiceLines` (không có giá danh mục, không loại khách); sau xác nhận nó chỉ được tính lại ở
+// MỘT hàm: `soLuongPhiSauSua` (số lượng mới) gọi từ `phiHieuLuc` (src/modules/orders/money-adjustment.ts), và mọi bề mặt đọc phí hiện hành đi qua `phiHieuLuc`. Thêm chỗ gọi mới = sửa
+// bảng dưới, có người rà (vd một chỗ tự nhân số khách × đơn giá phí theo luật riêng là lỗi «hai luật một con số»).
+const PHI_DA_RA: Record<string, Record<string, number>> = {
+  soLuongPhiSauSua: { "src/modules/orders/money-adjustment.ts": 1 }, // trong phiHieuLuc
+  phiHieuLuc: {
+    "src/modules/orders/money-adjustment.ts": 2, // tienHieuLuc (danh sách / phải thu / sửa số khách / lịch sử) + applyAdjustmentToOrder (chi tiết đơn, biên nhận)
+    "src/modules/orders/gia-dai-ly.ts": 1, // công nợ đại lý (ghepGiaDaiLy)
+  },
+};
+function choGoi(ten: string): Record<string, number> {
+  const byFile: Record<string, number> = {};
+  for (const abs of [...walk(join(ROOT, "src")), ...walk(join(ROOT, "web"))]) {
+    const file = relative(ROOT, abs);
+    const masked = maskSource(readFileSync(abs, "utf8"), { strings: true, comments: true });
+    const re = new RegExp(String.raw`\b${ten}\s*(?:<[^>()]*>)?\s*\(`, "g");
+    for (let m = re.exec(masked); m; m = re.exec(masked)) {
+      if (/function\s+$/.test(masked.slice(Math.max(0, m.index - 20), m.index))) continue; // chính định nghĩa
+      byFile[file] = (byFile[file] ?? 0) + 1;
+    }
+  }
+  return byFile;
+}
+
+test("hàng rào phí đưa đón (Đợt C): tính lại dòng phí sau xác nhận chỉ ở soLuongPhiSauSua / phiHieuLuc, đúng các chỗ đã rà; phiHieuLuc không gọi buildLines", () => {
+  for (const [ten, cho] of Object.entries(PHI_DA_RA)) assert.deepEqual(choGoi(ten), cho, `Chỗ gọi ${ten} khác danh sách đã rà`);
+  const src = maskSource(readFileSync(join(ROOT, "src/modules/orders/money-adjustment.ts"), "utf8"), { strings: true, comments: true });
+  const than = src.slice(src.indexOf("export function phiHieuLuc"), src.indexOf("export function tienHieuLuc"));
+  assert.ok(than.length > 0, "tự kiểm: tìm thấy thân phiHieuLuc");
+  assert.doesNotMatch(than, /\b(?:buildLines|storedServiceLines|recomputeService)\s*\(/, "dòng phí không đi qua đường tính dòng dịch vụ");
+  assert.match(than, /\bthanhTienDong\s*\(/, "thành tiền dòng phí qua thanhTienDong");
+});

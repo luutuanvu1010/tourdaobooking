@@ -1,0 +1,6 @@
+[
+  { "khoa": "don-hang", "tk": "sales", "trang": "/orders" },
+  { "khoa": "chi-tiet-don", "tk": "sales", "trang": "/order?id=e7ee8ad3-713f-4ef4-a8c9-2d74dbac531a" },
+  { "khoa": "sua-xe", "tk": "quantri", "trang": "/xe-sua?id=b297adae-d7e8-46f9-a84a-c616b73bb58a" },
+  { "khoa": "dia-diem", "tk": "quantri", "trang": "/locations" }
+]

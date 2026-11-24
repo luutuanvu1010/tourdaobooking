@@ -3,6 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { vnToday } from "../../shared/vn-date.ts";
 
 const U = (n: number) => `${String(n).repeat(8)}-${String(n).repeat(4)}-4${String(n).repeat(3)}-8${String(n).repeat(3)}-${String(n).repeat(12)}`;
 const SALES = U(1), SUPER = U(2), KT = U(3), PARTNER = U(7), FIELD = U(4);
@@ -21,7 +22,11 @@ function setup() {
 const taoLo = (w: any, as: string, over: Record<string, unknown> = {}) =>
   w.call("POST", "/api/ve/lo", { as, body: { catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "VVC Multiday 2 lần 14 ngày", ...over } });
 const them = (w: any, as: string, loId: string, ve: unknown[]) => w.call("POST", `/api/ve/lo/${loId}/ve`, { as, body: { ve } });
-const ve = (n: number, over: Record<string, unknown> = {}) => ({ noiDung: b64(PNG(n)), maVe: `TA.10000000000${n}`, tuNgay: "2026-10-24", denNgay: "2026-11-23", ...over });
+// Hạn dùng của vé thử tính theo HÔM NAY (giờ VN): kho chỉ đếm vé còn hạn (`valid_to >= hôm nay`), nên ngày ghi cứng
+// làm bài đỏ đúng sáng hôm sau ngày đó (đã xảy ra 24/11/2026 với hạn cứng 2026-11-23).
+const ngayCach = (soNgay: number) => vnToday(new Date(Date.now() + soNgay * 86_400_000));
+const TU_NGAY = ngayCach(-30), DEN_NGAY = ngayCach(30), SAU_HAN = ngayCach(37);
+const ve = (n: number, over: Record<string, unknown> = {}) => ({ noiDung: b64(PNG(n)), maVe: `TA.10000000000${n}`, tuNgay: TU_NGAY, denNgay: DEN_NGAY, ...over });
 
 test("quyền: Bán hàng và Toàn quyền vào được; Đối tác, Hướng dẫn viên nhận 403 ở mọi route kho vé; Kế toán không tạo lô hãng ngoài, không thấy dòng hãng ngoài", async () => {
   const w = setup();
@@ -76,9 +81,10 @@ test("phản hồi và nhật ký KHÔNG chứa mã vé đầy đủ, khoá kho,
 
 test("lô Tour Đảo: phản hồi và nhật ký KHÔNG chứa mã TD1. đầy đủ; mã chỉ lộ 4 ký tự cuối (ADR-0175 Đ1.6)", async () => {
   const w = setup();
-  const loId = (await taoLo(w, KT, { nguon: "TOUR_DAO" })).json.loId;
+  const lo = await taoLo(w, KT, { nguon: "TOUR_DAO", soVeDuKien: 1 });
+  const loId = lo.json.loId;
   const ma = "TD1." + "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const r = await them(w, KT, loId, [ve(1, { maVe: ma })]);
+  const r = await them(w, KT, loId, [ve(1, { maVe: ma, soSeri: lo.json.soSeri[0] })]);
   assert.equal(r.json.themDuoc, 1, r.text);
   const xn = await w.call("POST", `/api/ve/lo/${loId}/xac-nhan`, { as: KT, body: {} });
   const kho = await w.call("GET", "/api/ve/kho", { as: KT });
@@ -107,7 +113,7 @@ test("tệp không phải ảnh JPG/PNG, ảnh quá 3 MB, ngày sai, lô sai: b�
   const loId = (await taoLo(w, SALES)).json.loId;
   const html = new TextEncoder().encode("<html><script>alert(1)</script></html>");
   const to = new Uint8Array(3 * 1024 * 1024 + 1); to.set(PNG(1));
-  const r = await them(w, SALES, loId, [ve(1, { noiDung: b64(html) }), ve(2, { noiDung: b64(to) }), ve(3, { tuNgay: "2026-11-30" }), ve(4, { maVe: "có dấu cách" })]);
+  const r = await them(w, SALES, loId, [ve(1, { noiDung: b64(html) }), ve(2, { noiDung: b64(to) }), ve(3, { tuNgay: SAU_HAN }), ve(4, { maVe: "có dấu cách" })]);
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.themDuoc, 0);
   assert.equal(r.json.loai.length, 4);

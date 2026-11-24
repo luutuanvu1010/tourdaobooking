@@ -4,6 +4,7 @@
 import { ApiError, api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h } from "./dom";
+import { cap, thanhNut } from "./khung";
 import { hienBaoNgan } from "./toast";
 import { NHAN_TRANG_THAI_HAN, docHanMoi, giaTriOGioVn } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { dongTien } from "../src/shared/tra-sau";
@@ -22,11 +23,11 @@ export function dongTraSauDon(order: { id: string; hanTra: string | null; hetAnH
       : ts.trangThai === "an_han" && order.hetAnHan
         ? `${NHAN_TRANG_THAI_HAN.an_han} tới ${vnDateTimeText(order.hetAnHan)} · còn nợ ${dongTien(ts.no)}`
         : `${NHAN_TRANG_THAI_HAN[ts.trangThai]} · còn nợ ${dongTien(ts.no)}`;
-  const dong = h("div", { class: "kv", "data-tra-sau": ts.trangThai }, h("span", { class: "muted" }, "Hạn trả"), h("span", null, cau));
+  const dong = cap("Hạn trả", cau, { kieu: "so", thuoc: { "data-tra-sau": ts.trangThai } }); // dòng của khối Thanh toán (cột phụ của trang đơn): giá trị canh phải
   if (!ts.coQuyenAnHan || ts.no <= 0) return [dong];
-  const nut = h("button", { type: "button", class: "btn", "data-action": "an-han" }, "Ân hạn");
+  const nut = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "an-han" }, "Ân hạn");
   nut.addEventListener("click", () => moBangAnHan(order.id, order.hanTra!, nut, napLai));
-  return [dong, h("div", { class: "handler-actions" }, nut)];
+  return [dong, thanhNut(null, nut)];
 }
 
 function moBangAnHan(orderId: string, hanTra: string, opener: HTMLElement, napLai: () => Promise<void>): void {

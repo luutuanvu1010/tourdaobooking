@@ -2,7 +2,7 @@ import { auditStatement, nguoiLam, type AuditAction } from "../audit";
 import type { CatalogSyncStateDto } from "../../shared/contracts";
 import type { PermissionHolder } from "../../shared/permissions";
 import type { Prices } from "../../shared/order-lines";
-import type { CatalogRecord, Override, SyncPlan } from "./rules";
+import type { CatalogRecord, Override, SyncPlan, VanDeDongBo } from "./rules";
 import { summarizePlan } from "./rules";
 import type { CatalogInput } from "./sheet";
 
@@ -115,7 +115,7 @@ const CHUNK = 40;
 export async function applySync(
   db: D1Database,
   plan: SyncPlan,
-  meta: { at: string; nguoiPhat: PermissionHolder; itemCount: number; problems: { row: number; message: string }[] },
+  meta: { at: string; nguoiPhat: PermissionHolder; itemCount: number; problems: VanDeDongBo[]; giuLaiMoi?: boolean; cauThem?: D1PreparedStatement[] },
 ): Promise<void> {
   const stmts: D1PreparedStatement[] = [];
   const upsert = (i: CatalogInput) =>
@@ -134,18 +134,27 @@ export async function applySync(
 
   for (let i = 0; i < stmts.length; i += CHUNK) await db.batch(stmts.slice(i, i + CHUNK));
 
-  const changed = plan.added.length + plan.changed.length + plan.missing.length;
+  // Dòng giữ lại chỉ ghi nhật ký khi là vấn đề MỚI (service tính `giuLaiMoi`) — Cron 15 phút không được lặp một dòng nhật ký mỗi lần.
+  const changed = plan.added.length + plan.changed.length + plan.missing.length + (meta.giuLaiMoi ? plan.giuLai.length : 0);
   await db.batch([
+    ...(meta.cauThem ?? []), // giá gốc phí đưa đón (ADR-0218): cùng lô với dấu «đồng bộ thành công» — lỗi giữa chừng thì lần sau tính lại từ trạng thái thật
     db
       .prepare(
         "UPDATE catalog_sync SET last_attempt_at = ?, last_success_at = ?, last_error_code = NULL, last_error = NULL, item_count = ?, problems_json = ? WHERE id = 'default'",
       )
-      .bind(meta.at, meta.at, meta.itemCount, JSON.stringify(meta.problems.slice(0, 50))),
+      .bind(meta.at, meta.at, meta.itemCount, JSON.stringify(sapVanDe(meta.problems))),
     ...(changed > 0
       ? [auditStatement(db, { ...nguoiLam(meta.nguoiPhat), action: "catalog_synced", at: meta.at, targetType: "catalog", detail: summarizePlan(plan) })] // người bấm hoặc tác nhân (ADR-0186)
       : []),
   ]);
 }
+
+/** Ghi lại danh sách vấn đề của lần đồng bộ gần nhất (dùng để đánh dấu `daBao` sau khi gửi tin). Giữ dòng «giữ lại» đứng đầu khi cắt 50. */
+export async function ghiVanDe(db: D1Database, problems: readonly VanDeDongBo[]): Promise<void> {
+  await db.prepare("UPDATE catalog_sync SET problems_json = ? WHERE id = 'default'").bind(JSON.stringify(sapVanDe(problems))).run();
+}
+
+export const sapVanDe = (problems: readonly VanDeDongBo[]): VanDeDongBo[] => [...problems.filter((p) => p.giuLai), ...problems.filter((p) => !p.giuLai)].slice(0, 50);
 
 /** Lưu (hoặc xoá) ghi đè của một dịch vụ, kèm các dòng nhật ký, trong một transaction. */
 export async function saveOverride(

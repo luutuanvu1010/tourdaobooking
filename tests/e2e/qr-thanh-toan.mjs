@@ -4,12 +4,14 @@
 // 409 mang số đã ghi → tổng vượt số thực chuyển 409 → HAI lệnh cùng lúc trên MỘT khoản (một 200, một 409, không 500) và hai khoản cùng một mã (tổng không vượt số
 // thực chuyển ở D1 thật) → Kế toán tự ghi cần mã (ô mã miễn luật 8 chữ số, ghi chú vẫn chặn) → chỉ Kế toán thấy mã → tìm đơn bằng nội dung chuyển khoản → nhật ký không
 // chép mã hay số tài khoản.
+// Phí đưa đón Đợt C, Task 5: (3b) đơn có lượt đón ⇒ QR mặc định = còn lại GỒM phí đưa đón (tag 54 mang đúng số); không gõ được số vượt còn lại. Phí bật từ hôm nay rồi tắt ở `finally`.
 // Dùng superAdmin, salesA/salesB, admin, accountant, field/fieldB (không đổi tài khoản dùng chung). Mọi mã giao dịch (kể cả mã thuần số 12 chữ số) sinh từ Date.now() nên chạy lại trên cùng D1 không va chạm.
 // Hai ca đua (mục 7) chỉ chứng minh "không ai nhận 500, đúng một người thắng, D1 chỉ có một dòng nối" — KHÔNG chứng minh hai yêu cầu thật sự đan xen: trên `wrangler dev` cục bộ hai yêu cầu
 // thường chạy nối đuôi nhau (người kiểm đã thử: bỏ trigger chống trùng mà không chèn độ trễ thì bài vẫn xanh; chèn trễ ~500ms mới đỏ). Lớp CSDL được ghim ở chỗ khác:
 // src/migrations-ma-giao-dich.test.ts (từng trigger) và src/modules/billing/ma-giao-dich-may-chu.test.ts (kiểm trước lô của máy chủ đứng riêng).
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session, sqlRows, vnDate } from "./lib.mjs";
+import { dungPhiDon, luotDon } from "./lib-phi-don.mjs";
 
 await ensureFakeCatalog();
 const SA = await session(ACCOUNTS.superAdmin);
@@ -123,6 +125,27 @@ for (const so of ["250001", "0", "-1", "1e5", "100000.0", " 100000", "+5", "0x10
   assert.equal(r.status, 400, `soTien="${so}" phải 400, nhận ${r.status} ${JSON.stringify(r.body)}`);
 }
 console.log("✓ QR mặc định bằng còn lại, nội dung = mã đơn bỏ gạch, CRC khớp; số nhỏ hơn được; 10 dạng số lạ đều 400");
+
+// ---- 3b) Phí đưa đón (Đợt C, Task 5): QR mặc định = còn lại gồm phí đưa đón đã chụp lúc xác nhận
+{
+  const phi = await dungPhiDon(ADM, { nhan: "QR", muc: 50_000 });
+  try {
+    const r = await call(A, "POST", "/api/orders", { ...orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(10), legs: [luotDon(phi.ks.id, phi.phiDon)] })] }), handlerStaffId: fld.id });
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    const id = r.body.order.id;
+    assert.equal((await call(A, "POST", `/api/orders/${id}/status`, { status: "confirmed" })).status, 200);
+    const don = (await call(A, "GET", `/api/orders/${id}`)).body.order;
+    assert.deepEqual([don.subtotal, don.total, don.phiDuaDon.dong.map((d) => d.lineTotal)], [300000, 300000, [100000]], "2 × 100.000 + phí 2 × 50.000");
+    const q3 = await qr(A, id);
+    assert.equal(q3.status, 200, JSON.stringify(q3.body));
+    assert.deepEqual([q3.body.qr.soTien, q3.body.qr.conLai], [300000, 300000], "QR = còn lại gồm phí");
+    assert.ok(q3.body.qr.payload.includes("5406300000"), "tag 54 mang đúng số gồm phí");
+    assert.equal((await qr(A, id, "300001")).status, 400, "không gõ được số vượt còn lại");
+    console.log("✓ QR đơn có phí đưa đón: mặc định = còn lại 300.000 (gồm phí 100.000), tag 54 đúng số");
+  } finally {
+    await phi.donDep();
+  }
+}
 
 // ---- 4) Phạm vi xem QR
 assert.equal((await qr(F, don1.id)).status, 200, "HDV phụ trách xem được");

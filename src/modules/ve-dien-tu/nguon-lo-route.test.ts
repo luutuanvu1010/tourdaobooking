@@ -22,7 +22,7 @@ function setup() {
   return w;
 }
 const taoLo = (w: any, as: string, nguon?: string) =>
-  w.call("POST", "/api/ve/lo", { as, body: { catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "Vé thử", ...(nguon ? { nguon } : {}) } });
+  w.call("POST", "/api/ve/lo", { as, body: { catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "Vé thử", ...(nguon ? { nguon } : {}), ...(nguon === "TOUR_DAO" ? { soVeDuKien: 5 } : {}) } });
 const them = (w: any, as: string, loId: string, ve: unknown[]) => w.call("POST", `/api/ve/lo/${loId}/ve`, { as, body: { ve } });
 const ve = (n: number, maVe: string) => ({ noiDung: b64(PNG(n)), maVe, tuNgay: "2026-10-24", denNgay: "2099-11-23" });
 /** Lô đã vào kho: hãng ngoài do Bán hàng nhập, Tour Đảo do Kế toán nhập. */
@@ -30,7 +30,7 @@ async function loVaoKho(w: any, nguon: "HANG_NGOAI" | "TOUR_DAO", n: number, xac
   const as = nguon === "TOUR_DAO" ? KT : SALES;
   const lo = await taoLo(w, as, nguon);
   assert.equal(lo.status, 201, lo.text);
-  const r = await them(w, as, lo.json.loId, [ve(n, nguon === "TOUR_DAO" ? maTD(n) : `TA.1000000000${n}`)]);
+  const r = await them(w, as, lo.json.loId, [{ ...ve(n, nguon === "TOUR_DAO" ? maTD(n) : `TA.1000000000${n}`), ...(nguon === "TOUR_DAO" ? { soSeri: lo.json.soSeri[0] } : {}) }]);
   assert.equal(r.json.themDuoc, 1, r.text);
   if (xacNhan) assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/xac-nhan`, { as, body: {} })).status, 200);
   return lo.json.loId;
@@ -101,8 +101,9 @@ test("Bán hàng: GET /lo thấy lô Tour Đảo; không thêm vé, xác nhận,
 
 test("dạng mã: lô Tour Đảo từ chối mã ABC123; lô hãng ngoài từ chối mã TD1.…; không vé nào vào kho", async () => {
   const w = setup();
-  const td = (await taoLo(w, KT, "TOUR_DAO")).json.loId;
-  const a = await them(w, KT, td, [ve(1, "ABC123")]);
+  const tdLo = await taoLo(w, KT, "TOUR_DAO");
+  const td = tdLo.json.loId;
+  const a = await them(w, KT, td, [{ ...ve(1, "ABC123"), soSeri: tdLo.json.soSeri[0] }]);
   assert.equal(a.status, 200, a.text);
   assert.equal(a.json.themDuoc, 0);
   assert.equal(a.json.loai.length, 1);
@@ -112,7 +113,7 @@ test("dạng mã: lô Tour Đảo từ chối mã ABC123; lô hãng ngoài từ 
   assert.equal(b.json.loai.length, 1);
   assert.doesNotMatch(a.text + b.text, /TD1\.[A-Z2-7]{26}|ABC123/, "câu lỗi không nhắc lại mã");
   assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket")[0].n, 0);
-  assert.equal((await them(w, KT, td, [ve(3, maTD(3))])).json.themDuoc, 1, "đúng dạng thì vào");
+  assert.equal((await them(w, KT, td, [{ ...ve(3, maTD(3)), soSeri: tdLo.json.soSeri[1] }])).json.themDuoc, 1, "đúng dạng thì vào");
 });
 
 test("không giữ quyền nguồn nào ⇒ 403 ở GET /kho, /lo, /lo-da-huy", async () => {

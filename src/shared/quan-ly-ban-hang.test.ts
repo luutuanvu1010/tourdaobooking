@@ -27,14 +27,22 @@ test("Đ1: vai sinh Bán hàng + Quản lý bán hàng; nội bộ; không quy�
 });
 
 // ADR-0175 Đ1.3 (chủ duyệt 8/11): thêm ô `ve.phat-hanh` (tạo vé Tour Đảo).
+// ADR-0209 Đ2 (chủ duyệt 15/11): thêm `partner.signup_tier.write` (đặt cấp cho đối tác tự đăng ký; không tạo cấp, không sửa mức, không ghi tiền).
 // ADR-0186 (chủ duyệt 8/11): thêm ô thứ ba `catalog.sync` — «Đồng bộ ngay từ Google Sheet» chỉ lấy giá đang có ở Sheet về, không sửa giá trong Nền tảng.
-test("Đ1 + ADR-0186: cột mới chỉ có ba ô nghiệp vụ và các ô tự phục vụ; không ô đơn, tiền, tài khoản, sửa giá nào", () => {
+test("Đ1 + ADR-0186 + ADR-0209 + ADR-0219: cột mới có ba ô nghiệp vụ, ô partner.signup_tier.write (chọn cấp đang bật cho đối tác tự đăng ký) và các ô tự phục vụ; không ô đơn, tài khoản, sửa giá, ghi tiền nào", () => {
   const co = Object.entries(MATRIX).filter(([, r]) => r.SALES_MANAGER !== "none").map(([o]) => o).sort();
   assert.deepEqual(co, [
-    "assistant.ask", "catalog.confirm_flag.write", "catalog.hidden.write", "catalog.sync", "feedback.submit", "feedback.view", "me.favorites.write", "party.document.view", "party.erasure.request",
+    "assistant.ask", "catalog.confirm_flag.write", "catalog.hidden.write",
+    "catalog.seasonal.approve", "catalog.seasonal.write", // ADR-0229 Đ8 (chủ duyệt 2026-11-22): giá mùa vụ — «quyền tiền mềm», không vào O_GHI_TIEN; tự đặt không tự duyệt
+    "catalog.sync", "feedback.submit", "feedback.view", "me.favorites.write",
+    "partner.org.manager.write", // ADR-0213 Đ6 (chủ duyệt 2026-11-16): giao, chuyển, gỡ người quản lý của tổ chức — không tiền, không tài khoản
+    "partner.signup_tier.write", // ADR-0209 Đ2 (chủ duyệt 2026-11-15): ô đầu tiên của Quản lý bán hàng chạm điều khoản thương mại — chỉ chọn cấp đang bật cho đối tác tự đăng ký, không sửa mức
+    "party.document.view", "party.erasure.request",
     "party.self.submit",
     "party.self.view",
+    "registration.queue.view", "registration.verify", "registration.verify.attachment", // ADR-0219 Đ1, Đ2 (chủ duyệt 2026-11-18): Quản lý bán hàng xác minh phiếu đăng ký đối tác — không duyệt, không tạo tài khoản
     "ve.doi-chieu.view", // ADR-0175 §2.7: Quản lý bán hàng xem đối chiếu và người quét
+    "ve.huy-hang-ngoai", // ADR-0217 Đ3 (chủ chốt 18/11): huỷ vé / lô hãng ngoài đã cấp cho đơn
     "ve.phat-hanh", // ADR-0175 Đ1.3 (chủ duyệt 2026-11-08): Quản lý bán hàng tạo được vé Tour Đảo
     "ve.quet.tinh", "ve.quet.xem", // ADR-0175 Đ3, §2.9: Quản lý bán hàng quét và tính vé Tour Đảo
   ]);

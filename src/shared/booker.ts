@@ -17,9 +17,11 @@ export type BookerChoice = { kind: "none" } | { kind: "existing"; partyId: strin
  * route vai của `parties` trả 409 `role_via_account` cho vai nhóm nội bộ, `DRIVER_EXTERNAL` và vai bên ngoài trên hồ sơ ĐÃ có tài khoản (`isAccountGroup`; từ ADR-0155 năm vai hưởng gắn được cho hồ sơ CHƯA có tài khoản), `src/shared/roles.ts` xếp quyền theo nhóm vai — và kiểm định kỳ
  * `R-LC-1`; KHÔNG có trigger CSDL nào chặn vai bên ngoài trên hồ sơ của tài khoản lai, trigger LC-1 chỉ canh lúc cấp quyền.)
  * `laDoiTac` = giữ mã quyền Đối tác (`holdsPartner`); `laNguoiHuong` = hồ sơ của tài khoản đang mang vai được hưởng (máy chủ tính, `laNguoiHuong` của pricing).
+ * ADR-0213 Đ4.1 (mốc B1 Task 11): `benThayMat` = hồ sơ của TƯ CÁCH đã chọn cho đơn (`chonTuCach`) — cá nhân hoặc tổ chức; thay cho `staff.partyId`. Đường «không tư cách» truyền
+ * `laNguoiHuong` false nên giữ điều thân gửi như hôm nay.
  */
-export function benDatChoTaiKhoan(v: { laDoiTac: boolean; partyId: string | null; laNguoiHuong: boolean; guiLen: BookerInput }): BookerInput {
-  return v.laDoiTac && v.partyId !== null && v.laNguoiHuong ? { kind: "existing", partyId: v.partyId } : v.guiLen;
+export function benDatChoTaiKhoan(v: { laDoiTac: boolean; benThayMat: string | null; laNguoiHuong: boolean; guiLen: BookerInput }): BookerInput {
+  return v.laDoiTac && v.benThayMat !== null && v.laNguoiHuong ? { kind: "existing", partyId: v.benThayMat } : v.guiLen;
 }
 
 /**
@@ -29,8 +31,37 @@ export function benDatChoTaiKhoan(v: { laDoiTac: boolean; partyId: string | null
  * gắn rồi thì Đối tác lưu lại nháp / sửa tên khách không bị chặn; đơn mới: `benDatDangLuu` = null). `guiLaNguoiHuong` do máy chủ tính (`laNguoiHuong` của pricing).
  * Thứ tự ở đường lập đơn / lưu nháp: ép bên đặt (`benDatChoTaiKhoan`) → 409 chưa gắn hồ sơ → luật này.
  */
-export function benDatDoiTacBiCam(v: { laDoiTac: boolean; partyId: string | null; guiLen: BookerInput; guiLaNguoiHuong: boolean; benDatDangLuu: string | null }): boolean {
-  return v.laDoiTac && v.guiLen.kind === "existing" && v.guiLaNguoiHuong && v.guiLen.partyId !== v.partyId && v.guiLen.partyId !== v.benDatDangLuu;
+export function benDatDoiTacBiCam(v: { laDoiTac: boolean; benThayMat: string | null; guiLen: BookerInput; guiLaNguoiHuong: boolean; benDatDangLuu: string | null }): boolean {
+  return v.laDoiTac && v.guiLen.kind === "existing" && v.guiLaNguoiHuong && v.guiLen.partyId !== v.benThayMat && v.guiLen.partyId !== v.benDatDangLuu;
+}
+
+/**
+ * ADR-0213 Đ3 (mốc B1 Task 11): MỘT tư cách của người gọi. `loai` = loại liên kết LÚC LẬP (ghi vào `orders.acting_link_kind`): `CA_NHAN` (hồ sơ của mình mang vai đối tác
+ * riêng — Đ3.3), `MANAGER` (người quản lý có hiệu lực — Đ2.8), `MEMBER` (thành viên — mở ở B2, ruling R4: danh sách do gốc lắp ráp dựng, hàm này không lọc loại).
+ */
+export type LoaiTuCach = "CA_NHAN" | "MANAGER" | "MEMBER";
+export interface TuCachDong { partyId: string; ten: string; laToChuc: boolean; loai: LoaiTuCach }
+export type KetQuaChonTuCach = { ok: true; chon: TuCachDong | null } | { ok: false; loi: "CAN_CHON" | "KHONG_CON_THAY_MAT" | "KHONG_HOP_LE" };
+
+/**
+ * Chọn tư cách cho đơn đang lập / đang lưu (Đ3.1, Đ3.2) — MỘT chỗ kiểm; `ds` = tư cách hiện có của người gọi (gốc lắp ráp đối chiếu liên kết đang mở). Danh sách rỗng
+ * (không giữ quyền Đối tác, hoặc Đối tác chưa có vai trò — ADR-0185) mà không gửi ⇒ `chon: null` = đường hôm nay. Vắng ⇒ tư cách cá nhân nếu có, không thì phải chọn.
+ * Gửi một mã ngoài danh sách (kể cả khi danh sách rỗng) ⇒ «không còn thay mặt» (403 ở route).
+ */
+export function chonTuCach(ds: readonly TuCachDong[], tuCach: unknown): KetQuaChonTuCach {
+  if (tuCach === undefined || tuCach === null || tuCach === "") {
+    if (ds.length === 0) return { ok: true, chon: null };
+    const caNhan = ds.find((t) => t.loai === "CA_NHAN");
+    return caNhan ? { ok: true, chon: caNhan } : { ok: false, loi: "CAN_CHON" };
+  }
+  if (typeof tuCach !== "string") return { ok: false, loi: "KHONG_HOP_LE" };
+  const t = ds.find((x) => x.partyId === tuCach);
+  return t ? { ok: true, chon: t } : { ok: false, loi: "KHONG_CON_THAY_MAT" };
+}
+
+/** Tư cách của một đơn theo `orders.acting_link_kind` (Đ3.4): cá nhân, thay mặt tổ chức, hoặc null (đơn văn phòng, đơn lập trước B1 — hành vi hôm nay). */
+export function tuCachCuaDon(loai: string | null): "CA_NHAN" | "TO_CHUC" | null {
+  return loai === "CA_NHAN" ? "CA_NHAN" : loai === "MANAGER" || loai === "MEMBER" ? "TO_CHUC" : null;
 }
 
 export const NO_BOOKER_TEXT = "Hồ sơ khách: chưa liên kết (không bắt buộc)";

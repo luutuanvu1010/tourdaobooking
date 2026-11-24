@@ -144,7 +144,8 @@ export interface KhoaVapid { congKhai: string; biMat: string; sub: string }
  * chối (403) mà không có dấu hiệu nào khác ngoài log `day_loi`. Bắt lệch NGAY ở đây (trả `null`, tắt tính năng, không throw) thay vì
  * để lộ ra bằng gửi thật — một dòng log `vapid_khoa_lech` (không có giá trị khoá) để chủ dò khi cần.
  */
-export const khoaVapid = (env: { VAPID_PUBLIC_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_SUB?: string }): KhoaVapid | null => {
+export const khoaVapid = (env: { VAPID_PUBLIC_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_SUB?: string; BAN_DUNG_THU?: string }): KhoaVapid | null => {
+  if (env.BAN_DUNG_THU === "bat") return null; // BẢN DÙNG THỬ (ADR-0223 Đ4): không thông báo đẩy, kể cả khi lỡ đặt khoá
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return null;
   if (!khopCapKhoa(env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY)) {
     console.warn(JSON.stringify({ level: "warn", event: "vapid_khoa_lech" }));

@@ -284,7 +284,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
     "party.personal.view": "none", // ADR-0122 đ5: Đối tác không xem ngày sinh / địa chỉ người khác
     "admin.manage": "none", "admin.manage.superadmin": "none", "feedback.submit": "any", "feedback.view": "own",
-    "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "dispatch.policy.lead": "none", "order.pool.view": "none", "ve.kho.manage": "none", "ve.phat-hanh": "none" /* ADR-0175 Đ1.3 */, "ve.doi-chieu.view": "none", "ve.quet.tinh": "none", "ve.quet.xem": "none" /* ADR-0175 Đ3: Đối tác không quét */, "ve.cap.send": "own", /* ADR-0170 Đ1 (NỚI có chủ ý, chủ duyệt 5/11): Đối tác xem và gửi vé của đơn do chính mình lập; ADR-0153 Đ3 trước đó là none */ "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
+    "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "dispatch.policy.lead": "none", "order.pool.view": "none", "order.photo.upload": "none", "order.photo.view": "none", "order.photo.hide": "none", "order.photo.purge": "none" /* ADR-0232 Đ4: Đối tác không gửi, không xem Ảnh bàn giao */, "ve.kho.manage": "none", "ve.huy-hang-ngoai": "none", "ve.phat-hanh": "none" /* ADR-0175 Đ1.3 */, "ve.doi-chieu.view": "none", "ve.quet.tinh": "none", "ve.quet.xem": "none" /* ADR-0175 Đ3: Đối tác không quét */, "ve.cap.send": "own", /* ADR-0170 Đ1 (NỚI có chủ ý, chủ duyệt 5/11): Đối tác xem và gửi vé của đơn do chính mình lập; ADR-0153 Đ3 trước đó là none */ "account.access.manage": "none", "audit.view": "none", "audit.money.daily": "none" /* Đợt 2 sau kiểm toán: chỉ tác nhân soát tiền */, "notice.send": "none",
     "account.create": "none", "account.view": "none", "account.edit": "none", // ADR-0071: Quản lý tài khoản — Đối tác không
     "company.legal.write": "none", // T2b (ADR-0024 6.4 + ADR-0038 điều 7): ô mới, chỉ Toàn quyền — thêm khi gộp main 356084a vào nhánh T2b (D19)
     "party.document.view": "none", "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", // ADR-0040 D2, ADR-0124 đ4: Đối tác không có giấy tờ / ảnh của người khác
@@ -294,6 +294,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "me.favorites.write": "own", // ADR-0187 Đ2.3: Đối tác tự chọn nút thanh dưới của CHÍNH MÌNH (ô tự phục vụ, không chạm đơn / tiền)
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): Đối tác không xử lý phiếu xoá dữ liệu của người khác
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1: Đối tác không xác minh hồ sơ
+    "registration.queue.view": "none", "registration.verify": "none", "registration.verify.attachment": "none", "registration.approve": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: Đối tác không xử lý phiếu đăng ký; ADR-0210 Đ1: chỉ Toàn quyền đặt mục bắt buộc
     "vehicle.manage": "none", // ADR-0040 D1: quản lý xe chỉ Quản trị + Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
@@ -315,9 +316,11 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "trip.transfer": "none", // ADR-0052 D4 / ADR-0111: Đối tác không điều xe
     "assistant.ask": "any", // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: sổ phiên chỉ Toàn quyền
-    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)
+    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "partner.org.manager.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)
     "credit.limit.write": "none", // ADR-0168: hạn mức trả sau do Toàn quyền đặt
     "credit.limit.view": "none",
+    "credit.service_rule.write": "none", // ADR-0230 Đ1 / ADR-0178 Đ3: dấu Trả sau theo dịch vụ chỉ Toàn quyền đặt
+    "credit.service_rule.view": "none",
     "credit.ceiling.write": "none", // ADR-0172: chỉ Toàn quyền
     "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0178 Đ1 mục 1: công tắc kênh thu không phải việc của Đối tác
     "credit.due.extend": "none", // ADR-0173 Đ1 mục 3: Ân hạn là việc của Quản trị, Toàn quyền
@@ -329,6 +332,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "catalog.ticket_flag.write": "none", // ADR-0174 Đ4
     "order.terms.view": "own", "order.terms.override": "none", // Task 5: Đối tác xem phần đối tác của ĐƠN CỦA MÌNH (DTO hẹp: chỉ số tiền hoa hồng — holdsPartner ở route); không ghi mức tay
     "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", // ADR-0186: đồng bộ danh mục là việc văn phòng; hai ô kia là việc Nền tảng tự làm
+    "catalog.seasonal.write": "none", "catalog.seasonal.approve": "none", "catalog.seasonal.cap": "none", // ADR-0229 Đ8: giá mùa vụ là việc văn phòng
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

@@ -99,7 +99,17 @@ export async function session(account) {
 }
 /** Đăng nhập MỚI (cố ý): cookie cũ của tài khoản chịu luật một máy bị đá; cookie mới được nhớ cho các lần `session()` sau. */
 export async function sessionMoi(account) {
-  const r = await login(account.phone, account.pin);
+  if (vuaGhiD1Local) {
+    vuaGhiD1Local = false;
+    await choMayChuOn();
+  }
+  let r = await login(account.phone, account.pin);
+  if (r.status === 500) {
+    // Việc 2.4: in thân (null = máy chủ rơi kết nối, không phải câu trả lời của route) rồi thử lại MỘT lần sau khi máy chủ ổn định.
+    console.warn(`⚠ Đăng nhập ${account.phone} trả 500, thân ${JSON.stringify(r.body)} — chờ máy chủ ổn định rồi thử lại một lần`);
+    await choMayChuOn();
+    r = await login(account.phone, account.pin);
+  }
   if (r.status !== 200) throw new Error(`Không đăng nhập được ${account.phone}: ${r.status} ${JSON.stringify(r.body)}`);
   PHIEN_DA_CO.set(account.phone, r.cookie);
   return r.cookie;
@@ -113,10 +123,50 @@ export async function sessionMoi(account) {
 export async function sql(q) {
   const args = ["wrangler", "d1", "execute", "tourdao-sales-db", "--local", "--command", q];
   if (PERSIST) args.push("--persist-to", PERSIST);
-  try {
-    return (await execFileAsync("npx", args, { encoding: "utf8" })).stdout;
-  } catch (e) {
-    throw new Error(`${e.stderr ?? ""}${e.stdout ?? ""}`);
+  return (await chayD1Local(args)).stdout;
+}
+
+/**
+ * Việc 2.4 (kế hoạch 2026-11-15): `wrangler d1 execute --local` mở CÙNG tệp SQLite mà `wrangler dev` đang giữ. Lúc máy chủ đang ghi, lệnh gặp
+ * «database is locked: SQLITE_BUSY» (4 lượt GitHub đỏ giả 8–9/11). Đây là tranh chấp khoá: đợi rồi thử lại ĐÚNG câu này, có giới hạn — không chạy lại cả kịch bản.
+ * Lỗi khác (sai SQL, vi phạm trigger) ném ngay, không thử lại.
+ */
+export const D1_BAN_SO_LAN = 5;
+export const laLoiKhoaD1 = (chu) => /SQLITE_BUSY|database is locked/i.test(chu);
+const choMs = (ms) => new Promise((res) => setTimeout(res, ms));
+let vuaGhiD1Local = false; // sessionMoi đọc: vừa có lệnh d1 execute --local ⇒ chờ máy chủ ổn định trước khi đăng nhập
+async function chayD1Local(args) {
+  for (let lan = 1; ; lan++) {
+    try {
+      const kq = await execFileAsync("npx", args, { encoding: "utf8" });
+      vuaGhiD1Local = true;
+      return kq;
+    } catch (e) {
+      const chu = `${e.stderr ?? ""}${e.stdout ?? ""}`;
+      if (lan >= D1_BAN_SO_LAN || !laLoiKhoaD1(chu)) throw new Error(chu);
+      const doi = Math.min(200 * 2 ** (lan - 1), 3000); // 200, 400, 800, 1600 ms
+      console.warn(`⚠ D1 local đang bị máy chủ giữ khoá (SQLITE_BUSY), đợi ${doi} ms rồi thử lại lần ${lan + 1}/${D1_BAN_SO_LAN}`);
+      await choMs(doi);
+    }
+  }
+}
+
+/**
+ * Việc 2.4: hai lượt GitHub đỏ «Không đăng nhập được …: 500 null» NGAY SAU khi gieo SQL (lib.mjs `gieoTaiKhoanLai`). Trước khi đăng nhập, chờ máy chủ trả lời
+ * ổn định (GET công khai `/api/auth/config` ra 200, trần ~10 giây).
+ */
+async function choMayChuOn(tranMs = 10_000) {
+  const het = Date.now() + tranMs;
+  for (;;) {
+    try {
+      const r = await fetch(`${BASE}/api/auth/config`);
+      await r.arrayBuffer().catch(() => null);
+      if (r.status === 200) return;
+    } catch {
+      /* kết nối rơi: thử lại tới hết trần */
+    }
+    if (Date.now() >= het) return; // hết trần: để lần đăng nhập tự báo lỗi thật
+    await choMs(200);
   }
 }
 
@@ -222,12 +272,8 @@ export async function xacNhanDonCu(orderId, nguoiLapId, vanPhong) {
 export async function sqlRows(q) {
   const args = ["wrangler", "d1", "execute", "tourdao-sales-db", "--local", "--json", "--command", q];
   if (PERSIST) args.push("--persist-to", PERSIST);
-  try {
-    const out = (await execFileAsync("npx", args, { encoding: "utf8" })).stdout;
-    return JSON.parse(out)[0].results;
-  } catch (e) {
-    throw new Error(`${e.stderr ?? ""}${e.stdout ?? ""}`);
-  }
+  const out = (await chayD1Local(args)).stdout;
+  return JSON.parse(out)[0].results;
 }
 
 export const randomPhone = () => "09" + String(Math.floor(Math.random() * 1e8)).padStart(8, "0");

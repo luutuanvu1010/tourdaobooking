@@ -11,6 +11,7 @@ import { cleanText, dateField, int, text, timeField } from "./fields.ts";
 import { tongKhach } from "../../shared/so-nguoi-chang.ts";
 import { laLuaChonDon, type LuaChonDon } from "../../shared/khung-gio-don.ts";
 import { NHAN_TRUONG_THOI_GIAN } from "../../shared/truong-thoi-gian.ts";
+import { tinhGiaMuaVu, type QuyTacMuaVu } from "../../shared/gia-mua-vu.ts";
 
 export type { CatalogChangeDto as CatalogChange, CatalogStatus, MissingReason, TripGapDto as TripGap };
 
@@ -30,9 +31,13 @@ export interface ValidItem {
   detail: string | null;
   quantity: number;
   unitPrice: number;
-  /** Giá danh mục hiệu lực lúc lập dòng; null = nhập tay. */
+  /** Giá danh mục hiệu lực lúc lập dòng, ĐÃ CỘNG GIÁ MÙA VỤ (ADR-0229 Đ5); null = nhập tay. */
   catalogPrice: number | null;
   lineTotal: number;
+  /** ADR-0229 Đ5 — bản chụp: giá sau ghi đè, trước mùa vụ; quy tắc đã áp (null = không); số tăng mỗi đơn vị. Cả ba null = dòng nhập tay / dòng cũ trước ADR. */
+  basePrice: number | null;
+  seasonalRuleId: string | null;
+  seasonalIncrease: number | null;
 }
 
 export interface ValidService {
@@ -63,7 +68,7 @@ export interface StoredService {
   unit: string;
   pax: PaxCounts;
   /** `unitPrice` = đơn giá ĐÃ THOẢ THUẬN của dòng (`order_item.unit_price`); `catalogPrice` = giá niêm yết lúc lập (chỉ để truy vết lệch giá). */
-  items: { paxCode: PaxCode | null; detail: string | null; catalogPrice: number | null; unitPrice: number }[];
+  items: { paxCode: PaxCode | null; detail: string | null; catalogPrice: number | null; unitPrice: number; basePrice?: number | null; seasonalRuleId?: string | null; seasonalIncrease?: number | null }[];
   /** Lựa chọn đón đang lưu (ADR-0134) — có khi đọc từ CSDL (`getStoredServices`); vắng = không biết (coi như chưa chọn). */
   pickupChoice?: LuaChonDon | null;
 }
@@ -78,6 +83,11 @@ export interface ServiceContext {
   storedPassengerIds?: ReadonlySet<string>;
   /** Hôm nay (giờ VN) — năm sinh hành khách. Vắng = tính lúc gọi. */
   today?: string;
+  /**
+   * ADR-0229 Đ2, Đ4: quy tắc giá mùa vụ (mọi quy tắc chưa kết thúc + quy tắc đơn đã chụp) và nhóm HIỆN HÀNH của từng mã dịch vụ. Vắng = không áp giá mùa vụ
+   * (bài thuần cũ); mọi đường ghi thật lấy ngữ cảnh từ `validationContext` (orders/service.ts) — luôn có khoá này.
+   */
+  muaVu?: { quyTac: readonly QuyTacMuaVu[]; nhomCua: ReadonlyMap<string, string | null> };
 }
 
 export type ServiceFailure = { ok: false; message: string; code?: "catalog_changed" | "catalog_unavailable"; details?: unknown };
@@ -186,6 +196,29 @@ export function storedServiceLines(st: StoredService, pax: PaxCounts): LinesResu
 
 // ---- Dịch vụ từ danh mục -----------------------------------------------------------------------------------------
 
+/**
+ * ADR-0229 Đ4, Đ5: giá danh mục hiệu lực (sau ghi đè Quản trị) cộng giá mùa vụ theo NGÀY ĐI của chính dịch vụ — MỘT nơi cho lập/lưu nháp (`catalogService`), form
+ * (`GET /api/catalog/for-order` qua catalog) và hai chỗ so «giá danh mục đã đổi» (Đ7b, `catalogStatusOf`). `muaVu` vắng ⇒ giá giữ nguyên, bản chụp ghi giá gốc + không quy tắc.
+ */
+export function giaDaCongMuaVu(
+  eff: CatalogService,
+  ngayDi: string | null,
+  muaVu: ServiceContext["muaVu"],
+): { source: CatalogService; chup: Map<PaxCode, { basePrice: number | null; seasonalRuleId: string | null; seasonalIncrease: number | null }> } {
+  const prices: Prices = { ...eff.prices };
+  const chup = new Map<PaxCode, { basePrice: number | null; seasonalRuleId: string | null; seasonalIncrease: number | null }>();
+  for (const c of PAX_ORDER) {
+    const goc = eff.prices[c];
+    if (goc === null) continue;
+    const r = muaVu
+      ? tinhGiaMuaVu({ giaGoc: goc, maDichVu: eff.code, maNhom: muaVu.nhomCua.get(eff.code) ?? null, ngayDi, quyTac: muaVu.quyTac })
+      : { gia: goc, quyTacId: null, soTang: 0 };
+    prices[c] = r.gia;
+    chup.set(c, { basePrice: goc, seasonalRuleId: r.quyTacId, seasonalIncrease: r.soTang });
+  }
+  return { source: { ...eff, prices }, chup };
+}
+
 function catalogService(s: Record<string, unknown>, at: string, index: number, pax: PaxCounts, trip: ValidTrip, ctx: ServiceContext): ServiceResult {
   const code = s.catalogCode;
   if (typeof code !== "string" || !CATALOG_CODE_RE.test(code)) return fail(`${at}: mã dịch vụ không hợp lệ.`);
@@ -198,16 +231,27 @@ function catalogService(s: Record<string, unknown>, at: string, index: number, p
     if (pax[c] === 0) return fail(`${at}: có đơn giá cho ${PAX_LABEL[c].toLowerCase()} nhưng không có khách loại này.`);
   }
 
-  // Q11: dịch vụ đã lưu của CHÍNH đơn này, cùng mã và cùng số khách → giữ bản chụp, không tra danh mục (dịch vụ đã ẩn/đổi giá vẫn sửa được).
+  // Q11: dịch vụ đã lưu của CHÍNH đơn này, cùng mã, cùng số khách VÀ CÙNG NGÀY ĐI (ADR-0229 Đ6 vá Q11) → giữ bản chụp, không tra danh mục (dịch vụ đã ẩn/đổi giá
+  // vẫn sửa được). Đổi ngày đi ⇒ dựng lại từ danh mục như chọn mới (giá gốc hiện hành + quy tắc mùa vụ của ngày mới).
   const stored = typeof s.id === "string" ? ctx.stored.find((x) => x.id === s.id) : undefined;
-  const kept = stored && stored.catalogCode === code && samePax(stored.pax, pax) ? snapshotService(stored) : null;
+  const ngayCu = stored ? ctx.storedTrips?.get(stored.id)?.departDate : undefined;
+  const cungNgay = ngayCu === undefined || ngayCu === trip.departDate;
+  const kept = stored && stored.catalogCode === code && samePax(stored.pax, pax) && cungNgay ? snapshotService(stored) : null;
 
   let source: CatalogService;
-  if (kept) source = kept;
-  else {
+  /** Bản chụp mùa vụ theo loại khách (ADR-0229 Đ5). */
+  const chupMuaVu = new Map<PaxCode, { basePrice: number | null; seasonalRuleId: string | null; seasonalIncrease: number | null }>();
+  if (kept) {
+    source = kept;
+    for (const it of stored!.items) {
+      if (it.paxCode !== null) chupMuaVu.set(it.paxCode, { basePrice: it.basePrice ?? null, seasonalRuleId: it.seasonalRuleId ?? null, seasonalIncrease: it.seasonalIncrease ?? null });
+    }
+  } else {
     const eff = ctx.catalog.get(code);
     if (!eff || !eff.visible) return fail(`${at}: dịch vụ ${code} đã ngừng bán hoặc không còn trong danh mục — hãy chọn dịch vụ khác.`, { code: "catalog_unavailable" });
-    source = eff;
+    const daCong = giaDaCongMuaVu(eff, trip.departDate, ctx.muaVu);
+    source = daCong.source;
+    for (const [c, v] of daCong.chup) chupMuaVu.set(c, v);
   }
 
   const built = buildLines(source, pax, prices.value);
@@ -228,7 +272,8 @@ function catalogService(s: Record<string, unknown>, at: string, index: number, p
   for (const l of built.lines) {
     const lineTotal = thanhTienDong(l);
     if (lineTotal > MAX_AMOUNT_VND) return fail(`${at}: thành tiền vượt giới hạn.`);
-    items.push({ catalogCode: code, paxCode: l.pax, description: l.description, detail: l.detail || null, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: l.catalogPrice, lineTotal });
+    const mv = chupMuaVu.get(l.pax) ?? { basePrice: null, seasonalRuleId: null, seasonalIncrease: null };
+    items.push({ catalogCode: code, paxCode: l.pax, description: l.description, detail: l.detail || null, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: l.catalogPrice, lineTotal, ...mv });
   }
   return { ok: true, value: { id: stored?.id ?? null, kind: "catalog", catalogCode: code, name: source.name, unit: source.unit, pax, trip, items, legs: [], pickupChoice: null } };
 }
@@ -255,7 +300,7 @@ function manualService(s: Record<string, unknown>, at: string, pax: PaxCounts, t
     if (unitPrice.error) return fail(unitPrice.error);
     const lineTotal = thanhTienDong({ quantity: quantity.value, unitPrice: unitPrice.value });
     if (lineTotal > MAX_AMOUNT_VND) return fail(`${line}: thành tiền vượt giới hạn.`);
-    items.push({ catalogCode: null, paxCode: null, description: description.value!, detail: detail.value, quantity: quantity.value, unitPrice: unitPrice.value, catalogPrice: null, lineTotal });
+    items.push({ catalogCode: null, paxCode: null, description: description.value!, detail: detail.value, quantity: quantity.value, unitPrice: unitPrice.value, catalogPrice: null, lineTotal, basePrice: null, seasonalRuleId: null, seasonalIncrease: null });
   }
   const stored = typeof s.id === "string" ? ctx.stored.find((x) => x.id === s.id) : undefined;
   return { ok: true, value: { id: stored?.id ?? null, kind: "manual", catalogCode: null, name: name.value!, unit: "manual", pax, trip, items, legs: [], pickupChoice: null } };
@@ -298,13 +343,23 @@ export function confirmGaps(services: readonly { id: string; name: string; depar
 
 // ---- Trạng thái so với danh mục hiện tại (chỉ để hiển thị cho đơn nháp) -----------------------------------------------
 
+/**
+ * ADR-0229 Đ7b: giá danh mục HIỆN HÀNH của dịch vụ cho NGÀY ĐI của nó = giá hiệu lực (sau ghi đè) cộng giá mùa vụ đang áp — phép so của cờ «Giá danh mục đã đổi» (màn đơn nháp)
+ * và cổng `congGiaDanhMucDoi` (Đối tác, Thực tập). `muaVu` vắng ⇒ giá hiệu lực như trước ADR.
+ */
+export function giaDanhMucHienHanh(eff: EffectiveService, departDate: string | null, muaVu: ServiceContext["muaVu"]): Prices {
+  return giaDaCongMuaVu(eff, departDate, muaVu).source.prices;
+}
+
 export function catalogStatusOf(
-  svc: { catalogCode: string | null; unit: string; items: { paxCode: PaxCode | null; catalogPrice: number | null }[] },
+  svc: { catalogCode: string | null; unit: string; departDate?: string | null; items: { paxCode: PaxCode | null; catalogPrice: number | null }[] },
   eff: EffectiveService | undefined,
+  muaVu?: ServiceContext["muaVu"],
 ): CatalogStatus | null {
   if (svc.catalogCode === null) return null;
   if (!eff || !eff.visible || eff.unit !== svc.unit) return "unavailable";
-  for (const it of svc.items) if (it.paxCode !== null && it.catalogPrice !== null && eff.prices[it.paxCode] !== it.catalogPrice) return "price_changed";
+  const hienHanh = giaDanhMucHienHanh(eff, svc.departDate ?? null, muaVu);
+  for (const it of svc.items) if (it.paxCode !== null && it.catalogPrice !== null && hienHanh[it.paxCode] !== it.catalogPrice) return "price_changed";
   return "ok";
 }
 

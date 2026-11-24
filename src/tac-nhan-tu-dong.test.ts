@@ -14,10 +14,10 @@ import { app, world, seedStaff } from "../tests/audit/harness.mjs";
 
 // Đọc qua `any`: trước khi có mã của ADR-0186 các tên này chưa tồn tại — bài phải ĐỎ ở từng ca, không chết cả tệp lúc nạp.
 const Q = P as any;
-const MA = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE"] as const;
-const O_CUA = { DONG_BO_DANH_MUC: ["catalog.sync"], NHAC_HAN_TRA_SAU: ["credit.due.remind"], DON_ANH_VE: ["ve.kho.purge"] } as const;
+const MA = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE", "DON_PHIEU_DANG_KY", "SOAT_TIEN_HANG_NGAY"] as const;
+const O_CUA = { DONG_BO_DANH_MUC: ["catalog.sync"], NHAC_HAN_TRA_SAU: ["credit.due.remind"], DON_ANH_VE: ["ve.kho.purge"], DON_PHIEU_DANG_KY: ["registration.agent.purge"], SOAT_TIEN_HANG_NGAY: ["audit.money.daily"] } as const; // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân dọn phiếu đăng ký
 
-test("N7: ba tác nhân, mỗi tác nhân đúng một ô; ô có trong bản đồ quyền; không ô ghi tiền, không admin.manage", () => {
+test("N7: năm tác nhân (ADR-0186 + DON_PHIEU_DANG_KY của ADR-0208 Đ8 + SOAT_TIEN_HANG_NGAY của Đợt 2 sau kiểm toán), mỗi tác nhân đúng một ô; ô có trong bản đồ quyền; không ô ghi tiền, không admin.manage", () => {
   assert.deepEqual(Q.MA_TAC_NHAN, MA);
   assert.deepEqual(Q.QUYEN_TAC_NHAN, O_CUA);
   for (const [ma, ops] of Object.entries(Q.QUYEN_TAC_NHAN as Record<string, string[]>)) {
@@ -65,9 +65,9 @@ function walk(dir: string): string[] {
   }
   return out;
 }
-const CHO_DUNG_TAC_NHAN = ["src/modules/billing/tra-sau-nhac.ts", "src/modules/catalog/index.ts", "src/modules/ve-dien-tu/index.ts", "src/shared/permissions.ts"];
+const CHO_DUNG_TAC_NHAN = ["src/modules/audit/soat-tien-hang-ngay.ts", "src/modules/billing/tra-sau-nhac.ts", "src/modules/catalog/index.ts", "src/modules/dang-ky/index.ts", "src/modules/ve-dien-tu/index.ts", "src/shared/permissions.ts"];
 
-test("N7: chỉ ba việc định giờ dựng tác nhân — không route, không trang giao diện nào dựng được", () => {
+test("N7: chỉ năm việc định giờ dựng tác nhân — không route, không trang giao diện nào dựng được", () => {
   const co = [...walk(join(ROOT, "src")), ...walk(join(ROOT, "web"))]
     .filter((f) => /\btacNhan\s*\(/.test(maskSource(readFileSync(f, "utf8"), { strings: true, comments: true })))
     .map((f) => relative(ROOT, f).split("\\").join("/"))

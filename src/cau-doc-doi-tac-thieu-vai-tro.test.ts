@@ -12,18 +12,23 @@ import { seedStaff } from "../tests/audit/harness.mjs";
 import { A, ADM, LAI, SUP, inDays, lap, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 
 const TEP = new URL("../scripts/cau-doc-doi-tac-thieu-vai-tro.mjs", import.meta.url);
-const { CAU_DOC_TAI_KHOAN, CAU_DOC_DON, lenhChoChu } = (await import(TEP.href)) as {
+const { CAU_DOC_TAI_KHOAN, CAU_DOC_TAI_KHOAN_ADR_0185, VE_LIEN_KET_TO_CHUC, CAU_DOC_DON, lenhChoChu } = (await import(TEP.href)) as {
   CAU_DOC_TAI_KHOAN: string;
+  CAU_DOC_TAI_KHOAN_ADR_0185: string;
+  VE_LIEN_KET_TO_CHUC: string;
   CAU_DOC_DON: string;
   lenhChoChu: (sql: string) => string;
 };
 const DT_CU = "8b8b8b8b-8b8b-4b8b-8b8b-8b8b8b8b8b8b"; // Đối tác kiểu cũ: vai trò đối tác đã kết thúc, hồ sơ chỉ còn vai STAFF (seedStaff kieuCu)
 
-test("câu tài khoản là NGUYÊN VĂN câu đọc của ADR-0185 Đ3 mục 1; hai câu chỉ đọc; chạy tệp in đúng hai lệnh chép–dán được trong Terminal (ngoặc kép của zsh)", () => {
+// ADR-0213 Đ9: câu của ADR-0185 giữ NGUYÊN VĂN (hằng CAU_DOC_TAI_KHOAN_ADR_0185 so với tệp ADR), câu chủ chạy = câu đó bỏ «;» cuối + vế liên kết tổ chức + «;».
+test("câu tài khoản = NGUYÊN VĂN câu đọc của ADR-0185 Đ3 mục 1 nối vế liên kết tổ chức của ADR-0213 Đ9; hai câu chỉ đọc; chạy tệp in đúng hai lệnh chép–dán được trong Terminal (ngoặc kép của zsh)", () => {
   const adr = readFileSync(new URL("../docs/adr/ADR-0185-chan-don-doi-tac-thieu-vai-tro.md", import.meta.url), "utf8");
   const khoi = /```sql\n\s*(SELECT[^\n]*)\n/.exec(adr)?.[1]?.trim();
   assert.ok(khoi, "ADR phải có khối sql của câu đọc");
-  assert.equal(CAU_DOC_TAI_KHOAN, khoi);
+  assert.equal(CAU_DOC_TAI_KHOAN_ADR_0185, khoi);
+  assert.match(VE_LIEN_KET_TO_CHUC, /^ AND NOT EXISTS \(SELECT 1 FROM v_pty_org_link /);
+  assert.equal(CAU_DOC_TAI_KHOAN, `${khoi.replace(/;$/, "")}${VE_LIEN_KET_TO_CHUC};`);
   const inRa = execFileSync(process.execPath, [fileURLToPath(TEP)], { encoding: "utf8" });
   for (const cau of [CAU_DOC_TAI_KHOAN, CAU_DOC_DON]) {
     assert.match(cau, /^SELECT /);

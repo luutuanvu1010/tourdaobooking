@@ -1,3 +1,6 @@
+// Sửa 2026-11-21 theo đặc tả docs/superpowers/specs/2026-11-20-toi-uu-giao-dien-tao-don-va-xac-nhan.md (chủ duyệt 20/11, mục «Hộp tìm dịch vụ tự thu lại»): chọn xong một dịch vụ
+//   thì hàng nhóm + khung THU LẠI, chỉ còn ô tìm; bấm/gõ ô tìm mở lại; đơn hết dịch vụ thì mở lại (`datThu` ở web/catalog-picker.ts). Bước 4 viết lại theo hành vi đó (bản cũ đòi
+//   «khung đứng yên» nên đỏ và dừng cả kịch bản); các bước sau mở lại ô chọn trước khi chạm / đo khung lúc đơn đã có dịch vụ.
 // Kịch bản Chrome (bằng chứng giao diện) cho ô chọn dịch vụ của form lập đơn — bản thiết kế lại 18/10/2026 (đặc tả
 // docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3A; đề bài PROMPT-CLAUDE-DESIGN.md mục "A. Chọn dịch vụ").
 // LỊCH SỬ: 30/9 (ADR-0058 Đ8, Task A6) là hàng chip một nhóm; 13/10 (đợt 1) đổi thành nút xổ xuống + bảng tick NHIỀU nhóm; 18/10 VIẾT LẠI CÓ CHỦ ĐÍCH
@@ -181,30 +184,46 @@ try {
   assert.equal(await p.ev("[...document.querySelectorAll('#catalog-list .catalog-pick')].some((b) => b.hasAttribute('aria-disabled') || b.hasAttribute('role'))"), false, "dòng chọn được: không aria-disabled, không role");
   ok("Dòng: ☆ + nút chọn anh em ≥ 44px; 'Motor nước:' màu chữ phụ, phần sau màu chính, tên không cắt; mã ở dòng phụ; giá '1.400.000' không ₫, tabular-nums, thẳng mép; chỉ dịch vụ theo nhóm ghi 'theo nhóm 5 khách/lượt'");
 
-  // ---- 4) Chạm dòng Jetski: thêm thẻ, khung đứng yên, '✓ đã thêm' tại chỗ, không thông báo nổi, aria-live đọc ----
+  // ---- 4) Chạm dòng Jetski (đặc tả 2026-11-20 «hộp tìm dịch vụ tự thu lại»): thêm thẻ, hàng nhóm + khung THU LẠI chỉ còn ô tìm (chữ gợi ý «Thêm dịch vụ khác…»),
+  //         thẻ nằm ngay dưới ô tìm; '✓ đã thêm' gắn tại chỗ trên dòng cũ (khung không dựng lại); không thông báo nổi, aria-live đọc. Bấm ô tìm thì mở lại khung. ----
   await p.ev(`${KHUNG}.scrollIntoView({ block: 'center' }); (() => { const l = ${LIST}, r = ${r15}; l.scrollTop += r.getBoundingClientRect().top - l.getBoundingClientRect().top - 120; window.__dong = r; return true; })()`);
   await sleep(200);
   const c0 = await p.ev(doCuon);
   assert.ok(c0.t > 0, `tiền đề: khung đã cuộn xuống (scrollTop ${c0.t})`);
-  await p.ev("window.__dong.querySelector('.catalog-pick').click(); true");
+  // Chạm tay thật (chuột qua CDP, detail = 1) — `.click()` của JS có detail = 0, mã coi là bấm bằng bàn phím và đưa tiêu điểm về ô tìm.
+  const chamDong = async (pg) => {
+    const t = await pg.ev("(() => { const b = window.__dong.querySelector('.catalog-pick').getBoundingClientRect(); return { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) }; })()");
+    for (const type of ["mousePressed", "mouseReleased"]) await pg.send("Input.dispatchMouseEvent", { type, x: t.x, y: t.y, button: "left", clickCount: 1 });
+  };
+  await chamDong(p);
   await p.waitFor(`${CARDS}.length === 1`, "thẻ Jetski được thêm");
   await sleep(400);
-  assert.deepEqual(await p.ev(doCuon), c0, "chạm dòng: khung KHÔNG cuộn nhảy, trang không cuộn");
+  assert.equal(await p.ev("document.querySelector('.catalog').classList.contains('is-thu')"), true, "chọn xong: ô chọn thu lại (is-thu)");
+  assert.deepEqual(await p.ev(`[${hien(KHUNG)}, ${hien(HANG)}, ${hien(Q)}]`), [false, false, true], "thu lại: khung danh sách và hàng nhóm ẩn, chỉ còn ô tìm");
+  assert.equal(await p.ev(`${Q}.placeholder`), "Thêm dịch vụ khác: tìm theo tên hoặc mã", "đơn đã có dịch vụ: chữ gợi ý ô tìm đổi");
+  assert.equal(await p.ev(`${Q}.value`), "", "ô tìm vẫn trống");
+  assert.notEqual(await p.ev("document.activeElement?.id"), "catalog-q", "chạm tay: KHÔNG đưa tiêu điểm vào ô tìm (bàn phím ảo không bật)");
   assert.equal(await p.ev(`${r15} === window.__dong`), true, "dòng là CHÍNH phần tử cũ (khung không dựng lại)");
-  assert.equal(await p.ev("window.__dong.querySelector('.catalog-pick .chip-picked')?.textContent"), "✓ đã thêm", "dòng hiện '✓ đã thêm'");
+  assert.equal(await p.ev("window.__dong.querySelector('.catalog-pick .chip-picked')?.textContent"), "✓ đã thêm", "dòng (đang ẩn) gắn '✓ đã thêm'");
   await p.waitFor(`${BAO} === 'Đã thêm Motor nước: Jetski L2 (30 phút) Hòn Tằm'`, "vùng aria-live đọc 'Đã thêm <tên>'");
   assert.equal(await p.ev("document.querySelector('.catalog .catalog-bao').getAttribute('aria-live')"), "polite");
   assert.equal(await p.ev("document.querySelectorAll('.toast-bao').length"), 0, "không có thông báo nổi");
-  assert.equal(await p.ev(`${Q}.value`), "", "ô tìm không bị đụng");
-  assert.equal(await p.ev(`(() => { const k = ${KHUNG}, c = ${CARDS}[0]; return !!(k.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING) && c.getBoundingClientRect().top >= k.getBoundingClientRect().bottom; })()`), true, "thẻ mới hiện bên dưới khung");
+  const khe = await p.ev(`(() => { const t = ${Q}.getBoundingClientRect(), c = ${CARDS}[0]; return !!(document.querySelector('.catalog').compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING) ? Math.round(c.getBoundingClientRect().top - t.bottom) : null; })()`);
+  assert.ok(khe !== null && khe >= 0 && khe < 120, `thẻ mới nằm ngay dưới ô tìm, không còn khung trống cao cố định giữa hai bên (khe ${khe}px)`);
+  console.log(`    khe ô tìm → thẻ dịch vụ khi thu lại: ${khe}px`);
   await shot(p, "390-the-thao-bien-da-them.png");
-  await p.ev("window.__dong.querySelector('.catalog-pick').click(); true");
+  await p.ev(`${Q}.click(); true`);
+  assert.deepEqual(await p.ev(`[document.querySelector('.catalog').classList.contains('is-thu'), ${hien(KHUNG)}, ${hien(HANG)}, ${DANG_CHON}]`), [false, true, true, "TTB"], "bấm ô tìm: mở lại hàng nhóm + khung, vẫn ở Thể thao biển");
+  // Chạm lại bằng BÀN PHÍM (tiêu điểm ở dòng, `.click()` detail 0): vẫn thêm được, khung thu lại và tiêu điểm về ô tìm (dòng vừa bấm đã ẩn).
+  await p.ev("(() => { const b = window.__dong.querySelector('.catalog-pick'); b.focus(); b.click(); return true; })()");
   await p.waitFor(`${CARDS}.length === 2`, "chạm lại vẫn thêm được (không chặn chọn trùng)");
   assert.equal(await p.ev("window.__dong.querySelectorAll('.chip-picked').length"), 1, "vẫn một nhãn '✓ đã thêm'");
+  assert.deepEqual(await p.ev("[document.querySelector('.catalog').classList.contains('is-thu'), document.activeElement?.id]"), [true, "catalog-q"], "bấm bằng bàn phím: thu lại, tiêu điểm về ô tìm");
   for (let i = 0; i < 2; i++) await p.ev("document.querySelector('#services .svc .svc-remove').click(); true");
   await p.waitFor(`${CARDS}.length === 0`, "xoá hai thẻ");
   assert.equal(await p.ev(`${r15} === window.__dong && window.__dong.querySelector('.chip-picked') === null`), true, "xoá hết thẻ: nhãn '✓ đã thêm' gỡ tại chỗ");
-  ok("Chạm dòng Jetski: thêm thẻ (dưới khung), khung và trang đứng yên, dòng hiện '✓ đã thêm' tại chỗ, không thông báo nổi, aria-live 'Đã thêm …'; chạm lại vẫn thêm; xoá thẻ thì gỡ nhãn tại chỗ");
+  assert.deepEqual(await p.ev(`[document.querySelector('.catalog').classList.contains('is-thu'), ${hien(KHUNG)}, ${Q}.placeholder]`), [false, true, "Tìm theo tên hoặc mã dịch vụ"], "đơn hết dịch vụ: khung mở lại, chữ gợi ý về như cũ");
+  ok("Chạm dòng Jetski: thêm thẻ, hàng nhóm + khung thu lại chỉ còn ô tìm («Thêm dịch vụ khác…»), thẻ ngay dưới ô tìm, '✓ đã thêm' tại chỗ, không thông báo nổi, aria-live 'Đã thêm …'; bấm ô tìm mở lại; chạm lại (bàn phím) vẫn thêm, tiêu điểm về ô tìm; xoá hết thẻ thì khung mở lại, gỡ nhãn tại chỗ");
 
   // ---- 5) Gõ "hòn tằm": về Tất cả, chia mục theo nhóm, nhóm hết kết quả mờ; thu hẹp; gõ thêm không nhảy; ✕ về nhóm trước khi tìm ----
   await p.ev(setInput(Q, "hòn tằm"));
@@ -292,6 +311,9 @@ try {
   for (let i = 0; i < 19; i++) await p.ev(`${row("TTB15")}.querySelector('.catalog-pick').click(); true`);
   await p.waitFor(`${CARDS}.length === 19`, "19 thẻ");
   // Nợ T2(4) (Việc 9): dịch vụ thứ 20 thêm bằng bàn phím (tiêu điểm đang ở dòng) — khung thành inert thì tiêu điểm phải sang câu lý do, không rơi về <body>.
+  // Từ 20/11 khung thu lại sau mỗi lần chọn: bấm ô tìm mở lại trước (dòng đang ẩn thì không nhận tiêu điểm được), như người dùng thật.
+  await p.ev(`${Q}.click(); true`);
+  assert.equal(await p.ev(hien(row("TTB15"))), true, "tiền đề: mở lại khung, dòng TTB15 hiện để nhận tiêu điểm");
   await p.ev(`(() => { const b = ${row("TTB15")}.querySelector('.catalog-pick'); b.focus(); b.click(); return true; })()`);
   await p.waitFor(`${CARDS}.length === 20`, "20 thẻ");
   assert.equal(await p.ev("document.activeElement === document.querySelector('.catalog > p.muted')"), true, `thêm dịch vụ thứ 20 bằng bàn phím: tiêu điểm sang câu lý do (đang ở ${await p.ev("document.activeElement?.tagName + '.' + document.activeElement?.className")})`);

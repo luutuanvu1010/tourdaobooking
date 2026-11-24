@@ -1,6 +1,8 @@
 // Khung thử phá: nạp CẢ ứng dụng (src/index.ts: router + mọi module) bằng esbuild, chạy trên D1 giả = SQLite thật (node:sqlite) với schema dựng
 // từ migrations/*.sql. Không mạng, không Turnstile (thiếu TURNSTILE_SECRET_KEY = tắt), không đụng D1 local/remote.
-import { readdirSync, readFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import * as esbuild from "esbuild";
 import { mfaGraceOnCreate } from "../../src/modules/staff/rules.ts";
@@ -9,10 +11,45 @@ import { isExternalPermission } from "../../src/shared/permissions.ts";
 export const ROOT = process.env.AUDIT_ROOT ?? new URL("../../", import.meta.url).pathname;
 const MIG = `${ROOT}/migrations/`;
 
-export function openDb() {
-  const db = new DatabaseSync(":memory:");
-  db.exec("PRAGMA foreign_keys = ON");
+/** Dựng THẲNG một CSDL mới từ migrations/*.sql (chậm: ~0,4–1 giây cho ~150 tệp). Chỉ dùng để dựng bản mẫu, và cho bài khoá bản mẫu so với nó. */
+export function dungTuMigration(duongDan = ":memory:") {
+  const db = new DatabaseSync(duongDan);
+  db.exec("PRAGMA journal_mode = MEMORY; PRAGMA synchronous = OFF; PRAGMA foreign_keys = ON");
   for (const f of readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort()) db.exec(readFileSync(MIG + f, "utf8"));
+  return db;
+}
+
+// Việc 2.5 (kế hoạch 2026-11-15): áp migration chiếm gần hết thời gian của mỗi `world()` (~0,8 giây). Dựng bản mẫu MỘT lần mỗi tiến trình (lần gọi
+// openDb đầu tiên), mỗi lần sau sao chép tệp mẫu (~10 ms). Thư mục tạm dọn khi tiến trình thoát. Mỗi CSDL vẫn là một tệp riêng ⇒ độc lập như `:memory:` cũ
+// (bài khoá: src/khung-thu-ban-mau.test.ts).
+let thuMucTam = null;
+let tepMau = null;
+let soBan = 0;
+function banMau() {
+  if (tepMau) return tepMau;
+  thuMucTam = mkdtempSync(join(tmpdir(), "tourdao-khung-thu-"));
+  process.on("exit", () => {
+    try {
+      rmSync(thuMucTam, { recursive: true, force: true });
+    } catch {
+      /* thoát rồi: không làm gì thêm được */
+    }
+  });
+  const p = join(thuMucTam, "mau.sqlite");
+  dungTuMigration(p).close();
+  tepMau = p;
+  return tepMau;
+}
+
+export function openDb() {
+  const mau = banMau();
+  const dich = join(thuMucTam, `db-${++soBan}.sqlite`);
+  copyFileSync(mau, dich);
+  const db = new DatabaseSync(dich);
+  db.exec("PRAGMA journal_mode = MEMORY; PRAGMA synchronous = OFF; PRAGMA foreign_keys = ON");
+  // Bỏ tên tệp ngay sau khi mở: kết nối giữ tệp tới khi đóng / tiến trình thoát, thư mục tạm không phình theo số world (mỗi bản ~3 MB). Nhật ký ghi
+  // trong bộ nhớ (journal_mode = MEMORY) nên SQLite không cần tạo tệp cạnh tên đã xoá.
+  rmSync(dich, { force: true });
   return db;
 }
 
@@ -43,7 +80,7 @@ export const app = (await bundle(
   'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
     ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff"; export { docTapNhieuMay } from "./modules/auth";' +
     ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { cauDatCocKhiXacNhan, tienDonVe, nhacHanTraSau } from "./modules/billing"; export { dongChuyenTheoId } from "./modules/thongbao";' +
-    ' export { syncCatalog } from "./modules/catalog/service"; export { auditStatement } from "./modules/audit"; export { giaDaiLyNhieuDon, phanThuongMaiCuaDon } from "./modules/orders";', // ADR-0186: bài src/tac-nhan-tu-dong.test.ts gọi thẳng hàm lệnh đồng bộ và hàm dựng câu nhật ký; ADR-0182: src/cong-no-dai-ly.test.ts so giá đại lý đọc nhiều đơn với từng đơn
+    ' export { syncCatalog } from "./modules/catalog/service"; export { auditStatement } from "./modules/audit"; export { giaDaiLyNhieuDon, phanThuongMaiCuaDon } from "./modules/orders"; export { donPhieuDangKy } from "./modules/dang-ky"; export { lamMoiBanDungThu, lamMoiNeuDenMoc } from "./ban-dung-thu";', // ADR-0186: bài src/tac-nhan-tu-dong.test.ts gọi thẳng hàm lệnh đồng bộ và hàm dựng câu nhật ký; ADR-0182: src/cong-no-dai-ly.test.ts so giá đại lý đọc nhiều đơn với từng đơn; ADR-0208 Đ8: src/modules/dang-ky/don-phieu.test.ts gọi thẳng hàm lệnh của tác nhân dọn phiếu
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -209,6 +246,12 @@ export function khoR2Gia() {
       if (!x) return null;
       return { key, size: x.b.length, httpMetadata: { contentType: x.contentType }, body: new Response(x.b).body };
     },
+    // Bản dùng thử (ADR-0223 Đ2.2): lệnh làm sạch liệt kê rồi xoá mọi tệp trong kho.
+    async list(opts) {
+      const keys = [...kho.keys()].sort();
+      const lim = opts?.limit ?? 1000;
+      return { objects: keys.slice(0, lim).map((key) => ({ key, size: kho.get(key).b.length })), truncated: keys.length > lim };
+    },
     async head(key) {
       if (r2.hong.get) throw new Error("r2_head_gia_hong");
       const x = kho.get(key);
@@ -364,7 +407,8 @@ export function world(tuyChon = {}) {
   const r2VeDienTu = khoR2Gia(); // kho vé điện tử (ADR-0153) — kho RIÊNG, không chung đối tượng với hai kho kia
   const r2BienLai = khoR2Gia(); // kho ảnh biên lai chuyển khoản (ADR-0196) — kho RIÊNG
   const r2AnhDichVu = khoR2Gia(); // kho ảnh đại diện dịch vụ (ADR-0201 Đ3) — kho RIÊNG
-  const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, HO_TRO: r2HoTro, VE_DIEN_TU: r2VeDienTu, BIEN_LAI: r2BienLai, ANH_DICH_VU: r2AnhDichVu, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
+  const r2AnhBanGiao = khoR2Gia(); // kho Ảnh bàn giao (ADR-0232 Đ3) — kho RIÊNG
+  const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, HO_TRO: r2HoTro, VE_DIEN_TU: r2VeDienTu, BIEN_LAI: r2BienLai, ANH_DICH_VU: r2AnhDichVu, ANH_BAN_GIAO: r2AnhBanGiao, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
   // waitUntil THU promise (promise vốn đã chạy — bài cũ không đổi hành vi); `choNen()` chờ hết việc chạy nền (ADR-0094 L5: bước 6 cập nhật kết quả vé).
@@ -432,5 +476,5 @@ export function world(tuyChon = {}) {
   }
   const xacNhanDonCu = (id, nguoiLap, vanPhong) => quaVanPhong(id, nguoiLap, vanPhong, () => call("POST", `/api/orders/${id}/status`, { as: vanPhong, body: { status: "confirmed" } }));
   const guiKiemVeCu = (id, nguoiLap, vanPhong) => quaVanPhong(id, nguoiLap, vanPhong, () => call("POST", `/api/orders/${id}/gui-xac-nhan`, { as: vanPhong, body: {} }));
-  return { sqlite, env, r2, r2HoTro, r2VeDienTu, r2BienLai, r2AnhDichVu, call, xacNhanDon, xacNhanDonCu, guiKiemVeCu, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  return { sqlite, env, r2, r2HoTro, r2VeDienTu, r2BienLai, r2AnhDichVu, r2AnhBanGiao, call, xacNhanDon, xacNhanDonCu, guiKiemVeCu, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

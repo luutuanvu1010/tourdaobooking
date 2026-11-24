@@ -153,12 +153,45 @@ test("tenLoaiVai (sổ đại lý đợt 1): mã vai → tên tiếng Việt đ�
   assert.equal(ten.get("SUPPLIER"), "Nhà cung cấp");
 });
 
-test("TC-3 parties/index.ts xuất đúng mười ba hàm mới (sdtChinhCuaHoSo — ADR-0139, SĐT người đi kèm cho tài xế công ty; hanGiuPhienNgay — ADR-0126 đ8, gốc lắp ráp tiêm cho sổ phiên;taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2; tenLoaiVai — sổ đại lý đợt 1; hoSoMangNhanDoiTac — ADR-0117 điều 4; loaiVaiChiTiet, kiemTenLoaiDoiTac, maLoaiDoiTac, themLoaiDoiTacStatement, datHoatDongLoaiDoiTacStatement — ADR-0117 điều 1, cho route loại đối tác ở pricing; suaLoaiDoiTacStatement — mã định danh 5.26, sửa loại đối tác) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
+test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCuaHoSo — ADR-0139, SĐT người đi kèm cho tài xế công ty; hanGiuPhienNgay — ADR-0126 đ8, gốc lắp ráp tiêm cho sổ phiên;taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2; tenLoaiVai — sổ đại lý đợt 1; hoSoMangNhanDoiTac — ADR-0117 điều 4; loaiVaiChiTiet, kiemTenLoaiDoiTac, maLoaiDoiTac, themLoaiDoiTacStatement, datHoatDongLoaiDoiTacStatement — ADR-0117 điều 1, cho route loại đối tác ở pricing; suaLoaiDoiTacStatement — mã định danh 5.26, sửa loại đối tác) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
   const TRUOC_ADR_0049 = [
     "accountRolesOf", "closeAccountRoleStatement", "composePersonName", "expiringDriverDocuments", "findPartiesByPhone", "newOrganizationStatements", "newPersonStatements",
     "nhaXeDangHopTac", "openAccountRoleStatement", "openRoleCodesByParty", "ownerCompany", "partiesModule", "partySummary", "renamePersonStatements",
     "reopenAccountRoleStatement", "splitPersonName", "validatePersonFullName",
   ];
   assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop", "taiKhoanNhanTienHienHanh", "tenLoaiVai", "hoSoMangNhanDoiTac",
-    "loaiVaiChiTiet", "kiemTenLoaiDoiTac", "maLoaiDoiTac", "themLoaiDoiTacStatement", "datHoatDongLoaiDoiTacStatement", "hanGiuPhienNgay", "sdtChinhCuaHoSo", "suaLoaiDoiTacStatement"].sort());
+    "loaiVaiChiTiet", "kiemTenLoaiDoiTac", "maLoaiDoiTac", "themLoaiDoiTacStatement", "datHoatDongLoaiDoiTacStatement", "hanGiuPhienNgay", "soNamGiuAnh" /* ADR-0232 Đ10: số năm giữ Ảnh bàn giao, gốc lắp ráp tiêm */, "sdtChinhCuaHoSo", "suaLoaiDoiTacStatement",
+    // ADR-0208 (tệp chờ của phiếu đăng ký, đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không chạm bảng pty_registration_attachment, không chạm kho HO_SO
+    "LY_DO_GO_TEP_CHO", "cauChuyenTepCho", "cauGoTepCho", "cauTepChoMoi", "datKhoTepCho", "demTepChoCuaPhieu", "timTepChoTrung", "trangThaiTepChoTheoO", "xoaKhoTepChoDaGo",
+    // ADR-0207 (bước xác minh phiếu đăng ký, đợt 1 Task 6): tìm theo số giấy tờ, mục bắt buộc, xem / mở tệp chờ (nhật ký ở dang-ky), gỡ tệp có điều kiện, mặt nạ số
+    "hoSoTheoSoGiayTo", "mucXacMinhBatBuocCaNhan", "tepChoDeXemCuaPhieu", "timTepChoDeXem", "moTepChoTuKho", "khoTepChoSanSang", "cauGoTepChoNeuTruocDoi", "cheSo",
+    // ADR-0206 Đ6 (xin mã, đợt 1 Task 3): dang-ky đọc chính sách riêng tư hiệu lực qua một hàm hẹp (chỉ phiên bản, ngày hiệu lực, toàn văn) — không đọc bảng pty_privacy_policy
+    "chinhSachRiengTuCongKhai",
+    // ADR-0206 Đ6 (route của phiếu, đợt 1 Task 4): luật kiểm HÌNH THỨC của tự khai dùng lại cho bản khai của phiếu đăng ký (hàm thuần) + danh mục giấy tờ cho lần kiểm
+    "danhMucGiayToChoDangKy", "kiemThemGiayTo", "kiemNgaySinh", "validateContact",
+    // ADR-0208 Đ8 (tác nhân dọn phiếu đăng ký, đợt 1 Task 9): quét toàn bảng tệp chờ «chờ xoá» / «tải dở dang» rồi xoá kho — dang-ky không chạm bảng tệp hay kho
+    "donKhoTepCho",
+    // ADR-0207 Đ5 (lô duyệt phiếu đăng ký, đợt 1 Task 8): câu CHƯA CHẠY cho gốc lắp ráp ghép (hồ sơ + vai, giá trị, dòng xác minh, đồng ý, quan hệ giới thiệu) + một kiểm trước lô (CCCD một người)
+    "cauMoHoSoDangKy", "cauGhiGiaTriDaXacMinh", "cauXacMinhTuPhieu", "cauDongYTuPhieu", "cauQuanHeGioiThieu", "canCuocThuocHoSoKhac",
+    // ADR-0210 Đ3 (dấu xác minh, đợt 1 Task 10): `staff` bọc hàm này cho màn Quản lý tài khoản; ba màn của Đ3 là chỗ DUY NHẤT đọc (bài src/dau-xac-minh-chi-de-biet.test.ts canh)
+    "dauXacMinhTheoHoSo",
+    // ADR-0212 Đ1 (vai đăng ký là dữ liệu, đợt 2 Task 1): dang-ky đọc danh sách vai đăng ký được từ pty_role_type qua một hàm hẹp, không chạm bảng
+    "vaiDangKyDuoc",
+    // ADR-0212 Đ4 (phần tổ chức của phiếu, đợt 2 Task 5): danh mục loại giấy tờ tổ chức cho lần kiểm hình thức (`kiemPhanToChuc`) — dang-ky không đọc bảng pty_organization_document_type
+    "danhMucGiayToToChucChoDangKy",
+    // ADR-0212 Đ5 (xác minh phần tổ chức, đợt 2 Task 6): mục bắt buộc của tổ chức, đối chiếu Danh bạ tổ chức (không trả số), kiểm hồ sơ đích và trùng GPKD / mã số thuế trước lệnh ghi
+    "mucXacMinhBatBuocToChuc", "hoSoToChucKhop", "toChucDichHopLe", "trungToChucKhac",
+    // ADR-0212 Đ6 (lô duyệt sinh hồ sơ tổ chức, đợt 2 Task 7): câu CHƯA CHẠY cho gốc lắp ráp ghép — hồ sơ + vai tổ chức, «Người liên hệ của», giá trị + giấy tờ, dòng xác minh, chuyển ảnh tổ chức
+    "cauMoHoSoToChucDangKy", "cauLienKetNguoiToChuc", "cauQuanLyToChucDangKy", "cauGhiGiaTriToChuc", "cauXacMinhToChucTuPhieu", "cauChuyenTepChoToChuc",
+    // ADR-0212 Đ4, Đ7 (giao diện phần tổ chức, đợt 2 Task 8): loại giấy phép thêm chọn được (mã, tên, cờ hạn), tên loại giấy tờ tổ chức cho màn xác minh, và câu gỡ tệp chờ của người đăng ký (có điều kiện trạng thái)
+    "loaiGiayPhepThemChoDangKy", "tenLoaiGiayToToChuc", "cauGoTepChoCuaONeuTruocDoi",
+    // ADR-0213 Đ2.8 (mốc B1 Task 10): người quản lý đang mở + hồ sơ chưa gộp + tổ chức còn vai — gốc lắp ráp ghép với phần tài khoản của staff thành «người quản lý có hiệu lực»
+    "tcQuanLyMo",
+    // ADR-0213 Đ3.1 (mốc B1 Task 11): tổ chức một người đang gắn — gốc lắp ráp lọc bằng người quản lý có hiệu lực thành danh sách «Tư cách»
+    "tcToChucCuaNguoi",
+    // ADR-0213 Đ7 (mốc B2 Task 15): lời mời vào tổ chức — dang-ky (đường phiếu, lô duyệt, lô kết thúc, tác nhân dọn) và gốc lắp ráp chỉ gọi các tên này, không đọc bảng pty_org_invite
+    "DAU_AN_DANH_LOI_MOI", "LOI_GAC_LOI_MOI", "cauAnDanhLoiMoi", "cauBoGiuChoLoiMoi", "chinhSachLoiMoi", "cauDungLoiMoiPhieu", "cauGiuChoLoiMoi", "cauHetHanLoiMoi", "loiMoiTheoId",
+    "cauThanhVienTuLoiMoi", "loiMoiTheoMa",
+    // ADR-0213 Đ8.2 (mốc B2 Task 16): chế độ thành viên hiện hành — gốc lắp ráp tiêm `ctx.cheDoThanhVien` cho orders (orders không đọc bảng của parties)
+    "tcCheDo"].sort());
 });

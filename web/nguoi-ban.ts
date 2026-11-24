@@ -5,7 +5,7 @@
 // Đối tác (403 ⇒ «Bạn không có quyền xem trang này.»). Điều khoản không sửa, không xoá — chỉ thêm và đóng. Luật nghiệp vụ nằm ở máy chủ (nhóm Thuê xe không ghi nhà cung cấp mua lại,
 // dòng «Mọi dịch vụ» chỉ của Tour Đảo, không trùng khoảng ngày): trang hiện đúng câu tiếng Việt máy chủ trả, không chép lại luật. Chữ ở src/shared/hoa-hong-hien-thi.ts, đọc ô ở
 // src/shared/so-dai-ly-nhap.ts (có bài kiểm); khối chung ở web/so-dai-ly-ui.ts.
-import { CAU_DONG_DONG_MAC_DINH, CAU_KHONG_CO_DIEU_KHOAN, CAU_KHONG_KHOP_LOC, NHAN_CONG_TY, NHAN_TRANG_THAI, canXacNhanDongDieuKhoan, dongDongDuoc, locDieuKhoan, nhanNguoiBan, nhanPhamVi, nhanTyLeMua, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
+import { CAU_DONG_DONG_MAC_DINH, CAU_MOI_DICH_VU_LUON_GIU, CAU_KHONG_CO_DIEU_KHOAN, CAU_KHONG_KHOP_LOC, NHAN_CONG_TY, NHAN_TRANG_THAI, canXacNhanDongDieuKhoan, laDongMoiDichVuLuonGiu, ngungDieuKhoanDuoc, locDieuKhoan, nhanNguoiBan, nhanPhamVi, nhanTyLeMua, trangThaiDong } from "../src/shared/hoa-hong-hien-thi";
 import { can } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { docThanDieuKhoan } from "../src/shared/so-dai-ly-nhap";
@@ -22,6 +22,7 @@ const noiDungEl = byId("nb-noi-dung");
 const bangEl = byId("dk-list");
 const theEl = byId("dk-list-cards");
 const rongEl = byId("dk-rong");
+const luonGiuEl = byId("dk-luon-giu");
 const dongKhuEl = byId("dk-dong-khu");
 const locTrangThaiEl = byId<HTMLSelectElement>("dk-loc-trang-thai");
 
@@ -73,7 +74,8 @@ async function main(): Promise<void> {
   const huyHieu = (tt: ReturnType<typeof trangThaiDong>): HTMLElement =>
     h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
   const nutDong = (d: Api.SupplyTermDto, k: ReturnType<typeof khungDong>): HTMLElement | false => {
-    if (!duocGhi || !dongDongDuoc(d)) return false;
+    // Việc 15: dòng «Mọi dịch vụ» của công ty chủ hiện tại không ngừng được (máy chủ 409) — không nút; câu giải thích hiện MỘT lần dưới danh sách (`luonGiuEl`).
+    if (!duocGhi || !ngungDieuKhoanDuoc(d)) return false;
     const nut = h("button", { type: "button", class: "btn", "data-dong": d.id, "aria-label": `Ngừng điều khoản: ${k.phamVi} · ${k.nguoiBan}` }, "Ngừng điều khoản");
     nut.addEventListener("click", () => moDong(d, k));
     return nut;
@@ -106,13 +108,15 @@ async function main(): Promise<void> {
           "div",
           { class: k.tt === "DA_DONG" ? "card card-col row-off" : "card card-col", "data-id": d.id },
           h("div", null, h("strong", null, k.phamVi), " ", huyHieu(k.tt)),
-          h("div", null, "Người bán: ", h("strong", null, k.nguoiBan)),
+          h("div", null, "Nhà cung cấp: ", h("strong", null, k.nguoiBan)),
           h("div", { class: "muted" }, "Tỷ lệ mua lại: ", k.tyLe),
           h("div", { class: "muted" }, "Từ ", k.tu, " · đến ", k.den),
           nutDong(d, k),
         );
       }),
     );
+    luonGiuEl.textContent = CAU_MOI_DICH_VU_LUON_GIU;
+    luonGiuEl.hidden = !(duocGhi && dong.some(laDongMoiDichVuLuonGiu));
     rongEl.hidden = dong.length > 0;
     rongEl.textContent = ds.dong.length === 0 ? CAU_KHONG_CO_DIEU_KHOAN : CAU_KHONG_KHOP_LOC;
   }
@@ -177,7 +181,7 @@ async function main(): Promise<void> {
   replaceChildren(
     form,
     phamVi.root,
-    h("div", { class: "grid two" }, h("div", null, h("label", null, "Người bán", nguoiBan), loi.dong("nguoiBan"), congTyId === null && h("span", { class: "hint" }, "Chưa có hồ sơ công ty chủ.")), khuTyLe),
+    h("div", { class: "grid two" }, h("div", null, h("label", null, "Nhà cung cấp", nguoiBan), loi.dong("nguoiBan"), congTyId === null && h("span", { class: "hint" }, "Chưa có hồ sơ công ty chủ.")), khuTyLe),
     h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ ngày", tuNgay), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến ngày (không bắt buộc)", denNgay), loi.dong("denNgay"))),
     h("div", null, h("label", null, "Ghi chú (không bắt buộc)", ghiChu), loi.dong("ghiChu")),
     h("div", { class: "actions" }, them),

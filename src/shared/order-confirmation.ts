@@ -22,6 +22,7 @@ import type { CompanyDto, ReceiptDto, ReceiptServiceDto } from "./contracts.ts";
 import { PAX_LABEL, PAX_ORDER, parseUnit, paxTotal, type PaxCounts } from "./order-lines.ts";
 import { formatDmy } from "./trip-form.ts";
 import { vnToday } from "./vn-date.ts";
+import { CHU_MIEN_PHI, TEN_PHI_DUA_DON, chuThanhTienPhi, tenKhoiPhiDon } from "./phi-don-hien-thi.ts";
 
 export interface LabelValue { label: string; value: string }
 
@@ -153,6 +154,18 @@ function guestText(pax: PaxCounts, unit: string): string | null {
   return PAX_ORDER.filter((c) => pax[c] > 0).map((c) => `${pax[c]} ${PAX_LABEL[c].toLowerCase()}`).join(", ");
 }
 
+/**
+ * Đặc tả 2026-11-20 (không trùng lặp trường): dòng số khách chỉ in khi BẢNG bên dưới chưa nói đủ. Dịch vụ tính theo người mà mỗi loại khách có đúng một dòng tiền với
+ * đúng số lượng thì bảng đã là số khách — bỏ dòng. Theo nhóm, nhập tay, hoặc dòng tiền lệch số khách (đơn cũ, đã điều chỉnh) thì GIỮ dòng để không mất thông tin.
+ */
+function soKhachNeuBangChuaNoi(s: ReceiptServiceDto): string | null {
+  const chu = guestText(s.pax, s.unit);
+  if (chu === null || s.unit === "manual" || parseUnit(s.unit).kind !== "perPax") return chu;
+  const coKhach = PAX_ORDER.filter((c) => s.pax[c] > 0);
+  const bangDu = s.items.length === coKhach.length && coKhach.every((c) => s.items.some((it) => (clean(it.description) === PAX_LABEL[c] || clean(it.description).endsWith(` — ${PAX_LABEL[c]}`)) && it.quantity === s.pax[c]));
+  return bangDu ? null : chu;
+}
+
 /** Ngày + giờ khởi hành: "25/09/2026 · 07:30"; thiếu mảnh nào bỏ mảnh đó. */
 function departureText(s: ReceiptServiceDto): string {
   return joinDot([s.departDate === null ? null : formatDmy(s.departDate), s.departTime]);
@@ -225,7 +238,7 @@ function serviceDoiTac(s: ReceiptServiceDto, index: number, nhieuDiemDon: boolea
     index,
     name: clean(s.name),
     details: rowsOf([
-      ["Số lượng", guestText(s.pax, s.unit)], ["Khởi hành", departureText(s)], ["Giờ đón", s.pickupTime],
+      ["Số lượng", soKhachNeuBangChuaNoi(s)], ["Khởi hành", departureText(s)], ["Giờ đón", s.pickupTime],
       ["Địa chỉ đón", nhieuDiemDon ? s.pickupPlace : null], ["Khách có mặt", checkinText(s)],
     ]),
     columns: { description: parseUnit(s.unit).kind === "perPax" ? "Loại khách" : "Mô tả", quantity: "SL", unitPrice: s.giaKhacCongBo ? "Đơn giá" : "Giá công bố", lineTotal: "Thành tiền" },
@@ -256,24 +269,65 @@ function serviceBlock(s: ReceiptServiceDto, index: number): ServiceBlock {
     index,
     name: clean(s.name),
     // `ReceiptServiceDto` KHÔNG có ghi chú vận hành, mã/giá danh mục, id (danh sách trắng của máy chủ — ADR-0026 đ11).
-    details: rowsOf([["Số khách", guestText(s.pax, s.unit)], ["Khởi hành", departureText(s)], ["Xe đón khách", joinDot([s.pickupTime, s.pickupPlace])], ["Khách có mặt", checkinText(s)]]),
+    details: rowsOf([["Số khách", soKhachNeuBangChuaNoi(s)], ["Khởi hành", departureText(s)], ["Xe đón khách", joinDot([s.pickupTime, s.pickupPlace])], ["Khách có mặt", checkinText(s)]]),
     columns: { ...COLUMNS },
     lines: s.items.map((it) => ({
       description: clean(it.description),
       detail: clean(it.detail) === "" ? null : clean(it.detail),
-      quantity: String(it.quantity),
-      unitPrice: money(it.unitPrice),
+      quantity: String(it.tronGoi ? it.tronGoi.soKhach : it.quantity),
+      unitPrice: it.tronGoi ? "" : money(it.unitPrice), // ADR-0218 Đ3.3: dòng trọn gói (phí đưa đón đã gộp) không in đơn giá
       lineTotal: money(it.lineTotal),
     })),
     subtotal: s.items.length >= 2 ? { label: SUBTOTAL_LABEL, value: money(s.items.reduce((sum, it) => sum + it.lineTotal, 0)) } : null,
   };
 }
 
+/**
+ * ADR-0218 Đ3.3: khối cho dịch vụ do NHÀ CUNG CẤP KHÁC bán khi biên nhận khách lẻ gộp phí vào giá — phí đưa đón là tiền của Tour Đảo nên không cộng vào phần của nhà cung cấp mà in thành một
+ * dòng «<Tên dịch vụ> — đưa đón» (không chữ «Phí đưa đón»). Dùng lại dạng khối dịch vụ. Không có dòng ⇒ không khối.
+ */
+export const TEN_KHOI_DUA_DON_TOUR_DAO = "Đưa đón (phần Tour Đảo)";
+function duaDonTourDaoBlock(order: ReceiptDto, index: number): ServiceBlock[] {
+  const dong = order.dongDuaDonTourDao ?? [];
+  if (dong.length === 0) return [];
+  return [{
+    kind: "service", index, name: TEN_KHOI_DUA_DON_TOUR_DAO, details: [], columns: { ...COLUMNS },
+    lines: dong.map((d) => ({ description: clean(d.description), detail: null, quantity: "", unitPrice: "", lineTotal: money(d.lineTotal) })),
+    subtotal: null,
+  }];
+}
+
+/** Chữ in ở cột thành tiền của dòng phí đưa đón có đơn giá 0 đồng (chủ 15/11, câu 3; sổ vàng SV-PD-01 `nhan_bien_nhan`) — cùng hằng với trang đơn. */
+export const MIEN_PHI = CHU_MIEN_PHI;
+/** Tên khối phí đưa đón trên biên nhận (tên màn hình «Phí đưa đón»). */
+export const TEN_KHOI_PHI_DON = TEN_PHI_DUA_DON;
+/**
+ * Đợt C, Task 5 (ADR-0147 Đ3, ADR-0203 ĐB3): khối «Phí đưa đón» sau các dịch vụ — mỗi dòng phí một dòng (mô tả «Phí đưa đón — chiều đi/về, <khu vực>», số khách, đơn giá, thành tiền).
+ * Task 6: thành tiền theo `chuThanhTienPhi` (CÙNG luật với trang đơn): «Miễn phí» CHỈ khi đơn giá 0 đồng; dòng số lượng 0 (đơn giá > 0) in 0 ₫. Đơn nháp (`phiDuKien`) ghi tên khối
+ * «Phí đưa đón (dự kiến)». Dùng lại dạng khối dịch vụ (bộ vẽ ảnh / hộp xem không đổi). Không dòng phí ⇒ không khối. Số do máy chủ đặt vào `ReceiptDto.phiDuaDon`.
+ */
+function phiBlock(order: ReceiptDto, index: number): ServiceBlock[] {
+  const dong = order.phiDuaDon ?? [];
+  if (dong.length === 0) return [];
+  return [{
+    kind: "service",
+    index,
+    name: tenKhoiPhiDon(order.phiDuKien === true),
+    details: [],
+    columns: { ...COLUMNS },
+    lines: dong.map((d) => ({ description: clean(d.description), detail: null, quantity: String(d.quantity), unitPrice: money(d.unitPrice), lineTotal: chuThanhTienPhi(d, money) })),
+    subtotal: null,
+  }];
+}
+
 function summaryBlock(order: ReceiptDto): SummaryBlock {
+  // Đặc tả 2026-11-20 (không trùng lặp trường; cùng luật mẫu HD-02-DT): không giảm giá thì «Tạm tính» = «Tổng cộng» ⇒ chỉ in «Tổng cộng»; dòng bằng 0 thì bỏ;
+  // mỗi mẫu chỉ MỘT số nổi bật — số khách còn phải trả («Còn lại»), hoặc «Tổng cộng» khi không có dòng nào sau nó.
+  const coGiam = order.discount !== 0;
+  const coSau = order.daTra !== 0 || Boolean(order.giamTru) || order.conLai !== order.total; // số khách còn phải trả khác tổng thì LUÔN in «Còn lại» (số của billing, không suy ra từ tổng)
   const dau = [
-    { label: "Tạm tính", value: money(order.subtotal), emphasis: false },
-    { label: "Giảm giá", value: money(order.discount > 0 ? -order.discount : order.discount), emphasis: false },
-    { label: "Tổng cộng", value: money(order.total), emphasis: true },
+    ...(coGiam ? [{ label: "Tạm tính", value: money(order.subtotal), emphasis: false }, { label: "Giảm giá", value: money(order.discount > 0 ? -order.discount : order.discount), emphasis: false }] : []),
+    { label: "Tổng cộng", value: money(order.total), emphasis: !coSau && !order.huy },
   ];
   const h = order.huy;
   if (order.status.khoa === "cancelled" && h) {
@@ -296,7 +350,7 @@ function summaryBlock(order: ReceiptDto): SummaryBlock {
   const daGiao = order.status.khoa === "delivered" || order.status.khoa === "completed";
   return {
     kind: "summary",
-    rows: [...dau, ...(order.giamTru ? [{ label: "Giảm sau khi giao", value: money(-order.giamTru), emphasis: false }] : []), { label: daGiao ? "Đã thu" : "Khách hàng đã trả trước", value: money(order.daTra), emphasis: false }, { label: "Còn lại", value: money(order.conLai), emphasis: true }, ...dongPhan(order)],
+    rows: [...dau, ...(order.giamTru ? [{ label: "Giảm sau khi giao", value: money(-order.giamTru), emphasis: false }] : []), ...(coSau ? [{ label: daGiao ? "Đã thu" : "Khách hàng đã trả trước", value: money(order.daTra), emphasis: false }, { label: "Còn lại", value: money(order.conLai), emphasis: true }] : []), ...dongPhan(order)],
   };
 }
 
@@ -366,7 +420,7 @@ export function buildConfirmation(receipt: ReceiptDto, handlerName: HandlerInput
     orderCode: clean(order.orderCode),
     fileName: fileNameOf(order.orderCode),
     blocks: thanNoiBo
-      ? [dau, titleBlock(order, handlerName), customerBlock(order), ...order.services.map((s, i) => serviceBlock(s, i + 1)), summaryBlock(order), footerBlock(company, order)]
-      : [dau, titleBlock(order, handlerName), customerDoiTac(order), ...order.services.map((s, i) => serviceDoiTac(s, i + 1, nhieuDiemDon)), summaryDoiTac(order), footerBlock(company, order)],
+      ? [dau, titleBlock(order, handlerName), customerBlock(order), ...order.services.map((s, i) => serviceBlock(s, i + 1)), ...duaDonTourDaoBlock(order, order.services.length + 1), ...phiBlock(order, order.services.length + 1 + (order.dongDuaDonTourDao?.length ? 1 : 0)), summaryBlock(order), footerBlock(company, order)]
+      : [dau, titleBlock(order, handlerName), customerDoiTac(order), ...order.services.map((s, i) => serviceDoiTac(s, i + 1, nhieuDiemDon)), ...phiBlock(order, order.services.length + 1), summaryDoiTac(order), footerBlock(company, order)],
   };
 }

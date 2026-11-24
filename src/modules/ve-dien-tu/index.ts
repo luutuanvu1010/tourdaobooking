@@ -8,22 +8,26 @@ import { coVeTheoMa, getEffectiveServices, nguonVeTheoMa } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
 import { MATRIX, can, holdsPartner, isOffice, passesAdminGate, tacNhan } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import { NGUON_VE, nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
+import { NGUON_VE, type NguonVe } from "../../shared/nguon-ve.ts";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { ngayNgan, vnToday } from "../../shared/vn-date";
 import { moVeDuoc } from "../../shared/tra-sau";
 import { cauKhoaVe } from "../../shared/ve-cau-khoa.ts";
 import { veMoDuocTheoVe } from "../../shared/mo-ve-theo-ve.ts";
 import { CAU_HOP_LE, CAU_QUET, canXacNhanQuet, ketQuaQuet, type VeQuet } from "../../shared/ket-qua-quet.ts";
-import { canVe, choDoiTacNop, thuDu } from "./rules.ts";
+import { canVe, choDoiTacNop, thuDu, NHAN_TINH_TRANG_VE, quyetHuyVe, tinhTrangVe } from "./rules.ts";
+import { chuanHoaSoSeri } from "../../shared/so-seri-ve.ts";
+import { docThamSoLo, khopDieuKien } from "../../shared/loc-dich-vu-kho.ts";
+import { sinhMa } from "../../shared/ma-dinh-danh.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
-import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_DON_XET_CAP_BU, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
+import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_DON_XET_CAP_BU, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, TRAN_LO_LON_NHAT, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsKhoaLoTatCa, dsLoBoDuoc, dsLoTatCa, dsLoTheoId, type LoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
+import { DAU_LOI_HUY_VE, cauBoLoDaCap, cauChanHuyVe, cauChenSoSeri, cauHuyVe, cauRutVeHangNgoaiSauHuy, cauRutVeHangNgoaiSauHuyLo, tongVeTrongLo, cauHuyVeCuaLo, cauThuHoiPhanBoCuaLo, cauThuHoiPhanBoCuaVe, dieuKienLenhHuyLoThang, docVeDeHuy, docVeQuetTheoSeri, donBiTraSuatCuaLo, loTungCap, soSeriConDungDuoc, veTheoSoSeri, veTrongLo, xemTruocHuyLo, type VeTrongLoRow } from "./repository.ts";
 import { daDungTheoDichVuLo, luotDaTinhTheoNgay, nguoiQuetTheoNgay, soVeTourDao, veDaMoCuaDon as docVeDaMoCuaDon, veHangNgoaiDaMoCuaDon as docVeHangNgoaiDaMoCuaDon, soVeDaDungTheoDichVu as docSoVeDaDung, cauChanVeDaDung, cauChanDuoiSoDaDung } from "./repository.ts";
 export { cauChanVeDaDung, cauChanDuoiSoDaDung };
 /** ADR-0170 Đ3: «đơn có vé đã mở không» (MỌI loại vé) cho gốc lắp ráp tiêm. Không đọc được ⇒ `null` (bên gọi CHẶN, không đoán «chưa mở»). */
@@ -87,8 +91,37 @@ const coQuyenLo = (staff: NguoiHoi, nguon: NguonVe, chiXem = false): boolean =>
   nguon === "HANG_NGOAI" ? can(staff, "ve.kho.manage") : can(staff, "ve.phat-hanh") || (chiXem && can(staff, "ve.kho.manage"));
 /** Các nguồn người gọi được thấy ở một danh sách; rỗng ⇒ route trả 403. */
 const nguonDuocXem = (staff: NguoiHoi, chiXem: boolean): NguonVe[] => NGUON_VE.filter((n) => coQuyenLo(staff, n, chiXem));
+/** ADR-0217 Đ3 (chủ chốt 18/11): huỷ KHÔNG QUAY LẠI ĐƯỢC với vé / lô hãng ngoài đã từng cấp cho đơn cần thêm ô `ve.huy-hang-ngoai` (Quản lý bán hàng, Quản trị — gồm Điều hành chung — và Toàn quyền). Vé và lô Tour Đảo giữ `ve.phat-hanh`. */
+const KHONG_QUYEN_HUY_HANG_NGOAI = () => error(403, "forbidden", "Chỉ Quản lý bán hàng, Quản trị hoặc Toàn quyền được huỷ vé hoặc lô vé hãng ngoài đã cấp cho đơn.");
 const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy lô vé.");
 const BAD_JSON = () => error(400, "invalid_input", "Nội dung gửi lên không hợp lệ.");
+/** Số sê-ri mới (ADR-0217 Đ1, Hiến chương 5.26): máy chủ cấp, `crypto.getRandomValues`. Không bí mật. `dung` tránh trùng trong cùng một lần cấp. */
+const taoSoSeri = (dung: ReadonlySet<string> = new Set()): string => {
+  for (;;) {
+    const so = sinhMa("VE", crypto.getRandomValues(new Uint8Array(8)));
+    if (!dung.has(so)) return so;
+  }
+};
+/** Chia trang (chủ chốt 18/11): 50 dòng mỗi trang; `?trang=` từ 1, sai ⇒ null. */
+const DONG_MOI_TRANG = 50;
+const trangHoi = (url: URL): number | null => {
+  const t = url.searchParams.get("trang");
+  if (t === null) return 1;
+  return /^[0-9]{1,6}$/.test(t) && Number(t) >= 1 ? Number(t) : null;
+};
+const TRANG_SAI = () => error(400, "invalid_input", "Số trang không đúng.");
+/** Bốn chữ cuối số sê-ri để xác nhận huỷ vé đã gửi khách: so sau khi đổi chữ hoa, bỏ khoảng trắng. */
+const khopBonCuoi = (raw: unknown, soSeri: string): boolean => typeof raw === "string" && raw.replace(/\s+/g, "").toUpperCase() === soSeri.slice(-4);
+const SO_SERI_KHONG_DUNG = () => error(400, "invalid_input", "Nhập đúng số sê-ri của vé: VE_ và 8 chữ cái.");
+const VE_SO_SERI_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy vé có số sê-ri này.");
+/** Lý do huỷ 5–300 ký tự, không chứa số điện thoại hay mã vé (cùng khuôn lý do bỏ lượt quét). null = hợp lệ; còn lại là câu lỗi. */
+const kiemLyDoHuy = (raw: unknown): { lyDo: string } | { loi: Response } => {
+  const lyDo = typeof raw === "string" ? raw.trim() : "";
+  if (lyDo.length < 5 || lyDo.length > 300) return { loi: error(400, "invalid_input", "Hãy ghi lý do huỷ (từ 5 đến 300 ký tự).") };
+  if (chuaMaHoacSdt(lyDo)) return { loi: error(400, "invalid_input", "Lý do không được chứa số điện thoại hoặc mã vé.") };
+  return { lyDo };
+};
+const CAU_TU_CHOI_HUY_VE = { ve_da_huy: "Vé này đã huỷ trước đó.", ve_da_dung: "Vé này đã dùng. Hãy bỏ lượt quét trước rồi mới huỷ vé.", ve_hang_ngoai_da_mo: "Vé hãng ngoài đã mở hoặc đã gửi cho khách thì không huỷ được." } as const;
 /** Mã phân bổ do D1 sinh (`lower(hex(randomblob(16)))`), không phải UUID. */
 const MA_PHAN_BO = /^[0-9a-f]{32}$/;
 /** `vdt_ticket.content_kind` lưu kiểu MIME (khi nhập lô); đổi ngược về loại tệp cho `dauPhanHoiTepChung`. Không nhận ra ⇒ PNG (ảnh, không bao giờ loại chạy được). */
@@ -170,13 +203,45 @@ const DON_ANH_VE = tacNhan("DON_ANH_VE");
  */
 export async function donHangChoXoaVe(env: Pick<Env, "DB"> & { VE_DIEN_TU?: R2Bucket }): Promise<void> {
   if (!env.VE_DIEN_TU) return;
-  const daXoa = await donHangChoXoa(env.DB, env.VE_DIEN_TU, DON_ANH_VE, TOI_DA_DON_MOI_LAN, () => new Date().toISOString());
+  const daXoa = await donHangChoXoa(env.DB, env.VE_DIEN_TU, DON_ANH_VE, TOI_DA_DON_MOI_LAN, () => new Date().toISOString()); // lỗi ở đây NÉM: gốc lắp ráp bắt và báo thư (Đợt 2 sau kiểm toán)
   if (daXoa === 0) return;
   try {
     await auditStatement(env.DB, { ...nguoiLam(DON_ANH_VE), action: "ve_xoa_anh_het_han", at: new Date().toISOString(), targetType: "system", targetId: "ve-dien-tu", detail: `${daXoa} ảnh` }).run();
   } catch (e) {
     console.error(JSON.stringify({ level: "error", event: "ve_dien_tu_nhat_ky_xoa_anh_loi", loi: e instanceof Error ? e.name : "unknown" }));
   }
+}
+
+/** Một lô không quá `TRAN_LO_LON_NHAT` vé nên không quá ngần ấy đơn bị trả suất khi huỷ lô: xét hết, không để đơn nào bị trả suất mà không được cấp thay hay ghi nhật ký. */
+const TOI_DON_THAY_MOI_LENH = TRAN_LO_LON_NHAT;
+/** ADR-0217 Đ3 mục 4: sau khi trả suất, chạy lại đường cấp vé sẵn có cho từng đơn (cùng dịch vụ, cùng loại khách, lô đúng nguồn). Nuốt lỗi như mọi đường cấp (thiếu vé suy ra lúc đọc). Trần `TOI_DON_THAY_MOI_LENH` = trần lô lớn nhất: một lô không có quá ngần ấy suất nên không đơn nào bị bỏ sót. */
+async function capVeThayChoDon(capVe: Ctx["capVeSauXacNhan"], donIds: readonly string[]): Promise<{ daXet: number; conNua: boolean }> {
+  const xet = donIds.slice(0, TOI_DON_THAY_MOI_LENH);
+  let loi = 0;
+  for (const orderId of xet) { try { await capVe(orderId); } catch (e) { loi++; console.error("ve_cap_thay_loi", orderId, e instanceof Error ? e.name : "loi"); } }
+  // Đơn mà lời gọi cấp ném lỗi KHÔNG được coi là đã xét: báo `conNua` để giao diện bảo cấp tay (đừng để lỗi nuốt im lặng như lỗi trần 30 cũ).
+  return { daXet: xet.length - loi, conNua: donIds.length > xet.length || loi > 0 };
+}
+/** Một dòng vé cho màn kho: số sê-ri, hạn, tình trạng. KHÔNG mã vé, KHÔNG khoá kho. Mã đơn chỉ khi người xem có `order.view` trên đơn đó (`maDon` do gốc lắp ráp tính theo quyền). */
+const dongVeTrongLo = (r: VeTrongLoRow, maDon: Map<string, string>, tenNguoi: Map<string, string>) => {
+  const tt = tinhTrangVe({ nguon: r.nguon, trangThai: r.ve_status, coPhanBoMo: r.co_phan_bo === 1, daLo: r.da_lo === 1, daDung: r.da_dung === 1 });
+  const ma = r.order_id && r.order_service_id ? maDon.get(`${r.order_id}|${r.order_service_id}`) : undefined;
+  return { soSeri: r.so_seri, tuNgay: r.valid_from, denNgay: r.valid_to, tinhTrang: tt, nhan: NHAN_TINH_TRANG_VE[tt], ...(ma ? { maDon: ma } : {}),
+    // Vé đã huỷ (ADR-0217): giờ huỷ, người huỷ, lý do, và còn nhập lại được không. KHÔNG mã vé.
+    // Vé hãng ngoài còn sống chưa từng giữ cho đơn: huỷ nhầm thì nhập lại được (giao diện nói trong hộp xác nhận).
+    ...(!r.voided_at && r.nguon === "HANG_NGOAI" ? { nhapLaiNeuHuy: r.tung_giu === 0 } : {}),
+    ...(r.voided_at ? { huyLuc: r.voided_at, huyBoi: (r.voided_by ? tenNguoi.get(r.voided_by) : null) ?? null, lyDoHuy: r.void_reason, nhapLai: r.withdrawn_at === null ? "KHONG_NHAP_LAI_DUOC" : r.da_nhap_lai === 1 ? "DA_NHAP_LAI" : "NHAP_LAI_DUOC" } : {}) };
+};
+async function tenNguoiHuy(nhan: Ctx["nhanNhanVien"], ds: readonly VeTrongLoRow[]): Promise<Map<string, string>> {
+  const ids = [...new Set(ds.flatMap((r) => (r.voided_by ? [r.voided_by] : [])))];
+  return ids.length === 0 ? new Map() : ((await nhan(ids)) ?? new Map());
+}
+async function maDonChoNguoiXem(donChoQuet: Ctx["donChoQuet"], staffId: string, ds: readonly VeTrongLoRow[]): Promise<Map<string, string>> {
+  const cap = new Map<string, [string, string]>();
+  for (const r of ds) if (r.order_id && r.order_service_id) cap.set(`${r.order_id}|${r.order_service_id}`, [r.order_id, r.order_service_id]);
+  const kq = new Map<string, string>();
+  await Promise.all([...cap.entries()].map(async ([k, [o, sv]]) => { const d = await donChoQuet(o, sv, staffId); if (d?.maDon) kq.set(k, d.maDon); }));
+  return kq;
 }
 
 export const veDienTuModule: AppModule = {
@@ -232,14 +297,37 @@ export const veDienTuModule: AppModule = {
     }),
 
     // Các lô còn huỷ được (ADR-0156 Đ2 mục 3): đang dở hoặc đã vào kho nhưng chưa vé nào từng được giữ chỗ. Chỉ nhãn và số đếm, không mã vé, không khoá kho.
-    route("GET", "/api/ve/lo", "office", async ({ env, staff }) => {
+    // `?tatCa=1` (ADR-0217 Phần B): thêm cả lô ĐÃ cấp, mỗi lô kèm `daCap`; mặc định giữ nguyên.
+    // Bộ lọc của màn Kho vé (kế hoạch 16 việc 21/11, Việc 4), chỉ đi cùng `tatCa=1`: `ma=` (chỉ các mã) hoặc `boMa=` (trừ các mã — nhóm «Chưa phân loại») và `tim=` (không phân biệt dấu:
+    // tên dịch vụ, mã, tên in trên vé). Lọc TRƯỚC khi chia trang bằng luật chung `khopDieuKien`; nguồn vé được xem giữ nguyên `nguonDuocXem` — bộ lọc chỉ thu hẹp.
+    route("GET", "/api/ve/lo", "office", async ({ env, staff, url }) => {
       if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN(); // cửa thô; từng nguồn lọc tiếp bằng nguonDuocXem
       const nguon = nguonDuocXem(staff, true);
       if (nguon.length === 0) return KHONG_QUYEN();
-      const ds = await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
-      const ten = await getEffectiveServices(env.DB, [...new Set(ds.map((d) => d.catalog_code))]);
+      const tatCa = url.searchParams.get("tatCa") === "1";
+      const trang = tatCa ? trangHoi(url) : 1;
+      if (trang === null) return TRANG_SAI();
+      const loc = tatCa ? docThamSoLo(url.searchParams) : null;
+      if (loc === "sai") return error(400, "invalid_input", "Bộ lọc không đúng: mã dịch vụ sai dạng hoặc chữ tìm quá dài. Tải lại trang rồi lọc lại.");
+      let lay: (LoBoDuoc & { da_cap?: number })[];
+      let tenLoc: Map<string, { name: string }> | null = null;
+      let conSauLoc: boolean | null = null; // nhánh lọc: «còn trang sau» tính trên danh sách đã lọc, không phụ thuộc lô vừa huỷ giữa hai câu
+      if (loc) {
+        const khoa = await dsKhoaLoTatCa(env.DB, nguon);
+        tenLoc = await getEffectiveServices(env.DB, [...new Set(khoa.map((k) => k.catalog_code))]);
+        const ten = tenLoc;
+        const khop = khoa.filter((k) => khopDieuKien({ ma: k.catalog_code, chu: [ten.get(k.catalog_code)?.name, k.printed_name] }, loc));
+        conSauLoc = khop.length > trang * DONG_MOI_TRANG;
+        lay = await dsLoTheoId(env.DB, khop.slice((trang - 1) * DONG_MOI_TRANG, trang * DONG_MOI_TRANG).map((k) => k.id), nguon);
+      } else {
+        lay = tatCa ? await dsLoTatCa(env.DB, DONG_MOI_TRANG + 1, nguon, (trang - 1) * DONG_MOI_TRANG) : await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
+      }
+      const coTrangSau = tatCa && (conSauLoc ?? lay.length > DONG_MOI_TRANG);
+      const ds = tatCa ? lay.slice(0, DONG_MOI_TRANG) : lay;
+      const ten = tenLoc ?? (await getEffectiveServices(env.DB, [...new Set(ds.map((d) => d.catalog_code))]));
       return json({
-        lo: ds.map((d) => ({ loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, nguon: d.source, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at })),
+        lo: ds.map((d) => ({ loId: d.id, catalogCode: d.catalog_code, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, nguon: d.source, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at, ...(tatCa ? { daCap: d.da_cap === 1 } : {}) })),
+        ...(tatCa ? { trang, coTrangSau } : {}),
       });
     }),
 
@@ -251,10 +339,10 @@ export const veDienTuModule: AppModule = {
       const dong = await dsLoDaHuy(env.DB, mocLoHuy(), TOI_DA_DS_LO, nguon);
       const ten = await getEffectiveServices(env.DB, [...new Set(dong.map((d) => d.catalog_code))]);
       const nguoi = await nhanNhanVien([...new Set(dong.flatMap((d) => (d.huy_boi ? [d.huy_boi] : [])))]);
-      const lo = new Map<string, { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }[] }>();
+      const lo = new Map<string, { loId: string; catalogCode: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }[] }>();
       for (const d of dong) {
         let l = lo.get(d.id);
-        if (!l) lo.set(d.id, (l = { loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, huyLuc: d.huy_luc, huyBoi: (d.huy_boi && nguoi?.get(d.huy_boi)) || null, ve: [] }));
+        if (!l) lo.set(d.id, (l = { loId: d.id, catalogCode: d.catalog_code, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, huyLuc: d.huy_luc, huyBoi: (d.huy_boi && nguoi?.get(d.huy_boi)) || null, ve: [] }));
         l.ve.push({ veId: d.ve_id, duoiMa: d.duoi_ma, tuNgay: d.valid_from, denNgay: d.valid_to, trangThaiAnh: d.r2_deleted_at ? "HET_ANH" : d.opened_at ? "DA_MO" : d.da_nhap_lai ? "DA_NHAP_LAI" : "CHUA_MO" });
       }
       return json({ hanLuuNgay: NGAY_LUU_ANH_LO_HUY, lo: [...lo.values()] });
@@ -328,6 +416,8 @@ export const veDienTuModule: AppModule = {
       const v = kiemLo(raw);
       if (!v.ok) return error(400, "invalid_input", v.message);
       if (!coQuyenLo(staff, v.value.nguon)) return KHONG_QUYEN();
+      // ADR-0217 Đ1: ảnh vé Tour Đảo vẽ ở trình duyệt nên số sê-ri phải có TRƯỚC khi vẽ — lô Tour Đảo bắt buộc báo số ảnh dự kiến để máy chủ cấp sẵn đúng số đó.
+      if (v.value.nguon === "TOUR_DAO" && raw.soVeDuKien === undefined) return error(400, "invalid_input", "Lô vé Tour Đảo cần số ảnh dự kiến để cấp số sê-ri.");
       if (raw.soVeDuKien !== undefined) {
         if (!Number.isInteger(raw.soVeDuKien) || (raw.soVeDuKien as number) < 1) return error(400, "invalid_input", "Số ảnh dự kiến không hợp lệ.");
         const tran = await docTranLo(env.DB);
@@ -337,11 +427,14 @@ export const veDienTuModule: AppModule = {
       if (!dv.has(v.value.catalogCode)) return error(400, "invalid_input", "Dịch vụ không có trong danh mục.");
       const id = crypto.randomUUID();
       const at = new Date().toISOString();
+      const soSeri: string[] = [];
+      if (v.value.nguon === "TOUR_DAO") { const da = new Set<string>(); for (let i = 0; i < (raw.soVeDuKien as number); i++) { const so = taoSoSeri(da); da.add(so); soSeri.push(so); } }
       await env.DB.batch([
-        cauChenLo(env.DB, { id, catalogCode: v.value.catalogCode, nhom: v.value.nhomKhach, tenSanPham: v.value.tenSanPham, at, by: staff.id, nguon: v.value.nguon }),
+        cauChenLo(env.DB, { id, catalogCode: v.value.catalogCode, nhom: v.value.nhomKhach, tenSanPham: v.value.tenSanPham, at, by: staff.id, nguon: v.value.nguon, soHoTro: v.value.soHoTro }),
+        ...soSeri.map((so) => cauChenSoSeri(env.DB, { soSeri: so, batchId: id, at, by: staff.id })),
         auditStatement(env.DB, { staffId: staff.id, action: "ve_nhap_lo", at, targetType: "ve", targetId: v.value.catalogCode, detail: `Mở lô vé · ${NHAN_NHOM_LO[v.value.nhomKhach]}` }),
       ]);
-      return kemLocation(json({ loId: id }, 201), `/ve-kho?lo=${id}`);
+      return kemLocation(json({ loId: id, soSeri }, 201), `/ve-kho?lo=${id}`);
     }),
 
     // Thêm một đợt vé vào lô PENDING. D1 TRƯỚC (dòng vé + nhật ký), kho SAU; lỗi kho không làm hỏng yêu cầu (vé chưa lưu thì không bao giờ được giữ chỗ).
@@ -362,10 +455,11 @@ export const veDienTuModule: AppModule = {
       const tran = await docTranLo(env.DB);
       if ((await demVeCuaLo(env.DB, loId)).tong + raw.ve.length > tran) return error(400, "batch_limit", `Một lô tối đa ${tran} vé.`);
       // Kiểm TỪNG vé trước khi chạm D1; một vé sai không kéo cả đợt.
-      const hop: { thuTu: number; raw: Record<string, unknown>; ma: string; tuNgay: string; denNgay: string; gio: string | null; bytes: Uint8Array; loai: LoaiTep; bam: string }[] = [];
+      const hop: { thuTu: number; raw: Record<string, unknown>; soSeri: string | null; ma: string; tuNgay: string; denNgay: string; gio: string | null; bytes: Uint8Array; loai: LoaiTep; bam: string }[] = [];
       const loi: { thuTu: number; lyDo: string }[] = [];
       const trongDot = new Set<string>();
       const bamTrongDot = new Set<string>();
+      const soTrongDot = new Set<string>();
       for (const [i, x] of raw.ve.entries()) {
         const r = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
         const k = kiemVeMoi(r, lo.source);
@@ -378,15 +472,26 @@ export const veDienTuModule: AppModule = {
         if (trongDot.has(k.value.maVe)) { loi.push({ thuTu: i, lyDo: "Trùng mã vé với một ảnh khác trong đợt này." }); continue; }
         const bam = await bamSha256(bytes);
         if (bamTrongDot.has(bam)) { loi.push({ thuTu: i, lyDo: "Trùng với một ảnh khác trong đợt này." }); continue; }
+        // ADR-0217 Đ1: vé Tour Đảo phải mang số sê-ri đã cấp cho CHÍNH lô này lúc mở lô (ảnh đã vẽ số đó); vé hãng ngoài thì máy chủ cấp số lúc chèn.
+        let soSeri: string | null = null;
+        if (lo.source === "TOUR_DAO") {
+          soSeri = chuanHoaSoSeri(r.soSeri);
+          if (soSeri === null) { loi.push({ thuTu: i, lyDo: "Thiếu số sê-ri đã cấp cho lô này." }); continue; }
+          if (soTrongDot.has(soSeri)) { loi.push({ thuTu: i, lyDo: "Trùng số sê-ri với một vé khác trong đợt này." }); continue; }
+          soTrongDot.add(soSeri);
+        }
         trongDot.add(k.value.maVe);
         bamTrongDot.add(bam);
-        hop.push({ thuTu: i, raw: r, ma: k.value.maVe, tuNgay: k.value.tuNgay, denNgay: k.value.denNgay, gio: k.value.gio, bytes, loai, bam });
+        hop.push({ thuTu: i, raw: r, soSeri, ma: k.value.maVe, tuNgay: k.value.tuNgay, denNgay: k.value.denNgay, gio: k.value.gio, bytes, loai, bam });
       }
       // Dấu vân tệp do máy chủ tự tính nên không phụ thuộc chuỗi QR trình duyệt gửi (ADR-0156 Đ1 mục 5, Đ2 mục 1).
-      const daCo = await maVeDaCo(env.DB, hop.map((h) => h.ma));
-      const bamCo = await bamDaCo(env.DB, hop.map((h) => h.bam));
-      const [maMo, bamMo] = await Promise.all([maVeDaMo(env.DB, hop.map((h) => h.ma)), bamDaMo(env.DB, hop.map((h) => h.bam))]);
-      const moi = hop.filter((h) => {
+      // Số sê-ri của lô Tour Đảo phải thuộc sổ của đúng lô và chưa vé nào mang.
+      const soDungDuoc = lo.source === "TOUR_DAO" ? await soSeriConDungDuoc(env.DB, loId, hop.flatMap((h) => (h.soSeri ? [h.soSeri] : []))) : null;
+      const hopHopLe = soDungDuoc === null ? hop : hop.filter((h) => { if (h.soSeri !== null && soDungDuoc.has(h.soSeri)) return true; loi.push({ thuTu: h.thuTu, lyDo: "Số sê-ri này không thuộc lô hoặc đã có vé dùng." }); return false; });
+      const daCo = await maVeDaCo(env.DB, hopHopLe.map((h) => h.ma));
+      const bamCo = await bamDaCo(env.DB, hopHopLe.map((h) => h.bam));
+      const [maMo, bamMo] = await Promise.all([maVeDaMo(env.DB, hopHopLe.map((h) => h.ma)), bamDaMo(env.DB, hopHopLe.map((h) => h.bam))]);
+      const moi = hopHopLe.filter((h) => {
         if (maMo.has(h.ma) || bamMo.has(h.bam)) { loi.push({ thuTu: h.thuTu, lyDo: "Vé này đã được mở ảnh khi lô bị huỷ nên không nhập lại được." }); return false; }
         if (daCo.has(h.ma)) { loi.push({ thuTu: h.thuTu, lyDo: "Mã vé đã có trong kho, đã loại." }); return false; }
         if (bamCo.has(h.bam)) { loi.push({ thuTu: h.thuTu, lyDo: "Ảnh này đã có trong kho, đã loại." }); return false; }
@@ -394,16 +499,20 @@ export const veDienTuModule: AppModule = {
       });
       const at = new Date().toISOString();
       const chuanBi: VeChuanBi[] = [];
+      const cauSeri: D1PreparedStatement[] = [];
       const cau: D1PreparedStatement[] = [];
+      const daCap = new Set<string>();
       for (const h of moi) {
         const id = crypto.randomUUID();
+        // Vé hãng ngoài: máy chủ cấp số; câu ghi sổ đứng TRƯỚC câu chèn vé trong cùng lô (trigger đòi số có sẵn trong sổ, đúng lô). Vé Tour Đảo: số đã ở sổ từ lúc mở lô.
+        if (h.soSeri === null) { h.soSeri = taoSoSeri(daCap); daCap.add(h.soSeri); cauSeri.push(cauChenSoSeri(env.DB, { soSeri: h.soSeri, batchId: loId, at, by: staff.id })); }
         chuanBi.push({ id, bytes: h.bytes, loai: h.loai });
-        cau.push(cauChenVe(env.DB, { id, batchId: loId, maVe: h.ma, tuNgay: h.tuNgay, denNgay: h.denNgay, gio: h.gio, khoa: taoKhoaNgauNhien("vdt"), loaiNoiDung: LOAI_NOI_DUNG[h.loai], coBytes: h.bytes.length, bam: h.bam, at, by: staff.id }));
+        cau.push(cauChenVe(env.DB, { id, batchId: loId, soSeri: h.soSeri, maVe: h.ma, tuNgay: h.tuNgay, denNgay: h.denNgay, gio: h.gio, khoa: taoKhoaNgauNhien("vdt"), loaiNoiDung: LOAI_NOI_DUNG[h.loai], coBytes: h.bytes.length, bam: h.bam, at, by: staff.id }));
       }
       let ketQua: D1Result[] = [];
       if (cau.length > 0) {
         cau.push(auditStatement(env.DB, { staffId: staff.id, action: "ve_nhap_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Thêm vé vào lô · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]} · ${cau.length} vé` }, "changes() > 0"));
-        ketQua = await env.DB.batch(cau);
+        ketQua = (await env.DB.batch([...cauSeri, ...cau])).slice(cauSeri.length);
       }
       // Câu chèn có điều kiện không ghi dòng nào: người khác vừa nhập đúng vé này. Báo rõ để khỏi bị bảo «nhập lại», vì nhập lại cũng bị loại.
       const daChen = (_: unknown, i: number): boolean => (ketQua[i]?.meta?.changes ?? 0) > 0;
@@ -417,7 +526,7 @@ export const veDienTuModule: AppModule = {
         chuaLuuVaoKho: chuaLuu,
         loai: loi.sort((a, b) => a.thuTu - b.thuTu),
         veTrongLo: dem.daLuu,
-        veDaNhap: moi.filter(daChen).map((h) => ({ maVeCuoi: che4SoCuoi(h.ma), tuNgay: h.tuNgay, denNgay: h.denNgay })),
+        veDaNhap: moi.filter(daChen).map((h) => ({ maVeCuoi: che4SoCuoi(h.ma), soSeri: h.soSeri, tuNgay: h.tuNgay, denNgay: h.denNgay })),
       });
     }),
 
@@ -444,7 +553,7 @@ export const veDienTuModule: AppModule = {
         // cấp cho ai tới khi Quản trị đổi ô — và KHÔNG cấp bù (vé của lô này không giữ được cho dịch vụ đó).
         const [coVe, nguon] = await Promise.all([coVeTheoMa(env.DB, [lo.catalog_code]), nguonVeTheoMa(env.DB, [lo.catalog_code])]);
         dichVuKhongVe = coVe.get(lo.catalog_code) !== true;
-        canhBaoNguon = dichVuKhongVe || nguonVeCua(lo.catalog_code, nguon) !== lo.source;
+        canhBaoNguon = dichVuKhongVe || (nguon.get(lo.catalog_code) ?? "HANG_NGOAI") !== lo.source;
         // Cấp bù NGAY trong lệnh (không qua Cron): tối đa TOI_DA_DON_XET_CAP_BU đơn đã xác nhận, ngày đi gần trước; đơn không còn thiếu ở mã này được bỏ qua ngay trong
         // `capVeSauXacNhan(id, mã)` (lọc dần), đơn thiếu đi đúng đường cấp sau xác nhận. Dừng khi lô hết vé. Còn ứng viên chưa xét mà lô còn vé ⇒ `conDonChuaXet`.
         if (!canhBaoNguon) {
@@ -468,7 +577,9 @@ export const veDienTuModule: AppModule = {
     }),
 
     // Huỷ lô (nút «Huỷ lô»; ADR-0156 Đ2 mục 3): lô chưa có vé nào TỪNG được giữ chỗ. Một lô D1 nguyên khối. Vé mang dấu rút nên nhập lại được. Ảnh KHÔNG xoá ngay: lưu `NGAY_LUU_ANH_LO_HUY` ngày rồi việc định kỳ xoá (chủ quyết 2/11).
-    route("POST", "/api/ve/lo/:id/bo", "office", async ({ env, params, staff }) => {
+    // ADR-0217 Đ3 mục 5: lô đã từng cấp cho đơn thì nút này huỷ PHẦN CÒN LẠI (bắt buộc lý do): huỷ mọi vé huỷ được theo bảng Đ3 mục 2, vé đã dùng và vé hãng ngoài đã mở giữ nguyên, lô sang VOID
+    // nên không cấp thêm vé từ lô này; rồi cấp vé thay cho các đơn bị trả suất. Lô chưa từng cấp đi đường cũ phía dưới, không đổi.
+    route("POST", "/api/ve/lo/:id/bo", "office", async ({ env, request, params, staff, capVeSauXacNhan }) => {
       if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const loId = params.id ?? "";
       if (!UUID_RE.test(loId)) return KHONG_THAY();
@@ -477,6 +588,32 @@ export const veDienTuModule: AppModule = {
       if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN();
       const at = new Date().toISOString();
       const lenh = crypto.randomUUID();
+      if (await loTungCap(env.DB, loId)) {
+        if (lo.source === "HANG_NGOAI" && !can(staff, "ve.huy-hang-ngoai")) return KHONG_QUYEN_HUY_HANG_NGOAI();
+        if (lo.status === "VOID") return error(409, "batch_in_use", "Lô này đã huỷ trước đó.");
+        const raw = await readJson(request);
+        const ly = kiemLyDoHuy(raw?.lyDo);
+        if ("loi" in ly) return ly.loi;
+        const [xem, donIds] = await Promise.all([xemTruocHuyLo(env.DB, loId), donBiTraSuatCuaLo(env.DB, loId, TOI_DON_THAY_MOI_LENH + 1)]);
+        // Chặn bấm nhầm (chủ chốt 18/11): có vé khách đang cầm sẽ bị huỷ thì phải gõ đúng con số máy chủ đếm. Lệch ⇒ 409 (trang tải lại bản xem trước).
+        if (xem.da_gui > 0) {
+          const so = raw?.xacNhanSoVeDaGui;
+          if (typeof so !== "number" || !Number.isInteger(so)) return error(400, "invalid_input", `Gõ lại số vé đã gửi khách sẽ bị huỷ (${xem.da_gui}) để xác nhận huỷ lô.`);
+          if (so !== xem.da_gui) return error(409, "so_ve_da_gui_doi", "Số vé đã gửi khách vừa thay đổi. Hãy tải lại bản xem trước rồi xác nhận lại.");
+        }
+        const thang = dieuKienLenhHuyLoThang(loId, lenh);
+        const kq = await env.DB.batch([
+          cauBoLoDaCap(env.DB, loId, at, staff.id, lenh),
+          auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Huỷ lô vé đã cấp · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]} · huỷ ${xem.huy_duoc} vé · giữ nguyên ${xem.giu_da_dung + xem.giu_hang_ngoai_da_mo} vé · lý do: ${ly.lyDo}` }, "changes() > 0"),
+          cauThuHoiPhanBoCuaLo(env.DB, loId, at, staff.id, lenh),
+          ...donIds.slice(0, TOI_DON_THAY_MOI_LENH).map((orderId) => auditStatement(env.DB, { staffId: staff.id, action: "ve_tra_ve", at, orderId, targetType: "ve", targetId: orderId, detail: "Trả vé · lô vé bị huỷ · lý do THU_HOI" }, thang)),
+          cauHuyVeCuaLo(env.DB, loId, at, staff.id, lenh, ly.lyDo),
+          cauRutVeHangNgoaiSauHuyLo(env.DB, loId, at, lenh),
+        ]);
+        if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_in_use", "Lô này đã huỷ trước đó.");
+        const thay = await capVeThayChoDon(capVeSauXacNhan, donIds);
+        return json({ loId, trangThai: "VOID", veDaHuy: kq[kq.length - 2]?.meta?.changes ?? 0, veGiuNguyen: { daDung: xem.giu_da_dung, hangNgoaiDaMo: xem.giu_hang_ngoai_da_mo }, donXetCapThay: thay.daXet, conDonChuaCapThay: thay.conNua, canGuiLai: xem.da_gui });
+      }
       const kq = await env.DB.batch([
         cauBoLo(env.DB, loId, at, staff.id, lenh),
         auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Huỷ lô vé · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]}` }, "changes() > 0"),
@@ -484,6 +621,97 @@ export const veDienTuModule: AppModule = {
       ]);
       if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_in_use", "Lô này đã có vé từng được giữ chỗ cho đơn hoặc đã huỷ trước đó, không huỷ được.");
       return json({ loId, trangThai: "VOID", veDaRut: kq[2]?.meta?.changes ?? 0 });
+    }),
+
+    // BẢN XEM TRƯỚC khi huỷ lô (ADR-0217 Đ3 mục 5): máy chủ đếm, màn hình chỉ hiện. Chỉ số đếm, không mã vé, không số sê-ri. Lô chưa từng cấp: `daCap = false` (đường huỷ cũ, không cần lý do).
+    route("GET", "/api/ve/lo/:id/xem-truoc-huy", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
+      const loId = params.id ?? "";
+      if (!UUID_RE.test(loId)) return KHONG_THAY();
+      const lo = await docLo(env.DB, loId);
+      if (!lo) return KHONG_THAY();
+      if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN();
+      if (lo.status === "VOID") return error(409, "batch_in_use", "Lô này đã huỷ trước đó.");
+      const [xem, daCap] = await Promise.all([xemTruocHuyLo(env.DB, loId), loTungCap(env.DB, loId)]);
+      if (daCap && lo.source === "HANG_NGOAI" && !can(staff, "ve.huy-hang-ngoai")) return KHONG_QUYEN_HUY_HANG_NGOAI();
+      return json({ loId, daCap, tongVe: xem.tong, huyDuoc: xem.huy_duoc, giuNguyenDaDung: xem.giu_da_dung, giuNguyenHangNgoaiDaMo: xem.giu_hang_ngoai_da_mo, donCapThay: xem.don_cap_thay, daGuiPhaiGuiLai: xem.da_gui });
+    }),
+
+    // DANH SÁCH VÉ CỦA LÔ (ADR-0217 A6): số sê-ri, hạn, tình trạng; mã đơn chỉ khi người xem có `order.view` trên đơn. Không mã vé, không khoá kho. Quyền: người thao tác được lô (`coQuyenLo` không chiXem) — hẹp hơn GET /api/ve/lo.
+    route("GET", "/api/ve/lo/:id/ve-trong-lo", "office", async ({ env, params, staff, url, donChoQuet, nhanNhanVien }) => {
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
+      const loId = params.id ?? "";
+      if (!UUID_RE.test(loId)) return KHONG_THAY();
+      const lo = await docLo(env.DB, loId);
+      if (!lo) return KHONG_THAY();
+      if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN(); // KHÔNG chiXem: số sê-ri cả lô đủ để gõ «Đã dùng» — chỉ người thao tác được lô (kiểm độc lập M1)
+      const trang = trangHoi(url);
+      if (trang === null) return TRANG_SAI();
+      const [lay, tongVe] = await Promise.all([veTrongLo(env.DB, loId, DONG_MOI_TRANG + 1, (trang - 1) * DONG_MOI_TRANG), tongVeTrongLo(env.DB, loId)]);
+      const ds = lay.slice(0, DONG_MOI_TRANG);
+      const [maDon, tenNguoi] = await Promise.all([maDonChoNguoiXem(donChoQuet, staff.id, ds), tenNguoiHuy(nhanNhanVien, ds)]);
+      const ten = await getEffectiveServices(env.DB, [lo.catalog_code]);
+      return json({ loId, tenDichVu: ten.get(lo.catalog_code)?.name ?? null, tenSanPham: lo.printed_name, nhomKhach: lo.pax_group, nguon: lo.source, trangThaiLo: lo.status, trang, coTrangSau: lay.length > DONG_MOI_TRANG, tongVe, ve: ds.map((r) => dongVeTrongLo(r, maDon, tenNguoi)) });
+    }),
+
+    // TÌM VÉ THEO SỐ SÊ-RI (ADR-0217 A6): số sê-ri không bí mật nên đi trên URL. Quyền như danh sách vé của lô, theo nguồn của lô chứa vé.
+    route("GET", "/api/ve/tim", "office", async ({ env, url, staff, donChoQuet, nhanNhanVien }) => {
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
+      const soSeri = chuanHoaSoSeri(url.searchParams.get("soSeri"));
+      if (soSeri === null) return SO_SERI_KHONG_DUNG();
+      const r = await veTheoSoSeri(env.DB, soSeri);
+      if (!r) return VE_SO_SERI_KHONG_THAY();
+      if (!coQuyenLo(staff, r.nguon)) return KHONG_QUYEN(); // như danh sách vé của lô: không chiXem
+      const [maDon, tenNguoi] = await Promise.all([maDonChoNguoiXem(donChoQuet, staff.id, [r]), tenNguoiHuy(nhanNhanVien, [r])]);
+      const ten = await getEffectiveServices(env.DB, [r.catalog_code]);
+      return json({ ve: { ...dongVeTrongLo(r, maDon, tenNguoi), loId: r.batch_id, tenDichVu: ten.get(r.catalog_code)?.name ?? null, tenSanPham: r.printed_name, nhomKhach: r.nhom_lo, nguon: r.nguon, trangThaiLo: r.lo_status } });
+    }),
+
+    // HUỶ VÉ LẺ (ADR-0217 Đ3): theo số sê-ri. Bảng kết quả ở `quyetHuyVe`. Một lô D1: chặn (vé vừa huỷ / vừa dùng / hãng ngoài vừa mở thì lô lui) → trả suất THU_HOI nếu có → huỷ vé → nhật ký.
+    // Sau lô, chạy đường cấp vé sẵn có cho đơn bị trả suất. `lenhId` (UUID) là mã lệnh do máy khách sinh để chống ghi trùng: lớp ADR-0094 ở router dùng tiêu đề lệnh, nên ở đây chỉ kiểm dạng.
+    // GIỚI HẠN ĐÃ BIẾT: chưa báo người phụ trách đơn bằng hộp thư khi huỷ vé đã mở (cần đường mới tới người phụ trách; xem nhật ký thi công của kế hoạch). Phản hồi trả `canGuiLai` để màn hình nhắc.
+    route("POST", "/api/ve/huy-ve", "office", async ({ env, request, staff, capVeSauXacNhan }) => {
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
+      const raw = await readJson(request);
+      if (!raw) return BAD_JSON();
+      if (raw.lenhId !== undefined && (typeof raw.lenhId !== "string" || !UUID_RE.test(raw.lenhId))) return BAD_JSON();
+      const soSeri = chuanHoaSoSeri(raw.soSeri);
+      if (soSeri === null) return SO_SERI_KHONG_DUNG();
+      const ly = kiemLyDoHuy(raw.lyDo);
+      if ("loi" in ly) return ly.loi;
+      const ve = await docVeDeHuy(env.DB, soSeri);
+      if (!ve) return VE_SO_SERI_KHONG_THAY();
+      if (!coQuyenLo(staff, ve.nguon)) return KHONG_QUYEN();
+      if (ve.nguon === "HANG_NGOAI" && !can(staff, "ve.huy-hang-ngoai")) return KHONG_QUYEN_HUY_HANG_NGOAI();
+      const tuChoi = (ma: keyof typeof CAU_TU_CHOI_HUY_VE) => error(409, ma, CAU_TU_CHOI_HUY_VE[ma]);
+      const quyet = quyetHuyVe({ nguon: ve.nguon, trangThai: ve.ve_status, coPhanBoMo: ve.alloc_id !== null, daLo: ve.revealed_at !== null, daDung: ve.da_dung === 1 });
+      if (quyet.loai === "TU_CHOI") return tuChoi(quyet.ma);
+      // Chặn bấm nhầm (chủ chốt 18/11): vé khách đang cầm thì phải gõ lại bốn chữ cuối số sê-ri. Thiếu hoặc sai ⇒ 400, chưa ghi gì.
+      if (quyet.daLo && !khopBonCuoi(raw.xacNhanBonCuoi, soSeri)) return error(400, "invalid_input", "Gõ đúng bốn chữ cuối của số sê-ri để xác nhận huỷ vé đã gửi khách.");
+      const at = new Date().toISOString();
+      const truoc = ve.order_id ? await demGiuCuaDon(env.DB, ve.order_id) : 0;
+      const cau: D1PreparedStatement[] = [cauChanHuyVe(env.DB, ve.ticket_id), cauThuHoiPhanBoCuaVe(env.DB, ve.ticket_id, at, staff.id)];
+      if (quyet.traSuat && ve.order_id) cau.push(auditStatement(env.DB, { staffId: staff.id, action: "ve_tra_ve", at, orderId: ve.order_id, targetType: "ve", targetId: ve.order_service_id ?? ve.order_id, detail: `Trả vé · vé huỷ ${soSeri} · lý do THU_HOI` }, "changes() > 0"));
+      cau.push(cauHuyVe(env.DB, ve.ticket_id, at, staff.id, ly.lyDo));
+      cau.push(auditStatement(env.DB, { staffId: staff.id, action: "ve_huy_ve", at, ...(ve.order_id ? { orderId: ve.order_id } : {}), targetType: "ve", targetId: soSeri, detail: `Huỷ vé ${soSeri} · lý do: ${ly.lyDo}` }, "changes() > 0"));
+      cau.push(cauRutVeHangNgoaiSauHuy(env.DB, ve.ticket_id, at));
+      try {
+        await env.DB.batch(cau);
+      } catch (e) {
+        if (!(e instanceof Error) || !e.message.includes(DAU_LOI_HUY_VE)) throw e;
+        // Có người vừa đổi vé giữa lúc đọc và lúc ghi: đọc lại để nói đúng lý do, không đoán.
+        const lai = await docVeDeHuy(env.DB, soSeri);
+        const q = lai ? quyetHuyVe({ nguon: lai.nguon, trangThai: lai.ve_status, coPhanBoMo: lai.alloc_id !== null, daLo: lai.revealed_at !== null, daDung: lai.da_dung === 1 }) : null;
+        return q && q.loai === "TU_CHOI" ? tuChoi(q.ma) : error(409, "ve_vua_doi", "Vé vừa đổi trạng thái, hãy tải lại rồi thử huỷ lại.");
+      }
+      const sau = await docVeDeHuy(env.DB, soSeri);
+      if (!sau || sau.ve_status !== "VOID" || sau.voided_by !== staff.id || sau.voided_at !== at) return tuChoi("ve_da_huy"); // thua cạnh tranh: người khác huỷ trước
+      let veThay: "DA_CAP" | "THIEU" | null = null;
+      if (quyet.traSuat && ve.order_id) {
+        await capVeThayChoDon(capVeSauXacNhan, [ve.order_id]);
+        try { veThay = (await demGiuCuaDon(env.DB, ve.order_id)) >= truoc ? "DA_CAP" : "THIEU"; } catch (e) { console.error("ve_cap_thay_loi", ve.order_id, e instanceof Error ? e.name : "loi"); } // vé đã huỷ xong: lỗi đọc chỉ làm mất nhãn, không làm hỏng lệnh
+      }
+      return json({ soSeri, trangThai: "DA_HUY", traSuat: quyet.traSuat, veThay, canGuiLai: quyet.daLo });
     }),
 
     // Sửa dịch vụ (mã tour) của lô — chỉ khi CHƯA vé nào của lô được giữ chỗ (trigger vdt_batch_code_locked canh ở cơ sở dữ liệu).
@@ -689,7 +917,7 @@ export const veDienTuModule: AppModule = {
       const gom = new Map<string, { dichVu: string; soKhachTheoDon: number; daDung: number }>();
       for (const d of dv) {
         const dung = daDung.get(d.serviceId) ?? 0;
-        if (nguonVeCua(d.catalogCode, nguon) !== "TOUR_DAO" && dung === 0) continue;
+        if (nguon.get(d.catalogCode) !== "TOUR_DAO" && dung === 0) continue;
         const g = gom.get(d.catalogCode) ?? { dichVu: ten.get(d.catalogCode)?.name ?? d.tenDichVu, soKhachTheoDon: 0, daDung: 0 };
         g.soKhachTheoDon += d.soKhach; g.daDung += dung; gom.set(d.catalogCode, g);
       }
@@ -732,10 +960,13 @@ export const veDienTuModule: AppModule = {
       if (raw === null) return BAD_JSON();
       const ma = typeof raw.ma === "string" ? raw.ma.trim() : "";
       const xn = typeof raw.xacNhan === "object" && raw.xacNhan !== null ? (raw.xacNhan as Record<string, unknown>) : {};
-      const xacNhan = { lechNgay: xn.lechNgay === true, chuaThu: xn.chuaThu === true, vuotKhach: xn.vuotKhach === true };
+      const xacNhan = { lechNgay: xn.lechNgay === true, chuaThu: xn.chuaThu === true, vuotKhach: xn.vuotKhach === true, nhapTay: xn.nhapTay === true };
       const at = new Date().toISOString();
       const homNay = vnToday(new Date(at));
-      const row = ma.length > 0 && ma.length <= 100 ? await docVeQuet(env.DB, ma) : null;
+      // ADR-0217 Đ2: chuỗi đúng dạng số sê-ri (VE_ + 8 chữ cái, sau khi bỏ khoảng trắng và đổi chữ hoa) thì tra theo số sê-ri và coi là GÕ TAY; ngược lại tra theo mã QR như cũ.
+      const soSeriGo = chuanHoaSoSeri(raw.ma);
+      const nhapTay = soSeriGo !== null;
+      const row = nhapTay ? await docVeQuetTheoSeri(env.DB, soSeriGo) : ma.length > 0 && ma.length <= 100 ? await docVeQuet(env.DB, ma) : null;
       const rong = { dichVu: "", nhomKhach: "", ngayDi: null, soCuoi: "" };
       if (row === null || row.nguon === "HANG_NGOAI") {
         const kq = ketQuaQuet(null, { homNay, quyenTinh, xacNhan });
@@ -753,11 +984,11 @@ export const veDienTuModule: AppModule = {
       const ve: VeQuet = {
         nguon: row.nguon, trangThaiVe: row.ve_status, trangThaiDon: dich?.trangThai ?? null, daMo: row.revealed_at !== null, tuNgay: row.valid_from, denNgay: row.valid_to,
         daDung: daDung ? { luc: daDung.scanned_at, nguoi: await tenNguoiQuet(daDung.scanned_by) } : null, ngayDi: dich?.ngayDi ?? null,
-        moTheoTien: don ? moTheoTien(don, false) : true, soLuotDaTinh, soKhachHieuLuc: dich?.soKhachHieuLuc ?? 0,
+        moTheoTien: don ? moTheoTien(don, false) : true, soLuotDaTinh, soKhachHieuLuc: dich?.soKhachHieuLuc ?? 0, nhapTay,
       };
       const kq = ketQuaQuet(ve, { homNay, quyenTinh, xacNhan });
       const nhomKhach = NHAN_NHOM_LO[(row.nhom ?? row.nhom_lo) as keyof typeof NHAN_NHOM_LO] ?? "";
-      const chung = { dichVu: row.printed_name, nhomKhach, ngayDi: dich?.ngayDi ?? null, soCuoi: row.cuoi, ...(dich?.maDon ? { maDon: dich.maDon } : {}) };
+      const chung = { dichVu: row.printed_name, nhomKhach, ngayDi: dich?.ngayDi ?? null, soCuoi: row.cuoi, soSeri: row.so_seri, ...(dich?.maDon ? { maDon: dich.maDon } : {}) };
       const phanHoi = (mau: typeof kq.mau, maKq: typeof kq.ma, ghi: typeof kq.ghi, cau: string, lanQuetId?: string) => json({ mau, ma: maKq, ghi, cau, ...chung, ...(lanQuetId ? { lanQuetId } : {}) });
       const cauDaDung = (d: { luc: string; nguoi: string }) => `${CAU_QUET.DA_DUNG} lúc ${gioVn(d.luc)}${d.nguoi ? ` bởi ${d.nguoi}` : ""}`;
       if (kq.ghi === null) {
@@ -770,9 +1001,9 @@ export const veDienTuModule: AppModule = {
       await env.DB.batch([
         cauChenLuotQuet(env.DB, {
           id, ticketId: row.ticket_id, allocationId: row.allocation_id, orderId: row.order_id, serviceId: row.order_service_id, ketQua: kq.ghi, lyDo: kq.ma,
-          xacNhan: kq.ghi === "TU_CHOI" ? { lechNgay: null, chuaThu: null, vuotKhach: null } : can_, at, by: staff.id,
+          xacNhan: kq.ghi === "TU_CHOI" ? { lechNgay: null, chuaThu: null, vuotKhach: null } : can_, at, by: staff.id, nhapTay,
         }),
-        auditStatement(env.DB, { staffId: staff.id, action: "ve_quet", at, orderId: row.order_id ?? undefined, targetType: "ve", targetId: row.order_service_id ?? row.ticket_id, detail: `Quét vé · ${NHAN_GHI_QUET[kq.ghi]} · số cuối ${row.cuoi}` }, "changes() > 0"),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_quet", at, orderId: row.order_id ?? undefined, targetType: "ve", targetId: row.order_service_id ?? row.ticket_id, detail: `Quét vé · ${NHAN_GHI_QUET[kq.ghi]} · ${row.so_seri ? `số sê-ri ${row.so_seri}` : `số cuối ${row.cuoi}`}${nhapTay ? " · nhập tay" : ""}` }, "changes() > 0"),
       ]);
       // Lượt của mình KHÔNG vào sổ (thua cạnh tranh, hoặc gác chèn từ chối vì vé vừa đổi trạng thái): không bao giờ trả `lanQuetId` của dòng không có.
       if (!(await coLuotQuet(env.DB, id))) {

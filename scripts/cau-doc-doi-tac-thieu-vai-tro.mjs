@@ -7,12 +7,21 @@ import { fileURLToPath } from "node:url";
 
 /**
  * Đ3 mục 1 — NGUYÊN VĂN câu đọc trong ADR-0185 (chủ đã thử đúng trên khung thử 7/11; bài kiểm so với tệp ADR): tài khoản đang hoạt động giữ quyền Đối tác mà
- * hồ sơ không mở vai nhóm bên ngoài và không mang vai trò do Kế toán thêm. Cùng điều kiện với trigger lc1c (migration 0149) và R-LC-1c (scripts/audit-checks.mjs).
+ * hồ sơ không mở vai nhóm bên ngoài và không mang vai trò do Kế toán thêm. Cùng điều kiện với trigger lc1c (migration 0149, tạo lại ở *_dang_ky_quan_ly_to_chuc) và
+ * R-LC-1c (scripts/audit-checks.mjs).
  * Sửa từng tài khoản ở màn Quản lý tài khoản: Sửa, chọn đúng vai trò đối tác, lưu. Tài khoản lai (giữ thêm quyền nội bộ) cũng hiện ở đây nhưng không gán được
  * vai trò nhóm bên ngoài (LC-1) — chủ quyết bỏ bên quyền nào.
  */
-export const CAU_DOC_TAI_KHOAN =
+export const CAU_DOC_TAI_KHOAN_ADR_0185 =
   "SELECT s.id, s.party_id FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.permission_type_code = 'PARTNER' AND p.valid_to_at IS NULL WHERE s.active = 1 AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = s.party_id AND g.role_group = 'EXTERNAL') AND NOT EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_pty_role_type t ON t.code = r.role_type_code WHERE r.party_id = s.party_id AND t.role_group = 'OTHER' AND t.is_partner_label = 1);";
+/**
+ * ADR-0213 Đ9 (chủ duyệt 2026-11-16): vế thêm — hồ sơ có liên kết «Người quản lý của» / «Thành viên của» đang mở (view v_pty_org_link) tới tổ chức mang vai nhóm
+ * bên ngoài hoặc loại đối tác thì KHÔNG thiếu vai. Câu của ADR-0185 giữ nguyên văn (bài kiểm so với tệp ADR), vế này nối vào cuối — cùng vế với trigger lc1c tạo lại
+ * (migration *_dang_ky_quan_ly_to_chuc) và R-LC-1c.
+ */
+export const VE_LIEN_KET_TO_CHUC =
+  " AND NOT EXISTS (SELECT 1 FROM v_pty_org_link k JOIN v_pty_open_role r ON r.party_id = k.org_party_id JOIN v_pty_role_type t ON t.code = r.role_type_code WHERE k.person_party_id = s.party_id AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))";
+export const CAU_DOC_TAI_KHOAN = `${CAU_DOC_TAI_KHOAN_ADR_0185.replace(/;$/, "")}${VE_LIEN_KET_TO_CHUC};`;
 
 /**
  * Đ3 mục 2 (kế hoạch K11) — đơn ĐÃ XÁC NHẬN, chưa «Khách đã trả đủ», người lập đang giữ quyền Đối tác, mà bản chụp hoa hồng HIỆN HÀNH (bản chưa bị bản nào thay)

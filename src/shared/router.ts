@@ -1,7 +1,7 @@
 // Router tối giản cho Worker (không thư viện). Module khai route: phương thức + đường dẫn + mức truy cập; router lo phần chung:
 // khớp đường dẫn, 401/403/404/405 thống nhất, chặn ghi cross-site (CSRF), bắt lỗi toàn cục → 500 JSON có requestId.
 // Router KHÔNG import module nào: cách xác định "ai đang đăng nhập" do gốc lắp ráp (src/index.ts) truyền vào.
-import type { StaffProfile } from "./contracts";
+import type { DanhMucTraSauDichVu, StaffProfile } from "./contracts";
 import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
 import { NGUONG_MAC_DINH } from "./giay-to-hien-thi.ts";
 import { error, json } from "./http.ts";
@@ -10,8 +10,9 @@ import { bocDb } from "./lan-gui-boc.ts";
 import { HEADER_PHAT_LAI, HEADER_VE, ketQuaDeLuu, kiemKhoa, phanLoai, thanPhatLai, type DongVe } from "./lan-gui-luat.ts";
 import { laMienLanGui } from "./lan-gui-mien.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
+import type { LoDuyetDangKyRa, LoDuyetDangKyVao } from "./dang-ky-duyet.ts";
 import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "./dat-coc-kieu.ts";
-import type { KetQuaKiemTraSau } from "./tra-sau.ts";
+import type { HoiTraSau, KetQuaKiemTraSau } from "./tra-sau.ts";
 import type { NguonVe } from "./nguon-ve.ts";
 import { dongBoDiThang, type DongBoTheoDon, type VaoDongBoTheoDon } from "./dong-bo-chuyen.ts";
 import type { ChuyenChoTin, HoiChuyenChoTin } from "./tin-chuyen.ts";
@@ -19,6 +20,7 @@ import type { KetQuaLoiMoi, KhungGioHanhChinh } from "./ban-hang-phu-trach.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, type PermissionCode } from "./permissions.ts";
 import { quyenThat } from "./xem-nhu-vai.ts";
 import type { TruongDaGiai } from "./ui-truong.ts";
+import { chonTuCach, type KetQuaChonTuCach, type TuCachDong } from "./booker.ts";
 
 /**
  * public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014);
@@ -130,6 +132,11 @@ export interface GopHoSoNoi {
  */
 export type HoiDaChup = { loai: "MUC"; ruleId: string } | { loai: "GAN"; tierCode: string; tu: string; den: string | null; partyId: string | null };
 
+/** ADR-0213 Đ2.8: người quản lý có hiệu lực của một tổ chức (hồ sơ + tài khoản). */
+export interface NguoiQuanLyHieuLuc { personPartyId: string; staffId: string }
+/** ADR-0213 Đ2.6: kết luận «gắn được vào tổ chức» của một hồ sơ cá nhân. */
+export type KetLuanGanToChuc = "DUOC" | "KHONG_TAI_KHOAN" | "KHONG_DOI_TAC" | "QUYEN_KHAC" | "NGUNG";
+
 export interface Ctx<A extends Access = Access> {
   request: Request;
   env: Env;
@@ -223,6 +230,19 @@ export interface Ctx<A extends Access = Access> {
    */
   mocToiThieu: () => Promise<MocToiThieu | null>;
   /**
+   * TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7; đợt 1 Task 7) — do gốc lắp ráp tiêm (`dang-ky.chuaKichHoat`; `accounts` KHÔNG import `dang-ky`, khuôn `isAssigned`). Đúng khi tài khoản sinh từ phiếu
+   * đã duyệt mà người đăng ký chưa đặt PIN: các lệnh hỗ trợ đăng nhập (đặt lại PIN, mở khoá, kích hoạt lại, tắt lớp hai) từ chối. Một truy vấn D1 mỗi lần gọi. Tiêm là BẮT BUỘC ở
+   * `createApp` (thiếu thì typecheck đỏ): không có đường mặc định cho qua.
+   */
+  chuaKichHoat: (staffId: string) => Promise<boolean>;
+  /** Cùng luật, MỘT truy vấn cho cả danh sách tài khoản (Task 12 vòng sửa 1, I-1): mọi mã tài khoản chưa kích hoạt. BẮT BUỘC như `chuaKichHoat`. */
+  taiKhoanChuaKichHoat: () => Promise<Set<string>>;
+  /**
+   * LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5; đợt 1 Task 8) — do gốc lắp ráp tiêm: ghép câu CHƯA CHẠY của dang-ky (câu chốt, phiếu, ẩn danh), parties, staff (và pricing ở Task 11)
+   * theo đúng thứ tự Đ5 (ADR-0206 Đ2, ADR-0209 Đ6). Không chạy gì; route `dang-ky` chạy MỘT `db.batch`. BẮT BUỘC (như `chuaKichHoat`): thiếu thì typecheck đỏ.
+   */
+  loDuyetDangKy: (v: LoDuyetDangKyVao) => Promise<LoDuyetDangKyRa>;
+  /**
    * CHÍNH SÁCH GIAO DIỆN ÁP CHO NGƯỜI GỌI (ADR-0194 đợt 1) — do gốc lắp ráp tiêm (`giao-dien.chinhSachChoNguoi`; `orders` KHÔNG import `giao-dien`, khuôn `mocToiThieu`). Hợp của mọi quyền
    * của người gọi, chỉ trường KHÁC mặc định. Không tiêm (khung thử cũ) HOẶC không đăng nhập HOẶC đọc lỗi ⇒ `[]` = hành vi hôm nay (mặc định đầy đủ — không ẩn, không bắt buộc thêm).
    * MỘT truy vấn D1 mỗi lần gọi; route gọi đúng một lần mỗi request.
@@ -266,6 +286,31 @@ export interface Ctx<A extends Access = Access> {
    */
   taiKhoanXacMinh: () => Promise<TaiKhoanXacMinh[]>;
   /**
+   * NGƯỜI QUẢN LÝ CÓ HIỆU LỰC của một tổ chức (ADR-0213 Đ2.8; mốc B1 Task 10) — do gốc lắp ráp tiêm (`parties` không import `staff`; khuôn `partyAccount`). Khác null khi và chỉ khi:
+   * liên kết «Người quản lý của» đang mở VÀ tài khoản của người đó đang bật (`active = 1`) VÀ còn quyền Đối tác VÀ hồ sơ của họ chưa gộp VÀ tổ chức còn vai nhóm bên ngoài hoặc loại
+   * đối tác — đúng điều kiện bất biến R-TC-4. Trả id hồ sơ + id tài khoản (route so `staffId` với người gọi). Chưa đăng nhập hoặc môi trường không tiêm ⇒ null (từ chối, không đoán).
+   */
+  nguoiQuanLyCoHieuLuc: (orgPartyId: string) => Promise<NguoiQuanLyHieuLuc | null>;
+  /**
+   * TÀI KHOẢN GẮN ĐƯỢC VÀO TỔ CHỨC (ADR-0213 Đ2.6) — do gốc lắp ráp tiêm (`staff` + `dang-ky.chuaKichHoat`). Kết luận, không trả quyền hay số điện thoại: hồ sơ có tài khoản giữ quyền
+   * Đối tác, KHÔNG giữ quyền nào khác (nội bộ, Tài xế đối tác), và đang bật HOẶC đã duyệt từ phiếu mà chưa kích hoạt (ADR-0207 Đ7). Môi trường không tiêm ⇒ `KHONG_TAI_KHOAN` (từ chối).
+   */
+  taiKhoanGanDuoc: (personPartyId: string) => Promise<KetLuanGanToChuc>;
+  /**
+   * NGƯỜI MỜI CÒN QUYỀN MỜI (ADR-0213 Đ7.4, Đ7.5; mốc B2 Task 15) — do gốc lắp ráp tiêm (`parties`, `dang-ky` không đọc bảng `staff`). Đúng khi tài khoản `staffId` (người tạo lời mời)
+   * vẫn là người quản lý có hiệu lực của `orgPartyId` (Đ2.8), HOẶC vẫn đang bật, giữ ô `partner.org.manager.write` và không giữ quyền Đối tác (văn phòng — Đ6). `staffId` rỗng, chưa đăng
+   * nhập hoặc môi trường không tiêm ⇒ false (từ chối, không đoán).
+   */
+  conQuyenMoi: (staffId: string | null, orgPartyId: string) => Promise<boolean>;
+  /**
+   * BỘ ĐẾM LƯỢT GÕ SAI MÃ VÀO TỔ CHỨC (ADR-0213 Đ7.3; mốc B2 Task 15) — `reserveAttempts` / `clearAttempts` của auth, do gốc lắp ráp tiêm (parties không import auth: auth → parties đã có).
+   * `giu` đặt chỗ MỘT lượt cho khoá `key` trong cửa sổ `windowMs` (đủ `max` ⇒ không cho); `bo` trả lại lượt đã đặt (gõ đúng không tính). Môi trường không tiêm ⇒ `giu` luôn từ chối.
+   */
+  luotThu: {
+    giu: (key: string, max: number, windowMs: number) => Promise<{ allowed: true; ids: Record<string, string> } | { allowed: false; retryAfterSeconds: number }>;
+    bo: (ids: Record<string, string>) => Promise<void>;
+  };
+  /**
    * ADR-0126 đ8 — câu ẩn danh IP / User-Agent mọi phiên của MỘT tài khoản, do `auth` cấp, gốc lắp ráp tiêm (parties không import auth — khuôn `gopHoSo.cauDoiDon`).
    * Không tiêm (khung thử cũ) → null ⇒ route Thực hiện trả 503, KHÔNG thực hiện thiếu phần sổ phiên.
    */
@@ -273,17 +318,68 @@ export interface Ctx<A extends Access = Access> {
   /** ADR-0126 đ8 — số ngày giữ IP / User-Agent của phiên đã kết thúc, đọc từ chính sách riêng tư hiện hành (parties). null = chưa có số. Gốc lắp ráp tiêm (accounts không import parties). */
   hanGiuPhienNgay: () => Promise<number | null>;
   /**
+   * ẢNH BÀN GIAO (ADR-0232 Đ4) — người đang đăng nhập (theo `partyId`) có đang có dòng lái MỞ trên một chuyến (chưa huỷ) chở lượt đón `legId` không. Tính trong
+   * `van-chuyen` (khuôn ô `trip.*` của tài xế — không dùng `ctx.isAssigned`); gốc lắp ráp tiêm (không module nào import van-chuyen). Chưa đăng nhập / không hồ sơ /
+   * không tiêm (khung thử cũ) ⇒ false (từ chối, không đoán).
+   */
+  taiXeLaiChang: (legId: string) => Promise<boolean>;
+  /** ADR-0232 Đ2, Đ10 — số năm giữ Ảnh bàn giao của chính sách riêng tư đang hiệu lực (parties). null = bản hiện hành chưa có mục ảnh ⇒ không nhận ảnh mới. Không tiêm ⇒ null. */
+  soNamGiuAnh: () => Promise<number | null>;
+  /**
+   * ADR-0232 Đ7 (biến thể 7B) — câu CHƯA CHẠY của anh-ban-giao: quyết gỡ mọi ảnh đã đánh dấu vào phiếu xoá `phieuId` (mã XOA_THEO_YEU_CAU), để route Thực hiện phiếu
+   * của `parties` gộp vào CÙNG lô ẩn danh hoá. Không tiêm (khung thử cũ) ⇒ [] (phiếu vẫn chạy như trước; ảnh đã đánh dấu ở lại chờ). `xoaKhoAnhTheoPhieu` chạy SAU lô
+   * (xoá đối tượng R2 — không bao giờ ném).
+   */
+  cauXoaAnhTheoPhieu: (phieuId: string, at: string, by: string) => D1PreparedStatement[];
+  xoaKhoAnhTheoPhieu: (phieuId: string) => Promise<void>;
+  /**
    * BÊN ĐẶT MÁY CHỦ ÉP CHO NGƯỜI GỌI (sổ đại lý đợt 1, Task 11; Ruling 21) — do gốc lắp ráp tiêm (`pricing.nguoiHuongCuaHoSo`; `auth` KHÔNG import `pricing`, không nới ALLOWED_EDGES — khuôn
    * `mocToiThieu`, `nhanNhanVien`). Khác null khi và chỉ khi người gọi giữ quyền Đối tác, có hồ sơ, và hồ sơ đó đang mang vai được hưởng hoa hồng — ĐÚNG điều kiện `benDatChoTaiKhoan` ép bên đặt. Chỉ id + tên hồ sơ.
    * Người gọi không giữ quyền Đối tác thì KHÔNG truy vấn (mọi lời gọi `/api/auth/me` đi qua đây). Môi trường không tiêm (khung thử cũ) ⇒ null.
    */
   benDatCuaToi: () => Promise<{ partyId: string; ten: string } | null>;
   /**
+   * TƯ CÁCH CỦA NGƯỜI GỌI (ADR-0213 Đ3.1–Đ3.3; mốc B1 Task 11) — do gốc lắp ráp tiêm (`pricing` + `parties` + `staff`; `orders`, `parties` không import nhau, khuôn `mocToiThieu`).
+   * Tư cách cá nhân khi hồ sơ của mình mang vai được hưởng (ĐÚNG điều kiện ép bên đặt hôm nay); tổ chức nơi mình là người quản lý CÓ HIỆU LỰC (Đ2.8) và tổ chức còn vai được hưởng.
+   * Ruling R4: thành viên mở ở B2. Người không giữ quyền Đối tác, chưa đăng nhập, môi trường không tiêm ⇒ `[]` (đường hôm nay — không ai thay mặt tổ chức nào).
+   */
+  tuCachCuaToi: () => Promise<TuCachDong[]>;
+  /**
+   * KIỂM TƯ CÁCH Ở MỘT CHỖ (Đ3.2): `chonTuCach(tuCachCuaToi(), tuCach)` — route lập / lưu đơn gọi hàm này, không tự tính. `chon: null` = đường «không tư cách» (hành vi hôm nay).
+   */
+  benDangThayMat: (tuCach: unknown) => Promise<KetQuaChonTuCach>;
+  /**
+   * NGƯỜI QUẢN LÝ CỦA BÊN ĐẶT (ADR-0213 Đ5, Đ2.8; mốc B1 Task 12) — do gốc lắp ráp tiêm (`parties` + `staff` qua `nguoiQuanLyCoHieuLuc`; `orders`, `billing`, `receipt` không đọc bảng của
+   * `parties`, khuôn `isAssigned`). Đúng khi người gọi giữ quyền Đối tác VÀ đang là người quản lý CÓ HIỆU LỰC của hồ sơ `partyId` (thường là bên đặt của đơn). Tính MỖI LẦN GỌI, không nhớ giữa
+   * các request. Người gọi không giữ quyền Đối tác / `partyId` null / chưa đăng nhập / môi trường không tiêm ⇒ `false` KHÔNG truy vấn (đóng kín). Kết quả đi vào `can()` ở cờ `quanLyBenDat`.
+   */
+  laQuanLyCuaBen: (partyId: string | null) => Promise<boolean>;
+  /**
+   * CÁC TỔ CHỨC NGƯỜI GỌI ĐANG LÀ NGƯỜI QUẢN LÝ CÓ HIỆU LỰC (ADR-0213 Đ5; Task 12) — cùng định nghĩa với `laQuanLyCuaBen` (gốc lắp ráp dùng chung một hàm). Cho các câu danh sách / đếm lọc bằng SQL
+   * («Đơn của tôi») và sổ Trả sau của tổ chức. Không giữ quyền Đối tác / không tiêm ⇒ `[]` không truy vấn.
+   */
+  toChucToiQuanLy: () => Promise<string[]>;
+  /**
+   * CHẾ ĐỘ THÀNH VIÊN HIỆN HÀNH CỦA TỔ CHỨC (ADR-0213 Đ8.2; mốc B2 Task 16) — do gốc lắp ráp tiêm (`parties`; orders không đọc bảng của parties). Cho ngoại lệ nháp có tên (`xem-don-nhap.ts`).
+   * Không dòng cài đặt, chưa đăng nhập, môi trường không tiêm ⇒ «Soạn và gửi» (SOAN_VA_GUI — mặc định Đ8.2, cũng là chế độ ÍT lộ nháp nhất: đóng kín).
+   */
+  cheDoThanhVien: (orgPartyId: string) => Promise<"CHI_SOAN" | "SOAN_VA_GUI">;
+  /**
+   * NGƯỜI LẬP CÒN THAY MẶT TỔ CHỨC (ADR-0213 Đ5 «Nháp của người đã rời tổ chức»; Task 16 vòng sửa 1, I-2) — do gốc lắp ráp tiêm (staff + parties + pricing, cùng định nghĩa tư cách của Đ3.2).
+   * Đúng khi tài khoản `staffId` đang bật và `orgPartyId` có trong tư cách hiện có của tài khoản đó. Thiếu hàm (khung thử cũ) ⇒ false (đóng kín: không trả lại).
+   */
+  nguoiLapConThayMat: (staffId: string, orgPartyId: string) => Promise<boolean>;
+  /**
    * DỊCH VỤ BỊ LUẬT BÁN CHẶN CHO NGƯỜI GỌI (ADR-0146 Đ4; kế hoạch 2026-10-30 T9, R-3) — do gốc lắp ráp tiêm (`pricing.kiemLuatBan`; `catalog` KHÔNG import `pricing`). Trong `codes`,
    * các mã mà luật bán đang chặn cho BÊN ĐẶT MÁY CHỦ ÉP của người gọi (cùng điều kiện `benDatCuaToi`); người gọi không bị ép bên đặt ⇒ tập rỗng. Chỉ để LỌC danh mục form lập đơn —
    * cổng thật là 409 `sales_blocked` ở các cửa ghi đơn. Môi trường không tiêm (khung thử cũ), mảng rỗng, chưa đăng nhập ⇒ tập rỗng (không lọc).
    */
   dichVuBiChanChoToi: (codes: readonly string[]) => Promise<ReadonlySet<string>>;
+  /**
+   * DANH MỤC CHO DẤU «TRẢ SAU THEO DỊCH VỤ» (ADR-0178 Đ2, ADR-0230 Đ1) — do gốc lắp ráp tiêm (`catalog`; `billing` KHÔNG import `catalog`): tên, nhóm hiện tại, «Có vé» và
+   * «Vé do ai phát» đã gộp của mọi dịch vụ, tên + cờ bật của mọi nhóm. KHÔNG tự kiểm quyền. Môi trường không tiêm, chưa đăng nhập ⇒ `null` (route đặt dấu 503, không đoán «hợp lệ»).
+   */
+  danhMucTraSauDichVu: () => Promise<DanhMucTraSauDichVu | null>;
   /** GỘP HỒ SƠ (ADR-0068) — do gốc lắp ráp tiêm; xem `GopHoSoNoi`. Lười: chỉ gọi hàm tiêm khi route dùng (khung thử cũ không có hàm này vẫn chạy route khác). */
   gopHoSo: GopHoSoNoi;
   /** ADR-0155 C3 — xem `ViecDoKhiThoiVai`. `null` = môi trường không tiêm (khung thử cố ý) ⇒ route từ chối gỡ (503), không đoán «không có việc dở». */
@@ -309,7 +405,7 @@ export interface Ctx<A extends Access = Access> {
    * ADR-0168 Đ2 mục 3, 4: cổng hạn mức Trả sau do billing dựng (`orders` không import billing). `null` = không tiêm: đơn Trả sau bị chặn 503, KHÔNG đoán «đủ hạn mức».
    * `cauGacPhienBanTraSau` dựng câu gác phiên bản của lô xác nhận (không tiêm ⇒ rỗng; chỉ dùng sau khi `kiemTraSau` đã trả `ok`). `traSauCuaDon`: hạn trả và nợ của MỘT đơn (`null` = không phải Trả sau / không đọc được).
    */
-  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" | "doi_ben" }) => Promise<KetQuaKiemTraSau | null>;
+  kiemTraSau: (i: HoiTraSau) => Promise<KetQuaKiemTraSau | null>;
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
   traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; cocConGiu?: number; benDat?: string | null; version?: number } | null>;
   /** ADR-0168 Đ3 mục 3: đơn đã có vé bị mở (lộ) cho khách chưa — `ve-dien-tu` trả lời, `orders` không import nó. `null` = không tiêm / không đọc được ⇒ cổng huỷ đơn Trả sau còn nợ chặn 503. */
@@ -364,6 +460,8 @@ export interface Ctx<A extends Access = Access> {
    * KHÔNG BAO GIỜ đoán «chưa chụp». MỘT truy vấn mỗi lần gọi.
    */
   hoiDaChup: (q: HoiDaChup) => Promise<{ ngay: string | null } | null>;
+  /** ADR-0220 Đ5: số ĐƠN ĐÃ XÁC NHẬN có dịch vụ thuộc `codes` với ngày khởi hành trong khoảng — do gốc lắp ráp tiêm (`orders`); `catalog` không đọc bảng đơn. `null` = không tiêm / lỗi. */
+  demDonTrongKhoangNgay: (q: { codes: readonly string[]; tuNgay: string; denNgay: string }) => Promise<number | null>;
   /**
    * TIN CHUYẾN (ADR-0052 D6.3) — dữ kiện chuyến theo id (mã, ngày, khoảng lái, đơn của suất vắng) do gốc lắp ráp tiêm (`van-chuyen.chuyenChoTinTheoId`;
    * thongbao không import van-chuyen). Một lần gọi = ba truy vấn mảng JSON (mảng chuyến rỗng: không truy vấn). `null` = môi trường không tiêm (khung thử cố ý)
@@ -482,6 +580,12 @@ export interface AppOptions {
      * router trả `null` ⇒ `orders` chặn lệnh cần mốc (khuôn `isAssigned`: không bao giờ lặng lẽ "không có mốc").
      */
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
+    /** TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7). BẮT BUỘC (như `mocToiThieu`): bản thật ở `src/index.ts` (`chuaKichHoat` của dang-ky); thiếu thì typecheck đỏ — không có mặc định cho qua. */
+    chuaKichHoat: (env: Env, staffId: string) => Promise<boolean>;
+    /** Danh sách tài khoản chưa kích hoạt — MỘT truy vấn (Task 12 vòng sửa 1). BẮT BUỘC: bản thật ở `src/index.ts` (`taiKhoanChuaKichHoat` của dang-ky). */
+    taiKhoanChuaKichHoat: (env: Env) => Promise<Set<string>>;
+    /** LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5). BẮT BUỘC: bản thật ở `src/index.ts`; thiếu thì typecheck đỏ. */
+    loDuyetDangKy: (env: Env, v: LoDuyetDangKyVao) => Promise<LoDuyetDangKyRa>;
     /** CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1). Bản thật ở `src/index.ts` (`chinhSachChoNguoi` của giao-dien); thiếu (khung thử cũ) ⇒ `[]` — không đổi hành vi. */
     chinhSachGiaoDien?: (env: Env, actor: StaffProfile) => Promise<TruongDaGiai[]>;
     /** KHU VỰC ĐÓN ĐANG BẬT (Task 4). Bản thật ở `src/index.ts` (`vungDangBat` của locations); thiếu (khung thử cũ) ⇒ `[]`. */
@@ -496,14 +600,41 @@ export interface AppOptions {
     nhanNhanVien: (env: Env, ids: readonly string[]) => Promise<Map<string, string>>;
     /** ADR-0125 đ3, đ5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `taiKhoanChoXacMinh` của staff); thiếu (khung thử cũ) → router trả `[]` (chỉ Toàn quyền xác minh được). */
     taiKhoanXacMinh: (env: Env) => Promise<TaiKhoanXacMinh[]>;
+    /** ADR-0213 Đ2.8. Mã chạy thật (`src/index.ts`: parties + staff); thiếu (khung thử cố ý) → router trả `null` (không ai là người quản lý có hiệu lực). */
+    nguoiQuanLyCoHieuLuc?: (env: Env, orgPartyId: string) => Promise<NguoiQuanLyHieuLuc | null>;
+    /** ADR-0213 Đ2.6. Mã chạy thật (`src/index.ts`: staff + dang-ky); thiếu (khung thử cố ý) → router trả `KHONG_TAI_KHOAN`. */
+    taiKhoanGanDuoc?: (env: Env, personPartyId: string) => Promise<KetLuanGanToChuc>;
+    /** ADR-0213 Đ7.4, Đ7.5. Mã chạy thật (`src/index.ts`: staff + parties); thiếu (khung thử cố ý) → router trả `false`. */
+    conQuyenMoi?: (env: Env, staffId: string, orgPartyId: string) => Promise<boolean>;
+    /** ADR-0213 Đ7.3. Mã chạy thật (`src/index.ts`: auth); thiếu (khung thử cố ý) → `giu` luôn từ chối. */
+    luotThuGiu?: (env: Env, key: string, max: number, windowMs: number) => Promise<{ allowed: true; ids: Record<string, string> } | { allowed: false; retryAfterSeconds: number }>;
+    luotThuBo?: (env: Env, ids: Record<string, string>) => Promise<void>;
     /** ADR-0126 đ8. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `anDanhPhienCuaTaiKhoanStatement` của auth); thiếu (khung thử cũ) → router trả `null` (route Thực hiện 503). */
     cauAnDanhPhien: (env: Env, staffId: string, at: string, by: string) => D1PreparedStatement;
     /** ADR-0126 đ8. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `hanGiuPhienNgay` của parties); thiếu (khung thử cũ) hoặc chưa đăng nhập → `null`. */
     hanGiuPhienNgay: (env: Env) => Promise<number | null>;
+    /** ADR-0232 Đ4. Mã chạy thật (`src/index.ts`: van-chuyen); thiếu → false. `driverPartyId` = hồ sơ của người đang đăng nhập. */
+    taiXeLaiChang?: (env: Env, driverPartyId: string, legId: string) => Promise<boolean>;
+    /** ADR-0232 Đ10. Mã chạy thật (`src/index.ts`: parties); thiếu → null (không nhận ảnh). */
+    soNamGiuAnh?: (env: Env) => Promise<number | null>;
+    /** ADR-0232 Đ7 (7B). Mã chạy thật (`src/index.ts`: anh-ban-giao); thiếu → [] / không làm gì. */
+    cauXoaAnhTheoPhieu?: (env: Env, phieuId: string, at: string, by: string) => D1PreparedStatement[];
+    xoaKhoAnhTheoPhieu?: (env: Env, phieuId: string) => Promise<void>;
     /** Task 11 (Ruling 21). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` của pricing, chỉ cho tài khoản giữ quyền Đối tác); thiếu (khung thử cũ) → router trả `null`. */
     benDatCuaToi: (env: Env, actor: StaffProfile) => Promise<{ partyId: string; ten: string } | null>;
+    /** ADR-0213 Đ3 (Task 11). BẮT BUỘC (như `mocToiThieu`): bản thật ở `src/index.ts`; thiếu thì typecheck đỏ. Khung thử dựng `injected` thiếu hàm ⇒ router trả `[]` (đường hôm nay). */
+    tuCachCuaToi: (env: Env, actor: StaffProfile) => Promise<TuCachDong[]>;
+    /** ADR-0213 Đ5 (Task 12). BẮT BUỘC (như `tuCachCuaToi`): bản thật ở `src/index.ts`. Khung thử dựng `injected` thiếu hàm ⇒ router trả `false` / `[]` (đóng kín). */
+    laQuanLyCuaBen: (env: Env, actor: StaffProfile, partyId: string) => Promise<boolean>;
+    toChucToiQuanLy: (env: Env, actor: StaffProfile) => Promise<string[]>;
+    /** ADR-0213 Đ8.2 (Task 16). Bản thật ở `src/index.ts`; thiếu (khung thử cũ) ⇒ router trả «SOAN_VA_GUI». */
+    cheDoThanhVien?: (env: Env, orgPartyId: string) => Promise<"CHI_SOAN" | "SOAN_VA_GUI">;
+    /** ADR-0213 Đ5 (Task 16 vòng sửa 1). Bản thật ở `src/index.ts`; thiếu ⇒ router trả false. */
+    nguoiLapConThayMat?: (env: Env, staffId: string, orgPartyId: string) => Promise<boolean>;
     /** ADR-0146 Đ4 (T9). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` + `kiemLuatBan` của pricing); thiếu (khung thử cũ) → router trả tập rỗng. */
     dichVuBiChanChoToi: (env: Env, actor: StaffProfile, codes: readonly string[]) => Promise<ReadonlySet<string>>;
+    /** ADR-0178 Đ2, ADR-0230 Đ1. Mã chạy thật (`src/index.ts`: `danhMucChoTraSauDichVu` của catalog); thiếu (khung thử cũ) → router trả `null`. */
+    danhMucTraSauDichVu?: (env: Env) => Promise<DanhMucTraSauDichVu>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
     gopHoSo: (env: Env) => GopHoSoNoi;
     /** ADR-0155 C3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `donChuaXacNhanCua` của orders + `viecDoKhiThoiVai` của pricing); thiếu (khung thử cố ý) → router trả `null`. */
@@ -515,7 +646,8 @@ export interface AppOptions {
     /** ADR-0159. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` / câu chặn 503. */
     cauCocKhiXacNhan: (env: Env, i: VaoCauCoc) => Promise<CauCocXacNhan>;
     /** ADR-0168. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` (đơn Trả sau bị chặn 503) / câu gác rỗng. */
-    kiemTraSau: (env: Env, i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" | "doi_ben" }) => Promise<KetQuaKiemTraSau>;
+    /** ADR-0230 Đ1: `null` = không đọc được danh mục khi đơn đã chụp loại SERVICE (không đoán). */
+    kiemTraSau: (env: Env, i: HoiTraSau) => Promise<KetQuaKiemTraSau | null>;
     cauGacPhienBanTraSau: (env: Env, partyId: string, version: number, at: string) => D1PreparedStatement[];
     traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; cocConGiu?: number; benDat?: string | null; version?: number } | null>;
     /** ADR-0168 Đ3 mục 3, ADR-0170 Đ3: BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`); `null` = không đọc được ⇒ người giữ quyền Đối tác KHÔNG huỷ / sửa số khách được (chặn, không đoán). */
@@ -546,6 +678,8 @@ export interface AppOptions {
     tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null>;
     /** ADR-0148 Đ1. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ngayChupGanNhat` của orders); thiếu (khung thử cố ý) → router trả `null` (route Sửa / Đổi / Ngừng của pricing 503). */
     hoiDaChup: (env: Env, q: HoiDaChup) => Promise<string | null>;
+    /** ADR-0220 Đ5. Thiếu (khung thử cố ý) → router trả `null`. */
+    demDonTrongKhoangNgay: (env: Env, q: { codes: readonly string[]; tuNgay: string; denNgay: string }) => Promise<number>;
     /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
     chuyenChoTin: (env: Env, q: HoiChuyenChoTin) => Promise<ChuyenChoTin>;
     /**
@@ -680,6 +814,9 @@ export function createApp(opts: AppOptions) {
       giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(envH) : Promise.resolve(null)),
+      chuaKichHoat: (staffId) => opts.injected.chuaKichHoat(envH, staffId),
+      taiKhoanChuaKichHoat: () => opts.injected.taiKhoanChuaKichHoat(envH),
+      loDuyetDangKy: (v) => opts.injected.loDuyetDangKy(envH, v),
       vungDon: () => (typeof opts.injected.vungDon === "function" ? opts.injected.vungDon(envH) : Promise.resolve([])),
       chinhSachGiaoDien: async () => {
         if (!who || typeof opts.injected.chinhSachGiaoDien !== "function") return [];
@@ -710,11 +847,32 @@ export function createApp(opts: AppOptions) {
       nhanNhanVien: (ids) =>
         typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(envH, ids),
       taiKhoanXacMinh: () => (who && typeof opts.injected.taiKhoanXacMinh === "function" ? opts.injected.taiKhoanXacMinh(envH) : Promise.resolve([])),
+      nguoiQuanLyCoHieuLuc: (org) => (who && typeof opts.injected.nguoiQuanLyCoHieuLuc === "function" ? opts.injected.nguoiQuanLyCoHieuLuc(envH, org) : Promise.resolve(null)),
+      taiKhoanGanDuoc: (p) => (who && typeof opts.injected.taiKhoanGanDuoc === "function" ? opts.injected.taiKhoanGanDuoc(envH, p) : Promise.resolve("KHONG_TAI_KHOAN" as const)),
+      conQuyenMoi: (id, org) => (who && id && typeof opts.injected.conQuyenMoi === "function" ? opts.injected.conQuyenMoi(envH, id, org) : Promise.resolve(false)),
+      luotThu: {
+        giu: (k, max, ms) => (who && typeof opts.injected.luotThuGiu === "function" ? opts.injected.luotThuGiu(envH, k, max, ms) : Promise.resolve({ allowed: false as const, retryAfterSeconds: 60 })),
+        bo: (ids) => (typeof opts.injected.luotThuBo === "function" ? opts.injected.luotThuBo(envH, ids) : Promise.resolve()),
+      },
       cauAnDanhPhien: (id, at, by) => (typeof opts.injected.cauAnDanhPhien === "function" ? opts.injected.cauAnDanhPhien(envH, id, at, by) : null),
       hanGiuPhienNgay: () => (who && typeof opts.injected.hanGiuPhienNgay === "function" ? opts.injected.hanGiuPhienNgay(envH) : Promise.resolve(null)),
+      taiXeLaiChang: (legId) =>
+        who && who.partyId && typeof opts.injected.taiXeLaiChang === "function" ? opts.injected.taiXeLaiChang(envH, who.partyId, legId) : Promise.resolve(false),
+      soNamGiuAnh: () => (who && typeof opts.injected.soNamGiuAnh === "function" ? opts.injected.soNamGiuAnh(envH) : Promise.resolve(null)),
+      cauXoaAnhTheoPhieu: (pid, at, by) => (typeof opts.injected.cauXoaAnhTheoPhieu === "function" ? opts.injected.cauXoaAnhTheoPhieu(envH, pid, at, by) : []),
+      xoaKhoAnhTheoPhieu: (pid) => (typeof opts.injected.xoaKhoAnhTheoPhieu === "function" ? opts.injected.xoaKhoAnhTheoPhieu(envH, pid) : Promise.resolve()),
       benDatCuaToi: () => (who && typeof opts.injected.benDatCuaToi === "function" ? opts.injected.benDatCuaToi(envH, who) : Promise.resolve(null)),
+      tuCachCuaToi: () => (who && typeof opts.injected.tuCachCuaToi === "function" ? opts.injected.tuCachCuaToi(envH, who) : Promise.resolve([])),
+      benDangThayMat: async (tuCach) => chonTuCach(who && typeof opts.injected.tuCachCuaToi === "function" ? await opts.injected.tuCachCuaToi(envH, who) : [], tuCach),
+      laQuanLyCuaBen: (partyId) =>
+        who && partyId !== null && who.permissions.includes("PARTNER") && typeof opts.injected.laQuanLyCuaBen === "function" ? opts.injected.laQuanLyCuaBen(envH, who, partyId) : Promise.resolve(false),
+      toChucToiQuanLy: () =>
+        who && who.permissions.includes("PARTNER") && typeof opts.injected.toChucToiQuanLy === "function" ? opts.injected.toChucToiQuanLy(envH, who) : Promise.resolve([]),
+      nguoiLapConThayMat: (sid, org) => (who && typeof opts.injected.nguoiLapConThayMat === "function" ? opts.injected.nguoiLapConThayMat(envH, sid, org) : Promise.resolve(false)),
+      cheDoThanhVien: (org) => (who && typeof opts.injected.cheDoThanhVien === "function" ? opts.injected.cheDoThanhVien(envH, org) : Promise.resolve("SOAN_VA_GUI" as const)),
       dichVuBiChanChoToi: (codes) =>
         who && codes.length > 0 && typeof opts.injected.dichVuBiChanChoToi === "function" ? opts.injected.dichVuBiChanChoToi(envH, who, codes) : Promise.resolve(new Set<string>()),
+      danhMucTraSauDichVu: () => (who && typeof opts.injected.danhMucTraSauDichVu === "function" ? opts.injected.danhMucTraSauDichVu(envH) : Promise.resolve(null)),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.
       gopHoSo: {
         viecCua: (id) => opts.injected.gopHoSo(envH).viecCua(id),
@@ -770,6 +928,10 @@ export function createApp(opts: AppOptions) {
       dichVuChoDoiChieu: async (ngay) => {
         if (typeof opts.injected.dichVuChoDoiChieu !== "function") return null;
         try { return await opts.injected.dichVuChoDoiChieu(envH, ngay); } catch { return null; }
+      },
+      demDonTrongKhoangNgay: async (q) => {
+        if (typeof opts.injected.demDonTrongKhoangNgay !== "function") return null;
+        try { return await opts.injected.demDonTrongKhoangNgay(envH, q); } catch { return null; }
       },
       hoiDaChup: (q) => (typeof opts.injected.hoiDaChup !== "function" ? Promise.resolve(null) : opts.injected.hoiDaChup(envH, q).then((ngay) => ({ ngay }))),
       chuyenChoTin: (q) =>

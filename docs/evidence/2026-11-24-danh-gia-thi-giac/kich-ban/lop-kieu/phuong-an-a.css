@@ -1,0 +1,29 @@
+/* PHƯƠNG ÁN A — «Dọn nhiễu». CHỈ đổi GIÁ TRỊ token ở :root, không có bộ chọn nào khác.
+   Lớp kiểu XEM TRƯỚC của lượt đánh giá thị giác 24/11/2026: được tiêm vào trang thật sau khi tải (chup.mjs --tiem), KHÔNG phải mã sản phẩm.
+   Giữ nguyên: màu thương hiệu, phông nội dung và độ đậm chủ đang đặt ở màn Giao diện công ty, bố cục, chữ trên nút. */
+:root {
+  /* 1. Bề mặt phẳng: khối tách khỏi nền bằng MỘT đường viền mảnh; bóng chỉ còn cho lớp nổi thật (bảng trượt, menu, hộp thoại giữ --shadow-overlay, --shadow-float). */
+  --shadow-card: 0 0 0 0 transparent;
+  --ring-card: 0 0 0 1px var(--c-border);
+  --shadow-card-hover: 0 0 0 1px var(--c-input-border);
+  --shadow-btn-solid: 0 0 0 0 transparent;
+  --shadow-btn-accent: 0 0 0 0 transparent;
+  --shadow-tab-new: 0 0 0 0 transparent;
+  --shadow-search: 0 0 0 1px var(--c-border);
+  --shadow-tile: inset 0 0 0 1px rgba(12, 74, 110, 0.08);
+  --grad-gloss: none;
+  --grad-summary: none;
+  /* 2. Hai bậc bo góc: 8 cho thứ bấm và gõ, 12 cho khối; tròn hẳn chỉ cho huy hiệu và ảnh đại diện. */
+  --radius-xs: 8px;
+  --radius-lg: 12px;
+  --radius-tile: 12px;
+  /* 3. Một họ phông: tiêu đề dùng chính phông nội dung chủ đang chọn (núm «Phông tiêu đề» vẫn còn đó nếu chủ muốn tách). */
+  --font-display: var(--font);
+  /* 4. Thang chữ sáu bậc 12 / 14 / 16 / 18 / 24 / 32: gộp các bậc cách nhau 1–2 điểm (13, 17, 20, 22, 26, 28). */
+  --fs-step-2: 12px;
+  --fs-step-6: 16px;
+  --fs-step-9: 18px;
+  --fs-step-10: 24px;
+  --fs-step-12: 24px;
+  --fs-step-13: 32px;
+}

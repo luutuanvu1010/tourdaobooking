@@ -113,7 +113,7 @@ Thẻ đơn biến khỏi Đơn của tôi; người khác thấy đơn ở Đơ
       noiDung: `Làm trên trang đơn (bấm [[Xem đơn]]), khối **Thanh toán**. Khối này ghi **Đã thu**, **Còn lại** và từng khoản thu.
 
 **Ghi tiền khách trả:**
-1. Bấm [[Ghi khoản thu]].
+1. Bấm [[Nhập khoản thu]].
 2. Gõ số tiền, chọn hình thức, chọn người thu tiền: [[Tôi thu]] (tiền mặt bạn cầm) hoặc [[Công ty (vào tài khoản công ty)]].
 3. Bấm [[Ghi]].
 

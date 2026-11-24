@@ -8,6 +8,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import qrcode from "../web/vendor/qrcode.js";
+import { docQrTuKhung } from "../web/qr-doc-ve.ts";
 
 const GOC = fileURLToPath(new URL("..", import.meta.url));
 const src = readFileSync(new URL("../web/vendor/jsqr.cjs", import.meta.url), "utf8");
@@ -85,4 +86,15 @@ test("đọc đúng chuỗi 36 chữ số do bộ vẽ QR tạo; ảnh trắng k
   const { data, canh } = veDiemAnh(chuoi);
   assert.equal(doc(data, canh, canh)?.data, chuoi);
   assert.equal(doc(new Uint8ClampedArray(400 * 400 * 4).fill(255), 400, 400), null);
+});
+
+test("docQrTuKhung (khung camera trang Quét vé, Việc 9 21/11): đọc mã đen trên trắng; KHÔNG thử đảo màu — mã trắng trên đen trả null (mỗi khung đọc một lượt)", () => {
+  const ma = "TD1.ABCDEFGHJKMNPQRSTVWXYZ01";
+  const { data, canh } = veDiemAnh(ma);
+  const khung = (d: Uint8ClampedArray) => ({ data: d, width: canh, height: canh, colorSpace: "srgb" }) as unknown as ImageData;
+  // Mỗi lần đọc một bản sao riêng: bộ đọc có thể đổi mảng điểm ảnh nó nhận (đo 21/11: tạo ảnh đảo từ mảng đã đọc thì không đọc lại được).
+  const dao = () => Uint8ClampedArray.from(data, (v, i) => (i % 4 === 3 ? v : 255 - v));
+  assert.equal(napBoDoc()(dao(), canh, canh)?.data, ma, "bộ đọc mặc định (thử cả hai chiều) vẫn đọc được mã đảo màu — chứng tỏ ca dưới đo đúng tuỳ chọn");
+  assert.equal(docQrTuKhung(khung(dao())), null);
+  assert.equal(docQrTuKhung(khung(Uint8ClampedArray.from(data))), ma);
 });

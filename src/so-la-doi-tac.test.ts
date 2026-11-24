@@ -51,6 +51,8 @@ function nhap(w: W, chu: string, booker: string | null, dv: [string | null, numb
     w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, ?, ?, ?, ?, 1, ?)`).run(s, id, i, code, `DV ${i}`, code ? "perPax" : "manual", vnHomNay());
     w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, ?, ?, 'Người lớn', 1, ?, ?, ?)`)
       .run(`${s}-i`, id, s, code, code ? "adult" : null, t, code ? t : null, t);
+    // ADR-0205: đơn Đối tác lập chỉ xác nhận được khi giá danh mục đã lưu khớp danh mục hôm nay ⇒ gieo giá danh mục bằng đúng giá của dòng.
+    if (code) w.sqlite.prepare("UPDATE catalog_item SET price_adult = ? WHERE code = ?").run(t, code);
   });
   return id;
 }
@@ -443,8 +445,9 @@ test("Task 9 (4) — M-5: đơn bị huỷ đúng lúc giữa hai lần đọc c
     const id = await daXacNhan(w, `pty-${DT_A}`, [["HONTAM", 1_000_000]], DT_A);
     phanCongT9(w, id);
     await ghiT9(w, SUP, id, { soTien: 1_000_000, nguoiThu: "cong_ty" });
-    // Lô đọc đơn đầy đủ của `phanThuongMaiCuaDon` (findOrder — sau `thongTinGiaoDon`): huỷ đơn ngay trước lô đó.
-    w.chenTruocLo((stmts: { sql: string }[]) => stmts.length === 5 && stmts.some((c) => /FROM order_service/.test(c.sql)), () => {
+    // Lô đọc đơn đầy đủ của `phanThuongMaiCuaDon` (findOrder — sau `thongTinGiaoDon`): huỷ đơn ngay trước lô đó. Nhận lô theo NỘI DUNG (câu dịch vụ + câu dòng phí đưa đón
+    // chỉ `findOrder` có — Đợt C), không theo số câu (thêm câu vào lô thì móc theo số câu lặng lẽ không chạy).
+    w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((c) => /FROM order_service/.test(c.sql)) && stmts.some((c) => /line_kind = 'TRANSFER_FEE'/.test(c.sql) && /JOIN ord_transfer_leg/.test(c.sql)), () => {
       // Người khác huỷ đơn (trigger 0078 đòi lý do huỷ có trước).
       w.sqlite.prepare(`INSERT INTO ord_cancel_reason (id, order_id, reason_code, group_code, cancelled_date, created_at, created_by, updated_at, updated_by)
         VALUES (?, ?, 'KHACH_DOI_Y', 'KHACH_HUY', ?, ?, NULL, ?, NULL)`).run(uuid(), id, vnHomNay(), AT, AT);

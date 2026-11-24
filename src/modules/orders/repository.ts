@@ -9,13 +9,16 @@ import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
   legCloseChecked, legCloseGuarded, legCloseReplaceChecked, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
-  openLegsStatement, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
+  openLegsStatement, chotLoPhiDon, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
   serviceMirrorUpdateGuarded, type DauChepNhap, type DauDatGapMoi, type DauGhi, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
+  dongPhiTienNhieuDon, feeItemInsert, feeRowsStatement, type DongPhiGhi, type FeeRow,
+  checkinInsert, checkinInsertIfDraft, checkinOfOrderStatement, laCheckinTuKetQua,
 } from "./chang-hanh-khach-repo";
+import { phiDongDto, phiDuaDonDto, type PhiTheoChang } from "./phi-don-don";
 import type { LocDon } from "../../shared/loc-don";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
-import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
+import { effectiveMoney, isAdjustmentSeqCollision, parseAdjustmentAfter, tienHieuLuc, type AdjustmentEntry, type DongPhiTien, type SubtotalServiceInput } from "./money-adjustment";
 import type { PoolSourceOrder, PoolSourceService } from "./pool";
 import type { FrozenLine } from "./price-guards";
 import { NHAN_THAN_CU, type LoaiThanCu } from "./than-cu";
@@ -79,6 +82,8 @@ interface ServiceRow {
 
 interface ItemRow {
   id: string;
+  /** Loại dòng (0169): chỉ 'SERVICE' vào nhóm dịch vụ; dòng phí đưa đón đọc riêng (`feeRowsStatement` → `OrderDto.phiDuaDon`). */
+  line_kind: "SERVICE" | "TRANSFER_FEE";
   service_id: string | null;
   catalog_code: string | null;
   pax_code: PaxCode | null;
@@ -88,6 +93,10 @@ interface ItemRow {
   unit_price: number;
   catalog_price: number | null;
   line_total: number;
+  /** ADR-0229 Đ5: bản chụp giá mùa vụ (NULL ở dòng cũ / nhập tay). */
+  base_price: number | null;
+  seasonal_rule_id: string | null;
+  seasonal_increase: number | null;
 }
 
 const ORDER_SELECT = `SELECT o.*, s.label AS staff_name, b.display_name AS booker_name FROM orders o
@@ -100,7 +109,7 @@ const SERVICE_SELECT = `SELECT id, catalog_code, name, unit, pax_adult, pax_chil
 // không đơn / không bên đặt ⇒ 0.
 const BOOKER_LA_DOI_TAC = `SELECT EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code
   WHERE r.party_id = o.booker_party_id) AS la FROM orders o WHERE o.id = ?`;
-const ITEM_SELECT = `SELECT id, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`;
+const ITEM_SELECT = `SELECT id, line_kind, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total, base_price, seasonal_rule_id, seasonal_increase FROM order_item WHERE order_id = ? ORDER BY sort_order`;
 
 export interface ServiceSummaryRow {
   id: string;
@@ -191,9 +200,10 @@ function toDto(r: OrderRow): OrderDto {
     subtotal: r.subtotal,
     discount: r.discount,
     total: r.total,
-    // ADR-0109 QĐ2: giảm giá hiệu lực của đơn CHƯA điều chỉnh (đơn đã điều chỉnh: `applyAdjustmentToOrder` ghi đè cùng hàm). Bằng `discount` vì lúc lập đã chặn
-    // giảm giá ≤ tạm tính (trigger 0007 giữ total = subtotal − discount ≥ 0).
-    giamGiaHieuLuc: effectiveMoney(r.subtotal, r.discount).giamGiaHieuLuc,
+    // ADR-0109 QĐ2: giảm giá hiệu lực của đơn CHƯA điều chỉnh (đơn đã điều chỉnh: `applyAdjustmentToOrder` ghi đè cùng hàm). Bằng `discount` vì lúc lập / lưu nháp đã chặn
+    // giảm giá ≤ Σ dòng dịch vụ ≤ tạm tính (trigger 0007 giữ total = subtotal − discount ≥ 0). Đợt C: danh sách / tóm tắt không đọc dòng phí nên truyền cả tạm tính đã lưu làm phần
+    // dịch vụ và phí 0 — chỉ đọc `giamGiaHieuLuc` (= min(giảm giá, tạm tính) = giảm giá = min(giảm giá, Σ dịch vụ)); chi tiết đơn (`findOrder`) tính lại theo đúng phần dịch vụ.
+    giamGiaHieuLuc: effectiveMoney(r.subtotal, r.discount, 0).giamGiaHieuLuc,
     paymentNote: r.payment_note,
     // ADR-0159 Đ1 mục 6: sau xác nhận đọc từ sổ, không đọc cột — nên chỉ đơn nháp mang số này.
     declaredDeposit: r.status === "draft" ? r.declared_deposit : 0,
@@ -205,6 +215,8 @@ function toDto(r: OrderRow): OrderDto {
     confirmedAt: r.confirmed_at,
     deliveredAt: r.delivered_at,
     completedAt: r.completed_at,
+    // Phí đưa đón (Đợt C): `findOrder` điền từ dòng phí đã lưu; danh sách / tóm tắt không mang phí.
+    phiDuaDon: null,
   };
 }
 
@@ -300,6 +312,7 @@ async function derivedPickupByService(db: D1Database, orderIds: readonly string[
 function groupItems(rows: ItemRow[]): Map<string, ItemRow[]> {
   const by = new Map<string, ItemRow[]>();
   for (const i of rows) {
+    if (i.line_kind !== "SERVICE") continue; // dòng phí đưa đón (0169) không phải dòng của dịch vụ — chỉ vào `OrderDto.phiDuaDon` (Ruling R3)
     if (!i.service_id) continue; // sau migration 0008 mọi dòng đều có dịch vụ
     const list = by.get(i.service_id);
     if (list) list.push(i);
@@ -322,12 +335,14 @@ const toItemDto = (i: ItemRow): OrderItemDto => ({
 
 /** Đơn + dịch vụ + dòng tiền. `catalogStatus` luôn null ở đây — do lớp điều phối (service.ts) điền cho đơn nháp. */
 export async function findOrder(db: D1Database, id: string): Promise<OrderDetailDto | null> {
-  const [orderRes, servicesRes, itemsRes, legsRes, laDoiTacRes] = await db.batch([
+  const [orderRes, servicesRes, itemsRes, legsRes, laDoiTacRes, feeRes, checkinRes] = await db.batch([
     db.prepare(`${ORDER_SELECT} WHERE o.id = ?`).bind(id),
     db.prepare(SERVICE_SELECT).bind(id),
     db.prepare(ITEM_SELECT).bind(id),
     openLegsStatement(db, [id]),
     db.prepare(BOOKER_LA_DOI_TAC).bind(id),
+    feeRowsStatement(db, id),
+    checkinOfOrderStatement(db, id), // ADR-0230 Đ2: dòng hiệu lực «Trả lúc check-in»
   ]);
   const row = (orderRes!.results as OrderRow[])[0];
   if (!row) return null;
@@ -349,7 +364,12 @@ export async function findOrder(db: D1Database, id: string): Promise<OrderDetail
       pickupChoice: luaChonDonDaLuu(s.pickup_choice),
     };
   });
-  return { ...toDto(row), services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1, manifestExempt: row.manifest_exempt === 1 };
+  // Phí đưa đón: dòng phí ĐÃ LƯU (đơn nháp: `loadOrderView` bổ sung chặng thiếu mức tính lúc đọc).
+  const phiDuaDon = phiDuaDonDto({ nhap: row.status === "draft", dong: phiDongDto(feeRes!.results as FeeRow[]), songNhap: null });
+  // Đợt C, Task 5: giảm giá hiệu lực = min(giảm giá, Σ dòng dịch vụ) — phí không bao giờ bị giảm (chủ 15/11, SV-PD-29).
+  const dichVu = services.reduce((t, s) => t + s.items.reduce((u, i) => u + i.lineTotal, 0), 0);
+  const giamGiaHieuLuc = effectiveMoney(dichVu, row.discount, (phiDuaDon?.dong ?? []).reduce((t, d) => t + d.lineTotal, 0)).giamGiaHieuLuc;
+  return { ...toDto(row), giamGiaHieuLuc, phiDuaDon, services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1, manifestExempt: row.manifest_exempt === 1, traLucCheckin: laCheckinTuKetQua(checkinRes?.results ?? []) };
 }
 
 /**
@@ -370,7 +390,10 @@ export async function getStoredServices(db: D1Database, orderId: string): Promis
     unit: s.unit,
     pax: paxOf(s),
     trip: tripOf(s, legs.get(s.id) ?? []),
-    items: (items.get(s.id) ?? []).map((i) => ({ paxCode: i.pax_code, detail: i.detail, catalogPrice: i.catalog_price, unitPrice: i.unit_price })),
+    items: (items.get(s.id) ?? []).map((i) => ({
+      paxCode: i.pax_code, detail: i.detail, catalogPrice: i.catalog_price, unitPrice: i.unit_price, quantity: i.quantity,
+      basePrice: i.base_price, seasonalRuleId: i.seasonal_rule_id, seasonalIncrease: i.seasonal_increase,
+    })),
     lines: (items.get(s.id) ?? []).map((i) => ({ description: i.description, detail: i.detail, quantity: i.quantity, unitPrice: i.unit_price })),
     legs: legs.get(s.id) ?? [],
     pickupChoice: luaChonDonDaLuu(s.pickup_choice),
@@ -422,6 +445,13 @@ export interface OrderMeta {
   customerPhone: string;
   /** ADR-0168: hình thức thanh toán đang lưu. */
   paymentTerm: "PREPAID" | "CREDIT";
+  /** ADR-0230 Đ1 mục 3 (migration 0187): loại Trả sau đã chụp lúc xác nhận; NULL ở Thanh toán ngay / nháp. */
+  creditBasis: "LIMIT" | "SERVICE" | null;
+  /** ADR-0213 Đ3.4 (Task 11): tư cách lúc lập — hồ sơ và loại liên kết (`CA_NHAN` | `MANAGER` | `MEMBER`); cả hai NULL = đơn văn phòng hoặc lập trước B1. */
+  actingPartyId: string | null;
+  actingLinkKind: string | null;
+  /** ADR-0213 Đ8.4 (Task 16): nháp có dòng «chờ người quản lý» đang mở (`ord_member_submit`) — người lập là thành viên không ghi được tới khi Rút lại / bị trả lại. */
+  dangChoQuanLy: boolean;
 }
 
 /** Giảm giá cấp đơn đang lưu (đóng băng sau xác nhận) — để tính tổng phải thu SAU lần sửa số khách của đơn Trả sau (ADR-0168 Đ2 mục 5). Không có đơn ⇒ 0. */
@@ -443,15 +473,21 @@ export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId
 export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | null> {
   const row = await db
     .prepare(
-      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at, o.payment_term
+      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at, o.payment_term,
+              o.acting_party_id, o.acting_link_kind, o.credit_basis,
+              EXISTS (SELECT 1 FROM ord_member_submit s WHERE s.order_id = o.id AND s.status = 'MO') AS member_pending
        FROM orders o LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id WHERE o.id = ?`,
     )
     .bind(id)
-    .first<{ status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null; payment_term: "PREPAID" | "CREDIT" }>();
+    .first<{
+      status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null;
+      payment_term: "PREPAID" | "CREDIT"; acting_party_id: string | null; acting_link_kind: string | null; member_pending: number; credit_basis: "LIMIT" | "SERVICE" | null;
+    }>();
   return row
     ? {
         status: row.status, staffId: row.staff_id, updatedAt: row.updated_at, bookerPartyId: row.booker_party_id, bookerName: row.booker_name, customerName: row.customer_name,
-        customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term,
+        customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term, actingPartyId: row.acting_party_id, actingLinkKind: row.acting_link_kind, creditBasis: row.credit_basis,
+        dangChoQuanLy: row.member_pending === 1,
       }
     : null;
 }
@@ -545,6 +581,12 @@ export interface ListOrdersOpts {
   chiTrongIds?: readonly string[] | null;
   /** Người đang xem (ADR-0135 Đ1): đơn NHÁP chỉ hiện cho chính người lập — mọi người khác, kể cả Toàn quyền, không thấy (kể cả khi tìm theo mã đơn). BẮT BUỘC. */
   nguoiXem: string;
+  /**
+   * ADR-0213 Đ5 (mốc B1 Task 12): người xem là người quản lý CÓ HIỆU LỰC của các tổ chức `toChuc` (gốc lắp ráp tiêm `ctx.toChucToiQuanLy`) ⇒ phạm vi cộng thêm «bên đặt thuộc tập này» (HỢP với
+   * `ownerId` / `orderIds`), và đơn nháp của người khác chỉ hiện khi thuộc `nhapDangCho` (nháp của các tổ chức đó đang có yêu cầu xác nhận mở — đã gửi lên Tour Đảo). null / tập rỗng = không cộng.
+   * BẮT BUỘC (không tuỳ chọn): mọi nơi gọi tự nói rõ.
+   */
+  quanLy: { toChuc: readonly string[]; nhapDangCho: readonly string[] } | null;
 }
 
 /** MỘT bộ dựng điều kiện cho cả trang danh sách và tập ứng viên của bộ lọc dấu kế toán — hai câu không bao giờ lệch phạm vi / bộ lọc. */
@@ -552,9 +594,16 @@ function dieuKienDanhSach(opts: ListOrdersOpts): { whereSql: string; binds: (str
   const where: string[] = [];
   const binds: (string | number)[] = [];
   const scope: string[] = [];
-  // ADR-0135 Đ1: đơn nháp là vùng riêng của người lập — điều kiện này AND với mọi phạm vi và bộ lọc bên dưới, không nhánh nào nới được.
-  where.push("(o.status <> 'draft' OR o.staff_id = ?)");
-  binds.push(opts.nguoiXem);
+  const ql = opts.quanLy !== null && opts.quanLy.toChuc.length > 0 ? opts.quanLy : null;
+  // ADR-0135 Đ1: đơn nháp là vùng riêng của người lập — điều kiện này AND với mọi phạm vi và bộ lọc bên dưới. Ngoại lệ có tên DUY NHẤT (ADR-0213 Đ5): nháp ĐANG CHỜ văn phòng của
+  // tổ chức người xem quản lý (`nhapDangCho` — route tính bằng câu của xac-nhan-repo, đã lọc bên đặt).
+  if (ql) {
+    where.push("(o.status <> 'draft' OR o.staff_id = ? OR o.id IN (SELECT value FROM json_each(?)))");
+    binds.push(opts.nguoiXem, JSON.stringify(ql.nhapDangCho));
+  } else {
+    where.push("(o.status <> 'draft' OR o.staff_id = ?)");
+    binds.push(opts.nguoiXem);
+  }
   if (opts.ownerId !== null) {
     scope.push("o.staff_id = ?");
     binds.push(opts.ownerId);
@@ -562,6 +611,10 @@ function dieuKienDanhSach(opts: ListOrdersOpts): { whereSql: string; binds: (str
   if (opts.orderIds !== null) {
     scope.push("o.id IN (SELECT value FROM json_each(?))");
     binds.push(JSON.stringify(opts.orderIds));
+  }
+  if (ql) {
+    scope.push("o.booker_party_id IN (SELECT value FROM json_each(?))");
+    binds.push(JSON.stringify(ql.toChuc));
   }
   if (scope.length) where.push(`(${scope.join(" OR ")})`);
   if (opts.chiTrongIds != null) {
@@ -890,14 +943,14 @@ const SERVICE_COLS = [
   "id", "order_id", "sort_order", "catalog_code", "name", "unit", "pax_adult", "pax_child", "pax_senior", "pax_infant",
   "depart_date", "depart_time", "pickup_time", "pickup_place", "checkin_date", "checkin_time", "checkin_place", "note", "pickup_choice",
 ];
-const ITEM_COLS = ["id", "order_id", "service_id", "catalog_code", "pax_code", "description", "detail", "quantity", "unit_price", "catalog_price", "line_total", "sort_order"];
+const ITEM_COLS = ["id", "order_id", "service_id", "catalog_code", "pax_code", "description", "detail", "quantity", "unit_price", "catalog_price", "line_total", "sort_order", "base_price", "seasonal_rule_id", "seasonal_increase"];
 
 /**
  * INSERT các dịch vụ rồi các dòng tiền của chúng (dịch vụ trước vì dòng tiền trỏ khoá ngoại vào dịch vụ). Trả CẢ mảng id dịch vụ theo thứ tự (ADR-0047:
  * chặng của dịch vụ MỚI phải dùng đúng id vừa sinh — Review Focus 2). Hai cột `pickup_time`/`pickup_place` ghi GIÁ TRỊ DẪN XUẤT từ chặng (`trip` đã được
  * `resolveLegPlaces` đặt lại) — GHI KÉP phát hành 1 (Ruling R3).
  */
-function serviceInserts(db: D1Database, orderId: string, services: ValidService[], guard?: Guard): { stmts: D1PreparedStatement[]; ids: string[] } {
+function serviceInserts(db: D1Database, orderId: string, services: ValidService[], guard?: Guard): { stmts: D1PreparedStatement[]; ids: string[]; itemIds: string[] } {
   const stmts: D1PreparedStatement[] = [];
   const ids = services.map((s) => s.id ?? crypto.randomUUID());
   services.forEach((s, i) => {
@@ -912,18 +965,21 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
     );
   });
   let sort = 0;
+  const itemIds: string[] = [];
   services.forEach((s, i) => {
     for (const it of s.items) {
+      const itemId = crypto.randomUUID();
+      itemIds.push(itemId);
       stmts.push(
         insertRow(
           db, "order_item", ITEM_COLS,
-          [crypto.randomUUID(), orderId, ids[i]!, it.catalogCode, it.paxCode, it.description, it.detail, it.quantity, it.unitPrice, it.catalogPrice, it.lineTotal, sort++],
+          [itemId, orderId, ids[i]!, it.catalogCode, it.paxCode, it.description, it.detail, it.quantity, it.unitPrice, it.catalogPrice, it.lineTotal, sort++, it.basePrice, it.seasonalRuleId, it.seasonalIncrease],
           guard,
         ),
       );
     }
   });
-  return { stmts, ids };
+  return { stmts, ids, itemIds };
 }
 
 /** Dấu vết của chặng đang lưu (giữ `created_*` khi lưu nháp xoá–chèn lại cùng id) — theo id chặng. */
@@ -963,11 +1019,23 @@ function legWriteOf(
  */
 export type DatGapNhap = ReadonlyMap<string, DauChepNhap>;
 
-/** Giá trị ghi các chặng của mọi dịch vụ (id dịch vụ theo `serviceIds` của lần chèn này). */
+/**
+ * Giá trị ghi các chặng của mọi dịch vụ (id dịch vụ theo `serviceIds` của lần chèn này) VÀ dòng phí đưa đón của chúng: dòng phí dựng NGAY ở chỗ sinh id chặng
+ * (`legWriteOf`) — `createOrder` sinh lại id mỗi lần thử, nên dòng phí luôn trỏ đúng id chặng của lần thử đó. `phi` theo khoá vị trí `"<dịch vụ>|<chặng>"`
+ * (cùng khoá với `datGap`); thứ tự dòng phí bắt đầu từ `sortTu` (sau dòng dịch vụ).
+ */
 function legWrites(
   services: readonly ValidService[], serviceIds: readonly string[], orderId: string, staffId: string, at: string, meta: LegMeta = new Map(), datGap: DatGapNhap = new Map(),
-): LegWrite[] {
-  return services.flatMap((s, i) => s.legs.map((l, j) => legWriteOf(l, serviceIds[i]!, orderId, staffId, at, meta, datGap.get(`${i}|${j}`) ?? null)));
+  phi: PhiTheoChang = new Map(), sortTu = 0,
+): { legs: LegWrite[]; phi: DongPhiGhi[] } {
+  const dongPhi: DongPhiGhi[] = [];
+  const legs = services.flatMap((s, i) => s.legs.map((l, j) => {
+    const w = legWriteOf(l, serviceIds[i]!, orderId, staffId, at, meta, datGap.get(`${i}|${j}`) ?? null);
+    const p = phi.get(`${i}|${j}`);
+    if (p) dongPhi.push({ ...p, legId: w.id, id: crypto.randomUUID(), orderId, sortOrder: sortTu + dongPhi.length });
+    return w;
+  }));
+  return { legs, phi: dongPhi };
 }
 
 /** Giá trị ghi danh sách hành khách của đơn NHÁP: mỗi người một dòng đầu chuỗi (`person_key` = id; giữ id gửi lại). */
@@ -998,7 +1066,16 @@ export async function createOrder(
   manifestExempt = false,
   /** Dấu «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1 mục 2): route đọc công tắc MỘT lần khi người lập giữ quyền Đối tác (1 Bật / 0 Tắt); người khác NULL. Chụp một lần, trigger 0144 cấm đổi. */
   kenhThu: 0 | 1 | null = null,
+  /** Phí đưa đón (Đợt C) route đã tính TRƯỚC lô (`tinhPhiNhap`) — `order.subtotal/total` đã gồm phí; dòng phí dựng theo id chặng của từng lần thử. */
+  phi: PhiTheoChang = new Map(),
+  /** Tư cách lúc lập (ADR-0213 Đ3.4): hồ sơ + loại liên kết, ghi trong CHÍNH câu chèn đơn; null = đơn văn phòng / đường «không tư cách». Dòng nhật ký `created` đứng SAU câu chèn
+   * nên đọc được tổ chức qua `v_ord_order_acting` (Ruling R3). */
+  tuCach: { partyId: string; loai: "CA_NHAN" | "MANAGER" | "MEMBER" } | null = null,
+  /** ADR-0214 Đ2: mẩu nhật ký mức phí đưa đón người lập chọn (chiều, dịch vụ, mức, kiểu chọn — không tên khách); null = không có. Nối vào dòng `created`. */
+  ghiChuPhi: string | null = null,
 ): Promise<string> {
+  // ADR-0230 Đ2: «Trả lúc check-in» — route đã qua cổng (`traLucCheckinHopLe`); chọn ⇒ MỘT dòng bật trong cùng lô, không chọn ⇒ không dòng nào.
+  const chonCheckin = order.traLucCheckin === true;
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; ; attempt++) {
     const now = new Date();
@@ -1007,7 +1084,10 @@ export async function createOrder(
     const at = now.toISOString();
     // ADR-0047: chặng + hành khách dựng TRONG vòng thử — id đơn và id dịch vụ mới đổi mỗi lần thử (Review Focus 2).
     const services = serviceInserts(db, id, order.services);
-    const legs = legWrites(order.services, services.ids, id, staffId, at).map((l) => legInsert(db, l));
+    const ghiChang = legWrites(order.services, services.ids, id, staffId, at, new Map(), new Map(), phi, services.itemIds.length);
+    const legs = ghiChang.legs.map((l) => legInsert(db, l));
+    // Dòng phí SAU chặng (khoá ngoại); lính gác = dòng tiền dịch vụ vừa chèn của lần thử này (có phí ⇒ có khách tính tiền ⇒ có dòng dịch vụ).
+    const dongPhi = services.itemIds.length === 0 ? [] : ghiChang.phi.map((d) => feeItemInsert(db, d, services.itemIds[0]!));
     const passengers = passengerWrites(order.passengers ?? [], id, staffId, at).map((p) => passengerInsert(db, p));
     const paxNote = order.passengers === null ? null : moTaDanhSachNhap(order.passengers.length);
     try {
@@ -1016,20 +1096,23 @@ export async function createOrder(
         db
           .prepare(
             `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, customer_email, customer_note,
-               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit, payment_term, company_collects_snapshot)
+               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit, payment_term, company_collects_snapshot,
+               acting_party_id, acting_link_kind)
              SELECT ?, ? || printf('%04d', COALESCE((SELECT MAX(CAST(substr(order_code, length(?) + 1) AS INTEGER)) FROM orders WHERE order_code LIKE ?), 0) + 1),
-               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?, ?, ?`,
+               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?, ?, ?, ?, ?`,
           )
           .bind(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
             // Ba cột cọc cũ KHÔNG mang nghĩa nữa (ADR-0026 đ9): đơn mới ghi 0 / NULL / total — chỉ để thoả trigger 0007 (không ai đọc).
             order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
-            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID", kenhThu,
+            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID", kenhThu, tuCach?.partyId ?? null, tuCach?.loai ?? null,
           ),
+        ...(chonCheckin ? [checkinInsert(db, id, at, staffId)] : []),
         ...services.stmts,
         ...legs,
+        ...dongPhi,
         ...passengers,
-        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, moTaLoiKhai(order.declaredDeposit)) }),
+        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, moTaLoiKhai(order.declaredDeposit), ghiChuPhi) }),
         ...(alsoCreate?.(id, at) ?? []),
       ]);
       return id;
@@ -1049,6 +1132,42 @@ export async function createOrder(
  * Audit đứng ngay sau UPDATE (idiom `changes() > 0`). Giới hạn đã biết: hồ sơ mới trong `booker.before` không mang điều kiện thắng của khoá lạc quan,
  * nên khi UPDATE đơn thua (đơn đã đổi/đã bị người khác sửa) thì hồ sơ vừa tạo vẫn còn lại — một hồ sơ thừa hiếm gặp, chấp nhận được ở lát này.
  */
+/**
+ * Ba cột cọc cũ theo TỔNG MỚI của đơn nháp (ADR-0026 đ9, Q2 chủ 30/9): tổng mới < cọc cũ ⇒ cọc về 0 / NULL; luôn giữ `remaining_amount = total − deposit_amount` của
+ * trigger 0007. NĂM tham số `?` = tổng mới. Một chỗ viết cho cả lưu nháp và tính lại tiền sau dòng phí (`cauTienNhapSauPhi`) — chỗ duy nhất được nhắc ba cột (NT-R9).
+ */
+const COC_CU_THEO_TONG = `deposit_amount = CASE WHEN ? < deposit_amount THEN 0 ELSE deposit_amount END,
+           deposit_method = CASE WHEN ? < deposit_amount THEN NULL ELSE deposit_method END,
+           remaining_amount = CASE WHEN ? < deposit_amount THEN ? ELSE ? - deposit_amount END`;
+
+/**
+ * Tính lại tạm tính / tổng của ĐƠN NHÁP sau khi lô sửa chặng đổi dòng phí đưa đón (Đợt C, Task 3). Hai số do route tính (Σ dòng dịch vụ đang lưu + phí; tổng qua
+ * `effectiveMoney`); chỉ chạy khi câu khoá lạc quan đầu lô đã thắng (`wonGuard` của dòng nhật ký lô) và đơn còn nháp. KHÔNG đổi `updated_at`.
+ */
+export function cauTienNhapSauPhi(db: D1Database, orderId: string, auditId: string, tien: { subtotal: number; total: number }): D1PreparedStatement {
+  const guard = wonGuard(auditId);
+  const t = tien.total;
+  return db
+    .prepare(`UPDATE orders SET subtotal = ?, total = ?,
+           ${COC_CU_THEO_TONG}
+         WHERE id = ? AND status = 'draft' AND ${guard.sql}`)
+    .bind(tien.subtotal, t, t, t, t, t, t, orderId, ...guard.binds);
+}
+
+/**
+ * Tạm tính / tổng của ĐƠN NHÁP theo phí tính lại LÚC XÁC NHẬN (Đợt C, Task 4): đứng TRONG lô xác nhận, TRƯỚC câu đổi trạng thái (trigger 0081 khoá cột tiền khi đơn hết nháp).
+ * Gác = đúng điều kiện khoá của câu xác nhận (`status = 'draft' AND updated_at = ?` — cùng mốc `prevUpdatedAt`); KHÔNG đổi `updated_at` (câu xác nhận gác bằng chính mốc đó).
+ * Câu xác nhận thua ⇒ câu chốt cuối lô làm cả lô lui, nên câu này không bao giờ để lại tiền nửa vời. Ba cột cọc cũ theo tổng mới qua `COC_CU_THEO_TONG` (NT-R9).
+ */
+export function cauTienXacNhanPhi(db: D1Database, orderId: string, prevUpdatedAt: string, tien: { subtotal: number; total: number }): D1PreparedStatement {
+  const t = tien.total;
+  return db
+    .prepare(`UPDATE orders SET subtotal = ?, total = ?,
+           ${COC_CU_THEO_TONG}
+         WHERE id = ? AND status = 'draft' AND updated_at = ?`)
+    .bind(tien.subtotal, t, t, t, t, t, t, orderId, prevUpdatedAt);
+}
+
 export async function updateDraftOrder(
   db: D1Database,
   id: string,
@@ -1061,23 +1180,29 @@ export async function updateDraftOrder(
   ghiChuThem: string | null = null,
   /** ADR-0142: ý định mời Bán hàng. Vắng ⇒ GIỮ cột `sales_invitee_party_id`; có ⇒ ghi (`partyId` null = xoá) NGAY trong câu UPDATE chính, nên thắng/thua cùng khoá lạc quan với phần còn lại của lần lưu. */
   nguoiMoi?: { partyId: string | null },
+  /** Phí đưa đón (Đợt C) route đã tính TRƯỚC lô — `order.subtotal/total` đã gồm phí. Dòng phí cũ đi cùng câu xoá mọi dòng tiền; dòng mới chèn SAU chặng. */
+  phi: PhiTheoChang = new Map(),
 ): Promise<boolean> {
   const at = nextStamp(order.expectedUpdatedAt);
   const auditId = crypto.randomUUID();
   const guard = wonGuard(auditId);
   const services = serviceInserts(db, id, order.services, guard);
+  const ghiChang = legWrites(order.services, services.ids, id, staffId, at, legMeta, datGapNhap, phi, services.itemIds.length);
+  // Lính gác của dòng phí = dòng tiền dịch vụ id MỚI vừa chèn trong lô (chỉ có khi lô thắng — câu chèn dịch vụ mang wonGuard), không đọc audit_log ở câu mới.
+  const dongPhi = services.itemIds.length === 0 ? [] : ghiChang.phi.map((d) => feeItemInsert(db, d, services.itemIds[0]!));
   const paxNote = order.passengers === null ? null : moTaDanhSachNhap(order.passengers.length);
+  // ADR-0230 Đ2: «Trả lúc check-in» — CHỈ THÊM (không thuộc XOA_CUNG_NHAP): khoá vắng (`null`, thân cũ) ⇒ giữ; có ⇒ chèn dòng mới khi khác dòng hiệu lực. Câu đứng NGAY TRƯỚC câu
+  // UPDATE đơn, cùng điều kiện khoá lạc quan (`checkinInsertIfDraft`) — chỉ số câu UPDATE trong kết quả lô dời theo.
+  const truocUpdate = [...booker.before, ...(order.traLucCheckin === null ? [] : [checkinInsertIfDraft(db, id, order.traLucCheckin, at, staffId, order.expectedUpdatedAt)])];
   const results = await db.batch([
-    ...booker.before,
+    ...truocUpdate,
     db
       .prepare(
         // Ba cột cọc cũ (ADR-0026 đ9): GIỮ cột cọc của nháp cũ, chỉ tính lại phần dư để thoả trigger 0007; Q2 (chủ 30/9 "Đưa cọc cũ về 0, ghi nhật ký"):
         // CHỈ khi tổng mới < cọc cũ thì đưa cọc về 0 / NULL (số tiền không mất — đã là khoản thu "chưa rõ" trong sổ). Vế phải của SET đọc giá trị CŨ của dòng.
         `UPDATE orders SET customer_name = ?, customer_phone = ?, customer_email = ?, customer_note = ?,
            subtotal = ?, discount = ?, total = ?,
-           deposit_amount = CASE WHEN ? < deposit_amount THEN 0 ELSE deposit_amount END,
-           deposit_method = CASE WHEN ? < deposit_amount THEN NULL ELSE deposit_method END,
-           remaining_amount = CASE WHEN ? < deposit_amount THEN ? ELSE ? - deposit_amount END,
+           ${COC_CU_THEO_TONG},
            payment_note = ?, declared_deposit = COALESCE(?, declared_deposit), payment_term = COALESCE(?, payment_term),
            booker_party_id = ${BOOKER_VALUE}, updated_at = ?,
            sales_invitee_party_id = CASE WHEN ? = 1 THEN ? ELSE sales_invitee_party_id END
@@ -1093,12 +1218,13 @@ export async function updateDraftOrder(
     legDeleteDraft(db, id, auditId),
     db.prepare(`DELETE FROM order_service WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
     ...services.stmts,
-    ...legWrites(order.services, services.ids, id, staffId, at, legMeta, datGapNhap).map((l) => legInsertGuarded(db, l, auditId)),
+    ...ghiChang.legs.map((l) => legInsertGuarded(db, l, auditId)),
+    ...dongPhi,
     ...(order.passengers === null
       ? []
       : [passengerDeleteDraft(db, id, auditId), ...passengerWrites(order.passengers, id, staffId, at).map((p) => passengerInsertGuarded(db, p, auditId))]),
   ]);
-  return (results[booker.before.length]!.meta.changes ?? 0) > 0;
+  return (results[truocUpdate.length]!.meta.changes ?? 0) > 0;
 }
 
 /** ADR-0159: phần «câu khoản thu đặt cọc» của lô xác nhận — gốc lắp ráp tiêm hàm dựng (`orders` không đọc, không ghi `bil_*`). Nơi gọi chỉ lấy từ `cocChoXacNhan` (bài src/dat-coc-noi-goi.test.ts). */
@@ -1121,32 +1247,48 @@ const moTaLoiKhai = (n: number | null): string | null => (n !== null && n > 0 ? 
  */
 export async function confirmOrder(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail: string | undefined,
-  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau,
+  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau, phiDon: KemPhiDon,
 ): Promise<boolean> {
-  return daXacNhan(await db.batch(soanXacNhan(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail, alsoConfirm, coc, traSau).cau));
+  const xn = soanXacNhan(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail, alsoConfirm, coc, traSau, phiDon);
+  return daXacNhan(await db.batch(xn.cau), xn.chiSoXacNhan);
 }
 
 /**
+ * Đợt C, Task 4: câu phí đưa đón của lô xác nhận, dựng theo mốc `prevUpdatedAt` mà câu xác nhận gác (xoá dòng phí cũ → chèn dòng phí tính lại → tạm tính / tổng mới). Nơi gọi
+ * lấy từ `kiemCongXacNhan` (`cong.phiDon.cauLenh`, dựng ở `chuanBiPhiDonXacNhan` — service.ts). Đơn phí chưa áp và không dòng phí cũ ⇒ trả mảng rỗng (lô y như trước Đợt C).
+ */
+export type KemPhiDon = (prevUpdatedAt: string) => D1PreparedStatement[];
+
+/**
  * SOẠN (chưa chạy) lô xác nhận của `confirmOrder` — Task 3.2b: MỘT nguồn cho ba nơi gọi (`POST /status`, `quyet-dinh` Còn vé, `gui-don` nhánh B).
- * `cau` = [điền ngày đón] → [đổi trạng thái, KHOÁ `updated_at = prevUpdatedAt`] → [nhật ký `confirmed` `changes() > 0`] → [câu kèm `alsoConfirm(at)` = bản chụp mức
- * hoa hồng của đơn, dùng đúng mốc `at` của lô] → [câu khoản thu đặt cọc `coc` — ADR-0159: BẮT BUỘC theo kiểu, gác bằng id nhật ký `confirmed` của CHÍNH lô]. Nơi gọi muốn nối thêm câu (ví dụ khép yêu cầu xác nhận) nối SAU mảng này để chỉ số câu đổi trạng thái (1) không đổi;
- * chạy MỘT `db.batch` rồi hỏi `daXacNhan(kq)`. Bản chụp mức đi trong `alsoConfirm` — bỏ sót thì hoa hồng của đơn không được chụp (lỗi tiền âm thầm).
+ * `cau` = [câu phí đưa đón `phiDon(prevUpdatedAt)` — Đợt C, có thể rỗng] → [điền ngày đón] → [đổi trạng thái, KHOÁ `updated_at = prevUpdatedAt`] → [nhật ký `confirmed`
+ * `changes() > 0`] → [câu kèm `alsoConfirm(at)` = bản chụp mức hoa hồng của đơn, dùng đúng mốc `at` của lô] → [câu khoản thu đặt cọc `coc` — ADR-0159: BẮT BUỘC theo kiểu, gác
+ * bằng id nhật ký `confirmed` của CHÍNH lô] → [câu gác Trả sau] → [câu CHỐT phí, chỉ khi có câu phí]. Câu phí PHẢI đứng trước câu đổi trạng thái (trigger 0081 cấm chèn dòng
+ * tiền khi đơn hết nháp), nên chỉ số câu đổi trạng thái KHÔNG cố định: đọc `chiSoXacNhan` (`daXacNhan(kq, chiSoXacNhan)`; nơi gọi nối thêm câu ở ĐẦU lô thì cộng độ dài phần đó).
+ * Câu chốt đứng CUỐI (không ngay sau câu đổi trạng thái) vì câu chèn bị trigger bỏ qua để lại `changes() = 0` — chen giữa sẽ làm mất nhật ký `confirmed` và bản chụp; ở bất kỳ
+ * vị trí nào sau câu đổi trạng thái nó đều làm cả lô lui khi câu đó thua. Nơi gọi muốn nối thêm câu (ví dụ khép yêu cầu xác nhận) nối SAU mảng này; câu nối thêm không được
+ * dựa vào `changes()` của câu đứng trước nó trong mảng này.
+ * Chạy MỘT `db.batch` rồi hỏi `daXacNhan(kq, chiSoXacNhan)`. Lô có câu chốt mà câu xác nhận thua ⇒ `db.batch` NÉM `transfer_fee_confirm_lost` (`laThuaChotPhiDon` ở
+ * xac-nhan-chung.ts) — nơi gọi coi như lô thua. Bản chụp mức đi trong `alsoConfirm` — bỏ sót thì hoa hồng của đơn không được chụp (lỗi tiền âm thầm).
  */
 export function soanXacNhan(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail: string | undefined,
-  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau, opts?: { auditId?: string; yeuCauId?: string },
-): { at: string; cau: D1PreparedStatement[]; auditId: string } {
+  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau, phiDon: KemPhiDon, opts?: { auditId?: string; yeuCauId?: string; chanChuaGio?: boolean },
+): { at: string; cau: D1PreparedStatement[]; auditId: string; chiSoXacNhan: number } {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
   // ADR-0049 D2 (I15): câu xác nhận ở tệp nửa nghiêm (`order_confirm`), thêm vế mốc tối thiểu lúc đặt — ngưỡng chuỗi do route tính bằng `nguongMocVn`.
   // `opts.auditId`: id dòng nhật ký `confirmed` do nơi gọi chọn trước, để câu khép yêu cầu (`_guarded`) hỏi «dòng này đã ghi» (Task 3.3 — khuôn `wonGuard`).
   const auditId = opts?.auditId ?? crypto.randomUUID();
+  const cauPhi = phiDon(prevUpdatedAt);
   return {
     at,
     auditId,
+    chiSoXacNhan: cauPhi.length + 1,
     cau: [
+      ...cauPhi,
       legFillDateOnConfirm(db, id, at),
-      orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt, opts?.yeuCauId ?? null),
+      orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt, opts?.yeuCauId ?? null, opts?.chanChuaGio ?? true), // ADR-0227: mặc định Bật (nơi gọi quên truyền vẫn an toàn)
       auditStatement(db, { id: auditId, orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
       // Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp.
       ...(alsoConfirm?.(at) ?? []),
@@ -1154,11 +1296,13 @@ export function soanXacNhan(
       ...coc({ at, auditId }),
       // ADR-0168 Đ2 mục 3, 4, 7: đơn Trả sau — câu gác phiên bản của bên đặt (sai phiên bản ⇒ trigger huỷ CẢ lô) và ghi hạn trả; đơn Trả trước: không câu nào. Cũng đứng cuối để chỉ số câu đổi trạng thái không đổi.
       ...traSau({ at, auditId }),
+      // Đợt C, Task 4: câu CHỐT — chỉ khi lô có câu phí (đơn phí chưa áp chạy y như trước). Đứng CUỐI: xem chú thích hàm.
+      ...(cauPhi.length > 0 ? [chotLoPhiDon(db, id)] : []),
     ],
   };
 }
-/** Lô xác nhận (do `soanXacNhan` soạn) đã thắng ⇔ câu đổi trạng thái (thứ 2, chỉ số 1) đổi một dòng. */
-export const daXacNhan = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;
+/** Lô xác nhận (do `soanXacNhan` soạn) đã thắng ⇔ câu đổi trạng thái (chỉ số `chiSoXacNhan` của `soanXacNhan`, cộng phần nơi gọi nối ở đầu lô) đổi một dòng. */
+export const daXacNhan = (kq: readonly D1Result[], chiSoXacNhan: number): boolean => (kq[chiSoXacNhan]?.meta.changes ?? 0) > 0;
 
 /**
  * SOẠN (chưa chạy) lô huỷ đơn — cho điểm gọi nối máy đồng bộ chuyến (ADR-0104 Đ2, điểm gọi 1 và 2): `auditId` = id dòng nhật ký của câu cổng
@@ -1179,15 +1323,17 @@ export function soanHuyDon(
   // ADR-0089 đ8 (H-C6): lô huỷ = [dòng lý do (cùng điều kiện khoá lạc quan)] → [đổi trạng thái] → [nhật ký changes() > 0] — câu SQL ở tệp nửa nghiêm.
   // Nhật ký ghi NHÃN lý do (không mã thô); "Khác" ghi chính ghi chú đã kiểm (khuôn HDV — ADR-0030 điều 2).
   const nhan = lyDo.ma === "OTHER" ? `${lyDo.ghiChu} (${nhanNhomHuy(lyDo.nhom)})` : `${nhanLyDoHuy(lyDo.ma)} (${nhanNhomHuy(lyDo.nhom)})`;
+  const huy = cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo });
+  const iDoiTrangThai = gac.length + huy.length - 1; // câu đổi trạng thái là phần tử cuối của `cauHuyCoLyDo` (nháp có thêm câu khép dòng chờ người quản lý đứng trước nó)
   return {
     auditId,
     cau: [
       ...gac,
-      ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
+      ...huy,
       auditStatement(db, { id: auditId, orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
     ],
-    // Lô huỷ đã thắng ⇔ câu đổi trạng thái (sau câu gác và dòng lý do) đổi một dòng.
-    thang: (kq) => (kq[gac.length + 1]?.meta.changes ?? 0) > 0,
+    // Lô huỷ đã thắng ⇔ câu đổi trạng thái (sau câu gác, dòng lý do và — nháp — câu khép dòng chờ) đổi một dòng.
+    thang: (kq) => (kq[iDoiTrangThai]?.meta.changes ?? 0) > 0,
   };
 }
 
@@ -1256,6 +1402,8 @@ interface SubtotalServiceRow {
 }
 interface SubtotalItemRow {
   order_id: string;
+  /** Loại dòng (0169); vắng = dòng cũ trước khi đọc cột này (coi như dịch vụ). Dòng phí đưa đón bị bỏ qua. */
+  line_kind?: "SERVICE" | "TRANSFER_FEE";
   service_id: string | null;
   pax_code: PaxCode | null;
   catalog_price: number | null;
@@ -1273,6 +1421,7 @@ interface SubtotalItemRow {
 export function buildSubtotalServices(serviceRows: readonly SubtotalServiceRow[], itemRows: readonly SubtotalItemRow[]): Map<string, SubtotalServiceInput[]> {
   const itemsByService = new Map<string, SubtotalServiceInput["items"]>();
   for (const i of itemRows) {
+    if (i.line_kind !== undefined && i.line_kind !== "SERVICE") continue; // dòng phí đưa đón (0169) — cùng luật với groupItems() (Ruling R3)
     if (!i.service_id) continue; // sau migration 0008 mọi dòng đều có dịch vụ — xem groupItems() ở trên (findOrder).
     const entry = { paxCode: i.pax_code, catalogPrice: i.catalog_price, unitPrice: i.unit_price, lineTotal: i.line_total };
     const list = itemsByService.get(i.service_id);
@@ -1305,9 +1454,22 @@ export async function getServicesForSubtotal(db: D1Database, orderIds: readonly 
       .all<SubtotalServiceRow>()
   ).results;
   const itemRows = (
-    await db.prepare(`SELECT order_id, service_id, pax_code, catalog_price, unit_price, line_total FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1))`).bind(ids).all<SubtotalItemRow>()
+    await db.prepare(`SELECT order_id, line_kind, service_id, pax_code, catalog_price, unit_price, line_total FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1))`).bind(ids).all<SubtotalItemRow>()
   ).results;
   return buildSubtotalServices(serviceRows, itemRows);
+}
+
+/**
+ * Dòng phí đưa đón ĐÃ LƯU (đã đóng băng) của NHIỀU đơn, theo đơn — phần còn lại của tiền hiệu lực bên cạnh `getServicesForSubtotal` (Đợt C, Task 5). Câu ở tệp nửa nghiêm
+ * (`dongPhiTienNhieuDon`, chang-hanh-khach-repo.ts). Đơn không dòng phí: không có trong Map.
+ */
+export async function getPhiChoHieuLuc(db: D1Database, orderIds: readonly string[]): Promise<Map<string, DongPhiTien[]>> {
+  const out = new Map<string, DongPhiTien[]>();
+  for (const r of await dongPhiTienNhieuDon(db, orderIds)) {
+    const d: DongPhiTien = { serviceId: r.order_service_id, kind: r.fee_kind, returnPax: r.fee_return_pax, quantity: r.quantity, unitPrice: r.unit_price, lineTotal: r.line_total };
+    out.set(r.order_id, [...(out.get(r.order_id) ?? []), d]);
+  }
+  return out;
 }
 
 /** Cột gốc của `orders` cần để tính tiền hiệu lực khi đơn KHÔNG có điều chỉnh (dùng thẳng) hoặc CÓ điều chỉnh (nền cho `effectiveSubtotal`). */
@@ -1330,7 +1492,7 @@ export async function computeEffectiveMoney(
   latestAdjustments: ReadonlyMap<string, LatestAdjustmentOverlay>,
 ): Promise<Map<string, { total: number }>> {
   const adjustedIds = orders.filter((o) => latestAdjustments.has(o.id)).map((o) => o.id);
-  const servicesByOrder = await getServicesForSubtotal(db, adjustedIds);
+  const [servicesByOrder, phiByOrder] = await Promise.all([getServicesForSubtotal(db, adjustedIds), getPhiChoHieuLuc(db, adjustedIds)]);
   const out = new Map<string, { total: number }>();
   for (const o of orders) {
     const adj = latestAdjustments.get(o.id);
@@ -1338,8 +1500,9 @@ export async function computeEffectiveMoney(
       out.set(o.id, { total: o.total });
       continue;
     }
-    const subtotal = effectiveSubtotal(servicesByOrder.get(o.id) ?? [], adj.after);
-    out.set(o.id, { total: effectiveMoney(subtotal, o.discount).total }); // ADR-0109: phải thu kẹp ≥ 0 trong effectiveMoney
+    // Đợt C, Task 5: phần phí đưa đón tính lại theo số khách mới (`phiHieuLuc` trong `tienHieuLuc`); giảm giá chỉ trừ phần dịch vụ.
+    const t = tienHieuLuc(servicesByOrder.get(o.id) ?? [], phiByOrder.get(o.id) ?? [], adj.after);
+    out.set(o.id, { total: effectiveMoney(t.dichVu, o.discount, t.phi).total }); // ADR-0109: phải thu kẹp ≥ 0 trong effectiveMoney
   }
   return out;
 }
@@ -1420,11 +1583,18 @@ export async function updateTrip(
   detail: string,
   /** Dấu đặt gấp đi theo TỪNG thao tác (`LegOp.datGap` — ADR-0107, G11); chặng đổi không dấu mới thì dấu cũ bỏ (I16). */
   legOps: readonly LegOp[] = [],
+  /**
+   * Phí đưa đón của ĐƠN NHÁP (Đợt C, `cauPhiNhap`): `truoc` đứng TRƯỚC câu khoá lạc quan (gác bằng đúng mốc đơn đã đọc ⇒ ghi ⇔ câu đầu thắng), `sau` đứng CUỐI lô
+   * (dòng phí của chặng mới). Đơn đã xác nhận: không truyền (sau xác nhận sửa chặng không đổi phí — ADR-0147 Đ3).
+   */
+  phi: { truoc: D1PreparedStatement[]; sau: D1PreparedStatement[]; tien: { subtotal: number; total: number } } | null = null,
 ): Promise<boolean> {
   const at = nextStamp(expectedUpdatedAt);
   const auditId = crypto.randomUUID();
   const guard = wonGuard(auditId);
+  const truoc = phi?.truoc ?? [];
   const results = await db.batch([
+    ...truoc,
     db.prepare(`UPDATE orders SET updated_at = ? WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ?`).bind(at, orderId, expectedUpdatedAt),
     auditStatement(db, { id: auditId, orderId, staffId, action: "trip_updated", at, detail }, "changes() > 0"),
     // `pickup_time`/`pickup_place` ghi GIÁ TRỊ DẪN XUẤT từ chặng sau khi trộn (ADR-0047 R3 — ghi kép; `keHoachChangTrip` đã đặt `trip`).
@@ -1449,8 +1619,9 @@ export async function updateTrip(
       if (op.kind === "close") return [legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId)];
       return [legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at, new Map(), op.datGap ?? null), auditId)];
     }),
+    ...(phi ? [...phi.sau, cauTienNhapSauPhi(db, orderId, auditId, phi.tien)] : []),
   ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  return (results[truoc.length]!.meta.changes ?? 0) > 0;
 }
 
 /**
@@ -1639,21 +1810,33 @@ export async function changeBooker(
   /** Kế hoạch 2026-11-05 Task 2: BẮT BUỘC, chỉ `congDoiBenDatTraSau` tạo được; câu gác của nó nối CUỐI lô. */
   qua: QuaCongDoiBen,
   alsoChange?: (at: string) => D1PreparedStatement[],
+  /** ADR-0213 PF10 (Task 11): bên đặt ĐỔI THẬT ⇒ xoá tư cách (cả hai cột, cùng câu — trigger `orders_acting_immutable` chỉ cho về NULL cả hai). Đơn thành đơn thường (luật hôm nay).
+   * Nhật ký `booker_changed` đứng SAU câu này nên không mang tổ chức. */
+  xoaTuCach = false,
+  /** ADR-0218 Review Focus 4: đổi bên đặt trên NHÁP tính lại phí (cấp, chương trình theo đối tác). Câu xoá–chèn dòng phí và câu tiền đứng TRƯỚC câu UPDATE, gác bằng ĐÚNG mốc `expectedUpdatedAt` của câu UPDATE
+   * (cùng khuôn `GAC_TRUOC`: lô nào thắng thì cả hai cùng chạy, thua thì cả hai cùng bỏ). */
+  phiTruoc: readonly D1PreparedStatement[] = [],
 ): Promise<boolean> {
   const at = nextStamp(change.expectedUpdatedAt);
+  // ADR-0225 Đ2 (đề xuất): đơn đã xác nhận mang dấu «chỉ thu hộ tiền mặt» ⇒ chụp lại theo bên đặt MỚI (cùng vế với câu xác nhận). Dấu NULL (nháp / đơn trước ngày áp) giữ NULL.
+  const dau = booker.before.length + phiTruoc.length;
   const results = await db.batch([
     ...booker.before,
+    ...phiTruoc,
     db
       .prepare(
-        `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?
+        `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?,
+           acting_party_id = CASE WHEN ? = 1 THEN NULL ELSE acting_party_id END, acting_link_kind = CASE WHEN ? = 1 THEN NULL ELSE acting_link_kind END,
+           partner_cash_only = CASE WHEN partner_cash_only IS NULL THEN NULL
+             ELSE (company_collects_snapshot IS NOT NULL OR EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = ?)) END
          WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ? AND (? IS NULL OR ${BOOKER_VALUE} IS NOT NULL)`,
       )
-      .bind(change.customerName, change.customerPhone, booker.partyId, at, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
+      .bind(change.customerName, change.customerPhone, booker.partyId, at, xoaTuCach ? 1 : 0, xoaTuCach ? 1 : 0, booker.partyId, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
     auditStatement(db, { orderId, staffId, action: "booker_changed", at, detail }, "changes() > 0"),
     ...(alsoChange?.(at) ?? []),
     ...qua.kem(at),
   ]);
-  return (results[booker.before.length]!.meta.changes ?? 0) > 0;
+  return (results[dau]!.meta.changes ?? 0) > 0;
 }
 
 /**

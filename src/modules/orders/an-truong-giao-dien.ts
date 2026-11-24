@@ -17,6 +17,12 @@ export function truongTaoDon(ds: readonly TruongDaGiai[]): { an: ReadonlySet<str
   return { an: new Set(tao.filter((d) => d.an).map((d) => d.truong)), batBuoc: new Set(tao.filter((d) => d.batBuoc && !d.an).map((d) => d.truong)) };
 }
 
+/** ADR-0228 Đ1: công tắc «Đối tác không nhập danh sách hành khách» đang áp ⇒ chính sách giao diện không được đòi «Danh sách khách» (đối tác không có khối để nhập). Không áp ⇒ trả nguyên. */
+export function boHanhKhachKhiAn(cs: { an: ReadonlySet<string>; batBuoc: ReadonlySet<string> }, anDs: boolean): { an: ReadonlySet<string>; batBuoc: ReadonlySet<string> } {
+  if (!anDs || !cs.batBuoc.has("passengers")) return cs;
+  return { an: cs.an, batBuoc: new Set([...cs.batBuoc].filter((t) => t !== "passengers")) };
+}
+
 /**
  * Viết lại thân yêu cầu theo tập trường ẨN: `passengers` ⇒ bỏ khoá (thân không có khoá ⇒ `validateOrder` trả `passengers = null` ⇒ danh sách đang lưu giữ nguyên, không xoá–chèn lại);
  * email / ghi chú khách / ghi chú thanh toán ⇒ LẬP (`luu = null`): rỗng; SỬA nháp: giá trị ĐANG LƯU. Trả đối tượng MỚI; không ẩn gì ⇒ trả đúng thân gốc. Thân không phải đối tượng: trả nguyên.

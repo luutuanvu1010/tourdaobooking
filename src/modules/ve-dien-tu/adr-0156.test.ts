@@ -138,17 +138,19 @@ test("Bỏ lô đã xác nhận mà chưa vé nào được giữ chỗ: đượ
   assert.deepEqual((await w.call("GET", "/api/ve/kho", { as: SALES })).json.kho, []);
 });
 
-test("Bỏ lô đã có vé từng được giữ chỗ (kể cả đã trả): 409, lô và vé giữ nguyên", async () => {
+// ADR-0217 Đ3 mục 5 NỚI ADR-0156 Đ2 mục 3: lô đã từng cấp không còn bị chặn 409 mà đi đường «huỷ phần còn lại» — bắt buộc lý do; phần chi tiết ở so-seri-route.test.ts.
+test("Bỏ lô đã có vé từng được giữ chỗ (kể cả đã trả): không lý do ⇒ 400, lô và vé giữ nguyên; có lý do ⇒ đường huỷ lô đã cấp (ADR-0217)", async () => {
   const w = setup();
   const loId = (await taoLo(w)).json.loId;
   await them(w, loId, [ve(1), ve(2)]);
   await xacNhan(w, loId);
   const t = giuCho(w, loId);
-  assert.equal((await bo(w, loId)).status, 409);
+  assert.equal((await bo(w, loId)).status, 403, "ADR-0217 (chủ 18/11): lô hãng ngoài ĐÃ cấp — Bán hàng thường không huỷ được");
+  assert.equal((await bo(w, loId, ADMIN)).status, 400, "lô đã cấp cần lý do");
   w.sqlite.exec(`UPDATE vdt_allocation SET released_at = '${AT}', release_reason = 'THU_HOI' WHERE ticket_id = '${t}'`);
-  assert.equal((await bo(w, loId)).status, 409, "đã trả vẫn là từng giữ chỗ");
+  assert.equal((await bo(w, loId, ADMIN)).status, 400, "đã trả vẫn là từng giữ chỗ, vẫn đi đường lô đã cấp");
   assert.equal(w.q("SELECT status FROM vdt_batch")[0].status, "ACTIVE");
-  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE withdrawn_at IS NOT NULL")[0].n, 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE withdrawn_at IS NOT NULL")[0].n, 0, "lô đã cấp không bao giờ mang dấu rút (nhập lại được)");
 });
 
 test("Bỏ lô: bỏ lần hai 409; Kế toán 403; mã lạ 404", async () => {
@@ -381,7 +383,8 @@ test("lô đã huỷ: Bán hàng, Quản trị, Toàn quyền xem được, Kế
   assert.equal(r.json.hanLuuNgay, 3);
   assert.equal(r.json.lo.length, 1);
   const l = r.json.lo[0];
-  assert.deepEqual(Object.keys(l).sort(), ["huyBoi", "huyLuc", "loId", "nhomKhach", "tenDichVu", "tenSanPham", "ve"], "không thêm ô nào ngoài danh sách đã duyệt");
+  // `catalogCode` (kế hoạch 16 việc 21/11, Việc 4): mã dịch vụ của lô để trang lọc theo nhóm dịch vụ — không nhạy cảm, GET /api/ve/kho đã trả mã này cho cùng người xem; không hiện trên trang.
+  assert.deepEqual(Object.keys(l).sort(), ["catalogCode", "huyBoi", "huyLuc", "loId", "nhomKhach", "tenDichVu", "tenSanPham", "ve"], "không thêm ô nào ngoài danh sách đã duyệt");
   assert.deepEqual([l.loId, l.tenSanPham, l.tenDichVu, l.nhomKhach, l.huyBoi], [loId, "Vé huỷ thử", "Vinwonders 2 ngày", "ADULT", "NV 01"]);
   assert.match(l.huyLuc, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(l.ve.length, 2);
@@ -867,7 +870,9 @@ test("hàng rào tĩnh: route xem ảnh lô đã huỷ theo thứ tự quyền �
 test("việc dọn hàng chờ thật sự được gắn vào lịch chạy định kỳ của Nền tảng", () => {
   const goc = readFileSync(new URL("../../index.ts", import.meta.url), "utf8");
   const than = goc.slice(goc.indexOf("async scheduled("));
-  assert.match(than, /ctx\.waitUntil\(donHangChoXoaVe\(env\)\)/);
+  // Đợt 2 sau kiểm toán: gốc lắp ráp gom các việc định giờ vào một bảng rồi giao từng promise cho waitUntil (và cho thư báo việc tự động lỗi).
+  assert.match(than, /"don-anh-ve": donHangChoXoaVe\(env\)/);
+  assert.match(than, /for \(const p of Object\.values\(viec\)\) ctx\.waitUntil\(/);
 });
 
 test("lô dở cũ vẫn ở danh sách bỏ được dù đã có hơn 50 lô mới hơn: không thành vé kẹt", async () => {

@@ -1,9 +1,9 @@
 // Luật THUẦN quét vé Tour Đảo (ADR-0175 Đ3; đặc tả docs/superpowers/specs/2026-11-05-ve-tour-dao-design.md §2.5). Không I/O, không import module.
-// Thứ tự kiểm đúng bảng §2.5: mã lạ/hãng ngoài → huỷ → chưa giao → hạn → đã dùng → ba cảnh báo vàng (lệch ngày, chưa thu đủ, vượt số khách) → xanh.
+// Thứ tự kiểm đúng bảng §2.5: mã lạ/hãng ngoài → huỷ → chưa giao → hạn → đã dùng → ba cảnh báo vàng (lệch ngày, chưa thu đủ, vượt số khách) → nhập tay (ADR-0217, chỉ khi gõ số sê-ri) → xanh.
 import type { NguonVe } from "./nguon-ve.ts";
 
 export type MauQuet = "DO" | "VANG" | "XANH";
-export type MaQuet = "KHONG_PHAI_VE_TD" | "VE_DA_HUY" | "CHUA_GIAO" | "HET_HAN" | "CHUA_TOI_NGAY" | "DA_DUNG" | "LECH_NGAY" | "CHUA_THU_DU" | "VUOT_KHACH" | "HOP_LE";
+export type MaQuet = "KHONG_PHAI_VE_TD" | "VE_DA_HUY" | "CHUA_GIAO" | "HET_HAN" | "CHUA_TOI_NGAY" | "DA_DUNG" | "LECH_NGAY" | "CHUA_THU_DU" | "VUOT_KHACH" | "NHAP_TAY" | "HOP_LE";
 export type GhiQuet = "DA_TINH" | "CHI_XEM" | "TU_CHOI";
 
 export type VeQuet = {
@@ -21,9 +21,11 @@ export type VeQuet = {
   moTheoTien: boolean;
   soLuotDaTinh: number;
   soKhachHieuLuc: number;
+  /** ADR-0217 Đ2: người quét GÕ số sê-ri thay vì quét QR. Luôn thêm một cảnh báo vàng trước khi ghi «Đã dùng». */
+  nhapTay?: boolean;
 };
 
-export type XacNhanQuet = { lechNgay: boolean; chuaThu: boolean; vuotKhach: boolean };
+export type XacNhanQuet = { lechNgay: boolean; chuaThu: boolean; vuotKhach: boolean; nhapTay?: boolean };
 
 /** Một nơi khai câu chữ cho người quét. «Đã dùng» được máy chủ nối thêm giờ và tên người. Tên chữ chờ chủ chọn (ADR-0175 mục tên). */
 export const CAU_QUET: Readonly<Record<MaQuet, string>> = {
@@ -36,6 +38,7 @@ export const CAU_QUET: Readonly<Record<MaQuet, string>> = {
   LECH_NGAY: "Ngày đi của đơn khác hôm nay. Bấm xác nhận nếu vẫn cho khách đi",
   CHUA_THU_DU: "Đơn chưa thu đủ, báo văn phòng trước khi thu khách",
   VUOT_KHACH: "Số vé đã dùng đã đủ số khách của đơn. Bấm xác nhận nếu vẫn cho khách đi",
+  NHAP_TAY: "Số sê-ri này do bạn nhập tay, không quét mã. Kiểm đúng vé trước khi bấm xác nhận",
   HOP_LE: "Vé hợp lệ",
 };
 
@@ -70,5 +73,6 @@ export function ketQuaQuet(
   if (can.lechNgay && !ngu.xacNhan.lechNgay) return { mau: "VANG", ma: "LECH_NGAY", ghi: null };
   if (can.chuaThu && !ngu.xacNhan.chuaThu) return { mau: "VANG", ma: "CHUA_THU_DU", ghi: null };
   if (can.vuotKhach && !ngu.xacNhan.vuotKhach) return { mau: "VANG", ma: "VUOT_KHACH", ghi: null };
+  if (v.nhapTay === true && ngu.xacNhan.nhapTay !== true) return { mau: "VANG", ma: "NHAP_TAY", ghi: null };
   return { mau: "XANH", ma: "HOP_LE", ghi: ngu.quyenTinh ? "DA_TINH" : "CHI_XEM" };
 }

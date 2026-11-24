@@ -12,8 +12,9 @@ export const HD_QUAN_LY_BAN_HANG: NhomHuongDan = {
   muc: [
     {
       tieuDe: "Menu của bạn",
-      noiDung: `- Máy tính: nhóm **THIẾT LẬP** có [[Dịch vụ & giá]]; các mục khác giống Bán hàng.
-- Điện thoại: Trang chủ có ô [[Dịch vụ & giá]].`,
+      noiDung: `- Máy tính: nhóm **THIẾT LẬP** có [[Dịch vụ & giá]] và [[Phiếu đăng ký đối tác]]; các mục khác giống Bán hàng.
+- Điện thoại: Trang chủ có ô [[Dịch vụ & giá]]; trang **Tôi** có dòng [[Phiếu đăng ký đối tác]].
+- Ở trang phiếu, bạn xác minh phiếu đăng ký đối tác. Quản trị hoặc Nhân sự duyệt mở tài khoản sau đó.`,
     },
     {
       tieuDe: "Chọn vé cần kiểm vé",

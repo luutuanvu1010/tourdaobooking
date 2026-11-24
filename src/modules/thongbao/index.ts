@@ -17,7 +17,7 @@ import { route, type AppModule, type Ctx } from "../../shared/router";
 import { canHoiTheoSuKien, chuyenCuaChangLuc, dungDongChuyen, type ChuyenChoTin, type DongChuyen, type DongChuyenTho, type HoiChuyenChoTin } from "../../shared/tin-chuyen";
 import {
   batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
-  insertTargetStatement, listAcks, listDoi, listDon, listMayDangBat, doiVuaGhi, listSent, listThuCong, listTinChuyen, listTinTaiKhoan, listTinDieuChinh, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
+  insertTargetStatement, listAcks, listDoi, listDon, listTinDichDanh, listMayDangBat, doiVuaGhi, listSent, listThuCong, listTinChuyen, listTinTaiKhoan, listTinDieuChinh, donChoTin, mayDangBat, tinChuyenTheoId, revokeStatement, tatMayStatement,
   upsertMarkStatement,
 } from "./repository";
 
@@ -96,8 +96,9 @@ async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-c
   const tu = new Date(Date.now() - NGAY_GIU_TIN * 86400000).toISOString();
   // ADR-0052 D6.2: chỉ người CÓ THỂ nhận tin chuyến mới đọc nhật ký chuyến (văn phòng có trip.view; tài xế có hồ sơ) — người khác không tốn truy vấn.
   const coTheNhan = can(staff, "trip.view") || (staff.partyId !== null && can(staff, "trip.view", { assigned: true }));
-  const [don, doiTho, thuCong, mark, choTho] = await Promise.all([
+  const [don, doiTho, thuCong, mark, choTho, dichDanh] = await Promise.all([
     listDon(db, tu), listDoi(db, tu, MOC_TIN_DOI), listThuCong(db, tu, staff.id), getMark(db, staff.id), coTheNhan ? listTinChuyen(db, tu) : Promise.resolve([]),
+    listTinDichDanh(db, tu, staff.id), // ADR-0213 Đ8.6 (Task 16): tin đích danh — lọc người nhận ngay ở SQL
   ]);
   const chuyen = await ghepTinChuyen(db, choTho, chuyenChoTin);
   // MQ-07 chỉ tới người có trip.view (văn phòng any / tài xế assigned) — người khác nhận tin đơn đổi thường, không tốn lời gọi dữ kiện chuyến.
@@ -108,7 +109,7 @@ async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-c
   // Chưa từng mở hộp: mốc = ngày tạo tài khoản (không đổ dồn tin cũ lên người mới — đặc tả §4.4). createdAt không đảm bảo luôn ở dạng
   // ISO có mili-giây — locHopThongBao so mốc giờ BẰNG CHUỖI nên phải chuẩn hoá trước (chuanHoaMocGio, src/shared/thong-bao.ts).
   const docDenLuc = chuanHoaMocGio(mark ?? (await getStaffAccount(db, staff.id))?.createdAt ?? now);
-  return locHopThongBao(staff, { don: [...don, ...doi], thuCong, chuyen, taiKhoan, dieuChinh, docDenLuc, now, ngan });
+  return locHopThongBao(staff, { don: [...don, ...doi], thuCong, chuyen, taiKhoan, dieuChinh, dichDanh, docDenLuc, now, ngan });
 }
 
 /** ADR-0090 đ3: dòng "ngưng tài khoản" (view audit) ghép quyền HIỆN TẠI của tài khoản bị ngưng (staff) — luật nhận ở locHopThongBao. */

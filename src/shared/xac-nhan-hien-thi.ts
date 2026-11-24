@@ -1,5 +1,6 @@
 // Chữ hiển thị của bước xác nhận đơn (ADR-0136, Task 3.5) — thuần, dùng ở giao diện. Hạn do MÁY CHỦ gửi (`hanXacNhan`, tính giờ hành chính); ở đây chỉ đổi ra chữ, KHÔNG tính lại hạn.
 import { CHIEU_LABEL, changDauCuaDichVu } from "./chang-dua-don.ts";
+import { laNoiDonTam } from "./noi-don-tam.ts";
 import type { LegDto, LyDoCanXacNhan, OrderServiceDto } from "./contracts.ts";
 import { vnDateTimeText } from "./vn-date.ts";
 
@@ -32,6 +33,9 @@ const NHAN_VI: Record<LyDoCanXacNhan, string> = {
   DICH_VU: "Có dịch vụ cần kiểm vé, chờ người kiểm vé báo còn vé.",
   DAT_GAP: "Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.",
   CHOT_GIO: "Có lượt đưa đón chưa có giờ đón, văn phòng cần ghi giờ.",
+  // Đợt C, Task 4: cùng ý với câu 409 `transfer_fee_missing` («Quản trị cần đặt phí đưa đón cho khu vực … trước khi xác nhận»). Câu ghép từ tên đã có trong BANG-THAM-CHIEU
+  // («lượt», «Phí đưa đón» — Task 6), không đặt tên mới (ruling R9 của điều phối).
+  PHI_DON: "Có lượt đưa đón chưa có mức phí, Quản trị cần đặt phí đưa đón trước khi xác nhận.",
 };
 export const nhanLyDoCanXacNhan = (vi: readonly LyDoCanXacNhan[]): string => vi.map((v) => NHAN_VI[v]).join(" ");
 
@@ -60,7 +64,8 @@ export const nhanGioLuot = (chieu: string, tenDichVu: string, batBuoc: boolean):
 /** Nhãn ghi chú dịch vụ, đứng trên khối giờ của dịch vụ đó. */
 export const nhanGhiChuDichVu = (tenDichVu: string): string => `Ghi chú · ${tenDichVu}`;
 
-export interface LuotGioConVe { leg: LegDto; batBuoc: boolean; nhanChieu: string }
+/** `canNoiDon` (ADR-0221 Đ3): lượt đang mang chữ tạm ở nơi đón — bảng Còn vé hiện ô «Nơi đón» bắt buộc cho lượt này (theo DỮ LIỆU lượt, không theo cờ của yêu cầu). */
+export interface LuotGioConVe { leg: LegDto; batBuoc: boolean; nhanChieu: string; canNoiDon: boolean }
 export interface DongGioConVe { serviceId: string; ghiChu: string | null; luot: LuotGioConVe[] }
 
 /**
@@ -76,7 +81,16 @@ export function dongGioConVe(services: readonly Pick<OrderServiceDto, "id" | "na
     return [{
       serviceId: s.id,
       ghiChu,
-      luot: s.legs.map((leg) => ({ leg, batBuoc: dau !== null && leg.id === dau.id && leg.pickupTime === null, nhanChieu: CHIEU_LABEL[leg.direction] })),
+      luot: s.legs.map((leg) => ({ leg, batBuoc: dau !== null && leg.id === dau.id && leg.pickupTime === null, nhanChieu: CHIEU_LABEL[leg.direction], canNoiDon: laNoiDonTam(leg) })),
     }];
   });
 }
+
+// ---- Bảng Còn vé: nơi đón cho lượt đối tác không nhập (ADR-0221 Đ3) ----
+/** Báo tại chỗ khi lượt cần nơi đón mà người xét chưa ghi (không gọi máy chủ; máy chủ vẫn từ chối 409 `pickup_place_required` nếu ai gửi thẳng). */
+export const CAU_THIEU_NOI_DON_LUOT = "Ghi nơi đón cho lượt này.";
+/** Nhãn ô nơi đón của một lượt cần nơi đón: «Nơi đón · Chiều đi · <tên dịch vụ> (bắt buộc)» — khuôn `nhanGioLuot`. */
+export const nhanNoiDonLuot = (chieu: string, tenDichVu: string): string => `Nơi đón · ${chieu} · ${tenDichVu} (bắt buộc)`;
+/** Id các lượt cần nơi đón (`canNoiDon`) mà người xét CHƯA ghi (`daGhi` = id lượt đã có điểm chọn hoặc chữ khác rỗng trong bảng) — theo thứ tự hiện; rỗng = gửi được. */
+export const thieuNoiDonConVe = (dong: readonly DongGioConVe[], daGhi: ReadonlySet<string>): string[] =>
+  dong.flatMap((d) => d.luot.filter((x) => x.canNoiDon && !daGhi.has(x.leg.id)).map((x) => x.leg.id));

@@ -10,6 +10,11 @@
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
   <section id="vk-noi-dung" hidden>
+    <section class="card" aria-labelledby="vk-loc-tieu-de">
+      <h2 id="vk-loc-tieu-de">Lọc theo dịch vụ</h2>
+      <p class="muted">Áp cho ba danh sách: Số vé còn, Lô trong kho và Lô đã huỷ gần đây. Ô tìm nhận tên, mã dịch vụ hoặc tên in trên vé, gõ không dấu cũng được.</p>
+      <div id="vk-loc"></div>
+    </section>
     <section class="card" aria-labelledby="vk-kho-tieu-de">
       <h2 id="vk-kho-tieu-de">Số vé còn</h2>
       <div id="vk-kho"></div>
@@ -23,8 +28,10 @@
       <div id="vk-lo"></div>
     </section>
     <section class="card" aria-labelledby="vk-cac-lo-tieu-de">
-      <h2 id="vk-cac-lo-tieu-de">Lô có thể huỷ</h2>
-      <p class="muted">Lô nhập dở hoặc khai sai mà chưa vé nào được giữ chỗ. Huỷ lô rồi nhập lại đúng các ảnh đó trong lô mới.</p>
+      <h2 id="vk-cac-lo-tieu-de">Lô trong kho</h2>
+      <p class="muted">Xem vé của từng lô theo số sê-ri, huỷ một vé hoặc huỷ cả lô. Lô chưa vé nào được giữ chỗ huỷ xong nhập lại được; lô đã cấp thì huỷ phần còn lại và máy cấp vé thay cho đơn.</p>
+      <p id="vk-gui-lai" class="alert" role="alert" hidden></p>
+      <div id="vk-tim"></div>
       <div id="vk-cac-lo"></div>
     </section>
     <section class="card" aria-labelledby="vk-da-huy-tieu-de">

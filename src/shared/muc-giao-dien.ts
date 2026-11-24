@@ -80,6 +80,8 @@ export const TRANG = {
   dichVu: { duong: "/catalog", hien: (s) => quanTri(s) || dungManHepDichVu(s), tam: tamQuanTri }, // ADR-0169 Đ4
   // ADR-0071: ô account.view (Quản trị, Nhân sự, Toàn quyền). Bản nhớ khung không có cờ này (ADR-0035): khung tạm dùng `admin` — Nhân sự thiếu mục một nhịp.
   taiKhoan: { duong: "/staff", hien: ve("account.view"), tam: tamQuanTri },
+  // Phiếu đăng ký đối tác (ADR-0219 Đ3): CÙNG ô với route `GET /api/dang-ky/hang-cho` (cổng staff) — registration.queue.view (Quản lý bán hàng, Quản trị, Nhân sự, Toàn quyền).
+  phieuDangKy: { duong: "/phieu-dang-ky", hien: ve("registration.queue.view") },
   phien: { duong: "/sessions", hien: ve("auth.session.viewAll") }, // ADR-0075 điều 7
   // GET /api/locations mở cho mọi tài khoản (form đơn, form chuyến cần danh sách) — trang quản lý chỉ mở cho ô admin.manage (web/locations.ts).
   diaDiem: { duong: "/locations", hien: quanTri, moTrang: quanTri, tam: tamQuanTri },
@@ -218,7 +220,9 @@ const NHAN_PHI_DON = "Phí đưa đón";
 const NHAN_CAP_DAI_LY = "Cấp độ đại lý";
 const NHAN_HOA_HONG = "Hoa hồng đối tác";
 const THIET_LAP = "THIẾT LẬP";
-const tl = <T extends string, N extends string>(trang: T, nhan: N) => ({ nhom: THIET_LAP, trang, nhan }) as const;
+// Dòng Thiết lập viết bằng `tl(trang, nhan, hình)`: gọn hơn chữ khoá lặp ~25 byte mỗi dòng trong gói nén (Việc 16 thêm hình cho cả 25 dòng); generic giữ nguyên kiểu chữ
+// để web/shell.ts bắt tên hình sai lúc biên dịch. Mỗi mục một hình riêng, không mượn hình của nhóm khác — bài src/thiet-lap-bieu-tuong.test.ts.
+const tl = <T extends string, N extends string, B extends string>(trang: T, nhan: N, bieuTuong: B) => ({ nhom: THIET_LAP, trang, nhan, bieuTuong }) as const;
 export const THANH_BEN = [
   { nhom: "HẰNG NGÀY", trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
   // Tài xế: "Trang chủ" của họ là /tai-xe; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
@@ -238,30 +242,31 @@ export const THANH_BEN = [
   { nhom: "TIỀN", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money" },
   // Sổ công nợ (25/10) gộp với Khoá sổ tháng — cùng điều kiện hiện (ledger.view không ngữ cảnh); giữ trần 10 mục hiện sẵn của Toàn quyền. Trang Sổ công nợ có lối sang Khoá sổ tháng.
   { nhom: "TIỀN", trang: "soCongNo", nhan: "Sổ công nợ & khoá sổ", bieuTuong: "lock", gom: ["soCongNo", "khoaThang"] },
-  { nhom: THIET_LAP, trang: "hoaHong", nhan: NHAN_HOA_HONG },
-  { nhom: THIET_LAP, trang: "capDaiLy", nhan: NHAN_CAP_DAI_LY },
-  { nhom: THIET_LAP, trang: "phiDon", nhan: NHAN_PHI_DON },
-  { nhom: THIET_LAP, trang: "hanMucTraSau", nhan: "Hạn mức trả sau" },
-  { nhom: THIET_LAP, trang: "luatBan", nhan: "Luật bán" },
-  { nhom: THIET_LAP, trang: "nguoiBan", nhan: "Người bán dịch vụ" },
-  { nhom: THIET_LAP, trang: "chupBu", nhan: "Chụp bù mức" },
-  { nhom: THIET_LAP, trang: "veKho", nhan: "Vé điện tử" },
-  { nhom: THIET_LAP, trang: "veDoiChieu", nhan: "Đối chiếu vé" },
-  { nhom: THIET_LAP, trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
-  { nhom: THIET_LAP, trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
-  { nhom: THIET_LAP, trang: "dichVu", nhan: "Dịch vụ & giá" },
-  { nhom: THIET_LAP, trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
-  { nhom: THIET_LAP, trang: "diaDiem", nhan: "Địa điểm" },
-  { nhom: THIET_LAP, trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân" },
-  { nhom: THIET_LAP, trang: "loaiGiayToXe", nhan: "Loại giấy tờ xe" },
-  { nhom: THIET_LAP, trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
-  { nhom: THIET_LAP, trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
-  { nhom: THIET_LAP, trang: "taiKhoan", nhan: "Quản lý tài khoản" },
-  { nhom: THIET_LAP, trang: "phien", nhan: "Máy đang đăng nhập" },
-  { nhom: THIET_LAP, trang: "nhatKy", nhan: "Nhật ký" },
-  { nhom: THIET_LAP, trang: "guiThongBao", nhan: "Gửi thông báo" },
-  { nhom: THIET_LAP, trang: "troLy", nhan: "Trợ lý Hỗ trợ" },
-  { nhom: THIET_LAP, trang: "giaoDien", nhan: "Giao diện" },
+  tl("hoaHong", NHAN_HOA_HONG, "percent"),
+  tl("capDaiLy", NHAN_CAP_DAI_LY, "layers"),
+  tl("phiDon", NHAN_PHI_DON, "route"),
+  tl("hanMucTraSau", "Hạn mức trả sau", "gauge"),
+  tl("luatBan", "Luật bán", "scale"),
+  tl("nguoiBan", "Nhà cung cấp", "store"),
+  tl("chupBu", "Chụp bù mức", "camera"),
+  tl("veKho", "Vé điện tử", "ticket"),
+  tl("veDoiChieu", "Đối chiếu vé", "ticketCheck"),
+  tl("veCaiDat", "Cài đặt vé điện tử", "ticketGear"),
+  tl("hoaHongGioiHan", "Giới hạn nhập hoa hồng", "bounds"),
+  tl("dichVu", "Dịch vụ & giá", "services"),
+  tl("dacDiem", "Đặc điểm dịch vụ", "toggle"),
+  tl("diaDiem", "Địa điểm", "map"),
+  tl("loaiGiayToNguoi", "Loại giấy tờ cá nhân", "idCard"),
+  tl("loaiGiayToXe", "Loại giấy tờ xe", "carDoc"),
+  tl("lyDoDieuPhoi", "Lý do điều phối", "list"),
+  tl("chinhSachDieuPhoi", "Chính sách điều phối", "book"),
+  tl("taiKhoan", "Quản lý tài khoản", "staff"),
+  tl("phieuDangKy", "Phiếu đăng ký đối tác", "userCheck"),
+  tl("phien", "Máy đang đăng nhập", "devices"),
+  tl("nhatKy", "Nhật ký", "history"),
+  tl("guiThongBao", "Gửi thông báo", "bell"),
+  tl("troLy", "Trợ lý Hỗ trợ", "chat"),
+  tl("giaoDien", "Giao diện", "palette"),
   { nhom: "CHÂN MENU", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
   { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", moTu: (p: string) => `/huong-dan?from=${encodeURIComponent(p)}` },
   { nhom: "CHÂN MENU", trang: "troGiup", nhan: "Nhật ký thay đổi", bieuTuong: "megaphone" },
@@ -342,12 +347,13 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "phiDon", nhan: NHAN_PHI_DON },
   { phan: "sau", trang: "luatBan", nhan: "Luật bán" },
   { phan: "sau", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
-  { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
+  { phan: "sau", trang: "nguoiBan", nhan: "Nhà cung cấp" },
   { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
   { phan: "sau", trang: "veKho", nhan: "Vé điện tử" },
   { phan: "sau", trang: "veDoiChieu", nhan: "Đối chiếu vé" },
   { phan: "sau", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
   { phan: "sau", trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
+  { phan: "sau", trang: "phieuDangKy", nhan: "Phiếu đăng ký đối tác" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
   { phan: "sau", trang: "phien", nhan: "Máy đang đăng nhập" },
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },

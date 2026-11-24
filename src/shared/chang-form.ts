@@ -57,7 +57,9 @@ export function changTuDto(l: LegDto, key: string): ChangNhap {
     tra: l.dropoffLocationId ?? (l.dropoffPlace ? TU_DO : ""), traTuDo: l.dropoffPlace ?? "",
     flightCode: l.flightCode ?? "", soVe: l.paxOverride === null ? "" : String(l.paxOverride),
     xeRieng: l.exclusiveVehicle, choToiThieu: l.minVehicleSeats === null ? "" : String(l.minVehicleSeats),
-    goiYGio: false, goiYTra: false, theoDon: false, theoTra: false, goc: l,
+    // ADR-0221: lượt chiều đi mang chữ tạm chỉ sinh từ form «không nhập nơi đón» (đối tác không thấy ô nơi trả) ⇒ nơi trả là điểm danh mục vẫn là GỢI Ý của dịch vụ,
+    // để nháp mở lại vẫn thu gọn được. Nơi trả tự gõ, chiều về, lượt có nơi đón thật: như trước (không phải gợi ý).
+    goiYGio: false, goiYTra: tamDon && l.direction === "OUT" && l.dropoffLocationId !== null, theoDon: false, theoTra: false, goc: l,
   };
 }
 
@@ -180,22 +182,23 @@ export const CAU_LOI_CHO_TOI_THIEU = "Số chỗ từ 1 đến 100";
 
 /**
  * Lỗi của một chặng (số thứ tự `so` bắt đầu 1). Nơi đón chỉ báo sau lần bấm Lưu đầu (`daLuu`); số người chiều về quá số khách báo ngay. `soKhach` = số khách
- * của dịch vụ (`tongKhach`).
+ * của dịch vụ (`tongKhach`). `khongCanNoiDon` (ADR-0221 Đ2 — form đối tác lúc công tắc «Đối tác không nhập nơi đón» đang áp; mặc định tắt = hành vi hôm nay): lượt CHIỀU ĐI chưa chọn
+ * nơi đón KHÔNG phải lỗi (máy chủ ghi chữ tạm, văn phòng điền lúc Còn vé); chiều về và mọi lỗi khác giữ nguyên.
  */
-export function loiChang(l: ChangNhap, so: number, soKhach: number, daLuu: boolean): LoiChang {
+export function loiChang(l: ChangNhap, so: number, soKhach: number, daLuu: boolean, khongCanNoiDon = false): LoiChang {
   const n = l.soVe === "" ? null : Number(l.soVe);
   return {
-    don: daLuu && l.don === "" ? `Lượt ${so}: chưa có nơi đón.` : null,
+    don: daLuu && l.don === "" && !(khongCanNoiDon && l.direction === "OUT") ? `Lượt ${so}: chưa có nơi đón.` : null,
     donTuDo: daLuu && l.don === TU_DO && l.donTuDo.trim() === "" ? `Lượt ${so}: chưa ghi địa chỉ đón.` : null,
     soVe: l.direction === "RETURN" && n !== null && n > soKhach ? `Số người chiều về không được quá ${soKhach}.` : null,
     choToiThieu: l.choToiThieu !== "" && (Number(l.choToiThieu) < CHO_TOI_THIEU_MIN || Number(l.choToiThieu) > CHO_TOI_THIEU_MAX) ? CAU_LOI_CHO_TOI_THIEU : null,
   };
 }
 
-/** Mọi lỗi chặn Lưu của danh sách chặng (để liệt kê ở dải lỗi khi bấm Lưu). */
-export function loiDanhSachChang(legs: readonly ChangNhap[], soKhach: number): string[] {
+/** Mọi lỗi chặn Lưu của danh sách chặng (để liệt kê ở dải lỗi khi bấm Lưu). `khongCanNoiDon`: xem `loiChang` (mặc định tắt). */
+export function loiDanhSachChang(legs: readonly ChangNhap[], soKhach: number, khongCanNoiDon = false): string[] {
   return legs.flatMap((l, i) => {
-    const e = loiChang(l, i + 1, soKhach, true);
+    const e = loiChang(l, i + 1, soKhach, true, khongCanNoiDon);
     return [e.don, e.donTuDo, e.soVe, e.choToiThieu === null ? null : `Lượt ${i + 1}: ${CAU_LOI_CHO_TOI_THIEU.charAt(0).toLowerCase()}${CAU_LOI_CHO_TOI_THIEU.slice(1)}.`].filter((x): x is string => x !== null);
   });
 }
@@ -211,12 +214,14 @@ export const chiTietChangCoGiaTri = (l: Pick<ChangNhap, "xeRieng" | "choToiThieu
  * Chặng có được hiện GỌN MỘT DÒNG lúc dựng khối (form Tạo/sửa đơn) không: chỉ khi chặng đã đủ nơi đón (đã chọn điểm, hoặc "Gõ tự do" có địa chỉ) và KHÔNG có gì bị giấu sau dòng tóm tắt —
  * không ô ít dùng nào có giá trị, ngày đón không khác ngày đi, chiều về không có "số người chiều về", không lỗi nào của chặng. Chặng còn thiếu nơi đón (vừa tạo) hiện đủ ô vì người lập phải nhập.
  * Chỉ dùng LÚC DỰNG (lần đầu thấy chặng); chặng đã mở thì giữ mở, không tự gập giữa lúc người lập đang gõ.
+ * `khongCanNoiDon` (ADR-0221, mặc định tắt): lượt chiều đi chưa chọn nơi đón không còn là «thiếu» — không vì thế mà ép mở.
  */
-export function changNenGon(l: ChangNhap, so: number, soKhach: number, ngayDi: string, coOSoHieuChang = false): boolean {
-  if (l.don === "" || (l.don === TU_DO && l.donTuDo.trim() === "")) return false;
+export function changNenGon(l: ChangNhap, so: number, soKhach: number, ngayDi: string, coOSoHieuChang = false, khongCanNoiDon = false): boolean {
+  const mienNoiDon = khongCanNoiDon && l.direction === "OUT" && l.don === "";
+  if (!mienNoiDon && (l.don === "" || (l.don === TU_DO && l.donTuDo.trim() === ""))) return false;
   if (coOSoHieuChang || l.flightCode.trim() !== "") return false; // ô số hiệu chuyến bay hiện sẵn: không giấu sau dòng tóm tắt
   if (chiTietChangCoGiaTri(l) || canHienNgayDon(l, ngayDi) || l.soVe !== "") return false;
-  const e = loiChang(l, so, soKhach, true);
+  const e = loiChang(l, so, soKhach, true, khongCanNoiDon);
   return e.don === null && e.donTuDo === null && e.soVe === null && e.choToiThieu === null;
 }
 

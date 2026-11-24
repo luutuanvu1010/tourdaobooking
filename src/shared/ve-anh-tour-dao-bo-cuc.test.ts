@@ -7,7 +7,7 @@ import { taoMaVeTourDao } from "./ma-ve-tour-dao.ts";
 /** Bộ đo giả bi quan: mỗi ký tự rộng 0,62 cỡ chữ (chữ in đậm tiếng Việt thật hẹp hơn). */
 const doGia: DoChu = (chu, coPx) => chu.length * coPx * 0.62;
 const MA = taoMaVeTourDao(() => new Uint8Array(16).map((_, i) => i * 7 + 3));
-const ND: NoiDungVe = { tenCongTy: "Công ty TNHH Tour Đảo", hotline: "0000 000 000", tenDichVu: "Tour 4 đảo Nha Trang", tenDichVuEn: "Nha Trang 4-Island Tour", nhomKhach: "ADULT", denNgay: "2026-12-31", ma: MA };
+const ND: NoiDungVe = { tenCongTy: "Công ty TNHH Tour Đảo", hotline: "0000 000 000", tenDichVu: "Tour 4 đảo Nha Trang", tenDichVuEn: "Nha Trang 4-Island Tour", nhomKhach: "ADULT", denNgay: "2026-12-31", ma: MA, soSeri: "VE_ABCDEFGH" };
 const LE = 72;
 
 test("ô QR: vùng mã ≥ 520 px, viền trắng ≥ 40 px, cả khung mã nằm ở nửa trên và trong bề ngang vé", () => {
@@ -54,11 +54,11 @@ test("chữ nhỏ nhất 28 px; dòng tiếng Anh nhỏ hơn dòng tiếng Việ
   assert.deepEqual([...cap.keys()].sort(), ["dichVu", "hoaDon", "loaiVe", "motLan", "nhomKhach", "soVe", "thoiHan"].sort());
 });
 
-test("nội dung đúng mẫu «Vé từng khách»: có tên công ty, hotline (không dịch), số vé 4 ký tự cuối, câu không phải hóa đơn", () => {
+test("nội dung đúng mẫu «Vé từng khách»: có tên công ty, hotline (không dịch), số sê-ri, câu không phải hóa đơn", () => {
   const b = boCucVeTourDao(ND, 29, doGia);
   const chu = b.dong.map((d) => d.chu);
   for (const can of ["Công ty TNHH Tour Đảo", "Hotline 0000 000 000", "Vé dịch vụ", "Service ticket", "Tour 4 đảo Nha Trang", "Nha Trang 4-Island Tour", "Người lớn", "Adult",
-    `Số vé …${MA.slice(-4)}`, `Ticket no. …${MA.slice(-4)}`, CAU_KHONG_PHAI_HOA_DON.vi, CAU_KHONG_PHAI_HOA_DON.en]) assert.ok(chu.includes(can), `thiếu «${can}»`);
+    "Số sê-ri VE_ABCDEFGH", "Serial No.", CAU_KHONG_PHAI_HOA_DON.vi, CAU_KHONG_PHAI_HOA_DON.en]) assert.ok(chu.includes(can), `thiếu «${can}»`);
   const tat = chu.join(" ");
   assert.match(tat, /Dùng vào ngày đi đã đặt\. Hạn cuối 31\/12\/2026/);
   assert.match(tat, /Valid on your booked date\. Expires 31\/12\/2026/);
@@ -68,12 +68,17 @@ test("nội dung đúng mẫu «Vé từng khách»: có tên công ty, hotline 
   assert.equal(chu.filter((c) => c === "Hotline 0000 000 000").length, 1);
 });
 
+test("số sê-ri sai dạng thì không vẽ (không in chữ lạ lên vé)", () => {
+  assert.throws(() => boCucVeTourDao({ ...ND, soSeri: "ve_abcdefgh" }, 29, doGia), /sê-ri/);
+  assert.throws(() => boCucVeTourDao({ ...ND, soSeri: "VE_ABC" }, 29, doGia), /sê-ri/);
+});
+
 test("không in mã đầy đủ, mã kỹ thuật, giá tiền", () => {
   const b = boCucVeTourDao(ND, 29, doGia);
   const tat = b.dong.map((d) => d.chu).join("\n");
   assert.ok(!tat.includes(MA), "mã đầy đủ lộ trên vé");
   assert.ok(!tat.includes("TD1."), "tiền tố mã lộ trên vé");
-  assert.ok(!tat.includes(MA.slice(4, 12)), "một đoạn mã ngoài 4 ký tự cuối lộ trên vé");
+  assert.ok(!tat.includes(MA.slice(4, 12)), "một đoạn mã bí mật lộ trên vé");
   assert.doesNotMatch(tat, /VNĐ|VND|\bđ\b|₫|ADULT|CHILD|SENIOR|TOUR_DAO/);
 });
 
@@ -111,4 +116,14 @@ test("tên rất dài vẫn nằm gọn trong vé: cắt dòng theo bề ngang, 
 
 test("ngày hạn cuối sai dạng thì báo lỗi, không vẽ ngày lạ", () => {
   assert.throws(() => boCucVeTourDao({ ...ND, denNgay: "31/12/2026" }, 29, doGia));
+});
+
+test("ADR-0231: chân vé in đúng số của lô (thay hotline công ty), một dòng, không cắt; số dài nhất vẫn vừa", () => {
+  for (const so of ["1900 1234", "1800 123 456", "0258 3812 345", "0905 123 456"]) {
+    const b = boCucVeTourDao({ ...ND, hotline: so }, 33, doGia);
+    const chan = b.dong.filter((d) => d.nhom === "hotline");
+    assert.equal(chan.length, 1, so);
+    assert.equal(chan[0]!.chu, `Hotline ${so}`, "không «…»: số in đủ");
+    assert.ok(b.dayNoiDung <= KHO_VE.cao, `${so}: tràn đáy ${b.dayNoiDung}`);
+  }
 });

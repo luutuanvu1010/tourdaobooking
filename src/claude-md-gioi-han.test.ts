@@ -21,8 +21,10 @@ const TEP_CON = readdirSync(join(ROOT, "src/modules"))
   .map((m) => `src/modules/${m}/CLAUDE.md`)
   .filter((p) => existsSync(join(ROOT, p)));
 
-/** Trần byte (2026-11-03: 30.638 / 10.236 / 32.355 byte; gốc hạ khi viết lại, ADR-0160; 2026-11-15: bảng kịch bản Chrome của web chuyển nguyên văn sang docs/KICH-BAN-CHROME.md). CHỈ HẠ khi rút gọn; có dung sai nhỏ để sửa số đếm, tên tệp (N9). */
-const TRAN_BYTE: Record<(typeof TEP)[number], number> = { "CLAUDE.md": 27800, "src/CLAUDE.md": 10500, "web/CLAUDE.md": 7500 };
+/** Trần byte (2026-11-03: 30.638 / 10.236 / 32.355 byte; gốc hạ khi viết lại, ADR-0160; 2026-11-15: bảng kịch bản Chrome của web chuyển nguyên văn sang docs/KICH-BAN-CHROME.md;
+ *  2026-11-24: gốc 27.800 → 28.000 và web 7.500 → 8.300 chỉ để nhận chữ bản chính thêm sau 15/11 — dòng «Bằng chứng giao diện» ở §6 (ADR-0215 Đ3), đoạn «Người chấm giao diện»
+ *  và lời dặn AXE_JS ở web; không phải chữ của việc viết lại; lúc đó bản chính chưa có trần nào). CHỈ HẠ khi rút gọn; có dung sai nhỏ để sửa số đếm, tên tệp (N9). */
+const TRAN_BYTE: Record<(typeof TEP)[number], number> = { "CLAUDE.md": 28000, "src/CLAUDE.md": 10500, "web/CLAUDE.md": 8300 };
 /** Tệp nhỏ hơn trần quá chừng này thì đỏ: hạ trần cho sát. */
 const DUNG_SAI = 2500;
 /** Trần mỗi CLAUDE.md con: chỉ chứa bẫy của đúng một vùng (ngưỡng theo mức 4 KB của FRAMEWORK §4.6). */
@@ -140,7 +142,8 @@ test("mỗi CLAUDE.md con không quá trần; được §10 gốc trỏ tới; n
     assert.equal(duocGui(ten), true, `${ten} phải nằm trong gói trợ lý trên mây (ADR-0145 Đ3)`);
   }
   const hoi: string[] = JSON.parse(doc(".claude/settings.json")).permissions.ask;
-  assert.ok(hoi.includes("Edit(src/modules/**/CLAUDE.md)"), "thiếu luật ask cho CLAUDE.md con ở .claude/settings.json: AI sửa luật mà chủ không được hỏi");
+  // Dạng `**/` để tệp con NẰM TRONG bản làm việc riêng (.claude/worktrees/<tên>/) vẫn bị hỏi, cùng cách bản chính đổi ngày 16/11 (2e1e71656).
+  assert.ok(hoi.includes("Edit(**/src/modules/**/CLAUDE.md)"), "thiếu luật ask cho CLAUDE.md con ở .claude/settings.json: AI sửa luật mà chủ không được hỏi");
 });
 
 test("đường dẫn viết trong các tệp CLAUDE.md đều trỏ tới tệp có thật (trừ danh sách loại trừ)", () => {

@@ -7,6 +7,7 @@
   <!-- Màn gom hồ sơ đang mang vai trò được hưởng (đặc tả 2026-11-04-man-cap-dai-ly). Ô partner.commission.write, không giữ quyền Đối tác. Cột «Trả sau» và khối «Hạn mức trả sau» (ADR-0172 Đ1): web/o-tra-sau.ts. web/cap-dai-ly.ts dựng nội dung. -->
   <h1>Cấp độ đại lý</h1>
   <p class="muted">Đặt cấp và Trả sau cho mọi đối tác đang được hưởng hoa hồng, gồm cả hồ sơ chưa có tài khoản.</p>
+  <p id="cdl-nhac-phi-don" class="muted" hidden></p>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="cdl-khong-cap" class="alert" role="status" hidden></div>
   <div id="cdl-khung" hidden>
@@ -24,6 +25,7 @@
     <div id="cdl-the" class="card-list"></div>
     <p id="cdl-rong" class="muted" hidden></p>
     <button id="cdl-them" class="btn" type="button" hidden>Xem thêm</button>
+    <div id="cdl-giam-phi-don"></div>
     <div id="cdl-tra-sau"></div>
   </div>
 </main>

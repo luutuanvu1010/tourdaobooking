@@ -83,7 +83,13 @@ test("(a) form gọn không dựng ô giờ: thẻ dịch vụ truyền anGio th
   const khoi = doc("web/khoi-dua-don.ts");
   assert.match(khoi, /const kg\s*=\s*o\.che\s*===\s*"form"\s*&&\s*!o\.anGio\s*\?/, "hàng khung giờ (`hangKhung`) chỉ dựng khi có `kg`, và `kg` chỉ có khi !o.anGio");
   assert.match(khoi, /h\("div",\s*\{\s*class:\s*"dd-luoi2"\s*\},\s*ngayEl,\s*o\.anGio\s*\?\s*null\s*:\s*gioEl,/, "ô giờ không nằm trong cây DOM khi anGio");
-  assert.equal(khoi.match(/tomTatChang\(l,\s*nhanNgan,\s*o\.anGio\s*===\s*true\)/g)?.length, 2, "cả hai chỗ tóm tắt chặng (lúc dựng và lúc vẽ lại) truyền anGio");
+  // ADR-0214 (Task 6): tóm tắt chặng đi qua MỘT hàm bọc `tomTatCoPhi` (thêm « · Phí đưa đón …»). Ý bài giữ nguyên: mọi lời gọi `tomTatChang` truyền anGio, và cả chỗ dựng lẫn chỗ vẽ lại đi qua hàm bọc đó.
+  const goiTomTat = khoi.match(/tomTatChang\(/g)?.length ?? 0;
+  assert.ok(goiTomTat >= 1, "có gọi tomTatChang");
+  assert.equal(khoi.match(/tomTatChang\(l,\s*nhanNgan,\s*o\.anGio\s*===\s*true\)/g)?.length, goiTomTat, "mọi lời gọi tomTatChang truyền anGio");
+  assert.match(khoi, /const tomTatCoPhi = \(l: ChangNhap\): string => \{\s*const goc = tomTatChang\(l,\s*nhanNgan,\s*o\.anGio\s*===\s*true\)/, "hàm bọc tóm tắt truyền anGio");
+  assert.match(khoi, /h\("span",\s*\{\s*class:\s*"dd-tom-tat-chu"\s*\},\s*tomTatCoPhi\(l\)\)/, "chỗ dựng chặng gọn đi qua hàm bọc");
+  assert.match(khoi, /if \(r\.tomTatEl\) r\.tomTatEl\.textContent = tomTatCoPhi\(l\);/, "chỗ vẽ lại (refresh) đi qua hàm bọc");
 });
 
 test("form đối tác gửi lượt đầu trống giờ: collect đi qua legsGuiFormGon(legs, orderDate) khi formGon; hạn chốt xét theo giờ SẼ GỬI; form gọn không gọi bộ khung giờ", () => {
@@ -97,7 +103,10 @@ test("form đối tác gửi lượt đầu trống giờ: collect đi qua legsG
 test("công tắc ẩn khách: form chỉ hỏi công tắc khi formGon, đặt anKhach = apChoToi (lỗi mạng → không ẩn), ẩn bằng thuộc tính data-an-khach mà CSS giữ lại đúng dòng Ngày khởi hành", () => {
   const form = doc("web/order-form.ts");
   assert.match(form, /const layAnKhach\s*=\s*formGon\s*\?\s*docCongTacAnKhach\(\)\s*:\s*Promise\.resolve\(null\)/, "chỉ tài khoản giữ quyền Đối tác hỏi công tắc");
-  assert.match(form, /Promise\.all\(\[layDiem,\s*layMau,\s*layKhung,\s*layAnKhach\]\)/, "đọc công tắc song song với các lần nạp khác, một lần lúc mở");
+  assert.match(form, /Promise\.all\(\[layDiem,\s*layMau,\s*layKhung,\s*layAnKhach,\s*layPhiAp,\s*layNoiDon,\s*layDs\]\)/, "đọc công tắc song song với các lần nạp khác, một lần lúc mở (ADR-0214 Task 6: công tắc phí đưa đón cùng lô; ADR-0221: công tắc nơi đón cùng lô; ADR-0228: công tắc danh sách hành khách cùng lô)");
+  assert.match(form, /const layDs\s*=\s*formGon\s*\?\s*docCongTacDs\(\)\s*:\s*Promise\.resolve\(null\)/, "ADR-0228 Đ1: chỉ tài khoản giữ quyền Đối tác hỏi công tắc danh sách");
+  assert.match(form, /datAnDs\(anDsMay\s*===\s*true\)/, "ADR-0228 Đ1: chỉ ẩn khối Hành khách khi máy chủ nói áp");
+  assert.equal(form.match(/\blayAnKhach\b/g)?.length, 2, "công tắc ẩn khách lúc mở: một lần khai, một lần chờ trong lô (không đọc thêm lần nào)");
   assert.match(form, /datAnKhach\(anKhachMay\s*===\s*true\)/, "chỉ ẩn khi máy chủ nói áp (null do lỗi mạng ⇒ không ẩn)");
   assert.match(form, /docCongTacAnKhach\s*=\s*\(\):\s*Promise<boolean \| null>\s*=>\s*api<Api\.AnThongTinKhachResponse>\("\/api\/cai-dat\/an-thong-tin-khach"\)\.then\(\(r\)\s*=>\s*r\.apChoToi,\s*\(\)\s*=>\s*null\)/, "đọc đúng trường apChoToi");
   assert.match(form, /khoiKhach\.toggleAttribute\("data-an-khach",\s*an\)/);
@@ -110,19 +119,21 @@ test("công tắc ẩn khách: form chỉ hỏi công tắc khi formGon, đặt 
   assert.match(html, /<section class="card buoc" data-buoc-khoi="khach"[^>]*>\s*<div class="khach-ngay">/, "khối khách mở đầu bằng .khach-ngay: CSS :not(.khach-ngay) áp đúng khối đó");
 });
 
-test("công tắc ẩn khách: validate bỏ need(tên, SĐT) khi anKhach; collect không gửi các khoá khách khi anKhach; không dựng khối Hành khách khi ẩn", () => {
+test("công tắc ẩn khách: validate bỏ need(tên, SĐT) khi anKhach; collect không gửi các khoá khách khi anKhach; khối Hành khách theo công tắc riêng anDs (ADR-0228 Đ1)", () => {
   const form = doc("web/order-form.ts");
   assert.equal(form.match(/need\("customerName"/g)?.length, 1, "need(tên) chỉ còn MỘT chỗ gọi");
   assert.match(form, /if\s*\(!anKhach\)\s*\{\s*need\("customerName",[^\n]*\n\s*need\("customerPhone",/, "need(tên, SĐT) nằm trong if (!anKhach)");
   const collect = form.slice(form.indexOf("function collect()"), form.indexOf("// ---- khoá form, banner lỗi ----"));
-  const ra = collect.indexOf("if (anKhach) return chung;");
-  assert.ok(ra > 0, "collect trả thân không khoá khách khi anKhach");
-  for (const khoa of ["customerName:", "customerPhone:", "customerEmail:", "customerNote:", "passengers:", "gopBenDat("]) {
+  const ra = collect.indexOf("if (anKhach) return { ...chung, ...ds };");
+  assert.ok(ra > 0, "collect trả thân không khoá khách khi anKhach (danh sách hành khách đi theo `ds`)");
+  assert.match(collect, /const ds = hk \? \{ passengers: passengersNhap\(hk\.rows\(\)\) \} : \{\};/, "passengers chỉ khi khối Hành khách đang dựng (anDs ⇒ không dựng)");
+  for (const khoa of ["customerName:", "customerPhone:", "customerEmail:", "customerNote:", "gopBenDat("]) {
     const vt = collect.indexOf(khoa);
     assert.ok(vt > ra, `${khoa} chỉ nằm SAU lệnh trả sớm (không bao giờ gửi khi anKhach)`);
   }
-  assert.match(form, /if\s*\(!anKhach\s*&&\s*can\(staff,\s*"order\.passenger\.write"/, "lập đơn mới: không dựng khối Hành khách khi ẩn");
-  assert.match(form, /if\s*\(suaKhachCuaNhap\s*&&\s*!anKhach\)/, "sửa nháp: không tải danh sách hành khách khi ẩn (thân không có khoá passengers ⇒ máy chủ giữ danh sách đang lưu)");
+  assert.match(form, /if\s*\(!anDs\s*&&\s*can\(staff,\s*"order\.passenger\.write"/, "lập đơn mới: không dựng khối Hành khách khi công tắc danh sách áp");
+  assert.match(form, /if\s*\(suaKhachCuaNhap\s*&&\s*!anDs\)/, "sửa nháp: không tải danh sách hành khách khi công tắc danh sách áp (thân không có khoá passengers ⇒ máy chủ giữ danh sách đang lưu)");
+  assert.match(form, /if \(anDs\) return;/, "dungKhoiKhach không dựng khi công tắc danh sách áp");
   assert.match(form, /daChonNguoi:\s*handlerPick\s*!==\s*null,\s*anKhach\b/, "thanh tiến độ: bước Khách ✓ chỉ cần ngày khởi hành khi ẩn");
 });
 

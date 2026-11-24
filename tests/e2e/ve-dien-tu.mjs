@@ -165,8 +165,10 @@ assert.equal(nhapLaiMo.body.themDuoc, 0, JSON.stringify(nhapLaiMo.body));
 assert.match(nhapLaiMo.body.loai[0].lyDo, /đã được mở ảnh/);
 assert.equal((await call(SALES, "POST", `/api/ve/lo/${loNhapLaiMo}/bo`, {})).status, 200);
 
-// 11. lô đã từng giữ chỗ (lô đầu, vé đã về kho sau khi huỷ đơn): không bỏ được, vì có thể đã lộ mã
-assert.equal((await call(SALES, "POST", `/api/ve/lo/${lo.body.loId}/bo`, {})).status, 409);
+// 11. lô đã từng giữ chỗ (lô đầu, vé đã về kho sau khi huỷ đơn): ADR-0217 Đ3 mục 5 nới ADR-0156 — không còn 409 mà đi đường «huỷ phần còn lại», bắt buộc lý do
+// (không lý do ⇒ 400, lô giữ nguyên; huỷ thật được kiểm ở ve-tour-dao.mjs để phần đếm kho bên dưới không đổi)
+assert.equal((await call(SALES, "POST", `/api/ve/lo/${lo.body.loId}/bo`, {})).status, 403, "ADR-0217 (chủ 18/11): lô hãng ngoài ĐÃ cấp — Bán hàng thường không huỷ được");
+assert.equal((await call(await session(ACCOUNTS.admin), "POST", `/api/ve/lo/${lo.body.loId}/bo`, {})).status, 400);
 assert.equal(await conTrong(), 3);
 
 // 11b. ADR-0157: lô «Mọi loại khách» trên D1 thật (bảng lô đã được dựng lại khi wrangler áp migration): một lô đủ cho cả người lớn lẫn trẻ em

@@ -123,6 +123,7 @@ async function batMotLan(may) {
   const [port, inspector, openaiPort] = [await freePort(), await freePort(), await freePort()];
   const base = `http://127.0.0.1:${port}`;
   const secret = randomBytes(48).toString("base64url"); // phiên chỉ sống trong lần chạy này
+  may.sessionSecret = secret; // đăng ký đối tác (tests/e2e/dang-ky.mjs): gieo mã email băm có khoá như route xin mã — không có đường lộ mã nào trong mã sản phẩm
   // Bảo mật hai lớp (ADR-0074): khoá AES-GCM GIẢ riêng cho lần chạy (base64 của 32 byte) — kịch bản hai-lop.mjs đọc lại qua E2E_MFA_KEY để gieo yếu tố TOTP.
   may.mfaKey = randomBytes(32).toString("base64");
   const server = spawn(
@@ -178,7 +179,7 @@ async function ngungTaiKhoanKieuCu(persist) {
 async function chayNhom(may) {
   const { k } = may;
   const stream = soNhom === 1;
-  const env = { ...process.env, E2E_BASE_URL: may.base, E2E_PERSIST_TO: may.persist, E2E_OPENAI_PORT: String(may.openaiPort), E2E_MFA_KEY: may.mfaKey };
+  const env = { ...process.env, E2E_BASE_URL: may.base, E2E_PERSIST_TO: may.persist, E2E_OPENAI_PORT: String(may.openaiPort), E2E_MFA_KEY: may.mfaKey, E2E_SESSION_SECRET: may.sessionSecret };
   // Đợt D Task 6 (F-4b): MỘT kịch bản đỏ không được che khuất các kịch bản PHÍA SAU nó — ghi từng bộ vào `ketQua` để in đủ tên trước khi thoát.
   for (const name of may.ten) {
     const started = Date.now();

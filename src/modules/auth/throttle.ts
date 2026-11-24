@@ -1,7 +1,7 @@
 // Chống dò PIN. PIN 6 số chỉ có 1 triệu tổ hợp nên phải giới hạn số lần thử.
 // Mỗi lần thử là một dòng `login_attempt` (key = "phone:0xxxxxxxxx" hoặc "ip:<địa chỉ>") đếm trong cửa sổ trượt.
 // Đặt chỗ TRƯỚC khi kiểm PIN (chèn rồi đếm lại): dù bắn song song hàng trăm request, tối đa `max` lần được phép kiểm PIN.
-import { attemptCount, attemptDeleteIdStatement, attemptDeleteKeyStatement, attemptInsertStatement, attemptPruneStatement, lockedPhoneKeys } from "./repository.ts";
+import { attemptCount, attemptPruneDkStatement, attemptPruneMoiStatement, attemptDeleteIdStatement, attemptDeleteKeyStatement, attemptInsertStatement, attemptPruneStatement, lockedPhoneKeys } from "./repository.ts";
 
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 export const PHONE_LIMIT = 5;
@@ -9,30 +9,40 @@ export const IP_LIMIT = 30;
 
 export type Reservation = { allowed: true; ids: Record<string, string> } | { allowed: false; retryAfterSeconds: number };
 
-const cutoff = (now: number) => now - LOGIN_WINDOW_MS;
+const cutoff = (now: number, windowMs: number = LOGIN_WINDOW_MS) => now - windowMs;
 
-const countIn = (db: D1Database, key: string, now: number) => attemptCount(db, key, cutoff(now));
+const countIn = (db: D1Database, key: string, now: number, windowMs: number) => attemptCount(db, key, cutoff(now, windowMs));
 
-const retryAfter = (oldest: number | null, now: number) => Math.max(1, Math.ceil(((oldest ?? now) + LOGIN_WINDOW_MS - now) / 1000));
+const retryAfter = (oldest: number | null, now: number, windowMs: number) => Math.max(1, Math.ceil(((oldest ?? now) + windowMs - now) / 1000));
 
-export async function reserveAttempts(db: D1Database, keys: { key: string; max: number }[], now = Date.now()): Promise<Reservation> {
+/**
+ * `windowMs` mặc định = 15 phút của đăng nhập. Đăng ký đối tác (khoá `dk:`) truyền cửa sổ của dòng chính sách (`ask_window_minutes`, ADR-0206 Đ8); lượt gọi có khoá `dk:` dọn dòng `dk:` cũ hơn cửa sổ đó (câu dọn của đăng nhập bỏ qua khoá `dk:`). Mọi khoá của MỘT lượt gọi dùng chung một cửa sổ.
+ */
+export async function reserveAttempts(db: D1Database, keys: { key: string; max: number }[], now = Date.now(), windowMs: number = LOGIN_WINDOW_MS): Promise<Reservation> {
   // Đã đủ số lần thì chặn ngay và KHÔNG ghi thêm, để kẻ tấn công không kéo dài mãi việc khoá nạn nhân.
   for (const k of keys) {
-    const { n, oldest } = await countIn(db, k.key, now);
-    if (n >= k.max) return { allowed: false, retryAfterSeconds: retryAfter(oldest, now) };
+    const { n, oldest } = await countIn(db, k.key, now, windowMs);
+    if (n >= k.max) return { allowed: false, retryAfterSeconds: retryAfter(oldest, now, windowMs) };
   }
   const ids: Record<string, string> = {};
   const inserts = keys.map((k) => {
     ids[k.key] = crypto.randomUUID();
     return attemptInsertStatement(db, ids[k.key]!, k.key, now);
   });
-  await db.batch([attemptPruneStatement(db, cutoff(now)), ...inserts]);
+  // Khoá lượt gõ sai mã vào tổ chức (`moi:`, `dk:moi:` — ADR-0213 Đ7.3) dọn bằng câu riêng theo cửa sổ của lượt gọi; câu dọn `dk:` chỉ chạy khi lượt gọi có khoá `dk:` KHÁC `dk:moi:`.
+  const laMoi = (k: string) => k.startsWith("moi:") || k.startsWith("dk:moi:");
+  await db.batch([
+    attemptPruneStatement(db, cutoff(now)),
+    ...(keys.some((k) => k.key.startsWith("dk:") && !laMoi(k.key)) ? [attemptPruneDkStatement(db, cutoff(now, windowMs))] : []),
+    ...(keys.some((k) => laMoi(k.key)) ? [attemptPruneMoiStatement(db, cutoff(now, windowMs))] : []),
+    ...inserts,
+  ]);
   // Kiểm lại sau khi chèn: nếu nhiều request đến cùng lúc thì chỉ `max` request đầu còn thấy count <= max.
   for (const k of keys) {
-    const { n, oldest } = await countIn(db, k.key, now);
+    const { n, oldest } = await countIn(db, k.key, now, windowMs);
     if (n > k.max) {
       await db.batch(Object.values(ids).map((id) => attemptDeleteIdStatement(db, id)));
-      return { allowed: false, retryAfterSeconds: retryAfter(oldest, now) };
+      return { allowed: false, retryAfterSeconds: retryAfter(oldest, now, windowMs) };
     }
   }
   return { allowed: true, ids };

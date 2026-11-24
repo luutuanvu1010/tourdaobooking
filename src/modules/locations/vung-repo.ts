@@ -63,3 +63,15 @@ export function insertVungStatement(db: D1Database, v: VungTao, actorId: string,
 export function updateVungStatement(db: D1Database, code: string, v: VungSua, actorId: string, at: string): D1PreparedStatement {
   return db.prepare(UPDATE).bind(v.name, v.sortOrder, v.active ? 1 : 0, at, actorId, code, v.expectedUpdatedAt);
 }
+
+/** Khu vực đón của các địa điểm theo id (mảng JSON ở ?1) — đọc view công bố `v_loc_location_zone` (địa điểm chưa xếp vùng ⇒ NGOAI_VUNG, một luật với view). */
+const KHU_VUC_CUA_DIA_DIEM = defineSql(
+  "locations",
+  "zone_of_locations",
+  `SELECT location_id, zone_code FROM v_loc_location_zone WHERE location_id IN (SELECT value FROM json_each(?1))`,
+);
+export async function khuVucCuaDiaDiem(db: D1Database, ids: readonly string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const { results } = await db.prepare(KHU_VUC_CUA_DIA_DIEM).bind(JSON.stringify([...new Set(ids)])).all<{ location_id: string; zone_code: string }>();
+  return new Map(results.map((r) => [r.location_id, r.zone_code] as const));
+}

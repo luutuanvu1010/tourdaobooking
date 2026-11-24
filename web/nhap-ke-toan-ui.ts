@@ -3,6 +3,7 @@
 // Giao diện chỉ ẩn/hiện; máy chủ kiểm lại mọi lệnh. Hộp xác nhận dùng CHUNG khuôn `hangXacNhan` của web/order.ts (truyền vào — không chép).
 import { api, type Api } from "./api";
 import { h } from "./dom";
+import { khoi } from "./khung";
 import { dateTime } from "./format";
 import { LY_DO_TOI_DA, SO_HOA_DON_TOI_DA, moTaDauNhap } from "../src/shared/nhap-ke-toan";
 
@@ -73,10 +74,8 @@ export function khoiNhapKeToan(orderId: string, d: Api.NhapKeToanResponse, hang:
       )
     : null;
 
-  return h(
-    "section",
-    { class: "card", "data-khoi": "nhap-ke-toan" },
-    h("h2", null, "Phần mềm kế toán"),
+  return khoi(
+    { tieuDe: "Phần mềm kế toán", thuoc: { "data-khoi": "nhap-ke-toan" } },
     ht?.daNhap
       ? h("p", { class: "money-ok", "data-khoi": "nhap-kt-trang-thai" }, moTaDauNhap(ht))
       : h("p", { class: "muted", "data-khoi": "nhap-kt-trang-thai" }, "Chưa nhập phần mềm kế toán"),

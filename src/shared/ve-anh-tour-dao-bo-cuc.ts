@@ -1,8 +1,9 @@
 // Luật THUẦN bố cục ảnh vé Tour Đảo (ADR-0175 Đ1.7). Nội dung theo đặc tả `docs/superpowers/specs/2026-11-05-lenh-ve-mau-ve-claude-design.md`, khối «Vé từng khách»;
 // ràng buộc kỹ thuật cùng tệp: khổ 1080 × 1920, nền phẳng, QR đen trên trắng vùng mã ≥ 520 px, viền trắng ≥ 40 px, mã ở nửa trên, chữ nhỏ nhất 28 px,
 // mọi dòng cố định có tiếng Anh nhỏ hơn ngay bên dưới (tên công ty, hotline không dịch). Không giá, tên khách, số điện thoại, mã đơn, mã kỹ thuật:
-// mã vé chỉ hiện 4 ký tự cuối. Bộ vẽ ở `web/ve-anh-tour-dao.ts`; tệp này chỉ tính vị trí (đo chữ do bên gọi đưa vào). Không I/O, không import module.
+// mã bí mật không in thành chữ (chỉ nằm trong QR); in SỐ SÊ-RI (ADR-0217, không bí mật) «Số sê-ri VE_XXXXXXXX» kèm «Serial No.». Bộ vẽ ở `web/ve-anh-tour-dao.ts`; tệp này chỉ tính vị trí (đo chữ do bên gọi đưa vào). Không I/O, không import module.
 // Test cạnh tệp: ve-anh-tour-dao-bo-cuc.test.ts.
+import { DANG_SO_SERI } from "./so-seri-ve.ts";
 
 /** Loại khách của lô (cùng bốn giá trị máy chủ nhận ở `POST /api/ve/lo`). */
 export type NhomLo = "ADULT" | "CHILD" | "SENIOR" | "ALL";
@@ -25,7 +26,10 @@ export const NHOM_KHACH_VE: Record<NhomLo, { vi: string; en: string }> = {
   ALL: { vi: "Mọi loại khách", en: "All guests" },
 };
 
-export interface NoiDungVe { tenCongTy: string; hotline: string; tenDichVu: string; tenDichVuEn: string | null; nhomKhach: NhomLo; denNgay: string; ma: string }
+/** Chữ đứng trước số ở chân vé (ADR-0231: số là «Hotline trên vé» của lô — số dịch vụ, không có thì hotline công ty). Đổi nhãn chỉ đổi hằng này. */
+export const NHAN_HOTLINE_VE = "Hotline";
+
+export interface NoiDungVe { tenCongTy: string; hotline: string; tenDichVu: string; tenDichVuEn: string | null; nhomKhach: NhomLo; denNgay: string; ma: string; soSeri: string }
 /** Bề rộng (px) của chuỗi ở cỡ chữ và độ đậm cho trước. */
 export type DoChu = (chu: string, coPx: number, dam: number) => number;
 export type MauVe = "chinh" | "chu" | "phu";
@@ -91,7 +95,7 @@ export function boCucVeTourDao(nd: NoiDungVe, soOQr: number, doChu: DoChu): BoCu
   const dong: DongChu[] = [];
   const vach: BoCucVe["vach"] = [{ x: 0, y: 0, rong: W, cao: 16, mau: "chinh" }];
   const han = ngayVn(nd.denNgay);
-  const duoi4 = `…${nd.ma.slice(-4)}`;
+  if (!DANG_SO_SERI.test(nd.soSeri)) throw new Error("Số sê-ri của vé sai dạng VE_ cộng tám chữ hoa.");
 
   /** Thêm một khối chữ (cắt dòng) bắt đầu ở đường cơ sở `y`; trả đường cơ sở dòng cuối. */
   const khoi = (chu: string, o: { x: number; y: number; rong: number; coPx: number; dam: number; mau: MauVe; canh?: "left" | "center"; ngonNgu: DongChu["ngonNgu"]; nhom: string; toiDa: number; caoDong: number }): number => {
@@ -114,10 +118,10 @@ export function boCucVeTourDao(nd: NoiDungVe, soOQr: number, doChu: DoChu): BoCu
   const canh = o * (soOQr + 2 * LE_O_QR);
   const qr = { x: Math.round((W - canh) / 2), y: dauDau + 20, canh, o };
 
-  // Số vé (4 ký tự cuối) ngay dưới mã.
+  // Số sê-ri (ADR-0217) ngay dưới mã.
   const giua = W / 2;
-  y = khoi(`Số vé ${duoi4}`, { x: giua, y: qr.y + canh + 44, rong: RONG_TRONG, coPx: 40, dam: 700, mau: "chu", canh: "center", ngonNgu: "vi", nhom: "soVe", toiDa: 1, caoDong: 48 });
-  y = khoi(`Ticket no. ${duoi4}`, { x: giua, y: y + 38, rong: RONG_TRONG, coPx: 28, dam: 500, mau: "phu", canh: "center", ngonNgu: "en", nhom: "soVe", toiDa: 1, caoDong: 36 });
+  y = khoi(`Số sê-ri ${nd.soSeri}`, { x: giua, y: qr.y + canh + 44, rong: RONG_TRONG, coPx: 40, dam: 700, mau: "chu", canh: "center", ngonNgu: "vi", nhom: "soVe", toiDa: 1, caoDong: 48 });
+  y = khoi("Serial No.", { x: giua, y: y + 38, rong: RONG_TRONG, coPx: 28, dam: 500, mau: "phu", canh: "center", ngonNgu: "en", nhom: "soVe", toiDa: 1, caoDong: 36 });
   const yVach = y + 28;
   vach.push({ x: LE, y: yVach, rong: RONG_TRONG, cao: 2, mau: "phu" });
 
@@ -135,8 +139,8 @@ export function boCucVeTourDao(nd: NoiDungVe, soOQr: number, doChu: DoChu): BoCu
   y = cap("Mỗi vé dùng một lần. Xuất trình mã cho nhân viên Tour Đảo.", "Single use. Show this code to Tour Đảo staff.", "motLan", y + 28 + 30, { vi: 30, en: 28, damVi: 500, toiDaVi: 2, toiDaEn: 2 });
   y = cap(CAU_KHONG_PHAI_HOA_DON.vi, CAU_KHONG_PHAI_HOA_DON.en, "hoaDon", y + 20 + 30, { vi: 30, en: 28, damVi: 500, toiDaVi: 2, toiDaEn: 2 });
 
-  // Hotline ở chân vé (không dịch).
-  y = khoi(`Hotline ${nd.hotline}`, { x: LE, y: Math.max(y + 56, H - 72), rong: RONG_TRONG, coPx: 36, dam: 700, mau: "chinh", ngonNgu: "chung", nhom: "hotline", toiDa: 1, caoDong: 44 });
+  // Hotline ở chân vé (không dịch). ADR-0231: `nd.hotline` là số của lô (thay hotline công ty khi dịch vụ có số riêng).
+  y = khoi(`${NHAN_HOTLINE_VE} ${nd.hotline}`, { x: LE, y: Math.max(y + 56, H - 72), rong: RONG_TRONG, coPx: 36, dam: 700, mau: "chinh", ngonNgu: "chung", nhom: "hotline", toiDa: 1, caoDong: 44 });
 
   return { rong: W, cao: H, logo, qr, vach, dong, dayNoiDung: y + duoiChu(36) };
 }

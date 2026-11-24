@@ -14,8 +14,12 @@ import { addDays, ngayDayDu } from "./vn-date.ts";
 export const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này.";
 /** Thay ô tìm đối tác ở người không qua cổng của route tìm người hưởng (xem `coTheTimDoiTac`). */
 export const CAU_CHUA_TIM_DUOC_DOI_TAC = "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.";
-/** Hộp xác nhận khi đóng dòng «Mọi dịch vụ» của công ty chủ (đặc tả sổ đại lý đợt 1: dòng mặc định gieo sẵn; đóng mà không mở dòng mới thì dịch vụ thiếu người bán). */
-export const CAU_DONG_DONG_MAC_DINH = "Ngừng điều khoản mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở điều khoản mới. Vẫn ngừng?";
+/**
+ * Hộp xác nhận khi ngừng dòng «Mọi dịch vụ» của công ty chủ CŨ (việc 15: máy chủ cùng lô mở dòng thay cho công ty chủ hiện tại — `cachNgung = NGUNG_VA_THAY`).
+ * Dòng «Mọi dịch vụ» của công ty chủ hiện tại không có nút ngừng (máy chủ 409), thay bằng `CAU_MOI_DICH_VU_LUON_GIU`.
+ */
+export const CAU_DONG_DONG_MAC_DINH = "Dòng «Mọi dịch vụ» này còn ghi công ty chủ cũ. Ngừng nó thì Nền tảng mở ngay dòng «Mọi dịch vụ» mới cho công ty chủ hiện tại, bắt đầu từ ngày hôm sau ngày kết thúc. Vẫn ngừng?";
+export const CAU_MOI_DICH_VU_LUON_GIU = "Dòng «Mọi dịch vụ» luôn giữ. Muốn đổi nhà cung cấp cho một nhóm hay một dịch vụ, thêm điều khoản riêng cho nhóm hoặc dịch vụ đó.";
 export const CAU_KHONG_CO_MUC = "Chưa có mức nào.";
 export const CAU_KHONG_CO_DIEU_KHOAN = "Chưa có điều khoản nào.";
 export const CAU_KHONG_KHOP_LOC = "Không có mục nào khớp bộ lọc.";
@@ -184,8 +188,12 @@ export function cauThuTra(r: ThuTraResponse): string {
 export const nhanNguoiBan = (n: { ten: string; laCongTy: boolean }): string => (n.laCongTy ? NHAN_CONG_TY : n.ten);
 /** Tỷ lệ Tour Đảo mua lại: chỉ có khi nhà cung cấp bán; Tour Đảo bán thì «—». */
 export const nhanTyLeMua = (bp: number | null): string => (bp === null ? "—" : nhanTyLeBp(bp));
-/** Đóng dòng này cần hộp xác nhận riêng: dòng «Mọi dịch vụ» của công ty chủ (dòng mặc định). */
-export const canXacNhanDongDieuKhoan = (d: SupplyTermDto): boolean => d.phamVi === "ALL" && d.nguoiBan.laCongTy;
+/** Ngừng dòng này cần hộp xác nhận riêng: dòng «Mọi dịch vụ» của công ty chủ cũ — ngừng kèm mở dòng thay (việc 15; máy chủ quyết qua `cachNgung`). */
+export const canXacNhanDongDieuKhoan = (d: SupplyTermDto): boolean => d.cachNgung === "NGUNG_VA_THAY";
+/** Có nút «Ngừng điều khoản» không (máy chủ quyết: dòng đã có ngày kết thúc, hoặc dòng «Mọi dịch vụ» của công ty chủ hiện tại ⇒ không). */
+export const ngungDieuKhoanDuoc = (d: SupplyTermDto): boolean => d.cachNgung !== "KHONG_NGUNG";
+/** Dòng «Mọi dịch vụ» còn hiệu lực mà không ngừng được ⇒ trang hiện câu `CAU_MOI_DICH_VU_LUON_GIU` thay cho nút. */
+export const laDongMoiDichVuLuonGiu = (d: SupplyTermDto): boolean => d.phamVi === "ALL" && d.denNgay === null && d.cachNgung === "KHONG_NGUNG";
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 // Loại đối tác (ADR-0117 lần 1): mục «Loại đối tác» ở /hoa-hong

@@ -11,7 +11,7 @@ const NEN_TRANG = "#ffffff"; // ảnh PNG trong suốt: tô nền trắng trư�
  * Vẽ lại ảnh qua khung vẽ: cạnh dài ≤ 2000, JPG 0,85 — bỏ luôn toạ độ chụp và mọi siêu dữ liệu. Giải bằng thẻ `<img>` để trình duyệt tự xoay theo
  * hướng chụp. Không giải được (HEIC trên máy tính) / lỗi bất kỳ ⇒ null: người gọi gửi nguyên tệp (không xoá được thông tin ẩn — ADR nói thẳng).
  */
-export async function thuNhoAnh(f: Blob, canhDai?: number): Promise<Uint8Array | null> {
+export async function thuNhoAnh(f: Blob, canhDai?: number, chatLuong: number = CHAT_LUONG_JPG): Promise<Uint8Array | null> {
   const url = URL.createObjectURL(f);
   try {
     const img = new Image();
@@ -27,7 +27,7 @@ export async function thuNhoAnh(f: Blob, canhDai?: number): Promise<Uint8Array |
     g.fillStyle = NEN_TRANG;
     g.fillRect(0, 0, rong, cao);
     g.drawImage(img, 0, 0, rong, cao);
-    const blob = await new Promise<Blob | null>((res) => c.toBlob(res, "image/jpeg", CHAT_LUONG_JPG));
+    const blob = await new Promise<Blob | null>((res) => c.toBlob(res, "image/jpeg", chatLuong));
     if (!blob) return null;
     const ra = new Uint8Array(await blob.arrayBuffer());
     return nhanLoaiTep(ra.subarray(0, 16)) === "jpg" ? ra : null;
@@ -39,7 +39,7 @@ export async function thuNhoAnh(f: Blob, canhDai?: number): Promise<Uint8Array |
 }
 
 /**
- * Ảnh biên lai đã chọn (ADR-0196 Đ2, Đ9 — form «Ghi khoản thu»; ADR-0182 phần B — form «Đã chuyển tiền»): đọc, nhận loại theo chữ ký, thu nhỏ ảnh mở được (bỏ thông tin ẩn),
+ * Ảnh biên lai đã chọn (ADR-0196 Đ2, Đ9 — form «Nhập khoản thu»; ADR-0182 phần B — form «Đã chuyển tiền»): đọc, nhận loại theo chữ ký, thu nhỏ ảnh mở được (bỏ thông tin ẩn),
  * mã base64 MỘT lần lúc gửi. HEIC trình duyệt không mở được và PDF: gửi nguyên (không xoá được thông tin ẩn — ADR-0196 Đ9).
  */
 export async function chuanBiBienLai(f: File): Promise<{ noiDung: string } | { loi: string }> {

@@ -478,11 +478,15 @@ export async function legDatGapByOrder(db: D1Database, orderId: string): Promise
  * ADR-0193 câu (ii) — vế thứ hai về chặng: không còn chặng MỞ nào CHƯA giờ mà `ngày đón || ' 00:00'` < ?5 (cùng ngưỡng, không thêm tham số). Câu điền ngày đón đứng trước trong lô nên chặng
  * trống ngày đã mang ngày đi. MỘT luật với `changChuaGioVaoHanChot` (src/shared/moc-toi-thieu.ts; bài khoá hai phía ở chua-gio-sat-ngay.test.ts). Lớp chặn CUỐI: các cửa xác nhận đã kiểm
  * bằng hàm thuần trước khi dựng lô (ruling R6).
+ * ADR-0227: vế thứ hai chỉ áp khi ?8 = 1 (công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» Bật) — ?8 là giá trị route đọc MỘT lần, cùng giá trị đã đưa vào hàm thuần.
  */
+// ADR-0225 Đ2 (đề xuất; migration 0184): câu xác nhận chụp dấu «đơn đối tác chỉ thu hộ tiền mặt» — 1 khi đơn do tài khoản giữ quyền Đối tác lập (dấu kênh thu khác NULL) HOẶC
+// bên đặt đang mang vai được hưởng hoa hồng (CÙNG vế EXISTS với BOOKER_LA_DOI_TAC của repository.ts — bài don-doi-tac-chi-tien-mat.test.ts so chữ). Trigger 0184 chỉ cho NULL → giá trị trong câu này.
 const ORDER_CONFIRM = defineSql(
   "orders",
   "order_confirm",
-  `UPDATE orders SET status = 'confirmed', updated_at = ?1, confirmed_at = ?1
+  `UPDATE orders SET status = 'confirmed', updated_at = ?1, confirmed_at = ?1,
+     partner_cash_only = (company_collects_snapshot IS NOT NULL OR EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = orders.booker_party_id))
    WHERE id = ?2 AND status = 'draft' AND updated_at = ?6
      AND EXISTS (SELECT 1 FROM order_service WHERE order_id = orders.id)
      AND NOT EXISTS (
@@ -492,7 +496,7 @@ const ORDER_CONFIRM = defineSql(
        SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NOT NULL
          AND l.short_notice_reason IS NULL AND l.pickup_date || ' ' || l.pickup_time < ?5)
      AND NOT EXISTS (
-       SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NULL
+       SELECT 1 FROM ord_transfer_leg l WHERE ?8 = 1 AND l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NULL
          AND l.pickup_date IS NOT NULL AND l.pickup_date || ' 00:00' < ?5)
      AND (?7 IS NULL OR EXISTS (SELECT 1 FROM ord_confirm_request q WHERE q.id = ?7 AND q.order_id = orders.id AND q.decided_at IS NULL))`,
 );
@@ -500,8 +504,8 @@ const ORDER_CONFIRM = defineSql(
  * `yeuCauId` (Task 3.3, ADR-0136 Đ7): khi người xét duyệt bấm Còn vé, câu xác nhận còn mang vế «yêu cầu đã đọc VẪN CÒN MỞ» — người lập vừa Rút lại / người khác vừa quyết
  * thì câu không đổi dòng nào. NULL = xác nhận thường (`/status`, không qua yêu cầu).
  */
-export const orderConfirm = (db: D1Database, orderId: string, at: string, from: string, to: string, nguongMoc: string, prevUpdatedAt: string, yeuCauId: string | null = null): D1PreparedStatement =>
-  db.prepare(ORDER_CONFIRM).bind(at, orderId, from, to, nguongMoc, prevUpdatedAt, yeuCauId);
+export const orderConfirm = (db: D1Database, orderId: string, at: string, from: string, to: string, nguongMoc: string, prevUpdatedAt: string, yeuCauId: string | null = null, chanChuaGio = true): D1PreparedStatement =>
+  db.prepare(ORDER_CONFIRM).bind(at, orderId, from, to, nguongMoc, prevUpdatedAt, yeuCauId, chanChuaGio ? 1 : 0);
 
 // ---- Ghi kép hai cột cũ (Ruling R3, phát hành 1) ---------------------------------------------------------------------------------------------
 
@@ -878,3 +882,287 @@ const ORDER_CREDIT_EXTEND = defineSql(
 );
 export const noiHanTraSauStatement = (db: D1Database, v: { orderId: string; hanMoi: string; hetAnHanMoi: string; ngayMoi: string; at: string; hanCu: string }) =>
   db.prepare(ORDER_CREDIT_EXTEND).bind(v.orderId, v.hanMoi, v.hetAnHanMoi, v.ngayMoi, v.at, v.hanCu);
+
+// ---- Phí đưa đón trên đơn (Đợt C, Task 3; ADR-0147, ADR-0203; migration 0169) ---------------------------------------------------------------------
+// Dòng phí là dòng `order_item` loại `TRANSFER_FEE`: không dịch vụ, không danh mục; trỏ chặng; mang bản chụp mức (kiểu, số người chiều về; từ ADR-0214 nguồn CHON + kiểu chọn, trước đó mã mức, vùng, cấp).
+// Chỉ ĐƠN NHÁP mới ghi / xoá dòng phí: điều kiện `status = 'draft'` nằm TRONG mọi câu (đơn đã xác nhận ⇒ câu không khớp dòng nào, không chạm trigger 0081).
+// Câu tính lại tạm tính / tổng của đơn nháp sau khi đổi dòng phí ở lô sửa chặng nằm ở repository.ts (`cauTienNhapSauPhi` — ba cột cọc cũ chỉ được ghi ở đó, NT-R9).
+// Không câu nào ở đây đọc `audit_log`: lính gác «lô này thắng» dùng hai cách không cần ngoại lệ DOC_AUDIT_LOG_WONGUARD —
+//   (a) câu ĐỨNG TRƯỚC câu khoá lạc quan của lô (`*_truoc`): điều kiện = đúng mốc đã đọc (lô D1 chạy tuần tự, nguyên tử: lô nào chạy trước đổi mốc, lô sau 0 dòng);
+//   (b) câu ĐỨNG SAU (`fee_item_insert`): có mặt một dòng id MỚI SINH của chính lô (dòng tiền dịch vụ vừa chèn, hoặc chặng vừa chèn) — dòng đó chỉ tồn tại khi lô thắng.
+
+/** Nội dung một dòng phí (chưa có id dòng, id đơn, thứ tự) — `dongPhiThanhItem` (phi-don-don.ts) dựng từ mức văn phòng chọn (ADR-0214, nguồn CHON). */
+export interface OrderItemRowPhiDon {
+  legId: string;
+  /** Nguồn mức (0173): 'CHON' = văn phòng chọn (ADR-0214); 'BANG_PHI' / null = bảng phí của Đợt C (dòng cũ). */
+  feeSource: "BANG_PHI" | "CHON" | null;
+  /** Kiểu chọn (0173, chỉ nguồn CHON): 'DANH_SACH' (đơn giá thuộc danh sách) hoặc 'SO_KHAC' (1–5.000.000 đ). */
+  feeChoice: "DANH_SACH" | "SO_KHAC" | null;
+  /** Mã mức của bảng phí; null với nguồn CHON (trigger 0173 bắt buộc). */
+  feeRuleId: string | null;
+  feeKind: "PER_PAX" | "PER_TRIP";
+  /** Khu vực của bảng phí; null với nguồn CHON. */
+  feeZoneCode: string | null;
+  /** null = mức không có cấp (luôn null với nguồn CHON). */
+  feeTierCode: string | null;
+  /** Số người chiều về (`pax_override`) lúc tính; null = theo số khách của dịch vụ. */
+  feeReturnPax: number | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  /** Nguồn tính của máy (0179, ADR-0218): null = dòng cũ (BANG_PHI / CHON). Dòng nguồn mới để feeSource / feeChoice / feeRuleId / feeZoneCode trống. */
+  feeCalcSource: "DOI_TAY" | "CHUONG_TRINH" | "GIA_GOC" | null;
+  /** Giá gốc Sheet đã dùng (GIA_GOC). */
+  feeBasePrice: number | null;
+  /** Mức giảm theo cấp đã dùng (GIA_GOC đi chung; xe riêng 0). */
+  feeTierDiscount: number | null;
+  feeProgramId: string | null;
+  feeProgramName: string | null;
+  /** Lý do và người đổi số (DOI_TAY). Lý do là chữ văn phòng gõ — qua `maskLongDigits` trước khi vào nhật ký, không vào DTO của Đối tác. */
+  feeOverrideReason: string | null;
+  feeOverrideBy: string | null;
+}
+export type DongPhiGhi = OrderItemRowPhiDon & { id: string; orderId: string; sortOrder: number };
+const FEE_COLS = "id, order_id, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code, fee_tier_code, fee_return_pax, description, detail, quantity, unit_price, line_total, sort_order, fee_source, fee_choice, fee_calc_source, fee_base_price, fee_tier_discount, fee_program_id, fee_program_name, fee_override_reason, fee_override_by";
+const FEE_VALUES = "?1, ?2, 'TRANSFER_FEE', ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22";
+const feeBinds = (d: DongPhiGhi) =>
+  [d.id, d.orderId, d.legId, d.feeRuleId, d.feeKind, d.feeZoneCode, d.feeTierCode, d.feeReturnPax, d.description, d.quantity, d.unitPrice, d.lineTotal, d.sortOrder, d.feeSource, d.feeChoice,
+    d.feeCalcSource, d.feeBasePrice, d.feeTierDiscount, d.feeProgramId, d.feeProgramName, d.feeOverrideReason, d.feeOverrideBy];
+
+/** (b) Chèn dòng phí SAU chặng của lô (khoá ngoại tới chặng): đơn còn nháp VÀ dòng id mới sinh ?16 của chính lô có mặt (dòng tiền dịch vụ hoặc chặng của đơn). */
+const FEE_ITEM_INSERT = defineSql(
+  "orders",
+  "fee_item_insert",
+  `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES}
+   WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?2 AND status = 'draft')
+     AND (EXISTS (SELECT 1 FROM order_item WHERE id = ?23 AND order_id = ?2) OR EXISTS (SELECT 1 FROM ord_transfer_leg WHERE id = ?23 AND order_id = ?2))`,
+);
+export const feeItemInsert = (db: D1Database, d: DongPhiGhi, idMoiCuaLo: string): D1PreparedStatement => db.prepare(FEE_ITEM_INSERT).bind(...feeBinds(d), idMoiCuaLo);
+
+/**
+ * (a) Lính gác của câu ĐỨNG TRƯỚC = ĐÚNG điều kiện của câu khoá lạc quan đi ngay sau trong lô (không câu nào ở giữa đổi đơn / chặng), nên câu này ghi ⇔ câu khoá lạc
+ * quan thắng ⇔ câu tính lại tiền (gác `wonGuard`, ở repository.ts) chạy — tạm tính luôn khớp Σ dòng. Đơn còn nháp; `PUT /trip`: đúng mốc ĐƠN đã đọc (?moc, câu khoá
+ * là `UPDATE orders … updated_at = ?`); `PUT /legs/:id` nhánh nháp: chặng còn mở, đúng mốc CHẶNG đã đọc (?mocChang, câu khoá là `leg_pax_override_checked`), ?moc trống.
+ */
+const GAC_TRUOC = (o: string, moc: string, chang: string, mocChang: string) =>
+  `EXISTS (SELECT 1 FROM orders WHERE id = ${o} AND status = 'draft' AND (${moc} IS NULL OR updated_at = ${moc}))
+   AND (${chang} IS NULL OR EXISTS (SELECT 1 FROM ord_transfer_leg WHERE id = ${chang} AND order_id = ${o} AND closed_at IS NULL AND updated_at = ${mocChang}))`;
+export interface GacTruoc { orderId: string; mocDon: string | null; legId: string | null; mocChang: string | null }
+
+const FEE_ITEMS_DELETE_TRUOC = defineSql(
+  "orders",
+  "fee_items_delete_truoc",
+  `DELETE FROM order_item WHERE order_id = ?1 AND line_kind = 'TRANSFER_FEE' AND ${GAC_TRUOC("?1", "?2", "?3", "?4")}`,
+);
+export const feeItemsDeleteTruoc = (db: D1Database, g: GacTruoc): D1PreparedStatement => db.prepare(FEE_ITEMS_DELETE_TRUOC).bind(g.orderId, g.mocDon, g.legId, g.mocChang);
+
+const FEE_ITEM_INSERT_TRUOC = defineSql(
+  "orders",
+  "fee_item_insert_truoc",
+  `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES} WHERE ${GAC_TRUOC("?2", "?23", "?24", "?25")}`,
+);
+export const feeItemInsertTruoc = (db: D1Database, d: DongPhiGhi, g: GacTruoc): D1PreparedStatement =>
+  db.prepare(FEE_ITEM_INSERT_TRUOC).bind(...feeBinds(d), g.mocDon, g.legId, g.mocChang);
+
+/** Dòng phí đã lưu của một đơn (cho `OrderDto.phiDuaDon`) — kèm chiều + dịch vụ của chặng và tên khu vực (view công bố của locations). */
+const FEE_ROWS_BY_ORDER = defineSql(
+  "orders",
+  "fee_rows_by_order",
+  `SELECT i.id, i.transfer_leg_id, l.order_service_id, l.direction, i.fee_kind, i.fee_zone_code, z.name AS zone_name, i.fee_tier_code, i.fee_return_pax,
+     i.description, i.quantity, i.unit_price, i.line_total, i.fee_choice,
+     i.fee_calc_source, i.fee_base_price, i.fee_tier_discount, i.fee_program_id, i.fee_program_name, i.fee_override_reason, i.fee_override_by
+   FROM order_item i JOIN ord_transfer_leg l ON l.id = i.transfer_leg_id LEFT JOIN v_loc_zone_label z ON z.code = i.fee_zone_code
+   WHERE i.order_id = ?1 AND i.line_kind = 'TRANSFER_FEE' ORDER BY i.sort_order`,
+);
+export interface FeeRow {
+  id: string; transfer_leg_id: string; order_service_id: string; direction: "OUT" | "RETURN"; fee_kind: "PER_PAX" | "PER_TRIP"; fee_zone_code: string | null; zone_name: string | null;
+  fee_tier_code: string | null; fee_return_pax: number | null; description: string; quantity: number; unit_price: number; line_total: number;
+  /** Kiểu chọn của dòng do văn phòng chọn (ADR-0214); null = dòng bảng phí cũ (trigger 0173: chỉ nguồn CHON mang kiểu chọn). */
+  fee_choice: "DANH_SACH" | "SO_KHAC" | null;
+  /** Nguồn tính của máy (0179); null = dòng cũ. */
+  fee_calc_source: "DOI_TAY" | "CHUONG_TRINH" | "GIA_GOC" | null;
+  fee_base_price: number | null; fee_tier_discount: number | null; fee_program_id: string | null; fee_program_name: string | null;
+  fee_override_reason: string | null; fee_override_by: string | null;
+}
+export const feeRowsStatement = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(FEE_ROWS_BY_ORDER).bind(orderId);
+
+/**
+ * Dòng phí đã lưu của NHIỀU đơn, đủ để tính tiền hiệu lực (Đợt C, Task 5): dịch vụ của chặng, kiểu mức, số người chiều về ĐÃ CHỤP, số lượng, đơn giá, thành tiền. KHÔNG lọc chặng đã
+ * đóng (phí đã chụp theo dòng, không theo chặng — chặng đóng sau xác nhận vẫn giữ dòng phí). Dùng cho phải thu / danh sách / Trang chủ (`getPhiChoHieuLuc`) và công nợ đại lý.
+ */
+const FEE_MONEY_MANY = defineSql(
+  "orders",
+  "fee_money_many",
+  `SELECT i.order_id, l.order_service_id, i.fee_kind, i.fee_return_pax, i.description, i.quantity, i.unit_price, i.line_total
+   FROM order_item i JOIN ord_transfer_leg l ON l.id = i.transfer_leg_id
+   WHERE i.order_id IN (SELECT value FROM json_each(?1)) AND i.line_kind = 'TRANSFER_FEE' ORDER BY i.order_id, i.sort_order`,
+);
+/** `description` = tên dòng «Phí đưa đón — chiều đi/về, <khu vực>» đã lưu — phiếu công nợ in mỗi chặng một dòng với đúng tên này (ADR-0203 ĐB3, cùng tên với biên nhận). */
+export interface FeeMoneyRow { order_id: string; order_service_id: string; fee_kind: "PER_PAX" | "PER_TRIP"; fee_return_pax: number | null; description: string; quantity: number; unit_price: number; line_total: number }
+export async function dongPhiTienNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<FeeMoneyRow[]> {
+  if (orderIds.length === 0) return [];
+  return (await db.prepare(FEE_MONEY_MANY).bind(JSON.stringify([...new Set(orderIds)])).all<FeeMoneyRow>()).results;
+}
+
+/**
+ * CÂU CHỐT của lô xác nhận có câu phí (Đợt C, Task 4; migration 0169 mục 5): chèn vào bảng đổ `ord_xac_nhan_phi_gac` — đơn đã 'confirmed' ⇒ trigger bỏ qua (không lưu dòng);
+ * chưa ⇒ trigger ném `transfer_fee_confirm_lost` ⇒ CẢ lô lui, kể cả câu xoá / chèn dòng phí và câu tiền đứng TRƯỚC câu xác nhận. Phải đứng SAU chuỗi `changes() > 0` của
+ * nhật ký `confirmed` và bản chụp (câu bị bỏ qua để lại `changes() = 0`) — `soanXacNhan` đặt nó CUỐI phần soạn.
+ */
+const ORDER_FEE_CONFIRM_LOCK = defineSql("orders", "order_fee_confirm_lock", `INSERT INTO ord_xac_nhan_phi_gac (order_id) VALUES (?1)`);
+export const chotLoPhiDon = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(ORDER_FEE_CONFIRM_LOCK).bind(orderId);
+
+// ---- ADR-0213 Đ8.4 (mốc B2 Task 16): nháp của thành viên «chờ người quản lý» — bảng chỉ thêm `ord_member_submit` (không thuộc XOA_CUNG_NHAP). Mọi câu ghi đứng SAU câu đẩy mốc đơn
+// (`orderTouchDraft`) hoặc sau câu quyết của lô xác nhận, gác bằng điều kiện của chính orders (không đọc audit_log — không nới DOC_AUDIT_LOG_WONGUARD).
+const TV_CHO_MO = defineSql("orders", "member_submit_open", "SELECT id, member_staff_id, org_party_id FROM ord_member_submit WHERE order_id = ?1 AND status = 'MO'");
+export async function tvChoMo(db: D1Database, orderId: string): Promise<{ id: string; memberStaffId: string; orgPartyId: string } | null> {
+  const r = await db.prepare(TV_CHO_MO).bind(orderId).first<{ id: string; member_staff_id: string; org_party_id: string }>();
+  return r ? { id: r.id, memberStaffId: r.member_staff_id, orgPartyId: r.org_party_id } : null;
+}
+/** Thành viên «Gửi người quản lý xác nhận»: mở dòng CHỈ khi câu đẩy mốc đơn đứng ngay trước đã thắng (`changes() > 0`). Đã có dòng mở ⇒ UNIQUE chặn, cả lô rơi. ?1 id, ?2 đơn, ?3 thành viên, ?4 tổ chức, ?5 lúc */
+const TV_MO = defineSql(
+  "orders",
+  "member_submit_open_guarded",
+  `INSERT INTO ord_member_submit (id, order_id, member_staff_id, org_party_id, status, opened_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, 'MO', ?5, ?5, ?3, ?5, ?3 WHERE changes() > 0`,
+);
+export const tvMoStatement = (db: D1Database, v: { id: string; orderId: string; memberStaffId: string; orgPartyId: string; at: string }): D1PreparedStatement =>
+  db.prepare(TV_MO).bind(v.id, v.orderId, v.memberStaffId, v.orgPartyId, v.at);
+/** Đóng dòng đang mở (rút lại / trả lại) CHỈ khi câu đẩy mốc đơn đứng ngay trước đã thắng. ?1 đơn, ?2 trạng thái đích, ?3 lý do, ?4 lúc, ?5 người đóng */
+const TV_DONG = defineSql(
+  "orders",
+  "member_submit_close_guarded",
+  `UPDATE ord_member_submit SET status = ?2, reason_code = ?3, closed_at = ?4, closed_by = ?5, updated_at = ?4, updated_by = ?5
+   WHERE order_id = ?1 AND status = 'MO' AND changes() > 0`,
+);
+export const tvDongStatement = (db: D1Database, v: { orderId: string; trangThai: "TRA_LAI" | "DA_RUT"; lyDo: string | null; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(TV_DONG).bind(v.orderId, v.trangThai, v.lyDo, v.at, v.by);
+/**
+ * Người quản lý GỬI LÊN Tour Đảo nháp của thành viên (Đ8.5). Gác bằng dấu của CHÍNH lô (vòng sửa 1, I-3 — không gác bằng «đơn đã xác nhận», vì lô thua cuộc đua cũng thấy điều đó):
+ * - nhánh A (`tvGuiLenTheoYeuCau`): yêu cầu xác nhận của chính lô (?3 = mã yêu cầu sinh cho lô này) đã mở; nối CUỐI lô.
+ * - nhánh B (`tvGuiLenTheoChuoi`): chuỗi `changes() > 0` nối từ câu xác nhận → nhật ký `confirmed` → bản chụp → nhật ký `order_terms_captured` (đặt ngay sau câu cuối của chuỗi đó).
+ * (1) chế độ «Chỉ soạn» chưa có dòng mở ⇒ mở một dòng; (2) đóng dòng mở ⇒ DA_GUI_LEN. Nhật ký `order_member_forwarded` ngay sau với `changes() > 0`. Không đọc audit_log.
+ * ?1 đơn, ?2 lúc, ?3 mã yêu cầu (chỉ nhánh A), ?4 người gửi, ?5 id dòng mới, ?6 thành viên, ?7 tổ chức
+ */
+const TV_YC = "EXISTS (SELECT 1 FROM ord_confirm_request y WHERE y.id = ?3 AND y.order_id = ?1)";
+const TV_MO_KHI_GUI_YC = defineSql(
+  "orders",
+  "member_submit_open_on_forward",
+  `INSERT INTO ord_member_submit (id, order_id, member_staff_id, org_party_id, status, opened_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?5, ?1, ?6, ?7, 'MO', ?2, ?2, ?4, ?2, ?4
+   WHERE ${TV_YC} AND NOT EXISTS (SELECT 1 FROM ord_member_submit s WHERE s.order_id = ?1 AND s.status = 'MO')`,
+);
+const TV_GUI_LEN_YC = defineSql(
+  "orders",
+  "member_submit_forward",
+  `UPDATE ord_member_submit SET status = 'DA_GUI_LEN', closed_at = ?2, closed_by = ?4, updated_at = ?2, updated_by = ?4
+   WHERE order_id = ?1 AND status = 'MO' AND ${TV_YC}`,
+);
+export const tvGuiLenTheoYeuCau = (db: D1Database, v: { orderId: string; at: string; yeuCauId: string; by: string; memberStaffId: string; orgPartyId: string }): D1PreparedStatement[] => [
+  db.prepare(TV_MO_KHI_GUI_YC).bind(v.orderId, v.at, v.yeuCauId, v.by, crypto.randomUUID(), v.memberStaffId, v.orgPartyId),
+  db.prepare(TV_GUI_LEN_YC).bind(v.orderId, v.at, v.yeuCauId, v.by),
+];
+const TV_MO_KHI_GUI_CHUOI = defineSql(
+  "orders",
+  "member_submit_open_on_forward_chain",
+  `INSERT INTO ord_member_submit (id, order_id, member_staff_id, org_party_id, status, opened_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?4, ?1, ?5, ?6, 'MO', ?2, ?2, ?3, ?2, ?3 WHERE changes() > 0`,
+);
+const TV_GUI_LEN_CHUOI = defineSql(
+  "orders",
+  "member_submit_forward_chain",
+  `UPDATE ord_member_submit SET status = 'DA_GUI_LEN', closed_at = ?2, closed_by = ?3, updated_at = ?2, updated_by = ?3 WHERE order_id = ?1 AND status = 'MO' AND changes() > 0`,
+);
+/** `coDongMo` = lúc đọc đơn đã có dòng chờ mở («Soạn và gửi»); không ⇒ chèn rồi đóng (dòng chèn trong lô làm câu đóng khớp một dòng — chuỗi không đứt). */
+export const tvGuiLenTheoChuoi = (db: D1Database, v: { orderId: string; at: string; by: string; memberStaffId: string; orgPartyId: string; coDongMo: boolean }): D1PreparedStatement[] => [
+  ...(v.coDongMo ? [] : [db.prepare(TV_MO_KHI_GUI_CHUOI).bind(v.orderId, v.at, v.by, crypto.randomUUID(), v.memberStaffId, v.orgPartyId)]),
+  db.prepare(TV_GUI_LEN_CHUOI).bind(v.orderId, v.at, v.by),
+];
+
+// ---- ADR-0213 Đ8 (mốc B2, Task 18 phần 1a): «Nháp chờ» trên màn tổ chức của người quản lý — CHỈ ỨNG VIÊN: nháp tư cách THÀNH VIÊN lúc lập (R10) có bên đặt là chính tổ chức ?1,
+// không do người gọi ?2 lập. Câu KHÔNG quyết «ai thấy nháp nào» (chế độ, dòng chờ mở): nơi gọi lọc từng dòng bằng `quanLyThayNhapThanhVien` (src/shared/xem-don-nhap.ts — một nơi).
+// Tên người lập qua view công bố `v_stf_staff_label`; ngày đi = dịch vụ đầu tiên theo `sort_order` (cùng quy ước `OrderSummaryTripDto`). Không tên / số điện thoại khách.
+const NHAP_THANH_VIEN_CUA_TO_CHUC = defineSql(
+  "orders",
+  "member_drafts_of_org",
+  `SELECT o.id, o.order_code, o.created_at, sl.label AS nguoi_lap,
+          (SELECT s.depart_date FROM order_service s WHERE s.order_id = o.id ORDER BY s.sort_order LIMIT 1) AS ngay_di,
+          EXISTS (SELECT 1 FROM ord_member_submit m WHERE m.order_id = o.id AND m.status = 'MO') AS cho_quan_ly,
+          EXISTS (SELECT 1 FROM ord_confirm_request r WHERE r.order_id = o.id AND r.decided_at IS NULL) AS cho_van_phong
+   FROM orders o JOIN v_stf_staff_label sl ON sl.id = o.staff_id
+   WHERE o.status = 'draft' AND o.acting_link_kind = 'MEMBER' AND o.acting_party_id = ?1 AND o.booker_party_id = ?1 AND o.staff_id <> ?2
+   ORDER BY o.created_at DESC`,
+);
+export interface NhapThanhVienRow { id: string; order_code: string; created_at: string; nguoi_lap: string; ngay_di: string | null; cho_quan_ly: number; cho_van_phong: number }
+export async function nhapThanhVienCuaToChuc(db: D1Database, orgPartyId: string, nguoiGoi: string): Promise<NhapThanhVienRow[]> {
+  return (await db.prepare(NHAP_THANH_VIEN_CUA_TO_CHUC).bind(orgPartyId, nguoiGoi).all<NhapThanhVienRow>()).results;
+}
+
+// ---- Kiểm toàn mốc B2 (I-B): mã lý do của lần «chờ người quản lý» GẦN NHẤT nếu lần đó là TRẢ LẠI (ADR-0213 Đ8.2 «trả lại kèm lý do») — cho khối `thanhVien` của NGƯỜI LẬP. ----
+const TV_LY_DO_TRA_LAI_GAN_NHAT = defineSql(
+  "orders",
+  "member_submit_last_return_reason",
+  `SELECT status, reason_code FROM ord_member_submit WHERE order_id = ?1 ORDER BY opened_at DESC, rowid DESC LIMIT 1`,
+);
+/** null = chưa từng gửi, hoặc lần gần nhất không phải trả lại (đang chờ, đã rút, đã gửi lên). */
+export async function tvLyDoTraLaiGanNhat(db: D1Database, orderId: string): Promise<string | null> {
+  const r = await db.prepare(TV_LY_DO_TRA_LAI_GAN_NHAT).bind(orderId).first<{ status: string; reason_code: string | null }>();
+  return r && r.status === "TRA_LAI" ? r.reason_code : null;
+}
+
+// ---- ADR-0220 Đ5: đếm ĐƠN ĐÃ XÁC NHẬN có dịch vụ thuộc các mã ?1 với ngày khởi hành trong [?2, ?3] — chỉ con số, cho màn «Ngừng bán theo ngày» (qua gốc lắp ráp tiêm). ----
+const CONFIRMED_COUNT_BY_CODE_DATE = defineSql(
+  "orders",
+  "confirmed_count_by_code_date",
+  `SELECT COUNT(DISTINCT s.order_id) AS n FROM order_service s JOIN orders o ON o.id = s.order_id
+   WHERE o.status = 'confirmed' AND s.catalog_code IN (SELECT value FROM json_each(?1)) AND s.depart_date >= ?2 AND s.depart_date <= ?3`,
+);
+export async function demDonXacNhanTheoMaVaNgay(db: D1Database, codes: readonly string[], tuNgay: string, denNgay: string): Promise<number> {
+  if (codes.length === 0) return 0;
+  return (await db.prepare(CONFIRMED_COUNT_BY_CODE_DATE).bind(JSON.stringify(codes), tuNgay, denNgay).first<{ n: number }>())?.n ?? 0;
+}
+
+// ---- «Trả lúc check-in» (ADR-0230 Đ2; migration 0187 phần B): bảng CHỈ THÊM `ord_checkin_payment`, dòng hiệu lực = `valid_from_at` lớn nhất ----
+// KHÔNG thuộc ngoại lệ xoá–chèn của đơn nháp (XOA_CUNG_NHAP): đổi ý khi còn nháp = chèn dòng mới; lưu y nguyên không chèn gì. Trigger chặn chèn khi đơn đã rời nháp.
+const CHECKIN_INSERT = defineSql(
+  "orders",
+  "checkin_payment_insert",
+  `INSERT INTO ord_checkin_payment (id, order_id, enabled, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, 1, ?3, ?3, ?4, ?3, ?4)`,
+);
+/** Lập đơn: chỉ gọi khi người lập CHỌN (không chọn ⇒ không dòng nào). Đứng SAU câu chèn đơn (khoá ngoại + trigger đọc trạng thái nháp). */
+export const checkinInsert = (db: D1Database, orderId: string, at: string, by: string): D1PreparedStatement => db.prepare(CHECKIN_INSERT).bind(crypto.randomUUID(), orderId, at, by);
+/**
+ * Lưu nháp: chèn dòng MỚI chỉ khi giá trị gửi lên khác dòng hiệu lực (không dòng = không chọn) VÀ đơn còn nháp với ĐÚNG mốc `updated_at` form đã đọc (?6) — CÙNG điều kiện câu UPDATE
+ * đơn của lô (khoá lạc quan). Câu đứng TRƯỚC câu UPDATE trong cùng `db.batch` (một giao dịch, tuần tự): điều kiện đúng ở câu này thì câu UPDATE ngay sau cũng thắng, và ngược lại
+ * — không cần đọc `audit_log` (không nới nợ DOC_AUDIT_LOG_WONGUARD). Vì đứng trước câu UPDATE, hình thức trên đơn lúc chèn là hình thức CŨ: luật «chỉ Thanh toán ngay» do máy chủ
+ * kiểm trước lô và trigger `orders_checkin_payment_prepaid` chặn ở câu xác nhận. `at` = `updated_at` mới của đơn (luôn tăng — `nextStamp`).
+ */
+const CHECKIN_INSERT_IF_DRAFT = defineSql(
+  "orders",
+  "checkin_payment_insert_if_draft",
+  `INSERT INTO ord_checkin_payment (id, order_id, enabled, valid_from_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5
+   WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?2 AND status = 'draft' AND updated_at = ?6)
+     AND COALESCE((SELECT c.enabled FROM ord_checkin_payment c WHERE c.order_id = ?2 ORDER BY c.valid_from_at DESC LIMIT 1), 0) <> ?3`,
+);
+export const checkinInsertIfDraft = (db: D1Database, orderId: string, chon: boolean, at: string, by: string, expectedUpdatedAt: string): D1PreparedStatement =>
+  db.prepare(CHECKIN_INSERT_IF_DRAFT).bind(crypto.randomUUID(), orderId, chon ? 1 : 0, at, by, expectedUpdatedAt);
+/** Dòng hiệu lực của một đơn: 1 = «Trả lúc check-in», 0 / không dòng = không. Dùng trong lô đọc của `findOrder`. */
+const CHECKIN_OF_ORDER = defineSql(
+  "orders",
+  "checkin_payment_of_order",
+  `SELECT enabled FROM ord_checkin_payment WHERE order_id = ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+export const checkinOfOrderStatement = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(CHECKIN_OF_ORDER).bind(orderId);
+export const laCheckinTuKetQua = (rows: readonly unknown[]): boolean => Number((rows[0] as { enabled?: number } | undefined)?.enabled ?? 0) === 1;
+/** Lưu nháp: lựa chọn đang lưu + dấu «Khách của đối tác trả cho Công ty» chụp lúc lập (null = đơn văn phòng lập) — đủ cho cổng `traLucCheckinHopLe`. */
+const CHECKIN_DRAFT_INFO = defineSql(
+  "orders",
+  "checkin_payment_draft_info",
+  `SELECT o.company_collects_snapshot AS dau, (SELECT c.enabled FROM ord_checkin_payment c WHERE c.order_id = o.id ORDER BY c.valid_from_at DESC LIMIT 1) AS chon FROM orders o WHERE o.id = ?1`,
+);
+export async function checkinDangLuu(db: D1Database, orderId: string): Promise<{ daChon: boolean; congTyThuLucLap: 0 | 1 | null }> {
+  const r = await db.prepare(CHECKIN_DRAFT_INFO).bind(orderId).first<{ dau: number | null; chon: number | null }>();
+  return { daChon: r?.chon === 1, congTyThuLucLap: r?.dau === 0 ? 0 : r?.dau === 1 ? 1 : null };
+}

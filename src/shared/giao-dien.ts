@@ -42,8 +42,14 @@ export const NUM: readonly Num[] = [
   { khoa: "dam-noi-dung", nhan: "Độ đậm chữ nội dung", nhom: "chu", loai: "dam", token: "--fw-regular", min: 400, max: 500 },
   { khoa: "dam-nhan", nhan: "Độ đậm chữ nhấn (nút, tên, số tiền)", nhom: "chu", loai: "dam", token: "--fw-semibold", min: 400, max: 700 },
 ];
-/** Núm "dam-tieu-de" (--fw-heading) kéo thêm --fw-bold, --fw-heavy (đợt 0, cổng 1 câu 2, đặc tả mục 4); "dam-nhan" chỉ còn --fw-semibold. */
-export const KEO_THEO: Readonly<Record<string, readonly string[]>> = { "dam-tieu-de": ["--fw-bold", "--fw-heavy"], "nen-nut-chinh": ["--c-btn-primary-border", "--c-btn-primary-hover-bg"] };
+/**
+ * Token đi kèm một núm. Hai núm độ đậm ĐỘC LẬP (đặc tả 2026-11-21-chu-nhe-hon): "dam-tieu-de" chỉ đổi --fw-heading (h1–h6, tên trang trên thanh trên);
+ * "dam-nhan" («Độ đậm chữ nhấn (nút, tên, số tiền)») đổi --fw-semibold và kéo thêm --fw-bold (nút, tên, tiêu đề cột), --fw-heavy (số lớn, số tiền nổi) —
+ * như đặc tả gốc của màn (2026-10-02). Đợt 0 (28/10) từng cho núm tiêu đề kéo --fw-bold, --fw-heavy nên đổi tiêu đề là đổi luôn nút; nay gỡ.
+ * Lưu ý: mặc định của --fw-heavy (600) khác mặc định của núm (500); núm chưa chỉnh thì app.css quyết, núm đã chỉnh thì cả ba mức theo núm.
+ * Mỗi token chỉ thuộc một núm (bài src/shared/giao-dien.test.ts canh).
+ */
+export const KEO_THEO: Readonly<Record<string, readonly string[]>> = { "dam-nhan": ["--fw-bold", "--fw-heavy"], "nen-nut-chinh": ["--c-btn-primary-border", "--c-btn-primary-hover-bg"] };
 
 /**
  * Núm con -> núm cha: token của núm con trong app.css :root là `var(token của núm cha)`, nên đổi cha thì con đi theo (CSS tự thừa kế).
@@ -53,15 +59,17 @@ export const CHA: Readonly<Record<string, string>> = {
   "nen-thanh-tren": "nen-the", "chu-thanh-tren": "mau-chinh",
   "nen-thanh-ben": "nen-trang", "chu-thanh-ben": "chu-phu", // Đợt 4 G5 (lời chủ 2/10): thanh bên cùng màu nền trang
   "nen-muc-chon": "mau-chinh-nhat", "chu-muc-chon": "mau-chinh",
+  // ADR-0234 (24/11): một họ phông — tiêu đề dùng phông nội dung, trừ khi Toàn quyền chọn riêng ở núm «Phông tiêu đề».
+  "phong-tieu-de": "phong-noi-dung",
   // 1.70: nút lưu / xác nhận đặc màu — nền theo Màu chính; chữ trắng cố định (--c-on-dark, không phải núm) nên "chu-nut-chinh" không còn núm cha.
   "nen-nut-chinh": "mau-chinh",
 };
 
-/** Giá trị mặc định = app.css bản 1.70 (bài src/giao-dien-mac-dinh.test.ts so khớp). */
+/** Giá trị mặc định = app.css (bản 1.70, đổi nền trang và viền theo ADR-0234 ngày 24/11/2026; bài src/giao-dien-mac-dinh.test.ts so khớp). */
 export const MAC_DINH: Readonly<Record<string, string>> = {
-  "nen-trang": "#f2f5f9", "nen-the": "#ffffff", "chu-chinh": "#0f172a", "chu-phu": "#475569", vien: "#e1e7ef",
+  "nen-trang": "#f4f6f8", "nen-the": "#ffffff", "chu-chinh": "#0f172a", "chu-phu": "#475569", vien: "#e3e7ec",
   "mau-chinh": "#0c4a6e", "mau-chinh-nhat": "#dcebf6",
-  "nen-thanh-tren": "#ffffff", "chu-thanh-tren": "#0c4a6e", "nen-thanh-ben": "#f2f5f9", "chu-thanh-ben": "#475569",
+  "nen-thanh-tren": "#ffffff", "chu-thanh-tren": "#0c4a6e", "nen-thanh-ben": "#f4f6f8", "chu-thanh-ben": "#475569",
   "nen-muc-chon": "#dcebf6", "chu-muc-chon": "#0c4a6e",
   "nen-nut-chinh": "#0c4a6e", "chu-nut-chinh": "#ffffff", "nen-nut-chot": "#c0392b",
   "phong-tieu-de": "be-vietnam-pro", "phong-noi-dung": "be-vietnam-pro",

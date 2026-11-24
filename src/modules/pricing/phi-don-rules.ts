@@ -2,6 +2,7 @@
 // miễn phí là một dòng amount = 0 được đặt rõ. Thứ tự chọn mức cố định, KHÔNG đếm số điều kiện: dịch vụ > cấp > nhóm > chiều (bậc 8, 4, 2, 1 cộng lại).
 // MỘT danh sách đăng ký `BO_TINH`: mỗi khoá điều kiện một bộ tính; bài kiểm ép nó khớp bảng `prc_transfer_fee_key`. Thêm khoá = thêm một dòng ở bảng + một ở đây.
 import { hieuLuc, laNgay, docGhiChu, type GanLoaiMuc, type GanRieng } from "./rules.ts";
+import { thanhTienDong } from "../../shared/order-lines.ts";
 
 export const KHOA_PHI_DON = ["ZONE", "DIRECTION", "SERVICE_GROUP", "EXCLUSIVE", "TIER", "SERVICE"] as const;
 export type KhoaPhiDon = (typeof KHOA_PHI_DON)[number];
@@ -85,13 +86,51 @@ export function capCuaHoSoNgay(v: { partyId: string | null; vai: readonly string
 export function tinhPhiChang(v: { muc: MucPhiDon; direction: "OUT" | "RETURN"; soKhachTinhTien: number; paxOverride: number | null }): { donGia: number; soLuong: number; tien: number } | null {
   const soLuong = v.muc.kind === "PER_TRIP" ? 1 : v.direction === "RETURN" && v.paxOverride !== null ? Math.min(v.paxOverride, v.soKhachTinhTien) : v.soKhachTinhTien;
   if (soLuong <= 0) return null;
-  return { donGia: v.muc.amount, soLuong, tien: v.muc.amount * soLuong };
+  return { donGia: v.muc.amount, soLuong, tien: thanhTienDong({ quantity: soLuong, unitPrice: v.muc.amount }) }; // một công thức thành tiền dòng (bài src/thanh-tien-mot-ham.test.ts)
 }
 
 /** Chữ ký bộ điều kiện: khoá sắp theo chữ cái, «KEY=value» nối bằng «|». Cùng công thức với bất biến R-PRC-PD-1. */
 export function chuKyDieuKien(d: DieuKienPhiDon): string {
   return rows(d).sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)).map(([k, val]) => `${k}=${val}`).join("|");
 }
+
+// ---- Phí đưa đón của MỘT đơn (Đợt C, Task 2): hàm thuần mà `orders` và «Thử tra» cùng dùng; không có luật chọn thứ hai ----
+export interface ChangDauVao { legKey: string; zoneCode: string; direction: "OUT" | "RETURN"; exclusive: boolean; catalogCode: string | null; soKhachTinhTien: number; paxOverride: number | null }
+/** `returnPax` = số người chiều về GỐC (`pax_override`) của chặng về theo khách, chụp vào `order_item.fee_return_pax`; KHÔNG phải số đã kẹp (`soLuong` = min(số đó, khách tính tiền)).
+ *  «Sửa số khách» tính lại min(`returnPax`, khách mới) — lưu số đã kẹp thì tăng khách sẽ thu thiếu (kiểm độc lập Đợt C, Nên sửa 1). */
+export interface DongPhiDon { legKey: string; ruleId: string; kind: KieuPhiDon; zoneCode: string; tierCode: string | null; donGia: number; soLuong: number; tien: number; returnPax: number | null }
+export type LyDoThieuPhiDon = "KHONG_CO_MUC" | "XUNG_DOT" | "DAI_LY_HAI_CAP"; // trùng chữ `ly_do` của sổ vàng
+export interface ThieuPhiDon { legKey: string; zoneCode: string; lyDo: LyDoThieuPhiDon }
+export type KetQuaPhiDonDon = { apDung: false } | { apDung: true; dong: DongPhiDon[]; thieu: ThieuPhiDon[] };
+export interface BangPhiDon { batDauAp: string | null; muc: readonly MucPhiDon[]; cap: CapCuaHoSo }
+
+/**
+ * Phí đưa đón cho cả đơn tại ngày `ngay`. Chưa bật (`batDauAp` trống) hoặc `ngay` trước ngày áp ⇒ `{ apDung: false }`. Hồ sơ HAI cấp ⇒ mọi chặng thiếu `DAI_LY_HAI_CAP` (không lùi về mức chung, SV-PD-14).
+ * Số lượng 0 ⇒ không dòng, không thiếu. Tích đơn giá × số lượng không phải số nguyên an toàn ⇒ ném lỗi (người gọi phải chặn số khách khổng lồ từ trước; không bao giờ cắt hay làm tròn).
+ */
+export function tinhPhiDonThuan(v: { bang: BangPhiDon; nhom: ReadonlyMap<string, string | null>; ngay: string; chang: readonly ChangDauVao[] }): KetQuaPhiDonDon {
+  if (v.bang.batDauAp === null || v.ngay < v.bang.batDauAp) return { apDung: false };
+  const cap = v.bang.cap;
+  const tierCode = cap.loai === "CO_CAP" ? cap.tierCode : null;
+  const dong: DongPhiDon[] = [];
+  const thieu: ThieuPhiDon[] = [];
+  for (const c of v.chang) {
+    if (cap.loai === "HAI_CAP") { thieu.push({ legKey: c.legKey, zoneCode: c.zoneCode, lyDo: "DAI_LY_HAI_CAP" }); continue; }
+    const r = chonMucPhiDon({
+      chang: { zoneCode: c.zoneCode, direction: c.direction, exclusive: c.exclusive, catalogCode: c.catalogCode, groupCode: c.catalogCode === null ? null : (v.nhom.get(c.catalogCode) ?? null), tierCode },
+      ngay: v.ngay, muc: v.bang.muc,
+    });
+    if (r.trangThai === "THIEU_MUC") { thieu.push({ legKey: c.legKey, zoneCode: c.zoneCode, lyDo: r.lyDo }); continue; }
+    const t = tinhPhiChang({ muc: r.muc, direction: c.direction, soKhachTinhTien: c.soKhachTinhTien, paxOverride: c.paxOverride });
+    if (!t) continue;
+    if (!Number.isSafeInteger(t.tien)) throw new RangeError("Số khách hoặc số tiền quá lớn để tính phí đưa đón.");
+    dong.push({ legKey: c.legKey, ruleId: r.muc.id, kind: r.muc.kind, zoneCode: c.zoneCode, tierCode, donGia: t.donGia, soLuong: t.soLuong, tien: t.tien, returnPax: r.muc.kind === "PER_PAX" && c.direction === "RETURN" && c.paxOverride !== null ? c.paxOverride : null });
+  }
+  return { apDung: true, dong, thieu };
+}
+
+/** Trần MỘT mức phí đưa đón: 5.000.000 đ (chủ chốt 15/11). */
+export const TRAN_MUC_PHI_DON = 5_000_000;
 
 export interface ThanMucPhiDon { kind: KieuPhiDon; amount: number; validFrom: string; validTo: string | null; note: string | null; dieuKien: DieuKienPhiDon }
 type Result<T> = { ok: true; value: T } | { ok: false; message: string };
@@ -106,6 +145,7 @@ export function kiemThanMucPhiDon(body: unknown, biet: { vung: ReadonlySet<strin
   const b = body as Record<string, unknown>;
   if (b.kind !== "PER_PAX" && b.kind !== "PER_TRIP") return loi("Chọn cách tính: theo khách hoặc theo chuyến.");
   if (typeof b.amount !== "number" || !Number.isSafeInteger(b.amount) || b.amount < 0) return loi("Số tiền phải là số nguyên đồng, từ 0 trở lên.");
+  if (b.amount > TRAN_MUC_PHI_DON) return loi("Một mức phí đưa đón tối đa 5.000.000 đồng.");
   if (!laNgay(b.validFrom)) return loi("Ngày bắt đầu không hợp lệ.");
   let validTo: string | null = null;
   if (b.validTo !== undefined && b.validTo !== null && b.validTo !== "") {

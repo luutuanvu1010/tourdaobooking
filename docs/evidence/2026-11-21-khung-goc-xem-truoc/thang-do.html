@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thang đo của khung gốc giao diện (đề xuất 21/11/2026)</title>
+<!-- Trang số của thang đo đề xuất. Dựng TRÊN nguồn của máy chủ thử (kich-ban/chup-html.mjs --goc …) để nút, ô nhập, khối vẽ bằng đúng tệp kiểu và phông của Nền tảng,
+     cộng lớp xem trước lop-xem-truoc/khung-goc.css. Số trong trang này là ĐỀ XUẤT, chờ chủ dự án duyệt bằng ảnh. -->
+<!--KIEU-NEN-TANG-->
+<style>
+  html { background: #fff; }
+  body { width: 1600px; margin: 0; padding: 40px 44px 48px; background: #fff; }
+  .ts-h1 { margin: 0 0 6px; font-size: 30px; line-height: 38px; }
+  .ts-dan { margin: 0 0 8px; font-size: 16px; line-height: 24px; color: var(--c-text-muted); max-width: 1180px; }
+  .ts-muc { margin: 34px 0 14px; display: flex; align-items: center; gap: 12px; font-size: 20px; line-height: 28px; }
+  .ts-muc > span { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; background: var(--c-primary); color: #fff; font-size: 15px; }
+  .ts-ghi { margin: 0 0 14px; font-size: 15px; line-height: 22px; color: var(--c-text-muted); max-width: 1240px; }
+  .ts-hang { display: grid; gap: 20px; align-items: start; }
+  .ts-nen { background: var(--c-alt); border-radius: 14px; padding: 20px; }
+  .ts-chu { font-size: 14px; line-height: 20px; color: var(--c-text-muted); }
+  .ts-chu b { color: var(--c-text); }
+  .ts-so { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--c-primary); }
+  /* 1. khoảng cách */
+  .ts-kc { display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px; }
+  .ts-kc > div { border: 1px solid var(--c-border); border-radius: 12px; padding: 14px 14px 16px; }
+  .ts-kc i { display: block; height: 28px; background: var(--c-accent); border-radius: 3px; margin: 10px 0 12px; }
+  .ts-kc strong { font-size: 24px; line-height: 28px; }
+  /* 2. lưới */
+  .ts-luoi { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+  .ts-luoi > i { display: grid; place-items: center; height: 44px; background: var(--c-primary-soft); border-radius: 6px; font-style: normal; font-size: 13px; color: var(--c-primary); }
+  .ts-luoi > b { display: flex; align-items: center; padding: 0 12px; height: 44px; background: var(--c-surface); border: 1px solid var(--c-input-border); border-radius: 8px; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; }
+  .ts-luoi > b.dam { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
+  .ts-luoi > b.nhat { background: var(--c-sand-soft); border-color: var(--c-sand-border); color: var(--c-sand-text); }
+  .ts-luoi + .ts-luoi { margin-top: 10px; }
+  .c1 { grid-column: span 1; } .c3 { grid-column: span 3; } .c4 { grid-column: span 4; } .c5 { grid-column: span 5; } .c6 { grid-column: span 6; } .c7 { grid-column: span 7; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
+  /* 3. mốc */
+  .ts-bang { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .ts-bang th { text-align: left; padding: 9px 12px; font-size: 14px; font-weight: 500; color: var(--c-text-muted); background: var(--c-alt); }
+  .ts-bang td { padding: 9px 12px; border-top: 1px solid var(--c-border); vertical-align: top; }
+  /* 4, 5. mẫu thật */
+  .ts-mau { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .ts-do { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--c-accent-strong); font-weight: 600; white-space: nowrap; }
+  .ts-do::before { content: ""; width: 3px; align-self: stretch; min-height: 16px; background: var(--c-accent); border-radius: 2px; }
+  .ts-o-lon { position: relative; }
+  .ts-vach { position: absolute; background: rgba(192, 57, 43, .16); outline: 1px dashed rgba(192, 57, 43, .7); display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--c-accent-strong); }
+  /* 7. khuôn */
+  .ts-khuon { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 16px; }
+  .ts-k { border: 1px solid var(--c-border); border-radius: 12px; padding: 14px 14px 16px; }
+  .ts-k h3 { margin: 0 0 2px; font-size: 17px; }
+  .ts-k p { margin: 0 0 10px; font-size: 13px; line-height: 18px; color: var(--c-text-muted); min-height: 54px; }
+  .ts-ve { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 10px; align-items: start; }
+  .ts-may, .ts-dt { background: var(--c-alt); border-radius: 8px; padding: 7px; display: grid; gap: 5px; min-height: 196px; align-content: start; }
+  .ts-dt { border-radius: 12px; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .ts-v { background: #fff; border: 1px solid #cdd6e1; border-radius: 4px; font-size: 11px; line-height: 14px; color: var(--c-text-muted); padding: 3px 6px; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 22px; min-width: 0; }
+  .ts-v.cao { min-height: 76px; align-items: flex-start; } .ts-v.vua { min-height: 44px; align-items: flex-start; } .ts-v.xam { background: #dfe6ee; }
+  .ts-v.trong { background: none; border: 0; padding: 0; }
+  .ts-n { background: var(--c-primary); color: #fff; border-radius: 3px; padding: 2px 8px; font-size: 10.5px; font-weight: 600; white-space: nowrap; box-shadow: 0 0 0 3px rgba(245, 166, 35, .55); }
+  .ts-n.phu { background: #fff; color: var(--c-primary); border: 1px solid var(--c-primary); box-shadow: none; font-weight: 500; }
+  .ts-n.do { background: #fff; color: var(--c-danger); border: 1px solid var(--c-danger); box-shadow: none; font-weight: 500; }
+  .ts-hai { display: grid; grid-template-columns: 1fr 36%; gap: 5px; } .ts-ba { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .ts-dt .ts-v { font-size: 9px; line-height: 12px; padding: 2px 4px; min-height: 16px; gap: 3px; }
+  .ts-dt .ts-n { padding: 2px 5px; font-size: 9px; }
+  .ts-dt .day { margin-top: auto; }
+  .ts-dt .ts-v.cao { min-height: 58px; }
+  .ts-chan { margin-top: 30px; padding-top: 12px; border-top: 1px solid var(--c-border); font-size: 13.5px; color: var(--c-text-muted); }
+</style>
+</head>
+<body>
+<h1 class="ts-h1">Thang đo của khung gốc: một bộ số cho mọi màn</h1>
+<p class="ts-dan">Bản đề xuất 21/11/2026, chờ duyệt. Mỗi màn chỉ được lấy số ở đây. Cần số mới thì sửa ở thang, mọi màn cùng đổi. Nút, ô nhập và khối trong trang này vẽ bằng đúng bộ kiểu của Nền tảng, đúng cỡ thật.</p>
+
+<h2 class="ts-muc"><span>1</span>Khoảng cách: bảy bậc (giữ bộ đang có)</h2>
+<div class="ts-kc">
+  <div><strong>4</strong><i style="width:4px"></i><div class="ts-chu">Từ nhãn tới ô nhập. Giữa hai dòng chữ của một dòng danh sách.</div></div>
+  <div><strong>8</strong><i style="width:8px"></i><div class="ts-chu">Giữa các thẻ dòng ở điện thoại. Giữa biểu tượng và chữ.</div></div>
+  <div><strong>12</strong><i style="width:12px"></i><div class="ts-chu">Giữa các phần trong một khối. Giữa các nút đứng cạnh nhau.</div></div>
+  <div><strong>16</strong><i style="width:16px"></i><div class="ts-chu">Giữa hai khối. Khe của lưới cột. Lề trang và đệm khối ở điện thoại.</div></div>
+  <div><strong>24</strong><i style="width:24px"></i><div class="ts-chu">Lề trang từ iPad trở lên. Đệm khối khi vùng nội dung rộng từ 560.</div></div>
+  <div><strong>32</strong><i style="width:32px"></i><div class="ts-chu">Khoảng thở của trang trạng thái và trang đọc.</div></div>
+  <div><strong>48</strong><i style="width:48px"></i><div class="ts-chu">Giữa các phần lớn của trang đọc. Bốn màn mẫu chưa dùng.</div></div>
+</div>
+
+<h2 class="ts-muc"><span>2</span>Lưới 12 cột bên trong trang, khe 16</h2>
+<p class="ts-ghi">Mọi cách chia cột bên trong trang lấy từ lưới này: bề rộng ô nhập, hai khối đứng cạnh nhau, cột chính và cột phụ của trang chi tiết. Không màn nào tự chia theo tỉ lệ riêng.</p>
+<div class="ts-nen">
+  <div class="ts-luoi"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>10</i><i>11</i><i>12</i></div>
+  <div class="ts-luoi"><b class="c3">Ô nhập ngắn: 3 cột</b><b class="c6">Ô nhập vừa: 6 cột</b><b class="c3">Ô nhập ngắn: 3 cột</b></div>
+  <div class="ts-luoi"><b class="c12">Ô nhập dài (địa chỉ, ghi chú): 12 cột của khối, và khối biểu mẫu không rộng quá 720</b></div>
+  <div class="ts-luoi"><b class="c6 nhat">Khối 6 cột</b><b class="c6 nhat">Khối 6 cột (hai khối ngắn đứng cạnh nhau)</b></div>
+  <div class="ts-luoi"><b class="c8 dam">Trang chi tiết: cột chính 8 cột</b><b class="c4 dam">cột phụ 4 cột (tiền, trạng thái)</b></div>
+  <div class="ts-luoi"><b class="c7 dam">Khi vùng nội dung hẹp hơn 1.040: cột chính 7 cột</b><b class="c5 dam">cột phụ 5 cột</b></div>
+</div>
+
+<h2 class="ts-muc"><span>3</span>Bố cục đổi theo chỗ trống thật của trang, không theo từng màn</h2>
+<p class="ts-ghi">Khung ngoài giữ hai mốc theo cửa sổ đã có: từ 641 hết kiểu điện thoại, từ 900 có thanh bên. Bên trong trang, khối đổi số cột theo bề rộng của <b>vùng nội dung</b> (phần còn lại sau khi trừ thanh bên và lề), với đúng ba mốc: 560, 800, 1.040. Nhờ vậy cửa sổ 1.130 có thanh bên được xử như vùng 834, không bị vỡ cột như màn Đơn hàng hiện nay.</p>
+<div class="ts-hang" style="grid-template-columns: 1fr 1fr;">
+  <table class="ts-bang">
+    <tr><th>Vùng nội dung rộng</th><th>Bố cục bên trong</th></tr>
+    <tr><td class="ts-so">dưới 560</td><td>Một cột. Danh sách là thẻ dòng. Nút sửa của khối nằm cuối khối. Việc chính dính đáy màn hình.</td></tr>
+    <tr><td class="ts-so">560 tới 799</td><td>Ô nhập xếp hai cột. Danh sách vẫn là thẻ dòng. Trang chi tiết vẫn một cột, khối tiền lên trước.</td></tr>
+    <tr><td class="ts-so">800 tới 1.039</td><td>Danh sách thành bảng thẳng cột, cột phụ gộp dưới cột chính. Trang chi tiết chia 7 và 5.</td></tr>
+    <tr><td class="ts-so">từ 1.040</td><td>Bảng đủ cột. Trang chi tiết chia 8 và 4.</td></tr>
+  </table>
+  <table class="ts-bang">
+    <tr><th>Cửa sổ rộng</th><th>Vùng nội dung</th><th>Rơi vào mức</th></tr>
+    <tr><td>Điện thoại 390</td><td class="ts-so">358</td><td>dưới 560</td></tr>
+    <tr><td>iPad đứng 820 (chưa có thanh bên)</td><td class="ts-so">772</td><td>560 tới 799</td></tr>
+    <tr><td>Cửa sổ 1.130 (có thanh bên 248)</td><td class="ts-so">834</td><td>800 tới 1.039</td></tr>
+    <tr><td>Máy tính 1.280</td><td class="ts-so">984</td><td>800 tới 1.039</td></tr>
+    <tr><td>Máy tính 1.440</td><td class="ts-so">1.144 hoặc 1.120</td><td>từ 1.040</td></tr>
+  </table>
+</div>
+
+<h2 class="ts-muc"><span>4</span>Nút và ô nhập: ba chiều cao</h2>
+<div class="ts-hang" style="grid-template-columns: 1.1fr .9fr;">
+  <div class="ts-nen" data-kg="mau" style="display:grid; gap:18px;">
+    <div class="ts-mau"><span class="ts-do">44</span>
+      <button class="nut" data-cap="chinh" type="button">Nút chính</button><button class="nut" data-cap="phu" type="button">Nút phụ</button><button class="nut" type="button">Nút thường</button><button class="nut" data-cap="nguy-hiem" type="button">Việc nguy hiểm</button><button class="nut" data-cap="loi" type="button">Nút chữ</button>
+    </div>
+    <div class="ts-mau" style="align-items:flex-end;"><span class="ts-do" style="align-self:flex-end; height:48px;">48</span>
+      <div class="truong" style="width:260px"><label>Nhãn đứng trên ô, cách ô 4</label><input class="o" type="text" value="Ô nhập một dòng" style="min-height:48px; margin:0; padding:0 12px;"></div>
+      <div class="thanh-loc" style="flex:1"><input class="o" type="search" placeholder="Ô tìm của danh sách" style="min-height:48px; margin:0;"><button class="nut" type="button" style="min-height:48px">Lọc</button></div>
+    </div>
+    <div class="ts-mau"><span class="ts-do" style="height:52px;">52</span>
+      <button class="nut" data-cap="chinh" type="button" style="min-height:52px; flex:1; font-size:17px;">Nút chính ở thanh dính đáy của điện thoại</button>
+    </div>
+  </div>
+  <div class="ts-chu" style="display:grid; gap:10px; padding-top:6px;">
+    <div><b>Một trang chỉ có một nút chính</b> (nền xanh đậm). Các nút còn lại là nút phụ (nền xanh nhạt) hoặc nút thường (nền trắng). Việc nguy hiểm viền đỏ, đứng tách khỏi nút chính.</div>
+    <div><b>Ô nhập cao 48</b>, chữ 16, nhãn đứng trên ô. Hiện nay ô nhập có tám chiều cao từ 46 tới 58 và ba kiểu đặt nhãn.</div>
+    <div><b>Ô nhập có ba cỡ bề rộng</b> trên lưới 12 cột: ngắn 3 cột (số, ngày, mã ngắn), vừa 6 cột (tên, điện thoại), dài 12 cột (địa chỉ, ghi chú). Không còn ô nhập dài hơn 720.</div>
+    <div><b>Ô tìm của danh sách</b> dài tối đa 480, nút đứng cùng hàng cao bằng ô.</div>
+  </div>
+</div>
+
+<h2 class="ts-muc"><span>5</span>Khối: một kiểu vỏ duy nhất</h2>
+<div class="ts-hang" style="grid-template-columns: 1.1fr .9fr;">
+  <div class="ts-nen" data-kg="mau" style="container: trang / inline-size; display:grid; gap:16px;">
+    <div class="ts-o-lon">
+      <section class="khoi">
+        <header class="khoi-dau"><h2>Tên khối</h2></header>
+        <div class="khoi-viec" data-cho="dau"><button class="nut" data-cap="phu" type="button">Nút của khối</button></div>
+        <div>
+          <div class="cap"><span>Nhãn</span><span>Giá trị đứng ngay sau nhãn, canh trái</span></div>
+          <div class="cap"><span>Số điện thoại</span><span>0912 000 103</span></div>
+        </div>
+        <div class="vung-phu">Vùng phụ trong khối: nền nhạt, bo góc 8, đệm 12, không viền, không bóng</div>
+      </section>
+      <span class="ts-vach" style="left:0; top:0; width:24px; height:100%;">24</span>
+      <span class="ts-vach" style="right:0; top:0; width:24px; height:100%;">24</span>
+    </div>
+    <div class="ts-o-lon" style="margin-top:0">
+      <section class="khoi"><header class="khoi-dau"><h2>Khối kế tiếp</h2></header><div class="khoi-mo-ta">Hai khối cách nhau 16. Khối kín bề ngang vùng nội dung hoặc đúng số cột của lưới.</div></section>
+      <span class="ts-vach" style="left:40%; top:-16px; width:44px; height:16px;">16</span>
+    </div>
+  </div>
+  <div class="ts-chu" style="display:grid; gap:10px; padding-top:6px;">
+    <div><b>Vỏ khối:</b> nền trắng, bo góc 12, viền mảnh và bóng mềm (giữ dáng thẻ bạn đã duyệt ngày 2/10). Hiện nay có 24 kiểu vỏ.</div>
+    <div><b>Đệm khối:</b> 24 khi vùng nội dung rộng từ 560, 16 ở điện thoại. Mọi khối trên một trang cùng một đệm, nên tiêu đề các khối đứng cạnh nhau thẳng hàng.</div>
+    <div><b>Đầu khối:</b> tên khối cỡ 18 đậm bên trái. Nút thêm mới luôn ở đầu khối bên phải. Nút sửa của khối ở đầu khối bên phải khi khối rộng từ 560, xuống cuối khối khi khối hẹp.</div>
+    <div><b>Bên trong khối chỉ có:</b> lưới cột, cặp nhãn và giá trị (cột nhãn 160, khối hẹp 120), bảng, danh sách dòng, thanh nút. Các phần cách nhau 12.</div>
+    <div><b>Không lồng thẻ trong thẻ:</b> phần con của một khối ngăn bằng nét kẻ, hoặc là một vùng phụ nền nhạt.</div>
+  </div>
+</div>
+
+<h2 class="ts-muc"><span>6</span>Bảng và danh sách dòng</h2>
+<div class="ts-nen" data-kg="mau" style="container: trang / inline-size;">
+  <section class="khoi" data-kieu="bang">
+    <table class="bang" style="table-layout:fixed">
+      <thead><tr><th style="width:152px">Ngày đi</th><th>Khách</th><th style="width:144px">Điện thoại</th><th style="width:112px">Số khách</th><th style="width:144px" data-so>Còn thu</th><th style="width:152px">Trạng thái</th><th style="width:136px"></th></tr></thead>
+      <tbody>
+        <tr><td>13/11 · 06:50</td><td><b>Ngô Thị Mai</b></td><td>0913000213</td><td>2NL</td><td data-so>1.430.000 ₫</td><td style="text-align:left"><span class="badge badge-confirmed">Đã xác nhận</span></td><td><button class="nut" data-cap="loi" type="button">Sửa</button></td></tr>
+        <tr><td class="ts-so">cột vừa 128</td><td class="ts-so">cột co giãn, không hẹp hơn 180</td><td class="ts-so">cột vừa 128</td><td class="ts-so">cột ngắn 96</td><td class="ts-so" data-so>cột vừa 128</td><td class="ts-so" style="text-align:left">cột vừa 128</td><td class="ts-so">nút của dòng</td></tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+<div class="ts-chu" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px 28px; padding-top:14px;">
+  <div><b>Cột của bảng có ba bề rộng cố định</b> (ngắn 96, vừa 128, dài 200) và một cột co giãn không hẹp hơn 180. Cùng một loại cột thì rộng như nhau ở mọi màn.</div>
+  <div><b>Dòng cao ít nhất 52.</b> Chữ đầu cột cỡ 14, màu xám, nền nhạt. Chữ cột đầu thẳng mép với tên khối. Số canh phải. Nút của dòng ở cuối dòng.</div>
+  <div><b>Vùng nội dung hẹp hơn 800</b> thì bảng thành thẻ dòng (trang danh sách) hoặc danh sách dòng trong khối (trang thiết lập), không bóp cột.</div>
+</div>
+
+<h2 class="ts-muc"><span>7</span>Chỗ đặt nút chính của bảy khuôn (trái: máy tính, phải: điện thoại)</h2>
+<p class="ts-ghi">Nút chính là nút có vành vàng trong hình. Cùng một khuôn thì nút chính luôn ở cùng một chỗ. Bốn khuôn đầu đã có màn mẫu bằng ảnh thật (tờ 1 tới 4); ba khuôn Tổng quan, Trang đọc, Trạng thái mới ở mức sơ đồ, sẽ trình ảnh thật khi tới lượt họ màn đó.</p>
+<div class="ts-khuon">
+  <div class="ts-k"><h3>Danh sách</h3><p>Nút thêm mới ở đầu trang, bên phải, cùng hàng với ô tìm và nút lọc. «Tải thêm» ở chân bảng.</p>
+    <div class="ts-ve"><div class="ts-may"><div class="ts-v xam">Tìm · Lọc <span class="ts-n">+ Thêm</span></div><div class="ts-v cao">Bảng thẳng cột</div><div class="ts-v" style="justify-content:center">Tải thêm</div></div>
+    <div class="ts-dt"><div class="ts-v xam">Tìm <span class="ts-n">+</span></div><div class="ts-v">Thẻ dòng</div><div class="ts-v">Thẻ dòng</div><div class="ts-v">Thẻ dòng</div></div></div></div>
+  <div class="ts-k"><h3>Chi tiết</h3><p>Máy tính: thanh việc đầu trang, việc chính bên trái, việc nguy hiểm tách sang phải. Điện thoại: việc chính dính đáy.</p>
+    <div class="ts-ve"><div class="ts-may"><div class="ts-v"><span style="display:flex;gap:4px"><span class="ts-n">Việc chính</span><span class="ts-n phu">Việc phụ</span></span><span class="ts-n do">Nguy hiểm</span></div><div class="ts-v xam">Dải tóm tắt</div><div class="ts-hai"><div class="ts-v cao">Cột chính</div><div class="ts-v cao">Cột phụ: tiền</div></div></div>
+    <div class="ts-dt"><div class="ts-v xam">Tóm tắt</div><div class="ts-v"><span class="ts-n phu">Việc phụ</span></div><div class="ts-v">Tiền</div><div class="ts-v cao">Các khối</div><div class="ts-v day" style="justify-content:center"><span class="ts-n">Việc chính</span></div></div></div></div>
+  <div class="ts-k"><h3>Biểu mẫu</h3><p>Thanh nút cuối biểu mẫu: «Lưu» bên phải, «Huỷ» cạnh trái nó, việc nguy hiểm tách sang trái. Điện thoại: «Lưu» dính đáy.</p>
+    <div class="ts-ve"><div class="ts-may"><div class="ts-v cao" style="width:66%">Khối trường, rộng tối đa 720</div><div class="ts-v" style="width:66%"><span class="ts-n do">Nguy hiểm</span><span style="display:flex;gap:4px"><span class="ts-n phu">Huỷ</span><span class="ts-n">Lưu</span></span></div></div>
+    <div class="ts-dt"><div class="ts-v cao">Khối trường</div><div class="ts-v"><span class="ts-n do">Nguy hiểm</span></div><div class="ts-v day" style="justify-content:center"><span class="ts-n">Lưu</span></div></div></div></div>
+  <div class="ts-k"><h3>Thiết lập</h3><p>Nút thêm ở đầu khối, bên phải. Mỗi dòng có «Sửa» ở cuối dòng. Thêm và sửa mở trong bảng trượt, nút lưu ở chân bảng trượt.</p>
+    <div class="ts-ve"><div class="ts-may"><div class="ts-v trong">Đoạn dẫn một câu</div><div class="ts-v">Tên khối <span class="ts-n">+ Thêm</span></div><div class="ts-v cao">Bảng, mỗi dòng có Sửa</div></div>
+    <div class="ts-dt"><div class="ts-v trong">Dẫn</div><div class="ts-v">Khối <span class="ts-n">+</span></div><div class="ts-v">Dòng · Sửa</div><div class="ts-v">Dòng · Sửa</div></div></div></div>
+  <div class="ts-k"><h3>Tổng quan</h3><p>Không có nút chính của trang. Lối đi tiếp của từng khối nằm ở đầu khối, bên phải. (Trang chủ giữ bản vẽ đã duyệt.)</p>
+    <div class="ts-ve"><div class="ts-may"><div class="ts-ba"><div class="ts-v vua">Số liệu</div><div class="ts-v vua">Số liệu</div><div class="ts-v vua">Số liệu</div></div><div class="ts-hai"><div class="ts-v cao">Việc cần làm</div><div class="ts-v cao">Khối phụ</div></div></div>
+    <div class="ts-dt"><div class="ts-v">Số liệu</div><div class="ts-v">Số liệu</div><div class="ts-v cao">Việc cần làm</div></div></div></div>
+  <div class="ts-k"><h3>Trang đọc</h3><p>Không có nút chính. Một cột chữ rộng tối đa 720.</p>
+    <div class="ts-ve"><div class="ts-may"><div class="ts-v cao" style="width:62%; min-height:150px">Một cột chữ</div></div>
+    <div class="ts-dt"><div class="ts-v cao" style="min-height:120px">Một cột chữ</div></div></div></div>
+  <div class="ts-k"><h3>Trạng thái</h3><p>Một nút chính duy nhất, ngay dưới câu báo, ở giữa.</p>
+    <div class="ts-ve"><div class="ts-may"><div class="ts-v vua" style="width:58%; margin:30px auto 0; display:grid; gap:7px; justify-items:center; text-align:center">Chuyện gì xảy ra<span class="ts-n">Một lối đi tiếp</span></div></div>
+    <div class="ts-dt"><div class="ts-v vua" style="margin-top:30px; display:grid; gap:5px; justify-items:center; text-align:center">Chuyện gì<span class="ts-n">Đi tiếp</span></div></div></div></div>
+  <div class="ts-k" style="border-style:dashed"><h3>Ngoại lệ có tên</h3><p>Trang chủ, Đăng nhập, dòng thời gian Điều phối xe, ảnh vé, Quét vé: ghi sổ, không bị ép theo.</p>
+    <div class="ts-ve"><div class="ts-may"><div class="ts-v">Khung ngoài và vỏ khối vẫn theo khung</div><div class="ts-v cao xam">Vùng tự do bên trong một khối</div></div>
+    <div class="ts-dt"><div class="ts-v cao xam">Vùng tự do</div></div></div></div>
+</div>
+<p class="ts-chan">Bản đề xuất luật: docs/superpowers/specs/2026-11-21-khung-goc-giao-dien/DE-XUAT-ADR-khung-goc-giao-dien.md · Số trong trang này là đề xuất, chờ chủ dự án duyệt bằng ảnh · Thang chữ không quyết ở đây.</p>
+</body>
+</html>
