@@ -6,7 +6,22 @@
 export const THANG = [0, 4, 8, 12, 16, 24, 32, 48];
 
 /** Sáu điều lệnh đo kiểm cho mỗi ô (màn × bề rộng) — đúng danh sách của ADR-0222 Đ7(b), cộng một điều kỹ thuật (không phần tử fixed trong vùng nội dung). */
-export const DIEU_DO = ["tràn ngang", "chữ bị bóp", "khối lệch mép", "phần tử thò ra ngoài khối", "nhiều kiểu vỏ khối", "khoảng cách ngoài thang", "nút chính sai chỗ", "phần tử fixed trong vùng nội dung"];
+export const DIEU_DO = ["tràn ngang", "chữ bị bóp", "khối lệch mép", "phần tử thò ra ngoài khối", "nhiều kiểu vỏ khối", "khoảng cách ngoài thang", "nút chính sai chỗ", "phần tử fixed trong vùng nội dung",
+  "chữ đậm vượt trần", "nút nền đặc vượt trần", "số tiền lệch màu", "khối có bóng"];
+
+/**
+ * Bốn phép đo của ngôn ngữ thị giác (ADR-0234 Đ5b). TRẦN CHỈ ĐƯỢC HẠ theo từng đợt khung gốc; không ghi cứng một con số đích.
+ * - tiLeDam: tỉ lệ đoạn chữ trong vùng nội dung có độ đậm LỚN HƠN chữ thân của trang (so với độ đậm của body, nên đứng được khi chủ chỉnh núm độ đậm);
+ * - nutDac: số nút nền đặc (nền đậm, chữ sáng) đang hiện trong vùng nội dung, không tính thanh dính đáy;
+ * - tienLech: số đoạn số tiền có màu khác --c-tien, --c-text-muted (tiền đã đủ) và chữ trên nền đậm (--c-on-summary, --c-on-dark);
+ * - bongKhoi: số phần tử trong vùng nội dung (không tính lớp dính, lớp nổi) có bóng mờ.
+ * Đo ở đợt gốc 24/11/2026 trên bốn màn mẫu, 360 tới 1.920 (máy thử, bộ núm của bản chạy thật): chữ đậm cao nhất theo khuôn Danh sách 41 %, Chi tiết 58 %,
+ * Biểu mẫu 53 %, Thiết lập 28 %; nút nền đặc 1; tiền lệch màu 0; khối có bóng 0. Khuôn chưa có màn mẫu dùng mức cao nhất. Bài `src/khung-do.test.ts` khoá:
+ * trần không được cao hơn lúc lập.
+ */
+export const TRAN_THI_GIAC = { tiLeDam: { "danh-sach": 0.41, "chi-tiet": 0.58, "bieu-mau": 0.53, "thiet-lap": 0.28 }, nutDac: 1, tienLech: 0, bongKhoi: 0 };
+/** Trần chữ đậm của một khuôn (khuôn chưa có màn mẫu: mức cao nhất của bảng). */
+export const tranDam = (tran, khuon) => tran.tiLeDam[khuon] ?? Math.max(...Object.values(tran.tiLeDam));
 
 /**
  * Đoạn đo chạy trong trang (biểu thức trả về một đối tượng). Không viết dấu huyền trong chuỗi này.
@@ -66,11 +81,25 @@ export const DO_TRONG_TRANG = String.raw`(() => {
   } else if (khuon === "thiet-lap") {
     for (const k of khoi) { const v = [...k.children].find((e) => e.classList.contains("khoi-viec") && hien(e)); const d = [...k.children].find((e) => e.classList.contains("khoi-dau") && hien(e)); if (!v || !d) continue; const oDau = v.dataset.cho === "dau" || k.getBoundingClientRect().width - 2 * parseFloat(getComputedStyle(k).paddingLeft || "0") >= 560; if (!oDau) continue; const vr = v.getBoundingClientRect(), dr = d.getBoundingClientRect(), kr = k.getBoundingClientRect(); const nutCuoi = ds(".nut", v).pop(); const demPhai = parseFloat(getComputedStyle(v).paddingRight) + parseFloat(getComputedStyle(k).paddingRight); if (nutCuoi && Math.abs(nutCuoi.getBoundingClientRect().right - (kr.right - demPhai)) > 1) loi("nút của khối không ở mép phải đầu khối"); if (Math.abs((vr.top + vr.bottom) / 2 - (dr.top + dr.bottom) / 2) > 8) loi("nút của khối không cùng hàng với tên khối"); }
   }
-  return { khuon, noiDung: Math.round(rongTrang), tranNgang: document.documentElement.scrollWidth > innerWidth + 1, bop, vd, lech, tho, vdTho, vo, nhip: [...nhip].sort((a, b) => a - b), soKhoi: khoi.length, coDinh, loiNut };
+  // ---- Ngôn ngữ thị giác (ADR-0234 Đ5b) ----
+  const damThan = Number(getComputedStyle(document.body).fontWeight) || 400;
+  let tongChu = 0, chuDam = 0; const w2 = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+  for (let x = w2.nextNode(); x; x = w2.nextNode()) { if (!x.textContent.trim()) continue; const p = x.parentElement; if (!hien(p) || tuDo(p) || p.closest("svg")) continue; tongChu++; if (Number(getComputedStyle(p).fontWeight) > damThan) chuDam++; }
+  const rgb = (c) => (c.match(/[\d.]+/g) || []).map(Number);
+  const sang = (c) => { const [r, g, b] = rgb(c); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
+  const dac = (e) => { const s = getComputedStyle(e); const n = rgb(s.backgroundColor); return (n[3] === undefined || n[3] === 1) && sang(s.backgroundColor) < 0.5 && sang(s.color) > 0.7; };
+  const nutDac = [...main.querySelectorAll("button, a, [role=button]")].filter((e) => hien(e) && !e.closest(".thanh-day") && dac(e)).length;
+  const mau = (v) => { const t = document.createElement("span"); t.style.color = "var(" + v + ")"; document.body.append(t); const c = getComputedStyle(t).color; t.remove(); return c; };
+  const mauTien = new Set(["--c-tien", "--c-text-muted", "--c-on-summary", "--c-on-dark"].map(mau));
+  let tienLech = 0; const vdTien = [];
+  for (const e of main.querySelectorAll("*")) { if (!hien(e) || tuDo(e)) continue; const t = [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(""); if (!/\d[\d.,]*\s?(₫|đ)(?![\p{L}])/u.test(t)) continue; const c = getComputedStyle(e).color; if (!mauTien.has(c)) { tienLech++; if (vdTien.length < 3) vdTien.push(t.trim().slice(0, 16) + " " + c); } }
+  const coMo = (bs) => bs !== "none" && bs.split(/,(?![^(]*\))/).some((p) => !/inset/.test(p) && (p.replace(/rgba?\([^)]*\)/g, "").match(/-?[\d.]+px/g) || []).map(parseFloat)[2] > 0);
+  const bongKhoi = [...main.querySelectorAll("*")].filter((e) => hien(e) && !tuDo(e) && !/^(sticky|fixed)$/.test(getComputedStyle(e).position) && !e.closest('.thanh-day, .thanh-nut[data-kieu="trang"], [role=dialog], [role=menu]') && coMo(getComputedStyle(e).boxShadow)).length;
+  return { khuon, tiLeDam: tongChu ? Math.round((chuDam / tongChu) * 100) / 100 : 0, nutDac, tienLech, vdTien, bongKhoi, noiDung: Math.round(rongTrang), tranNgang: document.documentElement.scrollWidth > innerWidth + 1, bop, vd, lech, tho, vdTho, vo, nhip: [...nhip].sort((a, b) => a - b), soKhoi: khoi.length, coDinh, loiNut };
 })()`;
 
 /** Chấm một ô đo: trả các câu lỗi (mảng rỗng = đạt). `khuonKhai` là khuôn khai ở tệp HTML của trang. */
-export function chamO(o, khuonKhai) {
+export function chamO(o, khuonKhai, tran = TRAN_THI_GIAC) {
   const loi = [];
   if (o.loi) return [`không đo được: ${o.loi}`];
   if (o.khuon !== khuonKhai) loi.push(`trang đang chạy khai khuôn «${o.khuon ?? "(không)"}», tệp HTML khai «${khuonKhai}»: máy thử đang chạy bản cũ?`);
@@ -85,6 +114,11 @@ export function chamO(o, khuonKhai) {
   if (nhipLa.length) loi.push(`khoảng cách ngoài thang: ${nhipLa.join(", ")}`);
   if (o.coDinh) loi.push(`phần tử fixed trong vùng nội dung: ${o.coDinh}`);
   for (const c of o.loiNut ?? []) loi.push(`nút chính sai chỗ: ${c}`);
+  // Ngôn ngữ thị giác (ADR-0234 Đ5b): ô đo cũ không có trường thì bỏ qua (máy chấm vẫn dùng được cho số đo trước đợt gốc).
+  if (o.tiLeDam > tranDam(tran, khuonKhai)) loi.push(`chữ đậm vượt trần: ${Math.round(o.tiLeDam * 100)} % > ${Math.round(tranDam(tran, khuonKhai) * 100)} %`);
+  if (o.nutDac > tran.nutDac) loi.push(`nút nền đặc vượt trần: ${o.nutDac} > ${tran.nutDac}`);
+  if (o.tienLech > tran.tienLech) loi.push(`số tiền lệch màu: ${o.tienLech} (${(o.vdTien ?? []).join(" | ")})`);
+  if (o.bongKhoi > tran.bongKhoi) loi.push(`khối có bóng: ${o.bongKhoi}`);
   return loi;
 }
 

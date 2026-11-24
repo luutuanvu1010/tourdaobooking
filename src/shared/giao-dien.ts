@@ -59,15 +59,17 @@ export const CHA: Readonly<Record<string, string>> = {
   "nen-thanh-tren": "nen-the", "chu-thanh-tren": "mau-chinh",
   "nen-thanh-ben": "nen-trang", "chu-thanh-ben": "chu-phu", // Đợt 4 G5 (lời chủ 2/10): thanh bên cùng màu nền trang
   "nen-muc-chon": "mau-chinh-nhat", "chu-muc-chon": "mau-chinh",
+  // ADR-0234 (24/11): một họ phông — tiêu đề dùng phông nội dung, trừ khi Toàn quyền chọn riêng ở núm «Phông tiêu đề».
+  "phong-tieu-de": "phong-noi-dung",
   // 1.70: nút lưu / xác nhận đặc màu — nền theo Màu chính; chữ trắng cố định (--c-on-dark, không phải núm) nên "chu-nut-chinh" không còn núm cha.
   "nen-nut-chinh": "mau-chinh",
 };
 
-/** Giá trị mặc định = app.css bản 1.70 (bài src/giao-dien-mac-dinh.test.ts so khớp). */
+/** Giá trị mặc định = app.css (bản 1.70, đổi nền trang và viền theo ADR-0234 ngày 24/11/2026; bài src/giao-dien-mac-dinh.test.ts so khớp). */
 export const MAC_DINH: Readonly<Record<string, string>> = {
-  "nen-trang": "#f2f5f9", "nen-the": "#ffffff", "chu-chinh": "#0f172a", "chu-phu": "#475569", vien: "#e1e7ef",
+  "nen-trang": "#f4f6f8", "nen-the": "#ffffff", "chu-chinh": "#0f172a", "chu-phu": "#475569", vien: "#e3e7ec",
   "mau-chinh": "#0c4a6e", "mau-chinh-nhat": "#dcebf6",
-  "nen-thanh-tren": "#ffffff", "chu-thanh-tren": "#0c4a6e", "nen-thanh-ben": "#f2f5f9", "chu-thanh-ben": "#475569",
+  "nen-thanh-tren": "#ffffff", "chu-thanh-tren": "#0c4a6e", "nen-thanh-ben": "#f4f6f8", "chu-thanh-ben": "#475569",
   "nen-muc-chon": "#dcebf6", "chu-muc-chon": "#0c4a6e",
   "nen-nut-chinh": "#0c4a6e", "chu-nut-chinh": "#ffffff", "nen-nut-chot": "#c0392b",
   "phong-tieu-de": "be-vietnam-pro", "phong-noi-dung": "be-vietnam-pro",

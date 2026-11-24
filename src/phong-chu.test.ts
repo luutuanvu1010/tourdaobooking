@@ -50,12 +50,11 @@ test("mọi độ đậm CSS dùng đều có tệp phông riêng (không để 
   for (const w of dung) assert.ok(khai.has(w), `độ đậm ${w} được dùng nhưng không có @font-face`);
 });
 
-test("chồng phông: Be Vietnam Pro trước, có dự phòng Windows cho ký tự phông không có", () => {
-  for (const name of ["--font", "--font-display"]) {
-    const v = new RegExp(`\\n\\s*${name}:\\s*([^;]+);`).exec(root)?.[1] ?? "";
-    assert.match(v, /^"Be Vietnam Pro",/, `${name} phải mở đầu bằng "Be Vietnam Pro"`);
-    assert.match(v, /"Segoe UI",\s*"Segoe UI Symbol"/, `${name} thiếu dự phòng Windows`);
-  }
+test("chồng phông: Be Vietnam Pro trước, có dự phòng Windows; phông tiêu đề là phông nội dung (ADR-0234)", () => {
+  const v = /\n\s*--font:\s*([^;]+);/.exec(root)?.[1] ?? "";
+  assert.match(v, /^"Be Vietnam Pro",/, `--font phải mở đầu bằng "Be Vietnam Pro"`);
+  assert.match(v, /"Segoe UI",\s*"Segoe UI Symbol"/, `--font thiếu dự phòng Windows`);
+  assert.match(/\n\s*--font-display:\s*([^;]+);/.exec(root)?.[1] ?? "", /^var\(--font\)$/, "--font-display phải là var(--font): một họ phông (ADR-0234 nguyên tắc 4)");
 });
 
 test("nút và ô gõ kế thừa phông của trang", () => {
