@@ -11,6 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
+import { apMigrationNhanh } from "../../scripts/d1-tam.mjs";
 import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, TURNSTILE_TEST, cauNgungTaiKhoanKieuCu } from "./lib.mjs";
 import { GHI_NHIEU_LAN } from "../../src/shared/lan-gui-no.ts";
 
@@ -91,7 +92,9 @@ function chay(cmd, args, { env, stream }) {
 // Dựng D1 tạm cho một nhóm: áp migration + nạp tài khoản test. Các nhóm dựng ĐỒNG THỜI (thư mục riêng, không khoá nhau).
 async function dungD1(may) {
   may.persist = mkdtempSync(join(tmpdir(), "tourdao-e2e-"));
-  await wrangler(["d1", "migrations", "apply", "tourdao-sales-db", "--local", "--persist-to", may.persist]);
+  // Một lệnh `d1 execute` gộp mọi migration (scripts/d1-tam.mjs; ~2 giây thay ~66 giây của `migrations apply` trên máy GitHub). Tương đương được bài
+  // src/d1-tam.test.ts kiểm trong mỗi lượt kiểm (dựng cả hai cách, so schema + dữ liệu).
+  await apMigrationNhanh(ROOT, may.persist, wrangler);
   const seed = join(may.persist, "seed.sql");
   writeFileSync(seed, (await Promise.all(Object.values(ACCOUNTS).map((a) => insertStaffSql({ name: a.name, phone: a.phone, pin: a.pin, permissions: a.permissions })))).join("\n"));
   await wrangler(["d1", "execute", "tourdao-sales-db", "--local", "--persist-to", may.persist, "--file", seed]);

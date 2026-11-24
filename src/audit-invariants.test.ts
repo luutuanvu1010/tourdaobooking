@@ -3,7 +3,9 @@
 // Ngoài phạm vi: cơ chế gọi wrangler và mã thoát (1 = vi phạm, 2 = không chạy được, vd D1 chưa có bảng dsp_*) — do e2e (bước cuối của tests/e2e/run.mjs) kiểm.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
 import { demSietTheoTap } from "./modules/auth/repository.ts";
 import { allowedFactors, isInternal } from "./modules/auth/mfa-rules.ts";
@@ -61,6 +63,31 @@ function violations(db: DatabaseSync, check: Check): number {
  * hồ sơ/quyền như production. Chưa đơn nào, chưa người phụ trách nào.
  */
 function build(): DatabaseSync {
+  // Rút lượt kiểm 25/11/2026: tệp này có ~170 lần build() và mỗi lần chạy lại toàn bộ migration (344 giây trên máy GitHub). Dựng MỘT lần mỗi tiến trình
+  // (dungBuild, nguyên văn như trước), chép tệp mẫu cho mỗi lần gọi ⇒ mỗi CSDL vẫn là một bản riêng, cùng nội dung (cùng khuôn tests/audit/harness.mjs openDb).
+  const tep = banSao();
+  const db = new DatabaseSync(tep);
+  db.exec("PRAGMA journal_mode = MEMORY; PRAGMA synchronous = OFF; PRAGMA foreign_keys = ON");
+  rmSync(tep, { force: true }); // kết nối giữ tệp tới khi đóng; thư mục tạm không phình theo số lần build()
+  return db;
+}
+let thuMucMau: string | null = null;
+let soBanSao = 0;
+function banSao(): string {
+  if (!thuMucMau) {
+    const thu = mkdtempSync(join(tmpdir(), "tourdao-audit-mau-"));
+    process.on("exit", () => rmSync(thu, { recursive: true, force: true }));
+    const goc = dungBuild();
+    goc.exec(`VACUUM INTO '${join(thu, "mau.sqlite")}'`);
+    goc.close();
+    thuMucMau = thu;
+  }
+  const dich = join(thuMucMau, `db-${++soBanSao}.sqlite`);
+  copyFileSync(join(thuMucMau, "mau.sqlite"), dich);
+  return dich;
+}
+/** Dựng THẲNG từ migration (chậm) — chỉ để tạo tệp mẫu của build(), và cho bài khoá «bản sao = dựng thẳng» dưới. */
+function dungBuild(): DatabaseSync {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
   for (const f of FILES.filter((x) => x.slice(0, 4) <= "0011")) db.exec(sqlText(f));
@@ -115,6 +142,18 @@ function withHandler(db: DatabaseSync, party: string, order = "o-1"): void {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+test("build(): bản sao tệp mẫu = dựng thẳng từ migration (cùng schema, cùng dữ liệu, chỉ khác giờ tạo); hai bản sao độc lập nhau", () => {
+  const dump = (db: DatabaseSync) => {
+    const schema = db.prepare("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name").all();
+    const duLieu = schema.filter((r) => r.type === "table").map((r) => [r.name, db.prepare(`SELECT * FROM "${String(r.name)}"`).all().map((x) => JSON.stringify(x).replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z/g, "<GIO>")).sort()]);
+    return { schema, duLieu, fk: db.prepare("PRAGMA foreign_keys").get() };
+  };
+  const a = build();
+  assert.deepEqual(dump(a), dump(dungBuild()));
+  a.exec("DELETE FROM pty_person WHERE party_id = 'pty-xa'");
+  assert.equal(build().prepare("SELECT count(*) AS n FROM pty_person WHERE party_id = 'pty-xa'").get()?.n, 1, "ghi vào bản này không được lọt sang bản khác");
+});
+
 test("danh sách kiểm: một nguồn duy nhất (script import scripts/audit-checks.mjs); R-DSP-2 tách 2a/2b; mức đúng như đã chốt", () => {
   const script = readFileSync(new URL("../scripts/audit-invariants.mjs", import.meta.url), "utf8");
   // Sổ đại lý đợt 2: script nạp ĐỘNG (`await import("./audit-checks.mjs")`, nạp hỏng ⇒ thoát 2) — vẫn một nguồn.
