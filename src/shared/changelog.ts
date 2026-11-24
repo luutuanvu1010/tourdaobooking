@@ -17,6 +17,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt gốc ngôn ngữ thị giác (ADR-0234, chủ duyệt 24/11 «duyệt, thi công»). Nhánh claude/dot-goc-thi-giac-e74c62. Không migration.
+    // Số 3.43 = số trống kế tiếp sau 3.42 trên main lúc báo sẵn sàng 24/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.43",
+    date: "2026-11-24",
+    items: [
+      { kind: "doi", text: "Giao diện phẳng và gọn hơn: thẻ, khối thôi đổ bóng, chỉ còn một đường viền mảnh; nút phụ nền trắng; xanh nhạt chỉ còn để đánh dấu mục đang chọn." },
+      { kind: "doi", text: "Mọi số tiền viết cùng một màu chữ, số thẳng cột; tiền đã đủ thì chữ nhạt hơn. Màu đỏ chỉ còn cho lỗi, quá hạn, huỷ." },
+      { kind: "doi", text: "Dải nhắc đầu trang («Tin quan trọng», bật bảo mật hai lớp) nền trắng, vạch màu bên trái nói mức độ; ở máy tính gọn một dòng." },
+      { kind: "doi", text: "Tiêu đề dùng cùng phông với chữ nội dung; cỡ chữ gom lại còn sáu cỡ. Huy hiệu trạng thái có thêm chấm tròn." },
+      { kind: "doi", text: "Ở máy tính có chuột, bảng Đơn hàng hiện nhiều dòng hơn trên một màn. Điện thoại giữ nguyên độ thoáng và cỡ chỗ bấm." },
+    ],
+  },
+  {
     // Nhà cung cấp (kế hoạch 16 việc 21/11, Việc 15; chủ chọn tên 23/11; đặc tả docs/superpowers/specs/2026-11-23-viec-15-nha-cung-cap.md). Nhánh claude/viec-15-nha-cung-cap-8c79d1.
     // Không migration. Số 3.42 = số trống kế tiếp sau 3.41 (việc 9d, đã nhập) trên main lúc báo sẵn sàng 24/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
     version: "3.42",
