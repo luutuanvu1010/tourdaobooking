@@ -80,3 +80,9 @@ Nhóm này không được sửa sổ: người điều phối trỏ lại dòng
 
 Không sửa `web/`, `public/`, `src/`, `scripts/`; không đăng nhập máy chủ thử cổng 8871; không git. Tiến trình `wrangler dev` + Chrome mồ côi của một lần chạy hỏng
 (xe-dang-chay lần 1, chết ở dựng dữ liệu) đã dừng theo đúng số tiến trình của mình.
+
+## Lần chạy lại sau khi sửa (người điều phối, 24/11 tối)
+
+- Sửa mã: `web/dieu-phoi.ts` — tài khoản không có ô xem lịch xe ẩn bộ chọn ngày bằng `.closest(".hang")` (khung gốc bỏ lớp `.dp-date`); `web/cuoc-chuyen.ts` — ở điện thoại «Kết thúc gián đoạn» đứng trong một `.hang` (không kéo kín bề ngang).
+- `dieu-phoi-smoke`: 6 ✓ / 5 ✗ — bước 7b và 9 (đỏ do trang mới) nay XANH; 1, 3, 6, 7, 8 là đỏ sẵn như bảng trên.
+- `cuoc-smoke`: 17 ✓ / 2 ✗ — 1 đỏ sẵn; 3b đo được «gián đoạn» 183×44, «Kết thúc chuyến» 358×44. Phép so sửa thành «không cao hơn, hẹp hơn» (khung gốc: hai nút cùng vùng chạm tối thiểu 44) — người điều phối quyết, giữ ý bản 1.39 «không là nút to nhất». Chạy lại sau khi sửa phép so: xem dòng dưới.

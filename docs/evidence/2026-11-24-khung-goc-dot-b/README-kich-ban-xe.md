@@ -40,3 +40,9 @@ Ba loại đỏ dùng trong bảng: **đỏ sẵn** = đã ghi ở đầu tệp 
 7. **Dọn dẹp**: `de-nghi-smoke.mjs` (cả bản cũ) dựng máy và dữ liệu NGOÀI `try/finally`, nên mỗi lần dựng dữ liệu hỏng sẽ để lại `wrangler dev` + Chrome mồ côi; `bang-gia-xe-smoke.mjs` cùng cấu trúc (hiện dựng dữ liệu vẫn qua). Lần chạy hỏng 21:02 đã để lại tiến trình; đã dừng theo PID (6476, 6508, 6510, 6561, 6563, 6564), kiểm lại không còn tiến trình mồ côi. Hai thư mục tạm của lần đó chưa xoá (lệnh xoá bị chặn, cần người xoá tay): `/var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-a2-W9tEmo`, `/var/folders/m6/8lb7g7fn35q4s4tm5t6nv21h0000gn/T/tourdao-a2-chrome-mC0kHP`.
 
 Ảnh chụp nằm ngoài kho, ở `/tmp/dot-b-xe/<kịch bản>/anh/`. Bản chẩn đoán và nhật ký chạy nằm trong thư mục nháp của phiên; đó không phải kết quả chính thức.
+
+## Lần chạy lại sau khi sửa (người điều phối, 24/11 tối)
+
+- `web/bang-gia-xe.ts`: dòng tuyến / cỡ xe đã ngưng thôi làm mờ (axe `color-contrast`); trạng thái vẫn có chữ ở huy hiệu bên cạnh.
+- `lich-xe-ban-smoke` bước 9: phép so «cột XE dính trái khi cuộn ngang» thay bằng «bảng ẩn, danh sách dòng đủ mọi xe» (người điều phối quyết theo ảnh chủ duyệt). Chạy lại: 9 ✗ chỉ còn axe `label-content-name-mismatch` ở thẻ chuyến `.xb-muc.is-chuyen` (đỏ sẵn, có cả ở bước 4); phép so mới ĐẠT.
+- `bang-gia-xe-smoke`: 9 ✓ / 3 ✗ — bước 7 (đỏ do trang mới) nay XANH; 1, 2, 11 đỏ sẵn.

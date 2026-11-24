@@ -304,10 +304,10 @@ try {
     const nut = await p.ev(`(() => { const hien = (sel) => [...document.querySelectorAll(sel)].find((x) => x.getClientRects().length > 0); const k = hien('[data-action="ket-thuc"]'), g = hien('[data-action="ket-thuc-gian-doan"]'); const ks = getComputedStyle(k), gs = getComputedStyle(g), kr = k.getBoundingClientRect(), gr = g.getBoundingClientRect();
       return { gStop: g.dataset.cap === 'nguy-hiem', gBg: gs.backgroundColor, gBorder: gs.borderTopColor, gH: gr.height, gW: gr.width, kH: kr.height, kW: kr.width, kBg: ks.backgroundColor, kOp: ks.opacity, trang: getComputedStyle(document.body).backgroundColor }; })()`);
     assert.equal(nut.gStop, true, JSON.stringify(nut));
-    // Đợt B: «Kết thúc gián đoạn» nhỏ hơn «Kết thúc chuyến» (bản 1.39) — ở khung gốc hai nút cuối trang cùng cỡ (khác bản cũ, chờ người điều phối xác nhận có chủ ý).
-    // HOÃN tới cuối bước (không bỏ; bước vẫn ✗ nếu đỏ) để các phép so sau vẫn chạy.
+    // Đợt B (người điều phối 24/11): ở khung gốc hai nút cuối trang cùng cao 44 (vùng chạm tối thiểu), «Kết thúc gián đoạn» đứng trong một hàng nên HẸP hơn
+    // «Kết thúc chuyến» (kéo kín bề ngang) — giữ ý bản 1.39 «không là nút to nhất»: không cao hơn, hẹp hơn.
     const san3b = [];
-    try { assert.ok(nut.gH >= 44 && nut.gH < nut.kH && nut.gW < nut.kW, `gián đoạn nhỏ hơn: ${JSON.stringify(nut)}`); } catch (e) { san3b.push(e); }
+    try { assert.ok(nut.gH >= 44 && nut.gH <= nut.kH && nut.gW < nut.kW, `gián đoạn nhỏ hơn: ${JSON.stringify(nut)}`); } catch (e) { san3b.push(e); }
     assert.notEqual(nut.kBg, nut.trang, `Kết thúc chuyến khoá vẫn có nền nút: ${JSON.stringify(nut)}`);
     assert.equal(nut.kOp, "0.5");
     await shotFull(p, "b5-chuyen-dang-chay-dien-thoai.png");
