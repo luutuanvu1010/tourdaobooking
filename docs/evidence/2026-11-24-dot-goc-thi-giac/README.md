@@ -29,7 +29,11 @@ Lệnh đã chạy: `chup.mjs --so 1,8,13,16,18,38,58 --rong 390,1280,1440 --tha
 
 ## Kết quả đo (bảy màn × ba bề rộng)
 
-Không màn nào tràn ngang; không còn phần tử có bóng mờ; mỗi màn tối đa một nút nền đặc trong vùng nội dung; tiền một màu mực (trắng trên dải tóm tắt nền đậm; tiền đã đủ màu xám); dải nhắc 53–61 → 45 (44 cộng đường kẻ dưới). Chữ đậm (tỉ lệ mẩu chữ ≥ 600): Đơn hàng 51 → 33 % (390), 67 → 43 % (1.280); Sửa xe 84 → 53 %; Địa điểm 36 → 24 % (1.280); Đối tác Đơn hàng 60 → 42 %; Chi tiết đơn 61 → 59 %; Tạo đơn 78 → 78 % (ruột trang, để đợt A tới F). Bảng Đơn hàng ở 1.440 × 900: 12 → 15 dòng.
+Không màn nào tràn ngang; không còn phần tử có bóng mờ; mỗi màn tối đa một nút nền đặc trong vùng nội dung; tiền một màu mực (trắng trên dải tóm tắt nền đậm; tiền đã đủ màu xám); dải nhắc 53–61 → 45 (44 cộng đường kẻ dưới); ở điện thoại không chỗ bấm nào dưới cỡ ngón tay (như trước). Chữ đậm (tỉ lệ mẩu chữ ≥ 600): Đơn hàng 51 → 33 % (390), 67 → 43 % (1.280); Sửa xe 84 → 53 %; Địa điểm 36 → 24 % (1.280); Đối tác Đơn hàng 60 → 42 %; Chi tiết đơn 61 → 59 %; Tạo đơn 78 → 78 % (ruột trang, để đợt A tới F). Bảng Đơn hàng ở 1.440 × 900: 12 → 15 dòng.
+
+## Lượt chấm của trợ lý đánh giá giao diện (24/11, trên ảnh cặp)
+
+Hai phát hiện Nặng do đề xuất gây ra, đã sửa trong bản sửa tệp kiểu và chụp lại: (1) nút chính bị khoá (màn Đăng nhập) nền trắng viền mảnh giống ô nhập — nay nền xám nhạt không viền; (2) dải nhắc một dòng ở điện thoại cắt mất ý — điện thoại giữ tối đa hai dòng như quyết định 13/11, từ 641 trở lên một dòng. Phát hiện Vừa về vùng chạm của nút trong dải: máy đo cho 0 chỗ bấm nhỏ ở cả hai bộ (nút giữ cao 44). Phát hiện về mức gọn ở Địa điểm: màn đó khuôn Thiết lập, đúng luật không nhận mức gọn. Các điều còn lại là chủ ý của luật (dải đỏ bớt gắt, tiền còn nợ không đỏ, số «Còn lại» trên dải tóm tắt thôi vàng), đã nêu trên trang ảnh cho chủ.
 
 ## Chưa kiểm
 

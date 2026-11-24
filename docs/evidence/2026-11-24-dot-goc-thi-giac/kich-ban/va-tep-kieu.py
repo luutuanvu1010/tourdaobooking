@@ -92,6 +92,10 @@ them_sau("--kg-cao-dau-bang: 40px;", [
 sua(".btn { display: inline-block;", "background: #fff; border: 1px solid var(--c-primary);", "background: var(--c-surface); border: 1px solid var(--c-input-border);")
 sua(".btn-accent { color: #fff;", "color: #fff;", "color: var(--c-on-dark);")
 sua(".btn-danger { color: var(--c-danger); border-color: var(--c-danger); }", "border-color: var(--c-danger);", "border-color: var(--c-danger-border);")
+# Nút chính bị khoá: nền xám đặc, không viền — không lẫn với ô nhập hay nút phụ nền trắng (người đánh giá giao diện 24/11, màn Đăng nhập)
+sua(":is(.btn-primary[type=\"submit\"], .btn-primary.btn-chinh, .sheet-foot .btn-primary, .login-actions .login-submit):disabled",
+    "color: var(--c-btn-soft-text); background: var(--c-btn-soft-bg); border-color: var(--c-btn-soft-border);",
+    "color: var(--c-text-muted); background: var(--c-surface-alt); border-color: var(--c-surface-alt);")
 # Tiền: màu mực, số đều cột; đã đủ thì mờ và không đậm. Đỏ chỉ còn cho quá hạn, lỗi, huỷ (nguyên tắc 2, 4)
 sua(".money-ok { color: var(--c-green-text); }", "color: var(--c-green-text);", "color: var(--c-text-muted); font-weight: var(--fw-regular); font-variant-numeric: tabular-nums;")
 sua(".money-due { color: var(--c-accent-strong); }", "color: var(--c-accent-strong);", "color: var(--c-tien); font-variant-numeric: tabular-nums;")
@@ -138,8 +142,9 @@ sua(".dai[data-tong=\"do\"] {", "color: var(--c-danger); background: var(--c-dan
 them_sau(".dai[data-tong=\"do\"] {", [
     ".dai[data-tong=\"cat\"] > svg { color: var(--c-sand-text); } .dai[data-tong=\"do\"] > svg { color: var(--c-danger); } .dai[data-tong=\"bien\"] > svg { color: var(--c-primary); } /* ADR-0234 */",
 ])
-sua(".dai-cau { display: -webkit-box;", "display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;", "display: block; overflow: hidden;")
-sua(".dai-cau { flex: 1;", "overflow-wrap: anywhere; font-weight: var(--fw-semibold);", "overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: var(--fw-regular);")
+# Điện thoại giữ tối đa HAI dòng (quyết định 13/11): hai dòng 20 vừa trong 44, một dòng cắt mất ý (người đánh giá giao diện 24/11)
+sua(".dai-cau { flex: 1;", "font-weight: var(--fw-semibold);", "font-weight: var(--fw-regular);")
+them_sau(".dai-cau { flex: 1;", ["@media (min-width: 641px) { .dai-cau { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } } /* ADR-0234: từ iPad trở lên dải một dòng; điện thoại giữ tối đa hai dòng (13/11) */"])
 sua(".dai .nut { flex: none;", "min-height: var(--h-control); }", "min-height: var(--h-control); color: var(--c-primary); background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: var(--s1); }")
 
 # ---------- 4. Thành phần chung v2 và khung gốc ----------
