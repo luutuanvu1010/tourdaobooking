@@ -13,7 +13,7 @@ export interface Khuon {
   readonly ten: string;
   /** Mức bề rộng `data-rong` khuôn này được khai, theo bảng 15/11; `null` = không ràng mức (trang trạng thái tự căn giữa một khối). */
   readonly rong: readonly MucRong[] | null;
-  /** Chỗ đặt nút chính. Bốn khuôn đầu chủ đã duyệt bằng ảnh 21/11; ba khuôn sau mới ở mức sơ đồ, trình ảnh khi tới lượt họ màn đó. */
+  /** Chỗ đặt nút chính. Bốn khuôn đầu chủ đã duyệt bằng ảnh 21/11, Tổng quan ngày 24/11 (đợt B); hai khuôn còn lại mới ở mức sơ đồ, trình ảnh khi tới lượt họ màn đó. */
   readonly nutChinh: string;
 }
 
@@ -22,7 +22,7 @@ export const KHUON = {
   "chi-tiet": { ten: "Chi tiết", rong: ["vua"], nutChinh: "thanh việc đầu trang, bên trái, việc nguy hiểm tách sang phải; điện thoại dính đáy, việc nguy hiểm ở cuối trang" },
   "bieu-mau": { ten: "Biểu mẫu", rong: ["hep", "vua"], nutChinh: "thanh nút cuối biểu mẫu, «Lưu» bên phải, «Huỷ» cạnh nó, việc nguy hiểm tách sang trái; điện thoại dính đáy" },
   "thiet-lap": { ten: "Thiết lập", rong: ["vua"], nutChinh: "đầu khối, bên phải; «Sửa» ở cuối dòng" },
-  "tong-quan": { ten: "Tổng quan", rong: ["rong"], nutChinh: "chưa chốt bằng ảnh" },
+  "tong-quan": { ten: "Tổng quan", rong: ["rong"], nutChinh: "đầu trang, bên phải, tối đa một (chủ duyệt bằng ảnh đợt B 24/11/2026); vùng nội dung hẹp hơn 560 thì kín bề ngang, hàng riêng dưới đoạn dẫn" },
   "trang-doc": { ten: "Trang đọc", rong: ["hep"], nutChinh: "chưa chốt bằng ảnh" },
   "trang-thai": { ten: "Trạng thái", rong: null, nutChinh: "chưa chốt bằng ảnh" },
 } as const satisfies Record<string, Khuon>;

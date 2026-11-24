@@ -12,7 +12,8 @@ export const DIEU_DO = ["tràn ngang", "chữ bị bóp", "khối lệch mép", 
 /**
  * Bốn phép đo của ngôn ngữ thị giác (ADR-0234 Đ5b). TRẦN CHỈ ĐƯỢC HẠ theo từng đợt khung gốc; không ghi cứng một con số đích.
  * - tiLeDam: tỉ lệ đoạn chữ trong vùng nội dung có độ đậm LỚN HƠN chữ thân của trang (so với độ đậm của body, nên đứng được khi chủ chỉnh núm độ đậm);
- * - nutDac: số nút nền đặc (nền đậm, chữ sáng) đang hiện trong vùng nội dung, không tính thanh dính đáy;
+ * - nutDac: số nút nền đặc (nền đậm, chữ sáng) đang hiện trong vùng nội dung, không tính thanh dính đáy và vùng tự do (khối chuyến tô nền của dòng thời gian
+ *   Điều phối xe không phải nút việc — chủ dự án duyệt 24/11/2026 ở lượt ảnh đợt B, bấm «Duyệt cả ba»);
  * - tienLech: số đoạn số tiền có màu khác --c-tien, --c-text-muted (tiền đã đủ) và chữ trên nền đậm (--c-on-summary, --c-on-dark);
  * - bongKhoi: số phần tử trong vùng nội dung (không tính lớp dính, lớp nổi) có bóng mờ.
  * Đo ở đợt gốc 24/11/2026 trên bốn màn mẫu, 360 tới 1.920, ở HAI môi trường, trần lấy mức cao hơn: máy thử (bộ núm của bản chạy thật) Danh sách 41 %,
@@ -91,7 +92,7 @@ export const DO_TRONG_TRANG = String.raw`(() => {
   const rgb = (c) => (c.match(/[\d.]+/g) || []).map(Number);
   const sang = (c) => { const [r, g, b] = rgb(c); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
   const dac = (e) => { const s = getComputedStyle(e); const n = rgb(s.backgroundColor); return (n[3] === undefined || n[3] === 1) && sang(s.backgroundColor) < 0.5 && sang(s.color) > 0.7; };
-  const nutDac = [...main.querySelectorAll("button, a, [role=button]")].filter((e) => hien(e) && !e.closest(".thanh-day") && dac(e)).length;
+  const nutDac = [...main.querySelectorAll("button, a, [role=button]")].filter((e) => hien(e) && !tuDo(e) && !e.closest(".thanh-day") && dac(e)).length;
   const mau = (v) => { const t = document.createElement("span"); t.style.color = "var(" + v + ")"; document.body.append(t); const c = getComputedStyle(t).color; t.remove(); return c; };
   const mauTien = new Set(["--c-tien", "--c-text-muted", "--c-on-summary", "--c-on-dark"].map(mau));
   let tienLech = 0; const vdTien = [];
