@@ -38,3 +38,9 @@ Hai phát hiện Nặng do đề xuất gây ra, đã sửa trong bản sửa t�
 ## Chưa kiểm
 
 iPhone, iPad thật; chủ đề tối; 104 màn còn lại (bước 5 chụp đủ 111 màn sau khi chủ duyệt); trạng thái sau khi bấm.
+
+## Sau khi chủ duyệt (thi công, 24/11)
+
+- Chụp lại 111 màn × 390, 1.280 (`chup.mjs --ten-bo dot-goc-sau`, tệp kiểu thật, không thay): so với lượt sáng 24/11 (`hien-tai`) không màn nào tràn ngang, không màn nào tương phản tệ hơn; chữ đậm trung vị 65 % → 47 %. Lượt đầu hỏng 63 màn vì trình duyệt chụp ngừng trả lời khi chạy cùng `do-khung-ci.mjs`; chụp lại riêng, đạt cả 111.
+- Trợ lý đánh giá giao diện chấm bản cuối (khoảng 32 trên 222 ảnh xem trực tiếp, phần còn lại qua số đo). Nặng: hộp cảnh báo dùng chung lớp `.dai` TRONG trang (màn Hoa hồng) mất nền và bị cắt câu — luật «dải nhắc một dòng, nền trắng, không đệm dọc» nay chỉ áp cho dải nhắc đầu trang (`#strips`), hộp trong trang giữ nền màu và xuống dòng (đệm dọc qua token `--pad-dai`, không thêm luật khoảng cách). Nhẹ: nút chính bị khoá chìm trên nền trắng — nền đổi từ `--c-surface-alt` sang `--c-border`. Vừa, để đợt A tới F: nút việc chính duy nhất của màn Hỗ trợ («+ Gửi yêu cầu») và màn tài xế («Mở chuyến đang chạy») thành nút viền trắng (trước là nền xanh nhạt) — ruột trang phải đổi sang nút chính.
+

@@ -92,10 +92,10 @@ them_sau("--kg-cao-dau-bang: 40px;", [
 sua(".btn { display: inline-block;", "background: #fff; border: 1px solid var(--c-primary);", "background: var(--c-surface); border: 1px solid var(--c-input-border);")
 sua(".btn-accent { color: #fff;", "color: #fff;", "color: var(--c-on-dark);")
 sua(".btn-danger { color: var(--c-danger); border-color: var(--c-danger); }", "border-color: var(--c-danger);", "border-color: var(--c-danger-border);")
-# Nút chính bị khoá: nền xám đặc, không viền — không lẫn với ô nhập hay nút phụ nền trắng (người đánh giá giao diện 24/11, màn Đăng nhập)
+# Nút chính bị khoá: nền xám đặc (màu viền mảnh), không viền riêng — không lẫn với ô nhập hay nút phụ nền trắng (người đánh giá giao diện 24/11, màn Đăng nhập)
 sua(":is(.btn-primary[type=\"submit\"], .btn-primary.btn-chinh, .sheet-foot .btn-primary, .login-actions .login-submit):disabled",
     "color: var(--c-btn-soft-text); background: var(--c-btn-soft-bg); border-color: var(--c-btn-soft-border);",
-    "color: var(--c-text-muted); background: var(--c-surface-alt); border-color: var(--c-surface-alt);")
+    "color: var(--c-text-muted); background: var(--c-border); border-color: var(--c-border);")  # nền xám đậm hơn nền trang một bậc: không chìm trên trang nền trắng (Đăng nhập)
 # Tiền: màu mực, số đều cột; đã đủ thì mờ và không đậm. Đỏ chỉ còn cho quá hạn, lỗi, huỷ (nguyên tắc 2, 4)
 sua(".money-ok { color: var(--c-green-text); }", "color: var(--c-green-text);", "color: var(--c-text-muted); font-weight: var(--fw-regular); font-variant-numeric: tabular-nums;")
 sua(".money-due { color: var(--c-accent-strong); }", "color: var(--c-accent-strong);", "color: var(--c-tien); font-variant-numeric: tabular-nums;")
@@ -133,18 +133,19 @@ sua(".sidebar-avatar { flex: none;", "color: var(--c-sand-text); background: var
 sua(".sidebar-item { display: flex;", "font-weight: var(--fw-semibold);", "font-weight: var(--fw-regular);")
 sua(".sidebar-item[aria-current=\"page\"] { color: var(--c-sidebar-text-on); font-weight: var(--fw-bold);", "font-weight: var(--fw-bold);", "font-weight: var(--fw-semibold);")
 # Dải nhắc: một dòng, nền trắng, một vạch màu bên trái nói mức độ; nút trong dải là lối chữ (nguyên tắc 5)
-sua(".dai { display: flex;", "color: var(--c-text-muted); background: var(--c-surface-alt);", "color: var(--c-text); background: var(--c-surface);")
-sua(".dai { display: flex;", "padding: var(--s2) var(--le-trang);", "padding: 0 var(--le-trang);")  # một dòng cao đúng 44 (vùng chạm của nút)
+sua(".dai { display: flex;", "padding: var(--s2) var(--le-trang);", "padding: var(--pad-dai) var(--le-trang);")  # đệm dọc qua token: dải nhắc đầu trang (#strips) đặt 0 để cao đúng 44; hộp dải trong trang giữ đệm
 sua(".dai { flex-wrap: nowrap;", " padding-top: var(--s1); padding-bottom: var(--s1);", "")  # dải gốc đã hết đệm dọc: hai khai báo này thừa (bù trần ADR-0222 Đ7a cho hai khai báo của chấm huy hiệu)
-sua(".dai[data-tong=\"bien\"] {", "color: var(--c-primary-strong); background: var(--c-primary-soft);", "box-shadow: inset var(--bw-indicator) 0 0 var(--c-primary);")
-sua(".dai[data-tong=\"cat\"] {", "color: var(--c-sand-text); background: var(--c-mat-mang-bg);", "box-shadow: inset var(--bw-indicator) 0 0 var(--c-sand);")
-sua(".dai[data-tong=\"do\"] {", "color: var(--c-danger); background: var(--c-danger-soft);", "box-shadow: inset var(--bw-indicator) 0 0 var(--c-danger);")
-them_sau(".dai[data-tong=\"do\"] {", [
-    ".dai[data-tong=\"cat\"] > svg { color: var(--c-sand-text); } .dai[data-tong=\"do\"] > svg { color: var(--c-danger); } .dai[data-tong=\"bien\"] > svg { color: var(--c-primary); } /* ADR-0234 */",
+# Dải nhắc ĐẦU TRANG (khung chung, #strips) nền trắng, vạch màu bên trái nói mức độ, cao 44. Hộp dùng chung lớp .dai TRONG trang (Hoa hồng, Hướng dẫn, màn bảo trì,
+# báo lỗi Đăng nhập) giữ nền màu và xuống dòng đủ câu (người đánh giá giao diện 24/11, màn Hoa hồng: hộp mất nền, câu bị cắt).
+them_sau("#strips > .dai { border-bottom:", [
+    "#strips { --pad-dai: 0; } #strips > .dai { color: var(--c-text); background: var(--c-surface); } /* ADR-0234: dải nhắc đầu trang nền trắng, cao đúng 44 */",
+    "#strips > .dai[data-tong=\"bien\"] { box-shadow: inset var(--bw-indicator) 0 0 var(--c-primary); } #strips > .dai[data-tong=\"cat\"] { box-shadow: inset var(--bw-indicator) 0 0 var(--c-sand); } #strips > .dai[data-tong=\"do\"] { box-shadow: inset var(--bw-indicator) 0 0 var(--c-danger); }",
+    "#strips > .dai[data-tong=\"cat\"] > svg { color: var(--c-sand-text); } #strips > .dai[data-tong=\"do\"] > svg { color: var(--c-danger); } #strips > .dai[data-tong=\"bien\"] > svg { color: var(--c-primary); }",
 ])
+them_sau("--h-dai-tren: 44px;", ["  --pad-dai: var(--s2);       /* ADR-0234: đệm dọc của dải .dai; dải nhắc đầu trang (#strips) đặt 0 để cao đúng --h-dai-tren */"])
 # Điện thoại giữ tối đa HAI dòng (quyết định 13/11): hai dòng 20 vừa trong 44, một dòng cắt mất ý (người đánh giá giao diện 24/11)
 sua(".dai-cau { flex: 1;", "font-weight: var(--fw-semibold);", "font-weight: var(--fw-regular);")
-them_sau(".dai-cau { flex: 1;", ["@media (min-width: 641px) { .dai-cau { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } } /* ADR-0234: từ iPad trở lên dải một dòng; điện thoại giữ tối đa hai dòng (13/11) */"])
+them_sau(".dai-cau { flex: 1;", ["@media (min-width: 641px) { #strips .dai-cau { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } } /* ADR-0234: từ iPad trở lên dải một dòng; điện thoại giữ tối đa hai dòng (13/11) */"])
 sua(".dai .nut { flex: none;", "min-height: var(--h-control); }", "min-height: var(--h-control); color: var(--c-primary); background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: var(--s1); }")
 
 # ---------- 4. Thành phần chung v2 và khung gốc ----------
