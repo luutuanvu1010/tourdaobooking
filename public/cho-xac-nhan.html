@@ -1,17 +1,18 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Đơn chờ xác nhận — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="rong" data-title="Đơn chờ xác nhận" data-back="/home">
+<body data-rong="rong" data-khung-goc="danh-sach" data-title="Đơn chờ xác nhận" data-back="/home">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Đơn chờ xác nhận (ADR-0136 Đ6, Đ9; Task 3.5). Người giữ ô order.confirm.review. Không tên khách, SĐT, email. -->
+  <!-- Đơn chờ xác nhận (ADR-0136 Đ6, Đ9; Task 3.5). Người giữ ô order.confirm.review. Không tên khách, SĐT, email.
+       Khuôn Danh sách của khung gốc (ADR-0222, đợt A chủ duyệt 24/11/2026): đoạn dẫn, rồi MỘT khối «Danh sách chờ» — mỗi đơn một dòng (.ds-dong), rỗng / đang tải /
+       lỗi là khuôn trạng thái chung nằm TRONG khối; tài khoản không xét duyệt thì cả trang là khuôn «không có quyền» (web/cho-xac-nhan.ts). -->
   <h1>Đơn chờ xác nhận</h1>
-  <p class="muted">Các đơn đã gửi, chờ người kiểm vé. Bấm mã đơn để kiểm vé và chọn Còn vé, xác nhận đơn, Hết vé hoặc Huỷ.</p>
-  <div id="error" class="alert" role="alert" hidden></div>
-  <section id="cx-noi-dung" aria-labelledby="cx-ds-tieu-de" hidden>
-    <h2 id="cx-ds-tieu-de" class="cx-tieu-de">Danh sách chờ</h2>
-    <p id="cx-trong" class="muted" hidden>Không có đơn nào đang chờ xác nhận.</p>
-    <ul id="cx-danh-sach" class="cx-ds"></ul>
+  <p class="doan-dan">Các đơn đã gửi, chờ người kiểm vé. Bấm mã đơn để kiểm vé và chọn Còn vé, xác nhận đơn, Hết vé hoặc Huỷ.</p>
+  <section id="cx-noi-dung" class="khoi" data-kieu="bang" aria-labelledby="cx-ds-tieu-de">
+    <header class="khoi-dau"><h2 id="cx-ds-tieu-de">Danh sách chờ</h2></header>
+    <div id="cx-trang-thai"></div>
+    <ul id="cx-danh-sach" class="ds-dong" hidden></ul>
   </section>
 </main>
 <script type="module" src="/js/cho-xac-nhan.js"></script>

@@ -114,10 +114,10 @@ export function soatNgoaiLe(so: readonly NgoaiLe[], trangCo: readonly string[], 
 /** Trang CHƯA chuyển khuôn (tên tệp trong `public/`). Chỉ được bớt: chuyển xong một trang thì khai `data-khung-goc` ở `<body>` và gỡ tên khỏi đây.
  *  Trang mới không được thêm vào đây: phải khai khuôn ngay từ đầu (ADR-0222, «việc giao diện mới trong lúc chuyển phải dùng khung ngay»). */
 export const TRANG_CHUA_CHUYEN: readonly string[] = [
-  "404.html", "account.html", "audit.html", "cap-dai-ly.html", "catalog.html", "chinh-sach-dieu-phoi.html", "cho-xac-nhan.html", "chup-bu.html", "dac-diem-dich-vu.html",
-  "dang-ky.html", "danh-muc-giay-to.html", "dieu-chinh-cong-no.html", "dieu-kien-xuat-ben.html", "feedback.html", "giao-dien.html", "gui-thong-bao.html",
-  "han-muc-tra-sau.html", "help.html", "hoa-hong-gioi-han.html", "hoa-hong.html", "home.html", "huong-dan.html", "index.html", "khoa-thang.html",
-  "loai-giay-to-nguoi.html", "loai-giay-to-xe.html", "login.html", "luat-ban.html", "ly-do-dieu-phoi.html", "ngoai-mang.html", "nguoi-ban.html", "order-form.html",
-  "parties.html", "phan-dinh.html", "phi-don.html", "phieu-dang-ky.html", "quet-ve.html", "sessions.html", "so-cong-no.html", "staff.html", "thiet-lap.html",
-  "to-chuc.html", "tro-ly-cai-dat.html", "ve-cai-dat.html", "ve-doi-chieu.html", "ve-kho.html",
+  "404.html", "account.html", "audit.html", "cap-dai-ly.html", "catalog.html", "chinh-sach-dieu-phoi.html", "chup-bu.html", "dac-diem-dich-vu.html", "dang-ky.html",
+  "danh-muc-giay-to.html", "dieu-chinh-cong-no.html", "dieu-kien-xuat-ben.html", "feedback.html", "giao-dien.html", "gui-thong-bao.html", "han-muc-tra-sau.html",
+  "help.html", "hoa-hong-gioi-han.html", "hoa-hong.html", "home.html", "huong-dan.html", "index.html", "khoa-thang.html", "loai-giay-to-nguoi.html",
+  "loai-giay-to-xe.html", "login.html", "luat-ban.html", "ly-do-dieu-phoi.html", "ngoai-mang.html", "nguoi-ban.html", "parties.html", "phan-dinh.html", "phi-don.html",
+  "phieu-dang-ky.html", "quet-ve.html", "sessions.html", "so-cong-no.html", "staff.html", "thiet-lap.html", "to-chuc.html", "tro-ly-cai-dat.html", "ve-cai-dat.html",
+  "ve-doi-chieu.html", "ve-kho.html",
 ];

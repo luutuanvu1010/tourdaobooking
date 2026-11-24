@@ -18,14 +18,26 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đợt B khung gốc (ADR-0222, ADR-0234; chủ duyệt ảnh 24/11 «Duyệt cả ba»): 15 trang Tài xế – Vận chuyển. Nhánh claude/khung-goc-dot-b-18ab84. Không migration.
-    // Số 3.44 = số trống kế tiếp sau 3.43 trên main lúc báo sẵn sàng 24/11; bước A.0 đặt lại số và ngày nếu việc khác (vd đợt A khung gốc) nhập trước.
-    version: "3.44",
-    date: "2026-11-24",
+    // Số 3.45 = số trống kế tiếp sau 3.44 (đợt A khung gốc, đã trên main) lúc gộp bản chính 25/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.45",
+    date: "2026-11-25",
     items: [
       { kind: "doi", text: "Các màn Vận chuyển và màn tài xế (Cuốc của tôi, Cho xe chạy, Báo bận) dựng lại theo khuôn chung: khối, nút, bảng thẳng hàng như Đơn hàng." },
       { kind: "doi", text: "Điều phối xe: dòng thời gian rộng hơn, đủ giờ cả ngày; ô «Cần xử lý» xuống hàng dưới; số tóm tắt trong ngày to, dễ đọc." },
       { kind: "doi", text: "Mỗi màn chỉ còn một nút nền đặc cho việc chính; «Huỷ chuyến» viền đỏ, nền đỏ chỉ trong hộp xác nhận." },
       { kind: "doi", text: "Báo bận: chọn lý do bằng ba ô liền nhau; ở điện thoại vẫn giữ thanh tab của tài xế." },
+    ],
+  },
+  {
+    // Khung gốc đợt A: Tạo / Sửa đơn, Đơn chờ xác nhận (ADR-0222, ADR-0234; chủ duyệt ảnh 24/11 «Duyệt»). Nhánh claude/jolly-tereshkova-ffd30e. Không migration.
+    // Số 3.44 = số trống kế tiếp sau 3.43 trên main lúc báo sẵn sàng 24/11; bước A.0 đặt lại số và ngày nếu việc khác (vd đợt B) nhập trước.
+    version: "3.44",
+    date: "2026-11-24",
+    items: [
+      { kind: "doi", text: "Tạo đơn, Sửa đơn: mọi phần cùng một kiểu khối, tên khối ở đầu khối. Ở máy tính nút «Lưu» nằm ở thanh cuối trang, bên phải, luôn thấy khi cuộn." },
+      { kind: "doi", text: "Tạo đơn bớt chữ đậm: trong danh mục chỉ tên dịch vụ đậm; nút phụ nền trắng; ô chọn và ô tròn cùng dáng với ô nhập." },
+      { kind: "doi", text: "Đơn chờ xác nhận: một danh sách, mỗi đơn một dòng; nút «Kiểm vé» nền trắng, «Quá hạn» là huy hiệu có hình. Không còn đơn nào thì có câu báo rõ." },
+      { kind: "doi", text: "Mở trang không được dùng (Tạo đơn bằng tài khoản không lập đơn, Sửa đơn đã xác nhận) thì hiện câu báo và nút quay về, không còn biểu mẫu trống bị khoá." },
     ],
   },
   {

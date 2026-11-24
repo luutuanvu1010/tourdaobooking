@@ -23,8 +23,10 @@ const homNay = new Date().toISOString().slice(0, 10);
 /** Năm con số «chưa theo khung» (ADR-0222 Đ7a). TRẦN CHỈ ĐƯỢC HẠ: chuyển xong một họ màn thì đo lại (`npm run do-khung -- --dem`) và hạ trần về đúng số đo.
  *  Không bao giờ nâng. Việc mới cần bố cục thì dùng lớp của khung (web/khung.ts), không viết thêm luật bề rộng, chia cột, khoảng cách ngoài phần khung.
  *  Lúc lập luật 21/11/2026 (trước khi chuyển bốn màn mẫu): 2597 · 128 · 16 · 154 · 65.
- *  Sau đợt bốn màn mẫu (Đơn hàng, Chi tiết đơn, Sửa xe, Địa điểm), 21/11/2026: 2558 · 122 · 15 · 148 · 61. */
-const TRAN = { luatBoCucRieng: 2337, tokenBeRongRieng: 122, mocLe: 14, tepLopCu: 132, trangChuaChuyen: 46 };
+ *  Sau đợt bốn màn mẫu (Đơn hàng, Chi tiết đơn, Sửa xe, Địa điểm), 21/11/2026: 2558 · 122 · 15 · 148 · 61.
+ *  Sau đợt A (Tạo / Sửa đơn, Đơn chờ xác nhận), 24/11/2026: 2521 · 120 · 14 · 144 · 59 (gỡ bố cục cột cũ của Tạo đơn, ba token --w-form, --w-side, --bw-owner, thẻ đơn chờ cũ).
+ *  Sau đợt B (15 trang Tài xế – Vận chuyển), gộp với đợt A, 24/11/2026: 2300 · 120 · 13 · 130 · 44 (gỡ 327 luật kiểu cũ của nhóm Vận chuyển). */
+const TRAN = { luatBoCucRieng: 2300, tokenBeRongRieng: 120, mocLe: 13, tepLopCu: 130, trangChuaChuyen: 44 };
 
 /** Trang có lúc lập luật 21/11/2026 — ĐÓNG BĂNG, không sửa. Danh sách chưa chuyển chỉ được là tập con của nó, nên trang mới không thể «xin» chưa chuyển. */
 const TRANG_LUC_LAP_LUAT = new Set([

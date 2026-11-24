@@ -110,7 +110,7 @@ export function taoKhoiHanhKhach(o: KhoiHanhKhachOptions): KhoiHanhKhach {
     const focused = document.activeElement instanceof HTMLElement && root.contains(document.activeElement) ? document.activeElement.getAttribute("data-o") : null;
     refs = [];
     const dangBang = !bangMo && o.bang();
-    const them = h("button", { type: "button", class: "pill-btn", "data-action": "them-khach" }, "+ Thêm hành khách");
+    const them = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "them-khach" }, "+ Thêm hành khách");
     them.addEventListener("click", () => {
       const r = dongTrong(o.newKey());
       doi([...rows, r], true);
@@ -118,7 +118,7 @@ export function taoKhoiHanhKhach(o: KhoiHanhKhachOptions): KhoiHanhKhach {
     });
     const goiY = (o.tenGoiY?.() ?? "").trim();
     const chuaCo = goiY !== "" && !rows.some((r) => r.ten.trim().toLowerCase() === goiY.toLowerCase());
-    const themGoiY = chuaCo ? (h("button", { type: "button", class: "pill-btn", "data-action": "them-khach-di-tour", "aria-label": `Điền tên khách đi tour: ${goiY}` }, "Điền tên khách đi tour") as HTMLButtonElement) : null;
+    const themGoiY = chuaCo ? (h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "them-khach-di-tour", "aria-label": `Điền tên khách đi tour: ${goiY}` }, "Điền tên khách đi tour") as HTMLButtonElement) : null;
     themGoiY?.addEventListener("click", () => {
       const r = { ...dongTrong(o.newKey()), ten: goiY };
       doi([...rows, r], true);

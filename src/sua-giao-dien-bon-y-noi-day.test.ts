@@ -15,7 +15,8 @@ test("H1: khối «Người phụ trách» của form lập đơn ẩn với for
 
 // ADR-0230 Đ2 (23/11/2026): khối hình thức hiện khi có lựa chọn Trả sau HOẶC «Trả lúc check-in» (biến `coKhoi`), không còn chỉ theo `c.hien`.
 test("H1: «Hình thức thanh toán» dời sang chỗ chứa ở cột phải, đứng NGAY TRƯỚC thanh nút gửi; chỗ chứa hiện / ẩn cùng khối lựa chọn hình thức", () => {
-  assert.match(doc("public/order-form.html"), /<section id="hinh-thuc-cho"[^>]*hidden><\/section>\s*<div class="form-actions/);
+  // Khung gốc đợt A (24/11/2026): chỗ chứa là khối CUỐI của cột phụ; sau hai cột chỉ còn khối Hành khách (mã trang dời nó lên sau Dịch vụ) rồi tới thanh nút gửi.
+  assert.match(doc("public/order-form.html"), /<section id="hinh-thuc-cho"[^>]*hidden><\/section>\s*<\/div>\s*<\/div>\s*<section [^>]*id="hk-card"[^>]*><\/section>\s*<div id="thanh-nut"/);
   assert.match(form, /byId\("hinh-thuc-cho"\)\.append\(byId\("tra-sau-khoi"\), byId\("tra-sau-bao"\)\);/);
   assert.match(form, /const coKhoi = c\.hien \|\| checkinDuoc;/);
   assert.match(form, /byId\("hinh-thuc-cho"\)\.hidden = !formGon \|\| !coKhoi;/);

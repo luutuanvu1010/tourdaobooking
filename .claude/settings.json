@@ -37,6 +37,7 @@
       "Edit(CLAUDE.md)",
       "Edit(src/CLAUDE.md)",
       "Edit(web/CLAUDE.md)",
+      "Edit(**/src/modules/**/CLAUDE.md)",
       "Edit(**/.claude/settings*.json)",
       "Edit(**/.claude/hooks/**)",
       "Edit(**/.claude/agents/**)",
