@@ -44,6 +44,7 @@
 
 ## Còn lại (cập nhật khi xong từng việc)
 
+- **Đợt gốc ngôn ngữ thị giác (mới, đứng trước đợt A):** chủ chọn phương án B ngày 24/11 («ok chọn B, làm theo khuyến nghị»). Kế hoạch `docs/superpowers/plans/2026-11-24-dot-goc-ngon-ngu-thi-giac.md`; luật đề xuất `docs/superpowers/specs/2026-11-24-danh-gia-thi-giac-va-huong-nang-cap/DE-XUAT-ADR-0234-ngon-ngu-thi-giac.md` (chờ chủ duyệt chữ cùng ảnh). Hệ quả cho sổ này: ảnh đã duyệt 21/11 của bốn màn mẫu thôi là chuẩn so ảnh sau đợt gốc; ảnh xem trước đợt A (21/11) vẽ lại. Trạng thái: chưa thi công.
 - **Năm con số sau đợt này:** 2.558 · 122 · 15 · 148 · 61 (trước: 2.597 · 128 · 16 · 154 · 65); trần đã hạ về đúng số đo.
 - **Chưa làm:** tiêu chí «đúng khuôn» cho trợ lý đánh giá giao diện, đo bề rộng trung gian ở máy đo màn (ADR-0222 Đ7c).
 - **Chưa thử:** iPhone, iPad thật; trạng thái ngoài ảnh của Chi tiết đơn (đơn chờ xác nhận, Trả sau, thành viên tổ chức).
@@ -63,3 +64,4 @@
 
 - 21/11 sáng: mở phiên, làm bước 1, gửi chủ sáu tờ ảnh, dừng ở cổng duyệt.
 - 21/11: chủ gõ «oko duyệt». Nhập bản chính `c23447ce9`. Chép ADR-0222 (`a81600291`). Dựng khung, hàm dựng, sổ, bài kiểm; chuyển Sửa xe và Địa điểm (`65e1d541c`); chuyển Đơn hàng.
+- 24/11: phiên đánh giá thị giác (nhánh `claude/xenodochial-mccarthy-41fc32`) ghi đợt gốc ngôn ngữ thị giác vào mục «Còn lại» sau khi chủ chọn phương án B; chưa thi công.
