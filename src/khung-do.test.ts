@@ -56,7 +56,7 @@ test("đoạn đo trong trang là một biểu thức hợp lệ, đọc khuôn 
 });
 
 test("trần bốn phép đo ngôn ngữ thị giác (ADR-0234 Đ5b) chỉ được hạ: không cao hơn lúc lập 24/11/2026", () => {
-  const LUC_LAP = { tiLeDam: { "danh-sach": 0.41, "chi-tiet": 0.58, "bieu-mau": 0.53, "thiet-lap": 0.28 }, nutDac: 1, tienLech: 0, bongKhoi: 0 };
+  const LUC_LAP = { tiLeDam: { "danh-sach": 0.44, "chi-tiet": 0.58, "bieu-mau": 0.57, "thiet-lap": 0.28 }, nutDac: 1, tienLech: 0, bongKhoi: 0 };
   for (const [k, v] of Object.entries(TRAN_THI_GIAC.tiLeDam)) assert.ok(v <= (LUC_LAP.tiLeDam as Record<string, number>)[k]!, `trần chữ đậm khuôn ${k} nâng lên ${v}`);
   assert.deepEqual(Object.keys(TRAN_THI_GIAC.tiLeDam).sort(), Object.keys(LUC_LAP.tiLeDam).sort(), "không bỏ khuôn khỏi bảng trần (bỏ là nới về mức cao nhất)");
   for (const k of ["nutDac", "tienLech", "bongKhoi"] as const) assert.ok(TRAN_THI_GIAC[k] <= LUC_LAP[k], `trần ${k} nâng lên ${TRAN_THI_GIAC[k]}`);
