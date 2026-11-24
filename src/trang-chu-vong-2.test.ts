@@ -59,11 +59,12 @@ test("CSS khối chi tiết chỉ dùng token (cột, chiều cao) — không s�
   assert.ok(!/(?<![\d.])(?:[2-9]|\d{2,})\d*px/.test(khoi), "không px cứng trong khối chi tiết (viền 1px là ngoại lệ chung của khung)");
 });
 
-test("bề rộng khung chung: trần 1920px (token), biểu mẫu Giao diện giữ trần cũ, Lập đơn giữ --w-form", () => {
+test("bề rộng khung chung: trần 1920px (token), biểu mẫu Giao diện giữ trần cũ, Lập đơn ở mức «vừa» của lưới", () => {
   assert.match(css, /--w-noi-dung-max: 1920px;/);
   assert.match(css, /--w-main-hep: 1280px;/);
   assert.match(css, /main\.gd \{ max-width: var\(--w-main-hep\); \}/);
-  assert.match(css, /main\.form-page \{ max-width: var\(--w-form\); \}/);
+  // Lập đơn chuyển khung gốc (đợt A, 24/11/2026): trần 1.120 nay là mức «vừa» của lưới 15/11 (data-rong="vua", bài src/luoi-bo-cuc.test.ts), thay trần riêng main.form-page.
+  assert.match(doc("public/order-form.html"), /<body[^>]*\sdata-rong="vua"/);
 });
 
 // ---- S1 của phiên kiểm độc lập vòng 2: ẩn dòng «Cần xem lại» ở máy tính KHÔNG được làm mất tín hiệu quá hạn ----
@@ -111,12 +112,11 @@ test("trần 1920px chỉ nằm ở MỘT token; mọi trần bề rộng khác 
 });
 
 test("trang đọc / biểu mẫu / đăng nhập vẫn có trần hẹp riêng, không giãn theo màn rộng", () => {
-  assert.match(css, /main\.form-page \{ max-width: var\(--w-form\); \}/); // Lập đơn
+  assert.match(doc("public/order-form.html"), /<body[^>]*\sdata-rong="vua"/); // Lập đơn: mức «vừa» của lưới (đợt A khung gốc)
   assert.match(css, /main\.gd \{ max-width: var\(--w-main-hep\); \}/); // Giao diện
   assert.match(css, /\.narrow \{ max-width: var\(--w-narrow\); \}/); // thẻ hẹp (trang Tôi…)
   assert.match(css, /#me, #links, #maintenance[^{]*\{ max-width: var\(--w-narrow\); \}/);
   assert.match(css, /body\.login-page main\.login \{[^}]*max-width: none;/); // đăng nhập có khuôn riêng, không dùng khung main
-  assert.match(css, /--w-form: 1120px;/);
   assert.match(css, /--w-main-hep: 1280px;/);
 });
 

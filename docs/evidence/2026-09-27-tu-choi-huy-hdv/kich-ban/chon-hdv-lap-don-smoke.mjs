@@ -34,8 +34,8 @@ const OUT = process.env.OUT ?? "docs/evidence/2026-09-27-tu-choi-huy-hdv";
 const AXE = process.env.AXE_JS && existsSync(process.env.AXE_JS) ? readFileSync(process.env.AXE_JS, "utf8") : null;
 mkdirSync(join(OUT, "anh"), { recursive: true });
 
-const DESK = { width: 1040, height: 900, mobile: false };
-const DESK_SHORT = { width: 1040, height: 768, mobile: false };
+const DESK = { width: 1280, height: 900, mobile: false }; // khung gốc đợt A (24/11/2026): hai cột theo vùng nội dung từ 800 — cửa sổ 1040 có thanh bên chỉ còn 744 (một cột)
+const DESK_SHORT = { width: 1280, height: 768, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
 // Số 0900000201–209, 261, 271, 281, 282, 301–303, 397–399 đã có kịch bản khác dùng.
 const HDV1 = { name: "Nguyễn Minh Tâm", phone: "0900000291", pin: "246891", permissions: ["FIELD"] };
@@ -138,10 +138,10 @@ try {
       const t = (x) => (x ? x.textContent.replace(/\\s+/g, " ").trim() : null);
       return {
         hidden: el.hidden, shown: el.getClientRects().length > 0,
-        prev: el.previousElementSibling?.className ?? null, next: el.nextElementSibling?.id ?? null, inSide: !!el.closest('.form-side'),
-        nextLop: el.nextElementSibling?.className ?? null, loiTrongThanh: !!el.nextElementSibling?.querySelector('#save-error'),
+        prev: el.previousElementSibling?.className ?? null, next: el.nextElementSibling?.id ?? null, inSide: !!el.closest('.cot-phu'),
+        nextLop: el.nextElementSibling?.className ?? null, loiTrongThanh: document.getElementById('save-error').parentElement === document.getElementById('save').parentElement,
         title: t(el.querySelector('h2')), chip: t(el.querySelector('.chip')), chipClass: el.querySelector('.chip')?.className ?? null,
-        text: t(el.querySelector('.owner-text')), name: t(el.querySelector('.owner-name')), role: t(el.querySelector('.owner-role')),
+        text: t(el.querySelector('.khoi-mo-ta')), name: t(el.querySelector('.owner-name')), role: t(el.querySelector('.owner-role')),
         buttons: [...el.querySelectorAll('button')].map((b) => ({ text: b.innerText.replace(/\\s+/g, " ").trim(), type: b.type, label: b.getAttribute('aria-label') })),
         focus: document.activeElement?.dataset?.action ?? document.activeElement?.tagName ?? null,
         border: getComputedStyle(el).borderTopWidth,
@@ -213,19 +213,19 @@ try {
     const s = await ownerState(p);
     assert.equal(s.hidden, false);
     assert.equal(s.shown, true);
-    assert.equal(s.inSide, true, "khối nằm trong cột phải (.form-side)");
-    assert.match(s.prev, /summary-card/, `ngay sau thẻ Tóm tắt — ${s.prev}`);
+    // Khung gốc đợt A (chủ duyệt 24/11/2026, sửa CÓ CHỦ ĐÍCH): khối là một .khoi của cột phụ (sau Tóm tắt / Người phụ trách); nút Lưu ở thanh nút cuối trang hoặc thanh dính đáy.
+    assert.equal(s.inSide, true, "khối nằm trong cột phụ (.cot-phu)");
+    assert.match(s.prev, /\bkhoi\b/, `ngay sau một khối của cột phụ — ${s.prev}`);
     // Thiết kế lại 18/10 (Việc 8, sửa CÓ CHỦ ĐÍCH): dải lỗi lưu nay nằm TRONG vùng nút Lưu (ngay trên nút Lưu) — khối đứng ngay trước vùng đó (trước: ngay trước #save-error rồi mới tới vùng nút).
-    assert.match(s.nextLop ?? "", /form-actions/, `ngay trước vùng nút Lưu — ${s.nextLop}`);
-    assert.equal(s.loiTrongThanh, true, "dải lỗi lưu nằm trong vùng nút Lưu");
+    assert.equal(s.loiTrongThanh, true, "dải lỗi lưu nằm cùng thanh với nút Lưu");
     assert.equal(s.title, "Hướng dẫn viên");
     assert.equal(s.chip, "Chờ nhận");
-    assert.match(s.chipClass, /chip-warn/);
+    assert.match(s.chipClass, /huy-hieu/);
     assert.equal(s.text, "Chưa chọn ai — hướng dẫn viên nào cũng bấm Nhận được.");
     assert.deepEqual(s.buttons.map((b) => [b.text, b.type]), [["Chọn Hướng dẫn viên", "button"]]);
-    assert.equal(s.border, "2px");
+    assert.equal(s.border, "0px", "một kiểu khối của khung: không viền nhấn riêng");
     // Thiết kế lại 18/10 (Việc 8, sửa CÓ CHỦ ĐÍCH): điện thoại không còn khối Tóm tắt (tiền ở thanh dính cuối trang) — kiểm "Tóm tắt không hiện" thay cho "khối đứng sau Tóm tắt".
-    const order = await p.ev("(() => { const o = document.getElementById('owner-card').getBoundingClientRect(); const pay = [...document.querySelectorAll('.form-main > .card')].at(-1).getBoundingClientRect(); return { afterPay: o.top >= pay.bottom, tomTatAn: document.querySelector('.summary-card').getClientRects().length === 0 }; })()");
+    const order = await p.ev("(() => { const o = document.getElementById('owner-card').getBoundingClientRect(); const pay = [...document.querySelectorAll('.cot-chinh > .khoi')].at(-1).getBoundingClientRect(); return { afterPay: o.top >= pay.bottom, tomTatAn: document.getElementById('tom-tat-title').closest('section').getClientRects().length === 0 }; })()");
     assert.deepEqual(order, { afterPay: true, tomTatAn: true }, "trên điện thoại: khối đứng sau Thanh toán; khối Tóm tắt không hiện");
     assert.equal(assigneeCalls(p), 0, "không gọi danh sách trước khi mở bảng");
     assert.equal(await p.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1"), true, "không tràn ngang");
@@ -413,7 +413,7 @@ try {
   await step("10", "Máy tính 1040×900: khối ở CỘT PHẢI (cạnh nút Lưu), sau Tóm tắt; nút Lưu trong khung nhìn khi ở đầu trang (cả 1040×768); bảng chọn là hộp GIỮA màn hình; chọn → khối cập nhật" + axeNote(), async () => {
     const d = await openAs(ACCOUNTS.salesA, "/order-form", DESK);
     await d.waitFor(`!${OWNER}.hidden && !!${OPENER}`, "khối Người phụ trách dựng xong (máy tính)", 10000);
-    const lay = await d.ev(`(() => { const m = document.querySelector('.form-main').getBoundingClientRect(); const o = document.getElementById('owner-card').getBoundingClientRect(); const s = document.getElementById('save').getBoundingClientRect(); const sum = document.querySelector('.summary-card').getBoundingClientRect();
+    const lay = await d.ev(`(() => { const m = document.querySelector('.cot-chinh').getBoundingClientRect(); const o = document.getElementById('owner-card').getBoundingClientRect(); const s = document.getElementById('save').getBoundingClientRect(); const sum = document.getElementById('tom-tat-title').closest('section').getBoundingClientRect();
       return { rightCol: o.left >= m.right - 1, afterSum: o.top >= sum.bottom, beforeSave: o.bottom <= s.top, saveInView: s.top >= 0 && s.bottom <= innerHeight, saveBottom: Math.round(s.bottom), vh: innerHeight, overflow: document.documentElement.scrollWidth - innerWidth }; })()`);
     assert.deepEqual([lay.rightCol, lay.afterSum, lay.beforeSave, lay.saveInView], [true, true, true, true], JSON.stringify(lay));
     assert.ok(lay.overflow <= 0, "không tràn ngang");

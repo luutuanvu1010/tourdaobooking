@@ -346,7 +346,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       xem.append(xemRow);
       sua.append(row);
     }
-    const nut = h("button", { type: "button", class: "btn btn-link svc-sua-gia", "data-action": "sua-gia" }, "Sửa giá đơn này");
+    const nut = h("button", { type: "button", class: "nut svc-sua-gia", "data-cap": "loi", "data-action": "sua-gia" }, "Sửa giá đơn này");
     nutSuaGia = nut;
     // `retailOnly` (Đối tác, Thực tập — nút "Sửa giá đơn này" ẩn): khối chỉ mở khi có dòng lệch giá cũ. Lưu bị từ chối / máy chủ 400 mở MỌI khối gập (`moMoiKhoiGap`) — khối này
     // trả lại ngay, vì họ không có nút để đóng (trước đây kẹt mở tới khi tải lại trang). Về đúng giá: đóng khi rời ô (không đóng lúc đang gõ — ô biến mất dưới ngón tay).

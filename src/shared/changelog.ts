@@ -17,6 +17,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Khung gốc đợt A: Tạo / Sửa đơn, Đơn chờ xác nhận (ADR-0222, ADR-0234; chủ duyệt ảnh 24/11 «Duyệt»). Nhánh claude/jolly-tereshkova-ffd30e. Không migration.
+    // Số 3.44 = số trống kế tiếp sau 3.43 trên main lúc báo sẵn sàng 24/11; bước A.0 đặt lại số và ngày nếu việc khác (vd đợt B) nhập trước.
+    version: "3.44",
+    date: "2026-11-24",
+    items: [
+      { kind: "doi", text: "Tạo đơn, Sửa đơn: mọi phần cùng một kiểu khối, tên khối ở đầu khối. Ở máy tính nút «Lưu» nằm ở thanh cuối trang, bên phải, luôn thấy khi cuộn." },
+      { kind: "doi", text: "Tạo đơn bớt chữ đậm: trong danh mục chỉ tên dịch vụ đậm; nút phụ nền trắng; ô chọn và ô tròn cùng dáng với ô nhập." },
+      { kind: "doi", text: "Đơn chờ xác nhận: một danh sách, mỗi đơn một dòng; nút «Kiểm vé» nền trắng, «Quá hạn» là huy hiệu có hình. Không còn đơn nào thì có câu báo rõ." },
+      { kind: "doi", text: "Mở trang không được dùng (Tạo đơn bằng tài khoản không lập đơn, Sửa đơn đã xác nhận) thì hiện câu báo và nút quay về, không còn biểu mẫu trống bị khoá." },
+    ],
+  },
+  {
     // Đợt gốc ngôn ngữ thị giác (ADR-0234, chủ duyệt 24/11 «duyệt, thi công»). Nhánh claude/dot-goc-thi-giac-e74c62. Không migration.
     // Số 3.43 = số trống kế tiếp sau 3.42 trên main lúc báo sẵn sàng 24/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
     version: "3.43",

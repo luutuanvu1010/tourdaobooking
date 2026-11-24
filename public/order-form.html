@@ -1,52 +1,53 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Tạo đơn — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-khuon="bieu-mau" data-title="Tạo đơn" data-back="/orders" data-tabbar="off">
+<body data-rong="vua" data-khuon="bieu-mau" data-khung-goc="bieu-mau" data-title="Tạo đơn" data-back="/orders" data-tabbar="off">
 <header id="topbar"></header>
 <div id="strips"></div>
-<main class="form-page">
+<main>
+  <!-- Tạo / Sửa đơn: khuôn Biểu mẫu của khung gốc (ADR-0222, đợt A chủ duyệt 24/11/2026). Biểu mẫu là vùng vẽ (.vung-ve): hai cột (cột phụ đứng sau khi một cột),
+       rồi thanh nút của trang (vùng nội dung từ 560: «Quay lại», «Lưu…» bên phải, dính đáy) và thanh dính đáy (hẹp hơn: tổng tiền + «Lưu…»). Câu cảnh báo, câu lỗi
+       khi lưu và nút #save đi theo thanh đang hiện (web/order-form.ts). -->
   <h1 id="form-title">Tạo đơn</h1>
   <div id="error" class="banner" role="alert" hidden></div>
-  <form id="order-form" novalidate>
-    <div class="form-cols">
-    <div class="form-main">
+  <form id="order-form" class="vung-ve" novalidate>
+    <div class="hai-cot" data-phu="sau">
+    <div class="cot-chinh">
       <div id="buoc-slot"></div>
-      <section class="card buoc" data-buoc-khoi="khach" tabindex="-1" aria-labelledby="khach-title">
+      <section class="khoi buoc" data-buoc-khoi="khach" tabindex="-1" aria-labelledby="khach-title">
+        <header class="khoi-dau"><h2 id="khach-title">Khách hàng</h2></header>
+        <div class="khoi-viec" data-cho="dau">
+          <button id="use-mine" class="nut" data-cap="loi" type="button">Điền thông tin của tôi</button>
+          <button id="use-partner" class="nut" data-cap="loi" type="button" hidden>Điền thông tin đối tác</button>
+        </div>
         <div class="khach-ngay">
           <label class="o-noi"><span class="o-noi-khung o-noi-co-dinh"><span class="o-noi-chu">Ngày khởi hành</span><input id="orderDate" type="date"></span></label>
           <p class="muted" id="orderDate-hint">Áp cho mọi dịch vụ trong đơn</p>
           <p class="dd-ghi-tao" id="orderDate-moved" role="status" hidden></p>
         </div>
-        <div class="khach-dau">
-          <h2 id="khach-title">Khách hàng</h2>
-          <span class="khach-dau-nut">
-            <button id="use-mine" class="btn btn-link" type="button">Điền thông tin của tôi</button>
-            <button id="use-partner" class="btn btn-link" type="button" hidden>Điền thông tin đối tác</button>
-          </span>
-        </div>
         <p class="muted" id="use-partner-bao" role="status" hidden></p>
         <div id="don-cua-slot"></div>
-        <div class="grid two">
-          <label class="o-noi"><span class="o-noi-khung"><input id="customerName" type="text" maxlength="200" autocomplete="off" placeholder=" " required aria-describedby="customerName-loi"><span class="o-noi-chu">Tên khách đi tour *</span></span><span class="field-error" id="customerName-loi" hidden></span></label>
-          <label class="o-noi"><span class="o-noi-khung"><input id="customerPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" placeholder=" " required aria-describedby="customerPhone-loi"><span class="o-noi-chu">Số điện thoại *</span></span><span class="field-error" id="customerPhone-loi" hidden></span></label>
+        <div class="luoi">
+          <label class="o-noi" data-cot="6"><span class="o-noi-khung"><input id="customerName" type="text" maxlength="200" autocomplete="off" placeholder=" " required aria-describedby="customerName-loi"><span class="o-noi-chu">Tên khách đi tour *</span></span><span class="field-error" id="customerName-loi" hidden></span></label>
+          <label class="o-noi" data-cot="6"><span class="o-noi-khung"><input id="customerPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" placeholder=" " required aria-describedby="customerPhone-loi"><span class="o-noi-chu">Số điện thoại *</span></span><span class="field-error" id="customerPhone-loi" hidden></span></label>
         </div>
         <div id="canh-bao-slot"></div>
-        <div id="khach-them" class="grid two">
-          <label class="o-noi"><span class="o-noi-khung"><input id="customerEmail" type="email" maxlength="200" autocomplete="off" placeholder=" "><span class="o-noi-chu">Email</span></span></label>
-          <label class="o-noi"><span class="o-noi-khung"><textarea id="customerNote" maxlength="2000" placeholder=" "></textarea><span class="o-noi-chu">Ghi chú / yêu cầu đặc biệt</span></span></label>
+        <div id="khach-them" class="luoi">
+          <label class="o-noi" data-cot="6"><span class="o-noi-khung"><input id="customerEmail" type="email" maxlength="200" autocomplete="off" placeholder=" "><span class="o-noi-chu">Email</span></span></label>
+          <label class="o-noi" data-cot="6"><span class="o-noi-khung"><textarea id="customerNote" maxlength="2000" placeholder=" "></textarea><span class="o-noi-chu">Ghi chú / yêu cầu đặc biệt</span></span></label>
         </div>
         <div id="booker-slot"></div>
       </section>
-      <section class="card buoc" data-buoc-khoi="dich-vu" tabindex="-1" aria-labelledby="services-title">
-        <h2 id="services-title">Dịch vụ</h2>
+      <section class="khoi buoc" data-buoc-khoi="dich-vu" tabindex="-1" aria-labelledby="services-title">
+        <header class="khoi-dau"><h2 id="services-title">Dịch vụ</h2></header>
         <div id="catalog-slot"></div>
-        <button id="add-manual" class="btn btn-block" type="button" hidden>+ Dịch vụ nhập tay</button>
+        <button id="add-manual" class="nut" data-cap="phu" type="button" hidden>+ Dịch vụ nhập tay</button>
         <p id="services-limit" class="muted" hidden></p>
         <div id="services" class="svc-list"></div>
         <p id="services-empty" class="svc-empty">Chưa có dịch vụ. Chọn dịch vụ từ danh mục.</p>
       </section>
-      <section class="card buoc" id="pay-card" data-buoc-khoi="thanh-toan" tabindex="-1" aria-labelledby="pay-title">
-        <h2 id="pay-title">Thanh toán</h2>
-        <fieldset id="tra-sau-khoi" class="tra-sau-khoi" hidden>
+      <section class="khoi buoc" id="pay-card" data-buoc-khoi="thanh-toan" tabindex="-1" aria-labelledby="pay-title">
+        <header class="khoi-dau"><h2 id="pay-title">Thanh toán</h2></header>
+        <fieldset id="tra-sau-khoi" class="nhom-chon" hidden>
           <legend>Hình thức thanh toán</legend>
           <label><input type="radio" name="paymentTerm" value="PREPAID" checked> <span data-nhan-hinh-thuc="PREPAID"></span></label>
           <label><input type="radio" name="paymentTerm" value="CREDIT" aria-describedby="tra-sau-cau"> <span data-nhan-hinh-thuc="CREDIT"></span></label>
@@ -55,53 +56,55 @@
           <p id="tra-luc-checkin-cau" class="muted" hidden></p>
         </fieldset>
         <p id="tra-sau-bao" class="alert" role="status" hidden></p>
-        <div class="grid two">
-          <div class="o-kem-goi-y"><label class="o-noi"><span class="o-noi-khung"><input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Giảm giá (₫)</span></span></label></div>
-          <div class="o-kem-goi-y"><label id="dat-coc-o" class="o-noi" hidden><span class="o-noi-khung"><input id="declaredDeposit" type="text" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="dat-coc-goi-y"><span class="o-noi-chu">Khách đặt cọc cho đối tác (₫)</span></span></label>
+        <div class="luoi">
+          <div class="o-kem-goi-y" data-cot="6"><label class="o-noi"><span class="o-noi-khung"><input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Giảm giá (₫)</span></span></label></div>
+          <div class="o-kem-goi-y" data-cot="6"><label id="dat-coc-o" class="o-noi" hidden><span class="o-noi-khung"><input id="declaredDeposit" type="text" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="dat-coc-goi-y"><span class="o-noi-chu">Khách đặt cọc cho đối tác (₫)</span></span></label>
           <p id="dat-coc-goi-y" class="muted" hidden>Số tiền bạn đã nhận của khách. Nền tảng chỉ ghi thành khoản thu khi đơn được xác nhận; bạn nộp số này về công ty sau.</p></div>
         </div>
         <p id="dat-coc-tra-sau" class="muted" hidden></p>
         <label class="pay-note o-noi"><span class="o-noi-khung"><textarea id="paymentNote" maxlength="1000" placeholder="vd: nội dung chuyển khoản"></textarea><span class="o-noi-chu">Ghi chú thanh toán</span></span></label>
       </section>
     </div>
-    <div class="form-side">
-      <section class="card summary-card">
-        <h2>Tóm tắt</h2>
-        <div class="summary">
-          <div class="kv"><span class="muted">Dịch vụ</span><span id="sum-count">0 dịch vụ</span></div>
-          <div class="kv" data-phi-don hidden><span class="muted">Phí đưa đón</span><span>Tính khi lưu</span></div>
-          <div class="kv"><span class="muted">Tạm tính</span><span id="sum-subtotal">0 ₫</span></div>
-          <div class="kv"><span class="muted">Giảm giá</span><span id="sum-discount">0 ₫</span></div>
-          <div class="kv strong"><span>Tổng cộng</span><span id="sum-total">0 ₫</span></div>
-          <div class="kv" data-dat-coc hidden><span class="muted">Khách đặt cọc cho đối tác</span><span id="sum-dat-coc">0 ₫</span></div>
-          <div class="kv strong" data-dat-coc hidden><span>Khách còn phải trả</span><span id="sum-con-tra">0 ₫</span></div>
-          <p class="muted summary-note">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
+    <div class="cot-phu">
+      <section class="khoi" data-chi="rong" aria-labelledby="tom-tat-title">
+        <header class="khoi-dau"><h2 id="tom-tat-title">Tóm tắt</h2></header>
+        <div>
+          <div class="cap" data-kieu="so"><span>Dịch vụ</span><span id="sum-count">0 dịch vụ</span></div>
+          <div class="cap" data-kieu="so" data-phi-don hidden><span>Phí đưa đón</span><span>Tính khi lưu</span></div>
+          <div class="cap" data-kieu="so"><span>Tạm tính</span><span id="sum-subtotal">0 ₫</span></div>
+          <div class="cap" data-kieu="so"><span>Giảm giá</span><span id="sum-discount">0 ₫</span></div>
+          <div class="cap" data-kieu="so" data-nhan-manh><span>Tổng cộng</span><span id="sum-total">0 ₫</span></div>
+          <div class="cap" data-kieu="so" data-dat-coc hidden><span>Khách đặt cọc cho đối tác</span><span id="sum-dat-coc">0 ₫</span></div>
+          <div class="cap" data-kieu="so" data-nhan-manh data-dat-coc hidden><span>Khách còn phải trả</span><span id="sum-con-tra">0 ₫</span></div>
+          <p class="khoi-mo-ta">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
         </div>
       </section>
-      <section id="ban-hang-card" class="card owner-card" tabindex="-1" aria-labelledby="ban-hang-title" hidden></section>
-      <section id="owner-card" class="card owner-card buoc" data-buoc-khoi="phu-trach" tabindex="-1" aria-labelledby="owner-title" hidden></section>
-      <section id="hinh-thuc-cho" class="card hinh-thuc-cho" hidden></section>
-      <div class="form-actions thanh-hanh-dong-cuoi">
-        <div class="mobile-actions-summary">
-          <div id="sum-chi-tiet" class="sum-chi-tiet" role="region" aria-label="Chi tiết tiền" hidden>
-            <div class="kv" data-phi-don hidden><span class="muted">Phí đưa đón</span><span>Tính khi lưu</span></div>
-            <div class="kv"><span class="muted">Tạm tính</span><span id="ct-tam-tinh">0 ₫</span></div>
-            <div class="kv"><span class="muted">Giảm giá</span><span id="ct-giam-gia">0 ₫</span></div>
-            <div class="kv strong"><span>Tổng cộng</span><span id="ct-tong">0 ₫</span></div>
-            <div class="kv" data-dat-coc hidden><span class="muted">Khách đặt cọc cho đối tác</span><span id="ct-dat-coc">0 ₫</span></div>
-            <div class="kv strong" data-dat-coc hidden><span>Khách còn phải trả</span><span id="ct-con-tra">0 ₫</span></div>
-            <p class="muted summary-note">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
-          </div>
-          <button id="sum-mo" class="mobile-sum-nut" type="button" aria-expanded="false" aria-controls="sum-chi-tiet"><span class="mobile-sum-line"><span><span id="mobile-count">0 dịch vụ</span> · Tổng <span id="mobile-total">0 ₫</span></span></span><span class="mobile-sum-mo"><span id="sum-mo-chu">Chi tiết</span> <span id="sum-mo-dau" aria-hidden="true">▴</span></span></button>
+      <section id="ban-hang-card" class="khoi" tabindex="-1" aria-labelledby="ban-hang-title" hidden></section>
+      <section id="owner-card" class="khoi buoc" data-buoc-khoi="phu-trach" tabindex="-1" aria-labelledby="owner-title" hidden></section>
+      <section id="hinh-thuc-cho" class="khoi hinh-thuc-cho" hidden></section>
+    </div>
+    </div>
+    <section class="khoi buoc" id="hk-card" data-buoc-khoi="hanh-khach" tabindex="-1" aria-label="Hành khách" hidden></section>
+    <div id="thanh-nut" class="thanh-nut" data-kieu="trang">
+      <div id="sum-warning" class="alert warn" hidden></div>
+      <div id="save-error" class="banner" role="alert" hidden></div>
+      <a class="nut day-phai" data-cap="phu" data-chi="rong" href="/orders">Quay lại</a>
+      <button id="save" class="nut" data-cap="chinh" type="submit">Lưu đơn (chưa xác nhận)</button>
+    </div>
+    <div id="thanh-day" class="thanh-day thanh-hanh-dong-cuoi">
+      <div class="mobile-actions-summary">
+        <div id="sum-chi-tiet" class="sum-chi-tiet" role="region" aria-label="Chi tiết tiền" hidden>
+          <div class="kv" data-phi-don hidden><span class="muted">Phí đưa đón</span><span>Tính khi lưu</span></div>
+          <div class="kv"><span class="muted">Tạm tính</span><span id="ct-tam-tinh">0 ₫</span></div>
+          <div class="kv"><span class="muted">Giảm giá</span><span id="ct-giam-gia">0 ₫</span></div>
+          <div class="kv strong"><span>Tổng cộng</span><span id="ct-tong">0 ₫</span></div>
+          <div class="kv" data-dat-coc hidden><span class="muted">Khách đặt cọc cho đối tác</span><span id="ct-dat-coc">0 ₫</span></div>
+          <div class="kv strong" data-dat-coc hidden><span>Khách còn phải trả</span><span id="ct-con-tra">0 ₫</span></div>
+          <p class="muted summary-note">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
         </div>
-        <div id="sum-warning" class="alert warn" hidden></div>
-        <div id="save-error" class="banner" role="alert" hidden></div>
-        <button id="save" class="btn btn-primary" type="submit">Lưu đơn (chưa xác nhận)</button>
-        <a class="btn" href="/orders">Quay lại</a>
+        <button id="sum-mo" class="mobile-sum-nut" type="button" aria-expanded="false" aria-controls="sum-chi-tiet"><span class="mobile-sum-line"><span><span id="mobile-count">0 dịch vụ</span> · Tổng <span id="mobile-total">0 ₫</span></span></span><span class="mobile-sum-mo"><span id="sum-mo-chu">Chi tiết</span> <span id="sum-mo-dau" aria-hidden="true">▴</span></span></button>
       </div>
     </div>
-    </div>
-    <section class="card hk-card buoc" id="hk-card" data-buoc-khoi="hanh-khach" tabindex="-1" aria-label="Hành khách" hidden></section>
   </form>
 </main>
 <script type="module" src="/js/order-form.js"></script>

@@ -115,11 +115,11 @@ export function soatNgoaiLe(so: readonly NgoaiLe[], trangCo: readonly string[], 
  *  Trang mới không được thêm vào đây: phải khai khuôn ngay từ đầu (ADR-0222, «việc giao diện mới trong lúc chuyển phải dùng khung ngay»). */
 export const TRANG_CHUA_CHUYEN: readonly string[] = [
   "404.html", "account.html", "audit.html", "ban.html", "bang-gia-xe.html", "bang-ke-xe.html", "cap-dai-ly.html", "catalog.html", "chinh-sach-dieu-phoi.html",
-  "cho-xac-nhan.html", "chup-bu.html", "chuyen-sua.html", "chuyen.html", "cuoc-chuyen.html", "cuoc.html", "dac-diem-dich-vu.html", "dang-ky.html",
+  "chup-bu.html", "chuyen-sua.html", "chuyen.html", "cuoc-chuyen.html", "cuoc.html", "dac-diem-dich-vu.html", "dang-ky.html",
   "danh-muc-giay-to.html", "de-nghi.html", "dieu-chinh-cong-no.html", "dieu-kien-xuat-ben.html", "dieu-phoi.html", "feedback.html", "giao-dien.html",
   "giay-to-sap-het-han.html", "gui-thong-bao.html", "han-muc-tra-sau.html", "help.html", "hoa-hong-gioi-han.html", "hoa-hong.html", "home.html",
   "huong-dan.html", "index.html", "khoa-thang.html", "lich-xe-ban.html", "loai-giay-to-nguoi.html", "loai-giay-to-xe.html", "login.html",
-  "luat-ban.html", "ly-do-dieu-phoi.html", "ngoai-mang.html", "nguoi-ban.html", "order-form.html", "parties.html",
+  "luat-ban.html", "ly-do-dieu-phoi.html", "ngoai-mang.html", "nguoi-ban.html", "parties.html",
   "phan-dinh.html", "phi-don.html", "phieu-dang-ky.html", "quet-ve.html", "sessions.html", "so-cong-no.html", "staff.html", "tai-xe.html", "thiet-lap.html",
   "to-chuc.html", "tro-ly-cai-dat.html", "ve-cai-dat.html", "ve-doi-chieu.html", "ve-kho.html", "xe-chi-tiet.html", "xe-dang-chay.html", "xe.html",
 ];

@@ -20,7 +20,7 @@ test("BANG_CI phủ đúng mọi trang đã khai khuôn khung gốc (thêm màn 
   assert.deepEqual(daChuyen.filter((t) => !coDong.includes(t)), [], "trang đã khai khuôn mà BANG_CI chưa có dòng: lượt kiểm sẽ ĐỎ vì đo thiếu");
   for (const d of ci.BANG_CI) {
     assert.ok(BO_QUYEN[d.bo], `${d.khoa}: bộ quyền ${d.bo} không có trong moi-truong.mjs`);
-    assert.ok(d.ma === undefined || ["don", "xe"].includes(d.ma), `${d.khoa}: loại mã ${d.ma} chưa được gieo`);
+    assert.ok(d.ma === undefined || ["don", "nhap", "xe"].includes(d.ma), `${d.khoa}: loại mã ${d.ma} chưa được gieo`);
   }
   assert.equal(new Set(ci.BANG_CI.map((d) => d.khoa)).size, ci.BANG_CI.length, "khoá màn trùng");
 });

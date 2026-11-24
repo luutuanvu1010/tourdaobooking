@@ -122,13 +122,14 @@ test("Đ2 kho (e): Tạo đơn — không còn trong menu bên (Đợt 0 7/16: n
   assert.deepEqual(t.nhomMenu, []);
   // 14/10/2026 (Tạo đơn bốn bước): khách lên đầu và ô Ngày khởi hành nằm TRONG khối khách — không còn thẻ "Chọn ngày" riêng ⇒ năm mục, không sáu (số mục trong kho sinh ra đổi theo; luật sinh không đổi).
   assert.deepEqual(t.boCuc.map((m) => m.muc), ["Khách hàng", "Dịch vụ", "Thanh toán", "Tóm tắt", "Thanh nút cuối trang"]);
-  assert.deepEqual(t.boCuc.at(-1)!.nut, ["Lưu đơn (chưa xác nhận)", "Quay lại"]);
+  // Khung gốc đợt A (24/11/2026): thanh nút cuối trang xếp «Quay lại» rồi «Lưu…» bên phải (khuôn Biểu mẫu) — sơ đồ trang đọc đúng thứ tự trên màn hình.
+  assert.deepEqual(t.boCuc.at(-1)!.nut, ["Quay lại", "Lưu đơn (chưa xác nhận)"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/dieu-phoi")!.nhomMenu, ["VẬN CHUYỂN"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/help")!.nhomMenu, ["CHÂN MENU"]);
   const doan = chiaKho().find((d) => d.ten === "Sơ đồ trang › Tạo đơn")!;
   assert.ok(!/Trong menu:/.test(doan.chu), "Tạo đơn không còn mục ở menu bên");
   assert.ok(!/nhóm HẰNG NGÀY|nhóm CHÂN MENU/.test(doan.chu), "nhóm không có tiêu đề trên màn hình thì không nhắc tên");
-  assert.match(doan.chu, /Tóm tắt\. 5\. Thanh nút cuối trang — nút: Lưu đơn \(chưa xác nhận\), Quay lại\./);
+  assert.match(doan.chu, /Tóm tắt\. 5\. Thanh nút cuối trang — nút: Quay lại, Lưu đơn \(chưa xác nhận\)\./);
   // Phần dựng bằng web/*.ts: không gán nút vào mục (thứ tự trong mã ≠ vị trí trên màn hình — bản đầu nói sai "Lịch sử — nút: … Sửa thông tin chuyến").
   const ct = chiaKho().find((d) => d.ten === "Sơ đồ trang › Chi tiết đơn")!.chu;
   assert.match(ct, /Nút hiện khi trang chạy \(tuỳ quyền và trạng thái\): [^\n]*Sửa thông tin chuyến/);
@@ -140,7 +141,7 @@ test("Đ2 (đặc tả mục 5 dòng 4): đổi tên một nút ⇒ kho sinh ra 
   const moi = html.replace(">Lưu đơn (chưa xác nhận)<", ">Lưu đơn nháp<");
   assert.notEqual(moi, html);
   const bc = boCucHtml(moi);
-  assert.deepEqual(bc.at(-1)!.nut, ["Lưu đơn nháp", "Quay lại"]);
+  assert.deepEqual(bc.at(-1)!.nut, ["Quay lại", "Lưu đơn nháp"]);
   const vao = dungDauVaoCauTruc();
   const trang = vao.trang.map((t: { duongDan: string }) => (t.duongDan === "/order-form" ? { ...t, boCuc: bc } : t));
   const buoc1 = dungCauTruc({ ...vao, trang }).find((d: { tieuDe: string }) => d.tieuDe.startsWith("Luồng chính, bước 1"))!;
@@ -244,8 +245,10 @@ test("Đ6: 'Nút Lưu nháp ở đâu?' ⇒ chọn bước Lập đơn (nút th�
   const ten = ds.map((d) => d.ten);
   const b1 = ds.find((d) => d.ten === "Cấu trúc Nền tảng › Luồng chính, bước 1: Lập đơn và lưu nháp");
   assert.ok(b1, ten.join(" | "));
-  assert.match(b1.chu, /Thanh nút cuối trang — nút: Lưu đơn \(chưa xác nhận\)/);
-  assert.ok(ten.includes("Sơ đồ trang › Tạo đơn"), ten.join(" | "));
+  assert.match(b1.chu, /Thanh nút cuối trang — nút: Quay lại, Lưu đơn \(chưa xác nhận\)/);
+  // Khung gốc đợt A (24/11/2026): thanh nút cuối trang nay ghi «nút: Quay lại, Lưu đơn…» (đúng thứ tự trên màn hình), mất cặp chữ «nút Lưu» nên đoạn «Sơ đồ trang ›
+  // Tạo đơn» tụt khỏi 12 đoạn đầu. Đoạn bước 1 ở trên (có đủ chỗ đặt nút Lưu) vẫn được chọn — đó là điều câu hỏi cần. Sơ đồ trang Tạo đơn vẫn phải có mặt trong kho.
+  assert.ok(chiaKho().some((d) => d.ten === "Sơ đồ trang › Tạo đơn" && /Thanh nút cuối trang — nút: Quay lại, Lưu đơn \(chưa xác nhận\)/.test(d.chu)), "kho còn sơ đồ trang Tạo đơn");
   assert.ok(tong(ds) <= NGAN_SACH_TOKEN);
 });
 

@@ -113,10 +113,11 @@ test("công tắc ẩn khách: form chỉ hỏi công tắc khi formGon, đặt 
   const css = docTho("public/app.css");
   assert.match(css, /\.buoc\[data-an-khach\]\s*>\s*:not\(\.khach-ngay\)\s*\{\s*display:\s*none;?\s*\}/, "CSS ẩn mọi phần tử con của khối Khách trừ .khach-ngay");
   const html = docTho("public/order-form.html");
-  const ngay = html.slice(html.indexOf('<div class="khach-ngay">'), html.indexOf('<div class="khach-dau">'));
+  const ngay = html.slice(html.indexOf('<div class="khach-ngay">'), html.indexOf('<p class="muted" id="use-partner-bao"'));
   assert.match(ngay, /id="orderDate"/, "Ngày khởi hành nằm trong .khach-ngay (không bị ẩn)");
   assert.doesNotMatch(ngay, /customerName|customerPhone|booker-slot/, "tên, SĐT, bên đặt nằm NGOÀI .khach-ngay (bị ẩn)");
-  assert.match(html, /<section class="card buoc" data-buoc-khoi="khach"[^>]*>\s*<div class="khach-ngay">/, "khối khách mở đầu bằng .khach-ngay: CSS :not(.khach-ngay) áp đúng khối đó");
+  // Khung gốc đợt A (24/11/2026): tên khối và nút điền sẵn đứng trước dòng ngày (ẩn cùng phần khách); .khach-ngay là CON TRỰC TIẾP của khối nên luật :not(.khach-ngay) giữ nó lại.
+  assert.match(html, /<section class="khoi buoc" data-buoc-khoi="khach"[^>]*>\s*<header class="khoi-dau">[^]*?<\/header>\s*<div class="khoi-viec"[^>]*>[^]*?<\/div>\s*<div class="khach-ngay">/, "khối khách: đầu khối, nút điền sẵn, rồi .khach-ngay là con trực tiếp của khối");
 });
 
 test("công tắc ẩn khách: validate bỏ need(tên, SĐT) khi anKhach; collect không gửi các khoá khách khi anKhach; khối Hành khách theo công tắc riêng anDs (ADR-0228 Đ1)", () => {

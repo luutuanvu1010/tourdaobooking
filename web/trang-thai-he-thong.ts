@@ -61,7 +61,8 @@ export function trangThaiHeThong(loai: LoaiTrangThai, o: TuyChonTrangThai = {}):
   const thuLai = () => nutHoacLienKet(NHAN_THU_LAI, { khiBam: o.thuLai });
   switch (loai) {
     case "403":
-      return vo(loai, HINH[loai], CAU_403, null, veTrangDau());
+      // `cau` + `trangCha`: trang biết lý do cụ thể (vd «Chỉ sửa được đơn chưa xác nhận.», khung gốc đợt A) — câu đó thay câu chung, nút về trang cha.
+      return vo(loai, HINH[loai], o.cau ?? CAU_403, null, o.trangCha ? nutHoacLienKet(`Về ${o.trangCha.nhan}`, { href: o.trangCha.href }) : veTrangDau());
     case "404":
       return vo(loai, HINH[loai], CAU_404, CAU_404_PHU, veTrangDau());
     case "thieu-ma": {

@@ -66,6 +66,8 @@ import { goiSom } from "./goi-som";
 import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
 import { benDatCuaToi, initShell, setBarTitle } from "./shell";
+import { trangThaiToanTrang, type TuyChonTrangThai } from "./trang-thai-he-thong";
+import { homeRedirect } from "../src/shared/start-page";
 import { dieuKienCuaDichVu } from "../src/shared/ui-dieu-kien";
 import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 
@@ -86,7 +88,7 @@ const wide = (): boolean => window.matchMedia("(min-width: 960px)").matches;
 const cuonToiLoi = (el: HTMLElement): void => el.scrollIntoView({ block: wide() ? "center" : "start" });
 
 const errorEl = byId("error"); // lỗi tải trang / khoá form
-const saveErrorEl = byId("save-error"); // lỗi khi lưu, ngay trên nút Lưu (trong thanh dính cuối trang dưới 960px; cột phải dính ≥ 960px)
+const saveErrorEl = byId("save-error"); // lỗi khi lưu, ngay trên nút Lưu (trong thanh đang hiện: thanh nút của trang hay thanh dính đáy — `datChoNutLuu`)
 const formEl = byId<HTMLFormElement>("order-form");
 const servicesEl = byId("services");
 const emptyEl = byId("services-empty");
@@ -94,6 +96,24 @@ const limitEl = byId("services-limit");
 const addManualBtn = byId<HTMLButtonElement>("add-manual"); // ADR-0061 (sửa ADR-0021 điều 2): ẨN, trừ khi máy chủ trả `duocDung` (công tắc BẬT + được nhập tay)
 const orderDateEl = byId<HTMLInputElement>("orderDate");
 const saveBtn = byId<HTMLButtonElement>("save");
+// Khung gốc, khuôn Biểu mẫu (ADR-0222; đợt A chủ duyệt 24/11/2026): vùng nội dung từ 560 thì «Quay lại» + «Lưu…» ở thanh nút cuối trang (#thanh-nut), hẹp hơn thì
+// tổng tiền + «Lưu…» ở thanh dính đáy (#thanh-day) — tệp kiểu quyết thanh nào hiện. Câu cảnh báo, câu lỗi khi lưu và nút Lưu (MỘT #save) đi theo thanh đang hiện,
+// để lỗi luôn nằm ngay trên nút như trước. Thanh dính đáy mang lớp `dang-an` lúc ẩn để khung chung đo lại (như `thanhDay` của web/khung.ts).
+const thanhNutEl = byId("thanh-nut");
+const thanhDayEl = byId("thanh-day");
+const veEl = thanhNutEl.querySelector<HTMLElement>('a[href="/orders"]')!;
+function datChoNutLuu(): void {
+  const hep = thanhDayEl.getClientRects().length > 0;
+  thanhDayEl.classList.toggle("dang-an", !hep);
+  const dich = hep ? thanhDayEl : thanhNutEl;
+  if (saveBtn.parentElement === dich) return;
+  const coTieuDiem = saveBtn === document.activeElement;
+  if (hep) thanhDayEl.append(byId("sum-warning"), saveErrorEl, saveBtn);
+  else thanhNutEl.append(byId("sum-warning"), saveErrorEl, veEl, saveBtn);
+  if (coTieuDiem) saveBtn.focus();
+}
+if (typeof ResizeObserver !== "undefined") new ResizeObserver(datChoNutLuu).observe(thanhDayEl);
+datChoNutLuu();
 const field = (id: string) => byId<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
 const num = (id: string) => parseMoney(field(id).value);
 // Hồ sơ khách (N2 lát 1): tra theo SĐT, dùng hồ sơ có sẵn hoặc tạo mới khi lưu; không chọn = lưu không gắn (ADR-0011).
@@ -476,18 +496,18 @@ function setHandlerPick(picked: AssigneeDto | null): void {
   renderOwner(true); // nút mở bảng bị dựng lại → đặt focus vào nút mới ("Đổi" / "Chọn người phụ trách"), không để focus rơi ra `body`
 }
 
+/** Đầu khối «Hướng dẫn viên» / «Người phụ trách» (khung gốc): tên khối + huy hiệu «Chờ … nhận» khi chưa chọn ai (huy hiệu luôn có hình). */
+/** Tiêu đề viết thẳng ở chỗ gọi (`h("h2", …, "Tên")`) để máy sinh sơ đồ trang của trợ lý đọc được tên khối (scripts/sinh-so-do-trang.mjs). */
+const dauKhoiPhuTrach = (tieuDe: HTMLElement, cho: string | null): HTMLElement =>
+  h("header", { class: "khoi-dau" }, tieuDe, cho === null ? null : h("span", { class: "huy-hieu", "data-tong": "cat" }, icon("clock", 14), cho));
+
 function renderOwner(focus = false): void {
   const p = handlerPick;
-  const head = h(
-    "div",
-    { class: "owner-head" },
-    h("h2", { id: "owner-title", class: "owner-title" }, "Hướng dẫn viên"),
-    p === null ? h("span", { class: "chip hdv-chip chip-warn" }, "Chờ nhận") : null,
-  );
+  const head = dauKhoiPhuTrach(h("h2", { id: "owner-title" }, "Hướng dẫn viên"), p === null ? "Chờ nhận" : null);
   let opener: HTMLButtonElement;
   if (p === null) {
     opener = h("button", { type: "button", class: "owner-pick", "data-action": "pick-handler" }, h("span", null, "Chọn Hướng dẫn viên"), icon("next", 18));
-    replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, h("p", { class: "owner-text" }, "Chưa chọn ai — Hướng dẫn viên nào cũng bấm Nhận làm HDV được."), opener));
+    replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, h("p", { class: "khoi-mo-ta" }, "Chưa chọn ai — Hướng dẫn viên nào cũng bấm Nhận làm HDV được."), opener));
   } else {
     opener = h(
       "button",
@@ -516,11 +536,11 @@ function setBanHangPick(picked: AssigneeDto | null): void {
 }
 function renderBanHang(focus = false): void {
   const p = banHangPick;
-  const head = h("div", { class: "owner-head" }, h("h2", { id: "ban-hang-title", class: "owner-title" }, "Người phụ trách"), p === null ? h("span", { class: "chip hdv-chip chip-warn" }, "Chờ Bán hàng nhận") : null);
+  const head = dauKhoiPhuTrach(h("h2", { id: "ban-hang-title" }, "Người phụ trách"), p === null ? "Chờ Bán hàng nhận" : null);
   let opener: HTMLButtonElement;
   if (p === null) {
     opener = h("button", { type: "button", class: "owner-pick", "data-action": "pick-ban-hang" }, h("span", null, "Chọn người phụ trách"), icon("next", 18));
-    replaceChildren(banHangEl, head, h("div", { class: "owner-body" }, h("p", { class: "owner-text" }, "Chưa mời ai — Bán hàng nào cũng bấm Nhận phụ trách được."), opener));
+    replaceChildren(banHangEl, head, h("div", { class: "owner-body" }, h("p", { class: "khoi-mo-ta" }, "Chưa mời ai — Bán hàng nào cũng bấm Nhận phụ trách được."), opener));
   } else {
     opener = h(
       "button",
@@ -1165,6 +1185,20 @@ function apBanChup(g: GiaTriForm): void {
   }
 }
 
+/** Đơn không sửa được (không phải người sửa được, hoặc đã xác nhận): khuôn trạng thái chung thay cho biểu mẫu trống bị khoá (ADR-0234 nguyên tắc 7; đợt A). */
+function khongSuaDuoc(id: string, cau: string): void {
+  khoaToanTrang({ cau, trangCha: { nhan: "đơn", href: `/order?id=${encodeURIComponent(id)}` } });
+}
+/** Khuôn «không có quyền» chung thay cho biểu mẫu. Mã khởi động còn chạy tiếp sau chỗ gọi và tra ô của biểu mẫu bằng id, nên biểu mẫu được giữ lại trong trang,
+ *  ẩn và khoá (không ai thấy, không bấm được, không gửi được). */
+function khoaToanTrang(o: TuyChonTrangThai): void {
+  formLocked = true;
+  trangThaiToanTrang("403", o);
+  formEl.hidden = true;
+  formEl.inert = true;
+  document.querySelector("main")?.append(formEl);
+}
+
 async function loadOrder(): Promise<void> {
   if (!editId) return;
   renderBanner(errorEl, null);
@@ -1172,8 +1206,8 @@ async function loadOrder(): Promise<void> {
   try {
     const { order, canModify, laBanHangPhuTrach, banHangMoi } = await layDon!();
     // `canModify` do MÁY CHỦ quyết (người lập, người phụ trách đơn — ADR-0009 — hoặc quản trị); câu này chỉ giải thích khi bị từ chối.
-    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa đơn này."));
-    if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn chưa xác nhận."));
+    if (!canModify) return khongSuaDuoc(order.id, "Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa đơn này.");
+    if (order.status !== "draft") return khongSuaDuoc(order.id, "Chỉ sửa được đơn chưa xác nhận.");
     byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
     setBarTitle(`Sửa đơn ${order.orderCode}`);
     suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify, banHangSuaDuoc(order, laBanHangPhuTrach === true)); // ADR-0142: Bán hàng phụ trách (chưa Đã giao) sửa được như người phụ trách; trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
@@ -1209,7 +1243,7 @@ function dungKhoiKhach(rows: DongKhach[]): void {
   if (anTruong("passengers")) return; // ADR-0194: chính sách ẩn khối hành khách (không dựng; không gửi khoá `passengers` ⇒ máy chủ giữ danh sách đang lưu)
   if (anDs) return; // ADR-0228 Đ1: công tắc danh sách hành khách đang áp
   hk = taoKhoiHanhKhach({ rows, che: "form", soKhach: soKhachForm, today, bang: () => bangKhachQuery.matches, newKey, ma: "hk", onChange: () => recompute(), tenGoiY: () => (anKhach ? "" : field("customerName").value) });
-  replaceChildren(hkCard, h("h2", null, "Hành khách"), hk.root);
+  replaceChildren(hkCard, h("header", { class: "khoi-dau" }, h("h2", null, "Hành khách")), hk.root);
   hkCard.hidden = false;
   datViTriKhoiKhach();
 }
@@ -1384,7 +1418,7 @@ if (formGon) {
   byId("hinh-thuc-cho").append(byId("tra-sau-khoi"), byId("tra-sau-bao"));
   // (3) ba câu giải thích về tiền GẬP sau một nút, không bỏ (chủ: «ok nên gập lại»). Câu vẫn nằm trong cây DOM, ô vẫn trỏ `aria-describedby` tới nó; lưu bị từ chối (400) thì `moMoiKhoiGap` mở ra.
   const bocGiaiThich = h("div", { class: "pay-giai-thich" });
-  document.querySelector<HTMLElement>("#pay-card .grid.two")!.after(bocGiaiThich);
+  document.querySelector<HTMLElement>("#pay-card .luoi")!.after(bocGiaiThich);
   bocGiaiThich.append(byId("dat-coc-goi-y"), byId("dat-coc-tra-sau"));
   gapGiaiThich = taoKhoiGap({ ma: "thanh-toan-giai-thich", nhan: nhanGapGiaiThichTien(coODatCoc), than: bocGiaiThich });
   bocGiaiThich.before(gapGiaiThich.nut);
@@ -1688,8 +1722,8 @@ if (editId) {
   setBarTitle("Sửa đơn");
   await loadOrder();
 } else if (!can(staff, "order.create")) {
-  // ADR-0007: kế toán xem được đơn nhưng không lập đơn; nút "Đơn mới" đã ẩn, đây là lớp chặn khi mở thẳng đường dẫn.
-  lockForm(banner("danger", "Tài khoản này không được lập đơn."));
+  // ADR-0007: kế toán xem được đơn nhưng không lập đơn; nút "Đơn mới" đã ẩn, đây là lớp chặn khi mở thẳng đường dẫn. Khuôn «không có quyền» chung (đợt A).
+  khoaToanTrang({ trangDau: homeRedirect(staff) ?? "/" });
 } else {
   // Lập đơn mới: người lập là chủ đơn (phạm vi "own").
   suaSoVe = can(staff, "order.trip.edit", { ownerId: staff.id, assigned: false });

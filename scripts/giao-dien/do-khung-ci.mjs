@@ -13,14 +13,20 @@ import { pathToFileURL } from "node:url";
 
 /**
  * Bảng màn của lượt kiểm: đường dẫn trang (không kèm ?id) → bộ quyền đăng nhập + loại mã bản ghi cần gắn (nếu trang cần).
- * `ma`: "don" = đơn đã xác nhận do Bán hàng lập; "xe" = xe do Quản trị thêm. Khoá `khoa` trùng bảng màn của máy thử (docs/evidence/2026-11-21-khung-goc-thi-cong/bang-man.json).
+ * `ma`: "don" = đơn đã xác nhận do Bán hàng lập; "nhap" = đơn nháp do Bán hàng lập; "xe" = xe do Quản trị thêm. Khoá `khoa` trùng bảng màn của máy thử (docs/evidence/2026-11-21-khung-goc-thi-cong/bang-man.json).
  */
 export const BANG_CI = [
   { khoa: "don-hang", trang: "/orders", bo: "SALES" },
   { khoa: "chi-tiet-don", trang: "/order", bo: "SALES", ma: "don" },
   { khoa: "sua-xe", trang: "/xe-sua", bo: "ADMIN", ma: "xe" },
   { khoa: "dia-diem", trang: "/locations", bo: "ADMIN" },
+  { khoa: "tao-don", trang: "/order-form", bo: "SALES" },
+  { khoa: "sua-don", trang: "/order-form", bo: "SALES", ma: "nhap" },
+  { khoa: "tao-don-doi-tac", trang: "/order-form", bo: "PARTNER" },
+  { khoa: "cho-xac-nhan", trang: "/cho-xac-nhan", bo: "ADMIN" },
 ];
+/** Bộ quyền chỉ dùng để GIEO (không có màn đo): Toàn quyền đánh cờ «cần xác nhận» cho một dịch vụ giả. */
+const BO_GIEO = ["SUPER_ADMIN"];
 
 /** Dựng bảng màn [{ khoa, tk, trang }] từ BANG_CI và mã vừa gieo. Dòng cần mã mà gieo hỏng thì BỎ (lệnh đo sẽ báo đo thiếu trang đó — không bao giờ đạt giả). */
 export function dungBangMan(bang, ma) {
@@ -45,14 +51,14 @@ async function chay() {
   let ketLuan = { ok: false, maThoat: 2, buoc, loi: null };
   try {
     const { dungMoiTruong } = await import("./moi-truong.mjs");
-    const cacBo = [...new Set(BANG_CI.map((d) => d.bo))];
+    const cacBo = [...new Set([...BANG_CI.map((d) => d.bo), ...BO_GIEO])];
     moi = await dungMoiTruong({ bo: cacBo, hanPhut: 25 });
     console.log(`▶ Máy thử tạm: ${moi.base}; tài khoản: ${moi.boChayDuoc.join(", ")}; lỗi gieo đơn: ${moi.loiGieo.length}`);
     for (const l of moi.loiGieo) console.log(`  ✗ gieo ${l.viec}: ${l.status ?? ""} ${l.loi}`);
 
     // ---- gieo thêm: một xe, một địa điểm (Quản trị) qua API thật
     const L = await import(pathToFileURL(join(process.cwd(), "tests", "e2e", "lib.mjs")).href);
-    const ma = { don: moi.id.donDaXacNhan[0] ?? null, xe: null };
+    const ma = { don: moi.id.donDaXacNhan[0] ?? null, nhap: moi.id.donNhap[0] ?? null, xe: null };
     if (moi.taiKhoan.ADMIN) {
       const ck = await L.session(moi.taiKhoan.ADMIN);
       const xe = await L.call(ck, "POST", "/api/van-chuyen/xe", { plateNumber: "79B-123.45", chassisNumber: "KHUNGDOCI0001", name: "Xe đo khung", passengerCapacity: 16 });
@@ -60,6 +66,20 @@ async function chay() {
       else console.log(`  ✗ gieo xe: ${xe.status} ${JSON.stringify(xe.body?.error ?? xe.body).slice(0, 300)}`);
       const dd = await L.call(ck, "POST", "/api/locations", { code: "KS_DO_KHUNG", name: "Khách sạn đo khung", locationTypeCode: "HOTEL", address: "12 Trần Phú, Nha Trang", sortOrder: 95 });
       if (dd.status !== 201) console.log(`  ✗ gieo địa điểm: ${dd.status} ${JSON.stringify(dd.body?.error ?? dd.body).slice(0, 300)}`);
+    }
+    // ---- gieo thêm: một đơn ĐANG CHỜ XÁC NHẬN (khung gốc đợt A), để màn «Đơn chờ xác nhận» được đo khi có danh sách, như người dùng thật thấy. Gieo hỏng thì trang rỗng
+    // và phép đo chữ đậm báo vượt trần (không bao giờ đạt giả). Cùng cách kịch bản tests/e2e/gui-don.mjs: dịch vụ giả riêng, Toàn quyền đánh cờ, Bán hàng lập rồi gửi.
+    if (moi.taiKhoan.SALES && moi.taiKhoan.SUPER_ADMIN) {
+      try {
+        const AT = "'2026-01-01T00:00:00.000Z'";
+        await L.sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ('ZDK1','Dịch vụ đo khung cần xác nhận','perPax',100000,NULL,NULL,NULL,NULL,NULL,NULL,96,1,${AT},${AT}) ON CONFLICT(code) DO UPDATE SET in_sheet = 1`);
+        const sup = await L.session(moi.taiKhoan.SUPER_ADMIN);
+        const co = await L.call(sup, "POST", "/api/cai-dat/xac-nhan-don", { pham: "SERVICE", ma: "ZDK1", canXacNhan: true });
+        const ban = await L.session(moi.taiKhoan.SALES);
+        const o = co.status === 200 ? await L.call(ban, "POST", "/api/orders", L.orderInput({ customerName: "Khách Chờ Xác Nhận", customerPhone: "0905 678 901", services: [L.catalogService({ catalogCode: "ZDK1", catalogPriceSeen: { adult: 100000 }, pax: { adult: 2 }, departDate: L.vnDate(3) })] })) : co;
+        const gui = o.status === 201 ? await L.call(ban, "POST", `/api/orders/${o.body.order.id}/gui-xac-nhan`, {}) : o;
+        if (gui.status !== 201) console.log(`  ✗ gieo đơn chờ xác nhận: ${gui.status} ${JSON.stringify(gui.body?.error ?? gui.body).slice(0, 300)}`);
+      } catch (e) { console.log(`  ✗ gieo đơn chờ xác nhận: ${String(e?.message ?? e).slice(0, 300)}`); }
     }
     const { bangMan, bo } = dungBangMan(BANG_CI, ma);
     for (const b of bo) console.log(`  ✗ bỏ khỏi bảng màn: ${b}`);
