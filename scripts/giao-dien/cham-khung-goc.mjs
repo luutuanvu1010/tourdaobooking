@@ -114,7 +114,8 @@ export function chamO(o, khuonKhai, tran = TRAN_THI_GIAC) {
   if (nhipLa.length) loi.push(`khoảng cách ngoài thang: ${nhipLa.join(", ")}`);
   if (o.coDinh) loi.push(`phần tử fixed trong vùng nội dung: ${o.coDinh}`);
   for (const c of o.loiNut ?? []) loi.push(`nút chính sai chỗ: ${c}`);
-  // Ngôn ngữ thị giác (ADR-0234 Đ5b): ô đo cũ không có trường thì bỏ qua (máy chấm vẫn dùng được cho số đo trước đợt gốc).
+  // Ngôn ngữ thị giác (ADR-0234 Đ5b): ô đo thiếu trường là đoạn đo hỏng — không bao giờ coi là đạt (soát độc lập 24/11).
+  if ([o.tiLeDam, o.nutDac, o.tienLech, o.bongKhoi].some((x) => typeof x !== "number")) loi.push("không đo được bốn phép đo ngôn ngữ thị giác (đoạn đo hỏng?)");
   if (o.tiLeDam > tranDam(tran, khuonKhai)) loi.push(`chữ đậm vượt trần: ${Math.round(o.tiLeDam * 100)} % > ${Math.round(tranDam(tran, khuonKhai) * 100)} %`);
   if (o.nutDac > tran.nutDac) loi.push(`nút nền đặc vượt trần: ${o.nutDac} > ${tran.nutDac}`);
   if (o.tienLech > tran.tienLech) loi.push(`số tiền lệch màu: ${o.tienLech} (${(o.vdTien ?? []).join(" | ")})`);

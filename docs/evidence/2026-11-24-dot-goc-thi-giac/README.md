@@ -29,7 +29,7 @@ Lệnh đã chạy: `chup.mjs --so 1,8,13,16,18,38,58 --rong 390,1280,1440 --tha
 
 ## Kết quả đo (bảy màn × ba bề rộng)
 
-Không màn nào tràn ngang; không còn phần tử có bóng mờ; mỗi màn tối đa một nút nền đặc trong vùng nội dung; tiền một màu mực (trắng trên dải tóm tắt nền đậm; tiền đã đủ màu xám); dải nhắc 53–61 → 45 (44 cộng đường kẻ dưới); ở điện thoại không chỗ bấm nào dưới cỡ ngón tay (như trước). Chữ đậm (tỉ lệ mẩu chữ ≥ 600): Đơn hàng 51 → 33 % (390), 67 → 43 % (1.280); Sửa xe 84 → 53 %; Địa điểm 36 → 24 % (1.280); Đối tác Đơn hàng 60 → 42 %; Chi tiết đơn 61 → 59 %; Tạo đơn 78 → 78 % (ruột trang, để đợt A tới F). Bảng Đơn hàng ở 1.440 × 900: 12 → 15 dòng.
+Không màn nào tràn ngang; không còn phần tử có bóng mờ; mỗi màn tối đa một nút nền đặc trong vùng nội dung; tiền một màu mực (trắng trên dải tóm tắt nền đậm; tiền đã đủ màu xám); dải nhắc 53–61 → 45 (44 cộng đường kẻ dưới); ở điện thoại không chỗ bấm nào dưới cỡ ngón tay (như trước). Chữ đậm (tỉ lệ mẩu chữ ≥ 600 theo `do-thi-giac.js` của lượt 24/11 — khác cách đo của `npm run do-khung`, nơi chữ đậm là chữ đậm HƠN chữ thân, nên hai bộ số không so trực tiếp được): Đơn hàng 51 → 33 % (390), 67 → 43 % (1.280); Sửa xe 84 → 53 %; Địa điểm 36 → 24 % (1.280); Đối tác Đơn hàng 60 → 42 %; Chi tiết đơn 61 → 59 %; Tạo đơn 78 → 78 % (ruột trang, để đợt A tới F). Bảng Đơn hàng ở 1.440 × 900: 12 → 15 dòng.
 
 ## Lượt chấm của trợ lý đánh giá giao diện (24/11, trên ảnh cặp)
 

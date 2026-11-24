@@ -34,6 +34,7 @@ test("không bao giờ ghi là đạt khi không đo được, khi máy thử ch
   assert.deepEqual(chamO({ loi: "hết giờ" }, "chi-tiet"), ["không đo được: hết giờ"]);
   assert.match(chamO({ ...sach, khuon: null }, "chi-tiet").join(" | "), /máy thử đang chạy bản cũ/);
   assert.match(chamO({ ...sach, soKhoi: 0 }, "chi-tiet").join(" | "), /không thấy khối nào của khung/);
+  assert.match(chamO({ ...sach, tiLeDam: undefined }, "chi-tiet").join(" | "), /không đo được bốn phép đo ngôn ngữ thị giác/);
 });
 
 test("dãy bề rộng: 360 tới 1.920 bước 20 là 79 bề rộng; khoảng sai thì báo", () => {

@@ -22,8 +22,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "3.43",
     date: "2026-11-24",
     items: [
-      { kind: "doi", text: "Giao diện phẳng và gọn hơn: thẻ, khối thôi đổ bóng, chỉ còn một đường viền mảnh; nút phụ nền trắng; xanh nhạt chỉ còn để đánh dấu mục đang chọn." },
-      { kind: "doi", text: "Mọi số tiền viết cùng một màu chữ, số thẳng cột; tiền đã đủ thì chữ nhạt hơn. Màu đỏ chỉ còn cho lỗi, quá hạn, huỷ." },
+      { kind: "doi", text: "Giao diện phẳng và gọn hơn: thẻ, khối thôi đổ bóng, chỉ còn một đường viền mảnh; nút phụ nền trắng thay nền xanh nhạt." },
+      { kind: "doi", text: "Mọi số tiền viết cùng một màu chữ, số thẳng cột; tiền đã đủ thì chữ nhạt hơn. Số tiền thôi tô đỏ." },
       { kind: "doi", text: "Dải nhắc đầu trang («Tin quan trọng», bật bảo mật hai lớp) nền trắng, vạch màu bên trái nói mức độ; ở máy tính gọn một dòng." },
       { kind: "doi", text: "Tiêu đề dùng cùng phông với chữ nội dung; cỡ chữ gom lại còn sáu cỡ. Huy hiệu trạng thái có thêm chấm tròn." },
       { kind: "doi", text: "Ở máy tính có chuột, bảng Đơn hàng hiện nhiều dòng hơn trên một màn. Điện thoại giữ nguyên độ thoáng và cỡ chỗ bấm." },

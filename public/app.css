@@ -547,7 +547,7 @@
      Giao diện (ADR-0087 điều 7) — đổi nền trang / viền của Nền tảng không làm đổi ảnh gửi khách. */
   --c-receipt-surface-alt: #eaf2f8;
   --c-receipt-border: #d3e1ec;
-  --c-tabbar-glass: var(--c-surface); /* ADR-0234 */ /* thanh dưới nền đặc, không mờ kính   /* thanh tab điện thoại mờ kính */
+  --c-tabbar-glass: var(--c-surface); /* ADR-0234 — thanh dưới nền đặc, không mờ kính (1.70: mờ kính) */
   --blur-glass: none;
   /* Dải tóm tắt đầu trang chi tiết đơn: dải màu biển đậm → ngọc đậm. Chữ phải đọc được trên CẢ HAI đầu dải (src/token-giao-dien.test.ts). Vàng "Còn lại":
      trên ngọc #0e7490 chỉ 3,72:1 nên đầu cuối dải là ngọc ĐẬM (5,04:1). */
@@ -555,7 +555,7 @@
   --c-summary-bg-2: var(--c-lagoon-strong);
   --c-on-summary: var(--c-on-dark);
   --c-summary-due: var(--c-on-summary); /* ADR-0234 */
-  --grad-summary: none; /* ADR-0234 */ /* dải tóm tắt một màu
+  --grad-summary: none; /* ADR-0234 — dải tóm tắt một màu */
   /* Ô chức năng Trang chủ theo nhóm (src/shared/trang-chu-o.ts): Bán hàng / Quản lý giữ biển (--c-primary-soft), "Tạo đơn" san hô. */
   --c-tile-vc-bg: var(--c-lagoon-soft);
   --c-tile-vc: var(--c-lagoon-strong);
