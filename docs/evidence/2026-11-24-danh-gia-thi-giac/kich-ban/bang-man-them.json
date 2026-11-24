@@ -1,0 +1,29 @@
+{
+  "ghiChu": "Các màn thêm vào 87 màn của bảng 20/11 (docs/evidence/2026-11-20-danh-gia-lai-giao-dien/kich-ban/bang-man.json) cho lượt đánh giá thị giác 24/11: trang đầu của các bộ quyền còn thiếu, trọn hành trình đối tác (cả tài khoản tổ chức lữ hành), hai trang chưa có trong bảng cũ, và vài màn không có quyền. «tk» là khoá tài khoản thử trong tai-khoan.json khi khác tài khoản mặc định của bộ quyền.",
+  "man": [
+    { "so": 101, "ho": "Màn của đối tác bên ngoài", "bo": "PARTNER", "trang": "/" },
+    { "so": 102, "ho": "Màn của đối tác bên ngoài", "bo": "PARTNER", "tk": "luhanh", "trang": "/orders" },
+    { "so": 103, "ho": "Màn của đối tác bên ngoài", "bo": "PARTNER", "tk": "luhanh", "trang": "/to-chuc" },
+    { "so": 104, "ho": "Màn của đối tác bên ngoài", "bo": "PARTNER", "tk": "luhanh", "trang": "/account" },
+    { "so": 105, "ho": "Màn của đối tác bên ngoài", "bo": "PARTNER", "tk": "luhanh", "trang": "/order-form" },
+    { "so": 106, "ho": "Màn của đối tác bên ngoài", "bo": "PARTNER", "trang": "/feedback" },
+    { "so": 107, "ho": "Màn của đối tác bên ngoài", "bo": "PARTNER", "trang": "/help" },
+    { "so": 108, "ho": "Màn của đối tác bên ngoài", "bo": "PARTNER", "trang": "/hoa-hong" },
+    { "so": 109, "ho": "Tài xế, chuyến", "bo": "DRIVER_PARTNER", "trang": "/account" },
+    { "so": 110, "ho": "Tài xế, chuyến", "bo": "DRIVER_PARTNER", "trang": "/" },
+    { "so": 111, "ho": "Tài xế, chuyến", "bo": "DRIVER", "trang": "/" },
+    { "so": 112, "ho": "Quản trị, Thiết lập", "bo": "HR", "trang": "/" },
+    { "so": 113, "ho": "Quản trị, Thiết lập", "bo": "HR", "trang": "/phieu-dang-ky" },
+    { "so": 114, "ho": "Đơn hàng + chi tiết", "bo": "FIELD", "trang": "/" },
+    { "so": 115, "ho": "Đơn hàng + chi tiết", "bo": "INTERN", "trang": "/" },
+    { "so": 116, "ho": "Tiền", "bo": "SALES", "trang": "/hoa-hong" },
+    { "so": 117, "ho": "Quản trị, Thiết lập", "bo": "ADMIN", "trang": "/danh-muc-giay-to" },
+    { "so": 118, "ho": "Đơn hàng + chi tiết", "bo": "SALES", "trang": "/home" },
+    { "so": 119, "ho": "Vé điện tử (họ mới)", "bo": "SALES", "trang": "/ve-kho" },
+    { "so": 120, "ho": "Đăng nhập, trạng thái", "bo": "PARTNER", "trang": "/staff" },
+    { "so": 121, "ho": "Đăng nhập, trạng thái", "bo": "KHACH", "trang": "/" },
+    { "so": 122, "ho": "Quản trị, Thiết lập", "bo": "SALES_MANAGER", "trang": "/phieu-dang-ky" },
+    { "so": 123, "ho": "Tiền", "bo": "SUPER_ADMIN", "trang": "/so-cong-no" },
+    { "so": 124, "ho": "Điều phối xe", "bo": "SUPER_ADMIN", "trang": "/dieu-phoi" }
+  ]
+}

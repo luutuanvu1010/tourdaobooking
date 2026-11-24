@@ -1,0 +1,21 @@
+/* PHƯƠNG ÁN C — «Đổi tông» = lớp A + lớp B + lớp này. CHỈ đổi giá trị token: cùng thành phần, cùng bố cục với B.
+   Lớp kiểu XEM TRƯỚC của lượt đánh giá thị giác 24/11/2026, KHÔNG phải mã sản phẩm.
+   Điều đổi: nền và viền từ xám xanh sang trung tính ấm; nền «đang chọn» từ xanh nhạt sang cát rất nhạt; bỏ màu ngọc ở vòng tiêu điểm và vạch chỉ báo
+   (biển đậm làm màu của mọi thứ bấm được, san hô là màu nhấn duy nhất). Màu thương hiệu (biển đậm, san hô, cát) giữ nguyên giá trị.
+   ĐỤNG quyết định đã duyệt: đặc tả «Thị giác 1.70» ngày 2/10 (nền trang xám xanh rất nhạt; thêm màu nhấn xanh ngọc). Muốn làm thật phải có quyết định mới của chủ. */
+:root {
+  --c-surface-alt: #f6f4ee;
+  --c-border: #e7e3da;
+  --c-input-border: #d3cdc0;
+  --c-text: #1d1b18;
+  --c-text-muted: #5e5a52;
+  --c-placeholder: #9a958a;
+  --c-primary-soft: #efeadf;
+  --c-soft-hover: #f1eee7;
+  --c-focus: var(--c-primary);
+  --c-indicator: var(--c-primary);
+  --c-tile-vc-bg: var(--c-primary-soft);
+  --c-tile-toi-bg: var(--c-primary-soft);
+  --c-tile-all-bg: var(--c-primary-soft);
+  --c-lagoon-soft: var(--c-primary-soft);
+}

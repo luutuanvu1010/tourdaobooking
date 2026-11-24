@@ -1,0 +1,78 @@
+/* PHƯƠNG ÁN B — «Làm mới trên khung gốc» = lớp A + lớp này (tiêm theo thứ tự A rồi B).
+   Lớp kiểu XEM TRƯỚC của lượt đánh giá thị giác 24/11/2026, KHÔNG phải mã sản phẩm. Khi thi công thật, phần «giá trị» vào token gốc, phần «thành phần» vào bộ
+   thành phần chung và khuôn của khung gốc (ADR-0222 Đ3, Đ4), không viết luật riêng cho từng màn như ở đây.
+   Giữ nguyên: màu thương hiệu (biển đậm, san hô, cát, ngọc), phông và độ đậm chủ đang đặt, bố cục và điều hướng, chữ trên nút và nhãn. */
+
+/* ---------- 1. Vai màu: mỗi màu một việc ---------- */
+:root {
+  --c-surface-alt: #f4f6f8;                 /* nền trang: xám trung tính, bớt ánh xanh để khối trắng và màu thương hiệu tự nổi */
+  --c-border: #e3e7ec;
+  --c-btn-soft-bg: var(--c-surface);        /* nút phụ: nền trắng, viền mảnh. Nền xanh nhạt chỉ còn MỘT nghĩa: «đang chọn» */
+  --c-btn-soft-border: var(--c-input-border);
+  --c-tabbar-glass: var(--c-surface);
+}
+/* Tiền viết bằng màu mực, số đều cột; số còn phải thu là thứ duy nhất được đậm. Đỏ chỉ còn cho quá hạn, lỗi, huỷ. */
+.money-due, .money-due .lbl-full, .money-due .lbl-short { color: var(--c-text); }
+.money-ok, .money-ok .lbl-full, .money-ok .lbl-short { color: var(--c-text-muted); font-weight: var(--fw-regular); }
+.money-due, .money-ok, [data-o="tien"], .dash-so-gt { font-variant-numeric: tabular-nums; }
+.dash-so-gt.dash-so-thieu, .dash-so-gt.dash-so-doanh-thu, #mobile-total, .summary-total .money, .sum-total { color: var(--c-text); font-variant-numeric: tabular-nums; }
+body[data-khung-goc] .cap[data-nhan-manh] { color: var(--c-text); }
+body[data-khung-goc] .cap[data-nhan-manh] ~ .cap[data-nhan-manh], .order-total-row .money-due { color: var(--c-text); }
+
+/* ---------- 2. Chữ: trong một dòng chỉ một thứ đậm ---------- */
+.order-row-when, .dash-today-time { font-weight: var(--fw-regular); color: var(--c-text); }
+.bang-dau > span, body[data-khung-goc] .bang th { font-weight: var(--fw-regular); }
+body[data-khung-goc] .bang-dau { background: transparent; border-bottom: 1px solid var(--c-border); }
+.dash-so-nhan > span, .dash-pham-vi, .dash-con-lai, .order-summary-band .label, .o-noi-chu { font-weight: var(--fw-regular); }
+.order-summary-band .label { display: block; text-transform: lowercase; letter-spacing: 0; opacity: .8; }  /* chữ trong mã đang gõ HOA sẵn: lớp xem trước chỉ đổi cách hiện, không đổi chữ */
+.order-summary-band .label::first-letter { text-transform: uppercase; }
+/* Trang chi tiết: nhãn mờ, giá trị chữ thường; chỉ tiêu đề khối và dòng tổng được đậm. Hôm nay gần như mọi giá trị đều đậm nên không giá trị nào nổi. */
+.pdt-o > dd, .line-name, .line-total, .hk-xem-ten, .hk-so, .hk-dem-chu, .dd-dong-gio, .dd-dong-noi > span, .dd-dv-ten, .handler-name, .pdt-nguoi-huong, .line-name > .muted, .dg-lock-note, .chip { font-weight: var(--fw-regular); }
+.lock-note { font-weight: var(--fw-regular); color: var(--c-text); background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-border); }
+.order-row-phone a, .icon-label a { text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); }
+
+/* ---------- 3. Huy hiệu trạng thái: một dáng, có chấm (không chỉ dựa vào màu), chữ thường ---------- */
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 8px; font-weight: var(--fw-regular); white-space: nowrap; }
+.badge:not(:empty)::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+#dash-today-count.badge::before, .sidebar-item-badge::before { content: none; }
+.badge-completed { color: var(--c-primary-strong); background: var(--c-surface-alt); }  /* «Hoàn thành» là việc đã xong: không còn là huy hiệu đậm nhất bảng */
+.huy-hieu { font-weight: var(--fw-regular); }
+
+/* ---------- 4. Nút: ba cấp, một dáng, không bóng màu ---------- */
+.nut[data-cap="phu"] { background: var(--c-surface); border-color: var(--c-input-border); }
+.btn:not(.btn-accent):not(.btn-danger):not(.btn-primary) { border-color: var(--c-input-border); }
+.btn-danger { border-color: var(--c-danger-border); }
+.dash-today-call { background: var(--c-surface); box-shadow: inset 0 0 0 1px var(--c-input-border); }
+/* San hô chỉ dành cho MỘT hành động chốt của màn. Nút lặp lại theo từng dòng (ví dụ «Kiểm vé») về cấp phụ. */
+.cx-ds-nut.btn-accent, .the-dong .btn-accent { color: var(--c-primary); background: var(--c-surface); border-color: var(--c-input-border); }
+input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-color: var(--c-primary); }
+
+/* ---------- 5. Khung chung nói nhỏ hơn nội dung ---------- */
+#topbar { box-shadow: none; border-bottom: 1px solid var(--c-border); }
+.bar-avatar, .sidebar-avatar, .dash-hero-avatar { color: var(--c-primary); background: var(--c-primary-soft); }
+/* Dải nhắc: một dòng, nền trắng, một vạch màu bên trái nói mức độ; nút trong dải là lối chữ. */
+#strips > .dai { min-height: 44px; padding-block: 0; color: var(--c-text); background: var(--c-surface); }
+#strips > .dai[data-tong="cat"] { box-shadow: inset 3px 0 0 var(--c-sand); }
+#strips > .dai[data-tong="do"] { box-shadow: inset 3px 0 0 var(--c-danger); }
+#strips > .dai[data-tong="bien"] { box-shadow: inset 3px 0 0 var(--c-primary); }
+#strips > .dai[data-tong="cat"] > svg { color: var(--c-sand-text); }
+#strips > .dai[data-tong="do"] > svg { color: var(--c-danger); }
+#strips .dai-cau { font-weight: var(--fw-regular); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#strips .dai .nut, #strips .dai .btn { padding-inline: var(--s2); font-size: var(--fs-label); color: var(--c-primary); background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: 3px; }
+/* Thanh dưới: nền đặc, mục đang chọn vẫn là viên nền nhạt; nút tròn «Tạo đơn» giữ san hô, không bóng (lớp A). */
+#tabbar { -webkit-backdrop-filter: none; backdrop-filter: none; }
+#tabbar .tab { font-weight: var(--fw-regular); }
+#tabbar .tab[aria-current="page"] { font-weight: var(--fw-semibold); }
+/* Thanh bên: nhãn nhóm chữ thường, bớt đậm */
+.sidebar-item { font-weight: var(--fw-regular); }
+.sidebar-item[aria-current="page"] { font-weight: var(--fw-semibold); }
+
+/* ---------- 6. Hai mức mật độ ---------- */
+/* «Thoáng» là mặc định (ngón tay, điện thoại, đối tác): dòng 52, vùng chạm 44. «Gọn» chỉ bật ở máy tính có chuột, cho bảng của khuôn Danh sách:
+   dòng 44, chữ 14; chỉ giảm chiều dọc và một bậc chữ, không đổi cỡ nút hay ô nhập. */
+@media (min-width: 900px) and (pointer: fine) {
+  :root { --kg-cao-dong: 44px; --kg-cao-dau-bang: 36px; }
+  body[data-khung-goc="danh-sach"] .the-dong { padding-block: var(--s2); }
+  body[data-khung-goc="danh-sach"] .order-row-when, body[data-khung-goc="danh-sach"] .order-row-name, body[data-khung-goc="danh-sach"] .money-due .lbl-full, body[data-khung-goc="danh-sach"] .money-ok .lbl-full { font-size: var(--fs-step-3); }
+  body[data-khung-goc="danh-sach"] .bang td, body[data-khung-goc="danh-sach"] .bang th { font-size: var(--fs-step-3); }
+}
