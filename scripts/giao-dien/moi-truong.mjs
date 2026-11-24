@@ -1,6 +1,7 @@
 // Dựng MÔI TRƯỜNG THỬ TẠM cho lệnh đo giao diện (do-man.mjs): D1 tạm + `wrangler dev` (startEnv của a2-cdp.mjs) + Chrome ẩn riêng có ngăn cookie cho từng bộ quyền,
 // tài khoản thử theo bộ quyền, và vài đơn gieo qua API thật. Không chạm bản chạy thật: mọi thứ ở 127.0.0.1 và thư mục tạm.
 // Mục tiêu dọn dẹp: KHÔNG BAO GIỜ để lại `wrangler dev` hay Chrome mồ côi — dung() idempotent, có SIGINT/SIGTERM, đồng hồ tự dừng, và cuối cùng giết mọi tiến trình con cháu còn sót.
+import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -81,7 +82,14 @@ export async function dungMoiTruong({ bo, hanPhut = 20 }) {
     for (const b of cacBo) {
       const tk = { name: `${TEN_BO[b]} Thử`, phone: SDT_BO[b], pin: PIN_THU, permissions: BO_QUYEN[b], ...(VAI_BO[b] ? { vai: VAI_BO[b] } : {}) };
       try {
-        const sqlTao = await a2.insertStaffSqlThu(tk);
+        let sqlTao = await a2.insertStaffSqlThu(tk);
+        // Tài xế công ty thử mang vai hồ sơ «Tài xế công ty» (DRIVER_INTERNAL) như tài khoản thật do Nhân sự tạo — để xếp được vào chuyến xe của công ty
+        // (máy chủ từ chối «Tài xế không thuộc chủ của xe này» nếu thiếu; đợt B khung gốc 24/11/2026). Vai nội bộ nên insertStaffSql không gán qua `vai`.
+        if (b === "DRIVER") {
+          const at = new Date().toISOString();
+          const ngayVn = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+          sqlTao += `\nINSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('${randomUUID()}', (SELECT party_id FROM staff WHERE phone = '${tk.phone}'), 'DRIVER_INTERNAL', '${ngayVn}', '${at}', '${at}');`;
+        }
         let loi = null;
         for (let lan = 0; lan < 4; lan++) { try { env.sql(sqlTao); loi = null; break; } catch (e) { loi = e; if (!/SQLITE_BUSY|database is locked/i.test(String(e?.stderr ?? e?.message ?? e))) break; await nghi(800); } }
         if (loi) throw loi;

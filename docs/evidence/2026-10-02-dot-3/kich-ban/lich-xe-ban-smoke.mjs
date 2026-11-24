@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/lich-xe-ban-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Kịch bản Chrome — trang "Lịch xe bận" + dải bận trên Điều phối xe (ADR-0055 VK2-A/B; Vận chuyển Đợt 3 Task 10; bản vẽ docs/design/van-chuyen-dot-3-7/
 // Quản lý lịch xe bận.dc.html 2/10). Khổ 1040 + 390. Thứ tự tài khoản: Kế toán TRƯỚC, Quản trị SAU (các trang dùng CHUNG kho cookie — CLAUDE.md §10).
 //   1. Kế toán 1040: thanh bên KHÔNG có "Lịch xe bận"; mở thẳng /lich-xe-ban → câu từ chối tiếng Việt, không lưới, không nút.

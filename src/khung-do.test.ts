@@ -57,9 +57,11 @@ test("đoạn đo trong trang là một biểu thức hợp lệ, đọc khuôn 
 });
 
 test("trần bốn phép đo ngôn ngữ thị giác (ADR-0234 Đ5b) chỉ được hạ: không cao hơn lúc lập 24/11/2026", () => {
-  const LUC_LAP = { tiLeDam: { "danh-sach": 0.44, "chi-tiet": 0.58, "bieu-mau": 0.57, "thiet-lap": 0.28 }, nutDac: 1, tienLech: 0, bongKhoi: 0 };
+  // Khuôn Tổng quan thêm ngày 24/11/2026 (đợt B khung gốc): trần lập bằng số đo của bốn màn Tổng quan, mức cao hơn của máy thử và lượt kiểm GitHub.
+  const LUC_LAP = { tiLeDam: { "danh-sach": 0.44, "chi-tiet": 0.58, "bieu-mau": 0.57, "thiet-lap": 0.28, "tong-quan": 0.44 }, nutDac: 1, tienLech: 0, bongKhoi: 0 };
   for (const [k, v] of Object.entries(TRAN_THI_GIAC.tiLeDam)) assert.ok(v <= (LUC_LAP.tiLeDam as Record<string, number>)[k]!, `trần chữ đậm khuôn ${k} nâng lên ${v}`);
   assert.deepEqual(Object.keys(TRAN_THI_GIAC.tiLeDam).sort(), Object.keys(LUC_LAP.tiLeDam).sort(), "không bỏ khuôn khỏi bảng trần (bỏ là nới về mức cao nhất)");
   for (const k of ["nutDac", "tienLech", "bongKhoi"] as const) assert.ok(TRAN_THI_GIAC[k] <= LUC_LAP[k], `trần ${k} nâng lên ${TRAN_THI_GIAC[k]}`);
   assert.match(chamO({ ...sach, khuon: "thiet-lap", tiLeDam: 0.3 }, "thiet-lap").join(" | "), /chữ đậm vượt trần: 30 % > 28 %/);
+  assert.match(chamO({ ...sach, khuon: "tong-quan", tiLeDam: 0.45 }, "tong-quan").join(" | "), /chữ đậm vượt trần: 45 % > 44 %/);
 });

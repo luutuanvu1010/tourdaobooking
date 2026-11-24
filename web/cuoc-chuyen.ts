@@ -566,7 +566,8 @@ function ve(): void {
     const gianDoan = h("button", { type: "button", class: tren ? "nut day-phai" : "nut", "data-cap": "nguy-hiem", disabled: dangGui, "data-action": "ket-thuc-gian-doan" }, "Kết thúc gián đoạn");
     gianDoan.addEventListener("click", () => moGianDoan(gianDoan));
     const cau = kq.duoc ? null : h("p", { class: "o-phu" }, cauChuaKetThuc(kq));
-    return tren ? [ketThucKhoa, chuyenXe, gianDoan, cau] : [ketThucKhoa, cau, chuyenXe, gianDoan];
+    // Bản 1.39: «Kết thúc gián đoạn» không là nút to nhất lúc đang chạy — ở điện thoại đứng trong một hàng (không kéo kín bề ngang như các nút của thanh việc).
+    return tren ? [ketThucKhoa, chuyenXe, gianDoan, cau] : [ketThucKhoa, cau, chuyenXe, h("div", { class: "hang" }, gianDoan)];
   };
   // "Vừa ghi …" của điểm đã xong (điểm thu gọn không còn thẻ để mang dòng đó) lên đầu danh sách.
   const suatVua = vuaGhi ? r.suat.find((x) => x.id === vuaGhi!.suatId) : undefined;

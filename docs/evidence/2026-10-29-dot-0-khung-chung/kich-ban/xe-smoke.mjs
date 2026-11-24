@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/xe-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // BẢN CHÉP (đợt 0 khung chung, 29/10/2026) của docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/xe-smoke.mjs — hồ sơ có ngày giữ nguyên.
 // Sửa theo vỏ mới (đặc tả đợt 0 §5.4, Task 7): nhóm VẬN CHUYỂN của Quản trị nay có khối gập «Điều phối» (Điều phối xe + Đề nghị chuyển khách) rồi 3 mục phẳng;
 // nút gập đầu tiên của thanh bên không còn là THIẾT LẬP (đọc bằng aria-controls). Bước 2, 8b, 9 đỏ CẢ ở gốc nhánh (1d3c67fd) — không do đợt 0, giữ nguyên.

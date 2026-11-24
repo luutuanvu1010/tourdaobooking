@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/xe-dang-chay-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Vận chuyển Đợt 5 "Xe đang chạy" (ADR-0052 D5; bản vẽ docs/design/van-chuyen-dot-3-7/Điều phối xe đang chạy.dc.html — V11 bảng 11.1–11.6, V6 bổ sung 6.1, 6.2):
 // trang /xe-dang-chay, khối "Việc của văn phòng" + "Khách đang chờ" ở Chi tiết chuyến đang chạy, hộp "Báo huỷ một suất", form "Thêm điểm đón / thêm khách"
 // (ADR-0104 Đ1: Bán hàng và Quản trị đều qua hộp "Điều chỉnh khẩn cấp" — Bán hàng mở rồi đóng), "Cập nhật điểm theo đơn" khi xe chạy, Kế toán chỉ xem, màn tài xế: dải "Văn phòng vừa thêm điểm" + chip.

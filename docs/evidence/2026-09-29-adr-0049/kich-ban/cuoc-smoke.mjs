@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/cuoc-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // B4–B6 + bấm thay (A15): Cuốc của tôi (/cuoc — V5, trang mở đầu của tài xế công ty, Q5), một chuyến của tài xế (/cuoc-chuyen — V6 Chuyến đang chạy, V7 Xuất
 // bến), văn phòng bấm thay ở Chi tiết chuyến (/chuyen — thành phần A "xảy ra lúc"). ADR-0049 D3, ADR-0050 VK1-A; bản vẽ docs/design/van-chuyen-dieu-phoi/
 // project/04, 05 (5a, 5b, 5c), 06 (6b, 6c, 6d); bản đối chiếu 2.5, H15; ruling R-P11, R-P14, R-P17; lệnh điều phối vòng 3 (mất mạng: "Chưa gửi được — bấm

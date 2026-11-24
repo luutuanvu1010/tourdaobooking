@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/chuyen-sua-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // B3 — V3 Tạo / sửa chuyến (/chuyen-sua) cho VĂN PHÒNG. ADR-0049 V3 (route 2, 4), ADR-0050; bản vẽ docs/design/van-chuyen-dieu-phoi/project/03 Tao sua chuyen.dc.html
 // (3a, 3b); bản đối chiếu DOI-CHIEU-2026-09-29.md mục 2.2 (tạo trong mốc không hỏi phá lệ), 2.3 (dời giờ không cần phá lệ; câu mốc chỉ khi đổi xe / tài xế của
 // chuyến đang khoá), H18 (phá lệ khoảng nghỉ ở 3b), Q1 (không ô ghi chú).

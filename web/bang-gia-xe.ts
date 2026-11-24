@@ -322,7 +322,7 @@ function khoiDanhMuc(o2: { id: string; tieuDe: string; goiY: string; nutThem: HT
             doiDung?.addEventListener("click", () => d.doiDung(doiDung));
             return h(
               "div",
-              { class: "dong", "data-ten": d.ten, "data-ngung": d.dangDung ? undefined : "" },
+              { class: "dong", "data-ten": d.ten, "data-dang-dung": d.dangDung ? "co" : "khong" }, // không làm mờ dòng ngưng (thiếu tương phản — axe 24/11): trạng thái đã có chữ ở huy hiệu bên cạnh
               h("span", { class: "dong-chu" }, h("strong", null, d.ten), h("span", null, chipTx(d.dangDung ? "Đang dùng" : "Ngưng dùng", d.dangDung ? "ok" : "muted"))),
               doiTen,
               doiDung,

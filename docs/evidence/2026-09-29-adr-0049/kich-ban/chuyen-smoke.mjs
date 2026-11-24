@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/chuyen-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // B2 — V2 Chi tiết chuyến (/chuyen?id=) cho VĂN PHÒNG. ADR-0049 V2 (route 3, 8, 40), ADR-0050 thành phần C (lý do giữ "nơi đón / trả đã đổi" + "Cập nhật điểm theo
 // đơn"), E (điểm lệch đơn); bản vẽ docs/design/van-chuyen-dieu-phoi/project/02 Chi tiet chuyen.dc.html (2a–2c, 2f); bản đối chiếu DOI-CHIEU-2026-09-29.md 2.7, 2.12, H10
 // (stale = câu chung), H11 (nhật ký chỉ loại máy chủ trả), H14 (ai xử lý), H17 (huỷ chuyến có khách trong vùng khoá → phá lệ), R-P16 (cờ lechDon).

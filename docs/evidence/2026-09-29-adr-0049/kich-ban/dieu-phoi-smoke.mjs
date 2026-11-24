@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/dieu-phoi-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // B1 — V1 Điều phối xe (/dieu-phoi) cho VĂN PHÒNG + mục menu "Vận chuyển › Điều phối xe" (Q-B-4). ADR-0049 V1 (route 1, 5, 40), ADR-0050; bản vẽ
 // docs/design/van-chuyen-dieu-phoi/project/01 Dieu phoi xe.dc.html (1a–1g) + dp-chua-xep, dp-dong-thoi-gian, dp-can-xu-ly; bản đối chiếu DOI-CHIEU-2026-09-29.md
 // 2.1, 2.13 (không nút "Phá lệ" đứng riêng — phá lệ qua 409 `canQuyen`), H6, H7 (không "Gọi tài xế"), H8, H14, Q2 (không "Đã gọi báo"), mục 4.

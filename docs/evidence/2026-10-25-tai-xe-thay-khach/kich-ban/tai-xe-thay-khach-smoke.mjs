@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/tai-xe-thay-khach-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Đề xuất 25/10 (docs/superpowers/specs/2026-10-25-de-xuat-tai-xe-thay-khach-truoc-khi-cho-xe-chay.md — chủ duyệt Q1 a, Q2 a), màn chuyến của tài xế (/cuoc-chuyen):
 //   - Tài xế CÔNG TY, trong ngày chạy, thấy tên + năm sinh từng khách và dòng "Liên hệ" (bấm là gọi) TRƯỚC khi bấm "Cho xe chạy"; chưa có nút tiến độ.
 //   - Chuyến có từ hai điểm trả: dưới tên mỗi khách có chữ "Trả khách ở: <nơi>" (chỉ tài xế công ty), trước và trong khi chạy.

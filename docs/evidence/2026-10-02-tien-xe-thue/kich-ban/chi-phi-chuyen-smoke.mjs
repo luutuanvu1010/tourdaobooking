@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/chi-phi-chuyen-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // G2 — khối "Chi phí chuyến" trong Chi tiết chuyến (/chuyen?id=): ADR-0057 T2 C9, ADR-0095 Q4/Q5/Q9; bản vẽ docs/design/van-chuyen-dot-3-7/Chi phí xe thuê.dc.html màn 1b.
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-10-02-tien-xe-thue node docs/evidence/2026-10-02-tien-xe-thue/kich-ban/chi-phi-chuyen-smoke.mjs

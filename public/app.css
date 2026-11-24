@@ -4819,8 +4819,8 @@ body[data-khung-goc] .chon-doan > button[aria-checked="true"] { color: var(--c-p
 body[data-khung-goc] .ds-dong > a.dong { color: inherit; text-decoration: none; }
 @media (hover: hover) { body[data-khung-goc] .ds-dong > a.dong:hover { background: var(--c-soft-hover); } }
 
-/* Huy hiệu thế hệ cũ (.chip, .vc-chip) ở trang đã chuyển: chữ thường như .huy-hieu (ADR-0234 nguyên tắc 1 — trong một dòng chỉ một thứ đậm). Đợt B, 24/11/2026. */
-body[data-khung-goc] :is(.chip, .vc-chip) { font-weight: var(--fw-regular); }
+/* Huy hiệu và hộp cảnh báo thế hệ cũ (.chip, .vc-chip, .vc-alert) ở trang đã chuyển: chữ thường như .huy-hieu (ADR-0234 nguyên tắc 1 — trong một dòng chỉ một thứ đậm). Đợt B, 24/11/2026. */
+body[data-khung-goc] :is(.chip, .vc-chip, .vc-alert) { font-weight: var(--fw-regular); }
 /* Câu chính của trạng thái rỗng (.rong > strong): chữ thường màu mực, câu phụ màu nhạt — thứ bậc bằng màu, không bằng độ đậm. */
 body[data-khung-goc] .rong > strong { font-weight: var(--fw-regular); color: var(--c-text); }
 

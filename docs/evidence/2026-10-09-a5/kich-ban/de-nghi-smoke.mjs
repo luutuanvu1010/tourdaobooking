@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/de-nghi-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Gói A5 — chuyển khách giữa hai xe (ADR-0111; bản vẽ V8–V10): tài xế xe nhờ bấm "Nhờ xe khác đón" ở điểm đón → chọn xe → "Gửi đề nghị" (thẻ gửi đi có đếm
 // ngược + "Rút lại"); công tắc tự đồng ý TẮT (đường API của Toàn quyền) → tài xế xe nhận bấm "Nhận" → "Chờ văn phòng duyệt"; Bán hàng: Chi tiết chuyến có khối
 // "Đề nghị chuyển khách" CHỈ ĐỌC + nút "Gửi đề nghị cứu hộ", menu KHÔNG có "Đề nghị chuyển khách"; Kế toán: màn /de-nghi chỉ đọc (bảng điều kiện, không nút);

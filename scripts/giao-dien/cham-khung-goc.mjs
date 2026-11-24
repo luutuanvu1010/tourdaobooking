@@ -20,7 +20,7 @@ export const DIEU_DO = ["tràn ngang", "chữ bị bóp", "khối lệch mép", 
  * Chi tiết 58 %, Biểu mẫu 53 %, Thiết lập 28 %; lượt kiểm GitHub (`do-khung-ci.mjs`: dữ liệu tự gieo, bộ núm mặc định) Danh sách 44 %, Biểu mẫu 57 %, hai khuôn kia
  * không vượt. Nút nền đặc 1; tiền lệch màu 0; khối có bóng 0. Khuôn chưa có màn mẫu dùng mức cao nhất. Bài `src/khung-do.test.ts` khoá: trần không cao hơn lúc lập.
  */
-export const TRAN_THI_GIAC = { tiLeDam: { "danh-sach": 0.44, "chi-tiet": 0.58, "bieu-mau": 0.57, "thiet-lap": 0.28 }, nutDac: 1, tienLech: 0, bongKhoi: 0 };
+export const TRAN_THI_GIAC = { tiLeDam: { "danh-sach": 0.44, "chi-tiet": 0.58, "bieu-mau": 0.57, "thiet-lap": 0.28, "tong-quan": 0.44 }, nutDac: 1, tienLech: 0, bongKhoi: 0 };
 /** Trần chữ đậm của một khuôn (khuôn chưa có màn mẫu: mức cao nhất của bảng). */
 export const tranDam = (tran, khuon) => tran.tiLeDam[khuon] ?? Math.max(...Object.values(tran.tiLeDam));
 

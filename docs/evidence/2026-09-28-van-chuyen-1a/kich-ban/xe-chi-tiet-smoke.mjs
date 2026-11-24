@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/xe-chi-tiet-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Kịch bản Chrome — màn 03 Chi tiết xe + giấy tờ xe (ADR-0040 D1; docs/design/van-chuyen-1a/project/03 Chi tiet xe.dc.html).
 // 1–2) 1040 / 390: đầu thẻ (biển số, trạng thái, tên · số người không kể tài xế), khối tóm tắt, giấy tờ xếp đã hết → sắp hết → còn hạn → không hạn, chip đúng,
 //      "Gia hạn" chỉ với giấy có hạn, "Lịch sử (N)" chỉ khi có dòng cũ; nút "Thêm giấy tờ" (máy tính: góc phải đầu thẻ; điện thoại: dính đáy).

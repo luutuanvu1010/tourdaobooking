@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/sap-het-han-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Kịch bản Chrome — màn 06 Giấy tờ sắp hết hạn (ADR-0040 D1; docs/design/van-chuyen-1a/project/06 Sap het han.dc.html) + huy hiệu số trên menu.
 // 1) trạng thái trống (1040 + 390): "Không có giấy tờ nào sắp hết hạn", "… · 0 giấy", không huy hiệu.
 // 2–3) có dữ liệu (1040 / 390): giấy xe + giấy tài xế chung MỘT danh sách, xếp theo ngày hết hạn (đã hết lên đầu), biểu tượng xe / người đầu dòng, chip đỏ (đã hết) /

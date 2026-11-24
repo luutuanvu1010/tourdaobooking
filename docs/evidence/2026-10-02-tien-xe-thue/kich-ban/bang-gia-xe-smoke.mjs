@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/bang-gia-xe-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // G1 — Bảng giá thuê xe (/bang-gia-xe): ADR-0057 T1, ADR-0095 Q3 (giá bắt buộc CẢ tuyến LẪN cỡ xe); bản vẽ docs/design/van-chuyen-dot-3-7/Chi phí xe thuê.dc.html màn 1a.
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-10-02-tien-xe-thue node docs/evidence/2026-10-02-tien-xe-thue/kich-ban/bang-gia-xe-smoke.mjs

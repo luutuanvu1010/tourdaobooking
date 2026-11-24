@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/goi-bao-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // B-GB — nhắc "gọi báo khách" khi giờ hẹn đổi sau khi xếp xe (ADR-0051 GB1, GB2; Task A-GB của máy chủ): cột "Cần xử lý" của Điều phối xe (danh sách riêng
 // GET /api/van-chuyen/nhac-goi-khach — hiện ở MỌI ngày đang xem), dòng ở điểm dừng của Chi tiết chuyến, lệnh "Đã gọi báo" / "Bỏ đánh dấu". Nhãn là hằng ở
 // src/shared/goi-bao.ts. Ba vai: Bán hàng (đơn mình) bấm được; Kế toán thấy, không nút; Tài xế không thấy gì. Thẻ "xe tới muộn" không có nút (Q-GB-1 = b).

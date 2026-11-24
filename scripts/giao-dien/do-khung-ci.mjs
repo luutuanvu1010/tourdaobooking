@@ -75,11 +75,32 @@ async function chay() {
       const xe = await L.call(ck, "POST", "/api/van-chuyen/xe", { plateNumber: "79B-123.45", chassisNumber: "KHUNGDOCI0001", name: "Xe đo khung", passengerCapacity: 16 });
       if (xe.status === 201) ma.xe = xe.body.vehicle.id;
       else console.log(`  ✗ gieo xe: ${xe.status} ${JSON.stringify(xe.body?.error ?? xe.body).slice(0, 300)}`);
+      // Hai xe nữa và giấy tờ cho xe đầu (một giấy còn 10 ngày, một giấy còn dài) — để các trang danh sách Xe, Lịch xe bận, Sắp hết hạn có dữ liệu như dùng thật,
+      // không đo trên trang gần rỗng (chữ đậm của tiêu đề khối, nút chiếm gần hết chữ — lượt đo đầu 24/11 vượt trần chỉ vì trang thưa).
+      const ngayVn = (soNgay) => new Date(Date.now() + 7 * 3600_000 + soNgay * 86_400_000).toISOString().slice(0, 10);
+      const xeThem = [];
+      for (const [bien, cho] of [["79B-234.56", 29], ["79B-345.67", 7], ["79B-456.78", 45], ["79B-678.90", 16]]) {
+        const x = await L.call(ck, "POST", "/api/van-chuyen/xe", { plateNumber: bien, chassisNumber: `KHUNGDOCI${bien.replace(/\D/g, "")}`, name: `Xe đo khung ${cho} chỗ`, passengerCapacity: cho });
+        if (x.status === 201) xeThem.push(x.body.vehicle.id);
+        else console.log(`  ✗ gieo xe ${bien}: ${x.status} ${JSON.stringify(x.body?.error ?? x.body).slice(0, 200)}`);
+      }
+      // Giấy tờ: xe đầu đủ hai giấy còn dài (để xếp chuyến được); hai xe sau mỗi xe một giấy sắp hết hạn (trang Sắp hết hạn có dòng).
+      const giay = [[ma.xe, "INSPECTION", 300], [ma.xe, "TPL_INSURANCE", 300], [xeThem[0], "INSPECTION", 10], [xeThem[1], "TPL_INSURANCE", 20]];
+      for (const [xeId, typeCode, soNgay] of giay) {
+        if (!xeId) continue;
+        const g = await L.call(ck, "POST", `/api/van-chuyen/xe/${xeId}/giay-to`, { typeCode, number: `${typeCode}-DOKHUNG-${soNgay}`, expiryDate: ngayVn(soNgay) });
+        if (g.status !== 201) console.log(`  ✗ gieo giấy tờ xe ${typeCode}: ${g.status} ${JSON.stringify(g.body?.error ?? g.body).slice(0, 200)}`);
+      }
       // Một chuyến ngày mai 09:00–11:00 trên xe vừa gieo, tài xế là tài khoản Tài xế công ty thử (Chi tiết chuyến, Sửa chuyến, màn Cho xe chạy của tài xế).
       if (ma.xe && moi.taiKhoan.DRIVER) {
         const me = await L.call(await L.session(moi.taiKhoan.DRIVER), "GET", "/api/auth/me");
         const tx = me.body?.staff?.partyId ?? null;
-        const mai = new Date(Date.now() + 7 * 3600_000 + 86_400_000).toISOString().slice(0, 10);
+        // Giấy phép lái xe của tài xế (thiếu thì máy chủ từ chối xếp: «Tài xế chưa đủ điều kiện lái xe này»); cũng là dòng «Giấy tờ của tôi» ở trang đầu tài xế.
+        if (tx) {
+          const gplx = await L.call(ck, "POST", `/api/parties/${tx}/documents`, { typeCode: "GPLX", number: "791234567890", classCode: "D2", expiryDate: ngayVn(800) });
+          if (gplx.status !== 201) console.log(`  ✗ gieo giấy phép lái xe: ${gplx.status} ${JSON.stringify(gplx.body?.error ?? gplx.body).slice(0, 200)}`);
+        }
+        const mai = ngayVn(1);
         const c = tx ? await L.call(ck, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: ma.xe, taiXePartyId: tx, batDau: { ngay: mai, gio: "09:00" }, ketThuc: { ngay: mai, gio: "11:00" } }) : null;
         if (c?.status === 201) ma.chuyen = c.body.chuyen.id;
         else console.log(`  ✗ gieo chuyến: ${tx ? `${c?.status} ${JSON.stringify(c?.body?.error ?? c?.body).slice(0, 300)}` : "không đọc được hồ sơ tài xế"}`);

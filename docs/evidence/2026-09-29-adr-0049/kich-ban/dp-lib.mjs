@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/dp-lib.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Phần dùng chung của các kịch bản Chrome Phần B ADR-0049 + ADR-0050 (Bảng điều phối lượt 1; bản vẽ docs/design/van-chuyen-dieu-phoi/). Dựng trên a2-cdp.mjs
 // (D1 tạm + wrangler dev + Chrome headless qua CDP; không cần mạng ngoài). Mọi SĐT, tên ở đây là GIẢ.
 // Tài khoản dùng một lần: SĐT 0900000431–0900000439 (1a dùng 0900000411–419; mỗi lần chạy là một D1 tạm riêng nên không đụng nhau).

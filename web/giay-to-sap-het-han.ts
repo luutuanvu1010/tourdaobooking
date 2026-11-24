@@ -51,7 +51,7 @@ function ve(r: Api.ExpiringListResponse): void {
         h(
           "span",
           { class: "dong-chu" },
-          h("strong", null, it.label),
+          h("span", null, it.label), // chữ thường: huy hiệu hạn bên dưới đã là điểm nhấn của dòng (ADR-0234 nguyên tắc 1)
           nhanNhaXe(it),
           h("span", { class: "o-phu" }, `${tenGiayTo(it)} · ${ngayVN(it.expiryDate)}`),
           h("span", null, chipEl(chipHan(it.daysLeft, r.warnDays))),

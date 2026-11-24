@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/xe-chu-xe-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Kịch bản Chrome — chủ xe ở các màn Xe (ADR-0048 D1; Task B3 — KHUÔN SẴN: ô chọn `.vc-input` của form Vận chuyển, dòng phụ `.vc-xe-meta` / `.vc-xe-sub` của thẻ
 // xe bản vẽ 00–03; chủ chọn Q2 = (a) ngày 29/9 "các chỗ nhỏ … làm theo kiểu có sẵn, không cần vẽ"; Q1 = (a) "Sửa được, ghi nhật ký"). Kiểm:
 //  1) 1040 /xe-sua (thêm): ô "Chủ xe" ngay dưới "Tên / đời xe", mặc định công ty chủ, có từng nhà xe đang hợp tác; chọn nhà xe → Lưu → chi tiết có

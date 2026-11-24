@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/ban-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // A4 T9 (ADR-0053 D7.2, D8, D9; kế hoạch docs/superpowers/plans/2026-10-08-giai-doan-3-a4-ke-hoach.md, G-A4-14, G-A4-16, G-A4-19): tài xế đối tác dùng Nền tảng —
 // Từ chối chuyến trước hạn, Báo bận của tôi; văn phòng thấy dải "Tài xế bận", nhãn "Bận" ở ô Tài xế, khối "Tài xế đã từ chối". Thứ tự tài khoản (kho cookie
 // dùng chung): Tài xế đối tác → Bán hàng → Kế toán (trang của Kế toán mở sau cùng).

@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/tai-xe-trang-dau-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // BẢN CHÉP (đợt 0 khung chung, 29/10/2026) của docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/tai-xe-trang-dau-smoke.mjs — hồ sơ có ngày giữ nguyên.
 // Sửa theo vỏ mới (đặc tả đợt 0 §5.2): thanh tab Tài xế công ty nay BỐN mục Trang chủ (tài xế) · Cuốc của tôi · Hỗ trợ · Tôi (thêm «Hỗ trợ» /feedback).
 // Chỉ đổi đường import (thư viện vẫn ở thư mục cũ) và phép so thanh tab; mọi phép kiểm khác giữ nguyên.

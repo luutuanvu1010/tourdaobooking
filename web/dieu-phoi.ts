@@ -832,7 +832,7 @@ function moTaoChuyen(o: { opener: HTMLElement | null; onTao: (r: ChuyenChiTietRe
 async function main(): Promise<void> {
   if (!can(staff, "trip.view")) {
     // Không ô trip.view (tài xế gõ thẳng địa chỉ): không dựng ô ngày / nút đổi ngày — chỉ câu từ chối.
-    byId("dp-truoc").closest<HTMLElement>(".dp-date")!.hidden = true;
+    byId("dp-truoc").closest<HTMLElement>(".hang")!.hidden = true; // bộ chọn ngày (khung gốc: .dau-trang > .hang)
     byId("dp-ngay-nhan").hidden = true;
     return showError(errorEl, "Tài khoản này không xem được lịch xe.");
   }

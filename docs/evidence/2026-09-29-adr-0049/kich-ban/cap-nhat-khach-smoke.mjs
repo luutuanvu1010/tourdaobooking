@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/cap-nhat-khach-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Vòng 5e — "Cập nhật khách theo đơn" (R-P29, chủ lần 16; máy chủ 337f5e9): khách đã gắn tên vào xe bị huỷ khỏi đơn → chuyến bị giữ KHACH_DA_DOI → văn phòng bấm
 // "Cập nhật khách theo đơn" (route `cap-nhat-khach`, thân { version, requestId }). Khuôn "Cập nhật điểm theo đơn": 4 chỗ (dải lý do giữ ở Chi tiết chuyến, thẻ
 // "Chuyến đang chọn", cột "Cần xử lý", câu khoá), KHÔNG hộp xác nhận, KHÔNG phá lệ kể cả trong vùng khoá; sau lệnh đọc lại GET (GA-55 — tên chỉ từ GET).

@@ -1,3 +1,4 @@
+// Thay bằng docs/evidence/2026-11-24-khung-goc-dot-b/kich-ban/tai-xe-doi-tac-smoke.mjs (đợt B khung gốc, 24/11/2026: bộ chọn đổi theo khung gốc).
 // Kịch bản Chrome — Giấy tờ sắp hết hạn có nhãn nhà xe (Task B4) và trang của tài khoản Tài xế đối tác (Task B5) — ADR-0048 D1, D2; KHUÔN SẴN (dòng phụ
 // `.vc-due-doc` của màn 06; trang đầu tài xế `/tai-xe` màn 07 và khối "Giấy tờ của tôi" màn 05 của lượt 1a — không vẽ mới, giả định G1 của kế hoạch).
 //  1) 390 Tài xế đối tác (chỉ quyền DRIVER_PARTNER) mở "/" → /cuoc (A4 T6: có ô Cuốc), rồi /tai-xe; KHÔNG lời gọi /api/orders* (không dashboard đơn), Vận chuyển
