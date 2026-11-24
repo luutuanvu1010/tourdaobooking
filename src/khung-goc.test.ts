@@ -24,7 +24,7 @@ const homNay = new Date().toISOString().slice(0, 10);
  *  Không bao giờ nâng. Việc mới cần bố cục thì dùng lớp của khung (web/khung.ts), không viết thêm luật bề rộng, chia cột, khoảng cách ngoài phần khung.
  *  Lúc lập luật 21/11/2026 (trước khi chuyển bốn màn mẫu): 2597 · 128 · 16 · 154 · 65.
  *  Sau đợt bốn màn mẫu (Đơn hàng, Chi tiết đơn, Sửa xe, Địa điểm), 21/11/2026: 2558 · 122 · 15 · 148 · 61. */
-const TRAN = { luatBoCucRieng: 2558, tokenBeRongRieng: 122, mocLe: 15, tepLopCu: 148, trangChuaChuyen: 61 };
+const TRAN = { luatBoCucRieng: 2337, tokenBeRongRieng: 122, mocLe: 14, tepLopCu: 132, trangChuaChuyen: 46 };
 
 /** Trang có lúc lập luật 21/11/2026 — ĐÓNG BĂNG, không sửa. Danh sách chưa chuyển chỉ được là tập con của nó, nên trang mới không thể «xin» chưa chuyển. */
 const TRANG_LUC_LAP_LUAT = new Set([

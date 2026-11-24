@@ -17,6 +17,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt B khung gốc (ADR-0222, ADR-0234; chủ duyệt ảnh 24/11 «Duyệt cả ba»): 15 trang Tài xế – Vận chuyển. Nhánh claude/khung-goc-dot-b-18ab84. Không migration.
+    // Số 3.44 = số trống kế tiếp sau 3.43 trên main lúc báo sẵn sàng 24/11; bước A.0 đặt lại số và ngày nếu việc khác (vd đợt A khung gốc) nhập trước.
+    version: "3.44",
+    date: "2026-11-24",
+    items: [
+      { kind: "doi", text: "Các màn Vận chuyển và màn tài xế (Cuốc của tôi, Cho xe chạy, Báo bận) dựng lại theo khuôn chung: khối, nút, bảng thẳng hàng như Đơn hàng." },
+      { kind: "doi", text: "Điều phối xe: dòng thời gian rộng hơn, đủ giờ cả ngày; ô «Cần xử lý» xuống hàng dưới; số tóm tắt trong ngày to, dễ đọc." },
+      { kind: "doi", text: "Mỗi màn chỉ còn một nút nền đặc cho việc chính; «Huỷ chuyến» viền đỏ, nền đỏ chỉ trong hộp xác nhận." },
+      { kind: "doi", text: "Báo bận: chọn lý do bằng ba ô liền nhau; ở điện thoại vẫn giữ thanh tab của tài xế." },
+    ],
+  },
+  {
     // Đợt gốc ngôn ngữ thị giác (ADR-0234, chủ duyệt 24/11 «duyệt, thi công»). Nhánh claude/dot-goc-thi-giac-e74c62. Không migration.
     // Số 3.43 = số trống kế tiếp sau 3.42 trên main lúc báo sẵn sàng 24/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
     version: "3.43",

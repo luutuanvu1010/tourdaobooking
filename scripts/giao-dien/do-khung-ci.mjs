@@ -6,6 +6,7 @@
 // khung gốc thì thêm dòng ở đây (và gieo dữ liệu nếu trang cần mã bản ghi).
 // Mã thoát (giữ nguyên của do-khung-goc.mjs): 0 = mọi ô đạt và không đo thiếu; 1 = có ô không đạt; 2 = không chạy được hoặc ĐO THIẾU.
 import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,13 +14,29 @@ import { pathToFileURL } from "node:url";
 
 /**
  * Bảng màn của lượt kiểm: đường dẫn trang (không kèm ?id) → bộ quyền đăng nhập + loại mã bản ghi cần gắn (nếu trang cần).
- * `ma`: "don" = đơn đã xác nhận do Bán hàng lập; "xe" = xe do Quản trị thêm. Khoá `khoa` trùng bảng màn của máy thử (docs/evidence/2026-11-21-khung-goc-thi-cong/bang-man.json).
+ * `ma`: "don" = đơn đã xác nhận do Bán hàng lập; "xe" = xe do Quản trị thêm; "chuyen" = chuyến ngày mai của xe đó, tài xế là tài khoản Tài xế công ty thử. Khoá `khoa` trùng bảng màn của máy thử (docs/evidence/2026-11-21-khung-goc-thi-cong/bang-man.json).
  */
 export const BANG_CI = [
   { khoa: "don-hang", trang: "/orders", bo: "SALES" },
   { khoa: "chi-tiet-don", trang: "/order", bo: "SALES", ma: "don" },
   { khoa: "sua-xe", trang: "/xe-sua", bo: "ADMIN", ma: "xe" },
   { khoa: "dia-diem", trang: "/locations", bo: "ADMIN" },
+  // Đợt B (24/11/2026): 15 trang Tài xế – Vận chuyển. «chuyen» = chuyến ngày mai do Quản trị tạo, xếp tài xế công ty thử (gieo ở dưới).
+  { khoa: "tai-xe", trang: "/tai-xe", bo: "DRIVER" },
+  { khoa: "cuoc", trang: "/cuoc", bo: "DRIVER" },
+  { khoa: "cuoc-chuyen", trang: "/cuoc-chuyen", bo: "DRIVER", ma: "chuyen" },
+  { khoa: "ban", trang: "/ban", bo: "DRIVER_PARTNER" },
+  { khoa: "dieu-phoi", trang: "/dieu-phoi", bo: "ADMIN" },
+  { khoa: "xe-dang-chay", trang: "/xe-dang-chay", bo: "ADMIN" },
+  { khoa: "chuyen", trang: "/chuyen", bo: "ADMIN", ma: "chuyen" },
+  { khoa: "chuyen-sua", trang: "/chuyen-sua", bo: "ADMIN", ma: "chuyen" },
+  { khoa: "de-nghi", trang: "/de-nghi", bo: "ADMIN" },
+  { khoa: "xe", trang: "/xe", bo: "ADMIN" },
+  { khoa: "xe-chi-tiet", trang: "/xe-chi-tiet", bo: "ADMIN", ma: "xe" },
+  { khoa: "lich-xe-ban", trang: "/lich-xe-ban", bo: "ADMIN" },
+  { khoa: "giay-to-sap-het-han", trang: "/giay-to-sap-het-han", bo: "ADMIN" },
+  { khoa: "bang-gia-xe", trang: "/bang-gia-xe", bo: "ACCOUNTING" },
+  { khoa: "bang-ke-xe", trang: "/bang-ke-xe", bo: "ACCOUNTING" },
 ];
 
 /** Dựng bảng màn [{ khoa, tk, trang }] từ BANG_CI và mã vừa gieo. Dòng cần mã mà gieo hỏng thì BỎ (lệnh đo sẽ báo đo thiếu trang đó — không bao giờ đạt giả). */
@@ -52,12 +69,21 @@ async function chay() {
 
     // ---- gieo thêm: một xe, một địa điểm (Quản trị) qua API thật
     const L = await import(pathToFileURL(join(process.cwd(), "tests", "e2e", "lib.mjs")).href);
-    const ma = { don: moi.id.donDaXacNhan[0] ?? null, xe: null };
+    const ma = { don: moi.id.donDaXacNhan[0] ?? null, xe: null, chuyen: null };
     if (moi.taiKhoan.ADMIN) {
       const ck = await L.session(moi.taiKhoan.ADMIN);
       const xe = await L.call(ck, "POST", "/api/van-chuyen/xe", { plateNumber: "79B-123.45", chassisNumber: "KHUNGDOCI0001", name: "Xe đo khung", passengerCapacity: 16 });
       if (xe.status === 201) ma.xe = xe.body.vehicle.id;
       else console.log(`  ✗ gieo xe: ${xe.status} ${JSON.stringify(xe.body?.error ?? xe.body).slice(0, 300)}`);
+      // Một chuyến ngày mai 09:00–11:00 trên xe vừa gieo, tài xế là tài khoản Tài xế công ty thử (Chi tiết chuyến, Sửa chuyến, màn Cho xe chạy của tài xế).
+      if (ma.xe && moi.taiKhoan.DRIVER) {
+        const me = await L.call(await L.session(moi.taiKhoan.DRIVER), "GET", "/api/auth/me");
+        const tx = me.body?.staff?.partyId ?? null;
+        const mai = new Date(Date.now() + 7 * 3600_000 + 86_400_000).toISOString().slice(0, 10);
+        const c = tx ? await L.call(ck, "POST", "/api/van-chuyen/chuyen", { requestId: randomUUID(), xeId: ma.xe, taiXePartyId: tx, batDau: { ngay: mai, gio: "09:00" }, ketThuc: { ngay: mai, gio: "11:00" } }) : null;
+        if (c?.status === 201) ma.chuyen = c.body.chuyen.id;
+        else console.log(`  ✗ gieo chuyến: ${tx ? `${c?.status} ${JSON.stringify(c?.body?.error ?? c?.body).slice(0, 300)}` : "không đọc được hồ sơ tài xế"}`);
+      }
       const dd = await L.call(ck, "POST", "/api/locations", { code: "KS_DO_KHUNG", name: "Khách sạn đo khung", locationTypeCode: "HOTEL", address: "12 Trần Phú, Nha Trang", sortOrder: 95 });
       if (dd.status !== 201) console.log(`  ✗ gieo địa điểm: ${dd.status} ${JSON.stringify(dd.body?.error ?? dd.body).slice(0, 300)}`);
     }
