@@ -4,17 +4,23 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-type Bang = { rieng: string[]; test: string[][]; e2e: string[][] };
+type Bang = { rieng: string[]; test: string[][]; e2e: string[][]; khung: string[][] };
+type Man = { khoa: string; trang: string; bo: string };
+type ToanBo = { tests: string[]; e2e: string[]; manKhung?: Man[]; daChuyen?: string[] };
 type Lib = {
   TEP_DO_GIO: string;
   BUOC_RIENG: string[];
   SO_PHAN_TEST: number;
   SO_PHAN_E2E: number;
+  SO_MAY_E2E: number;
+  SO_MANH_KHUNG: number;
   danhSachTest: () => string[];
-  bangChia: (o?: { tests?: string[]; e2e?: string[]; soPhanTest?: number; soPhanE2e?: number; kichThuoc?: (f: string) => number; thoiGianTest?: Record<string, number> }) => Bang;
-  kiemBangChia: (bang: Bang, toanBo: { tests: string[]; e2e: string[] }) => string[];
+  bangChia: (o?: { tests?: string[]; e2e?: string[]; soPhanTest?: number; soPhanE2e?: number; kichThuoc?: (f: string) => number; thoiGianTest?: Record<string, number>; manKhung?: Man[]; soManhKhung?: number }) => Bang;
+  kiemBangChia: (bang: Bang, toanBo: ToanBo) => string[];
   phanE2e: (k: number) => string[];
-  gomKetQua: (bang: Bang, baoCao: unknown[], toanBo: { tests: string[]; e2e: string[] }) => { ok: boolean; loi: string[]; baiDo: string[]; tong: { soTep: number; soBai: number; soBoQua: number; soKichBan: number }; giayE2e: Record<string, number>; giayTep: Record<string, number>; giayTuong: Record<string, number> };
+  phanCuaMay: (r: number) => number[];
+  trangDaKhaiKhuon: () => string[];
+  gomKetQua: (bang: Bang, baoCao: unknown[], toanBo: ToanBo) => { ok: boolean; loi: string[]; baiDo: string[]; tong: { soTep: number; soBai: number; soBoQua: number; soKichBan: number }; giayE2e: Record<string, number>; giayTep: Record<string, number>; giayTuong: Record<string, number> };
   tepChoLau: (kq: { giayTep: Record<string, number>; giayTuong: Record<string, number> }) => { tep: string; giayTuong: number; giayBai: number }[];
   TEP_DIEU_KHIEN: string[];
 };
@@ -23,14 +29,16 @@ const { ALL } = (await import(new URL("../tests/e2e/danh-sach.mjs", import.meta.
 
 const TESTS = ["src/a.test.ts", "src/b.test.ts", "src/c.test.ts", "src/d.test.ts", "src/e.test.ts", "src/claude-guard-thoi-gian.test.ts"];
 const E2E = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"];
-const toanBo = { tests: TESTS, e2e: E2E };
-const bangNho = () => lib.bangChia({ tests: TESTS, e2e: E2E, soPhanTest: 4, soPhanE2e: 6, kichThuoc: () => 1 });
+const MAN: Man[] = [{ khoa: "m1", trang: "/a", bo: "SALES" }, { khoa: "m2", trang: "/b", bo: "ADMIN" }, { khoa: "m3", trang: "/b", bo: "SALES" }];
+const toanBo: ToanBo = { tests: TESTS, e2e: E2E, manKhung: MAN, daChuyen: ["/a", "/b"] };
+const bangNho = () => lib.bangChia({ tests: TESTS, e2e: E2E, soPhanTest: 4, soPhanE2e: 6, kichThuoc: () => 1, manKhung: MAN, soManhKhung: 2 });
 const dem = (tests: number, skipped = 0, todo = 0) => ({ tests, pass: tests, fail: 0, skipped, todo });
 
 /** Báo cáo đủ và xanh cho bảng nhỏ — từng ca sửa đúng một chỗ. */
 function baoCaoDu(bang: Bang): any[] {
   return [
-    { loai: "rieng", buoc0: { ok: true, doi: [] }, typecheck: { ok: true }, doGio: { ok: true, tep: [lib.TEP_DO_GIO], dem: dem(3) }, doKhung: { ok: true, maThoat: 0, soMan: 4, soO: 316, khongDat: 0, doThieu: [] } },
+    { loai: "rieng", buoc0: { ok: true, doi: [] }, typecheck: { ok: true }, doGio: { ok: true, tep: [lib.TEP_DO_GIO], dem: dem(3) } },
+    ...bang.khung.map((khoa, i) => ({ loai: "khung", manh: i + 1, soManh: bang.khung.length, ok: true, maThoat: 0, khoa: [...khoa], trang: [...new Set(khoa.map((k) => MAN.find((m) => m.khoa === k)!.trang))], soMan: khoa.length, soO: khoa.length * 79, khongDat: 0 })),
     ...bang.test.map((tep, i) => ({ loai: "test", phan: i + 1, tep, ok: true, dem: dem(tep.length * 10, 1, 0), baiDo: [] })),
     ...bang.e2e.map((ds, i) => ({ loai: "e2e", phan: i + 1, kichBan: ds.map((ten) => ({ ten, ok: true, giay: 2 })), audit: true, ok: true })),
   ];
@@ -45,30 +53,41 @@ test("bảng chia THẬT: phần riêng đủ ba bước; npm test ≥ 4 phần,
   assert.deepEqual(bang.rieng, lib.BUOC_RIENG);
   assert.equal(bang.test.length, lib.SO_PHAN_TEST);
   assert.equal(bang.e2e.length, lib.SO_PHAN_E2E);
+  assert.equal(bang.khung.length, lib.SO_MANH_KHUNG);
   assert.deepEqual(lib.kiemBangChia(bang, { tests, e2e: ALL }), []);
   assert.ok(!bang.test.flat().includes(lib.TEP_DO_GIO), "bài đo giờ chỉ ở phần riêng");
   for (const p of [...bang.test, ...bang.e2e]) assert.ok(p.length > 0, "không phần nào rỗng");
 });
 
-// ADR-0215 Đ1.2–Đ1.3: bảng phần ghi THẲNG trong quy trình (không còn việc «Chia phần» in ra lúc chạy) ⇒ phải khớp hằng số; tổng việc chạy cùng lúc ≤ 20
-// (trần gói GitHub miễn phí — vượt thì lượt kiểm tự xếp hàng, chậm đi chứ không nhanh lên).
-test("quy trình kiem.yml: danh sách phần npm test / e2e khớp SO_PHAN_TEST / SO_PHAN_E2E; 1 phần riêng + các phần ≤ 20 việc cùng lúc", () => {
+// ADR-0215 Đ1.2–Đ1.3: bảng việc ghi THẲNG trong quy trình (không còn việc «Chia phần» in ra lúc chạy) ⇒ phải khớp hằng số; tổng việc chạy cùng lúc ≤ 20
+// (trần gói GitHub miễn phí — vượt thì lượt kiểm tự xếp hàng, chậm đi chứ không nhanh lên). Rút lượt kiểm 25/11: việc = mảnh đo khung (mảnh 1 gánh phần riêng)
+// + phần npm test + máy e2e (mỗi máy nhiều phần e2e).
+test("quy trình kiem.yml: ma trận mảnh khung / phần npm test / máy e2e khớp SO_MANH_KHUNG / SO_PHAN_TEST / SO_MAY_E2E; tổng ≤ 20 việc cùng lúc; mọi phần e2e có máy", () => {
   const yml = readFileSync(new URL("../.github/workflows/kiem.yml", import.meta.url), "utf8");
   const day = (n: number) => `[${Array.from({ length: n }, (_, i) => i + 1).join(", ")}]`;
-  const maTran = [...yml.matchAll(/^\s+phan: (\[[\d, ]+\])$/gm)].map((m) => m[1]);
-  assert.deepEqual(maTran, [day(lib.SO_PHAN_TEST), day(lib.SO_PHAN_E2E)], "ma trận phần (npm test rồi e2e) phải đúng 1…SO_PHAN_*");
-  assert.ok(1 + lib.SO_PHAN_TEST + lib.SO_PHAN_E2E <= 20, `1 + ${lib.SO_PHAN_TEST} + ${lib.SO_PHAN_E2E} việc vượt trần 20 của gói miễn phí`);
+  const maTran = [...yml.matchAll(/^\s+(manh|phan|may): (\[[\d, ]+\])$/gm)].map((m) => `${m[1]}=${m[2]}`);
+  assert.deepEqual(maTran, [`manh=${day(lib.SO_MANH_KHUNG)}`, `phan=${day(lib.SO_PHAN_TEST)}`, `may=${day(lib.SO_MAY_E2E)}`], "ma trận (mảnh khung, npm test, máy e2e) phải đúng 1…N");
+  assert.ok(lib.SO_MANH_KHUNG + lib.SO_PHAN_TEST + lib.SO_MAY_E2E <= 20, `${lib.SO_MANH_KHUNG} + ${lib.SO_PHAN_TEST} + ${lib.SO_MAY_E2E} việc vượt trần 20 của gói miễn phí`);
+  const theoMay = Array.from({ length: lib.SO_MAY_E2E }, (_, i) => lib.phanCuaMay(i + 1));
+  assert.deepEqual(theoMay.flat().sort((a, b) => a - b), Array.from({ length: lib.SO_PHAN_E2E }, (_, i) => i + 1), "mỗi phần e2e đúng một máy");
+  for (const ps of theoMay) assert.ok(ps.length >= 1, "không máy e2e nào rỗng");
+  assert.throws(() => lib.phanCuaMay(0));
+  assert.throws(() => lib.phanCuaMay(lib.SO_MAY_E2E + 1));
 });
 
-// ADR-0222 Đ7(b): đo khung gốc chạy trong phần riêng (không thêm việc). Máy GitHub là Linux: Chrome phải qua scripts/chrome-ci.sh (bộ bọc mặc định trỏ Chrome
-// macOS); phần riêng cần đủ giờ cho typecheck + bài đo giờ + dựng máy thử và đo.
-test("quy trình kiem.yml: phần riêng có CHROME_BIN = scripts/chrome-ci.sh và trần giờ ≥ 30 phút; phần riêng gồm bước do-khung", () => {
+// ADR-0222 Đ7(b): máy GitHub là Linux — Chrome phải qua scripts/chrome-ci.sh (bộ bọc mặc định trỏ Chrome macOS). Phần riêng chạy ĐẦU việc mảnh 1, TRƯỚC bước đo
+// (bài đo giờ phải chạy một mình, không chung máy với wrangler dev / Chrome); bước đo vẫn chạy khi phần riêng đỏ (báo đủ lỗi một lần).
+test("quy trình kiem.yml: việc đo khung có CHROME_BIN = scripts/chrome-ci.sh; phần riêng chỉ ở mảnh 1 và ĐỨNG TRƯỚC bước đo; gom chờ cả ba loại việc", () => {
   const yml = readFileSync(new URL("../.github/workflows/kiem.yml", import.meta.url), "utf8");
-  const rieng = /^  rieng:\n([\s\S]*?)\n  test:/m.exec(yml)?.[1] ?? "";
-  assert.match(rieng, /CHROME_BIN: \$\{\{ github\.workspace \}\}\/scripts\/chrome-ci\.sh/);
-  assert.ok(Number(/timeout-minutes: (\d+)/.exec(rieng)?.[1]) >= 30, "phần riêng cần trần giờ ≥ 30 phút");
-  assert.match(rieng, /kiem-phan\.mjs rieng/);
-  assert.ok(lib.BUOC_RIENG.includes("do-khung"));
+  const khung = /^  khung:\n([\s\S]*?)\n  test:/m.exec(yml)?.[1] ?? "";
+  assert.match(khung, /CHROME_BIN: \$\{\{ github\.workspace \}\}\/scripts\/chrome-ci\.sh/);
+  assert.ok(Number(/timeout-minutes: (\d+)/.exec(khung)?.[1]) >= 10, "việc đo khung cần trần giờ ≥ 10 phút");
+  const iRieng = khung.indexOf("kiem-phan.mjs rieng");
+  const iKhung = khung.indexOf("kiem-phan.mjs khung ${{ matrix.manh }}");
+  assert.ok(iRieng > 0 && iKhung > iRieng, "phần riêng phải đứng trước bước đo khung");
+  assert.match(khung.slice(0, iRieng + "kiem-phan.mjs rieng".length), /- if: matrix\.manh == 1\n\s+run: mkdir -p bao-cao && node scripts\/kiem-phan\.mjs rieng$/m);
+  assert.match(yml, /needs: \[khung, test, e2e\]/);
+  assert.ok(!lib.BUOC_RIENG.includes("do-khung"), "đo khung là việc riêng theo mảnh, không còn trong phần riêng");
   assert.ok(existsSync(new URL("../scripts/chrome-ci.sh", import.meta.url)));
 });
 
@@ -91,6 +110,9 @@ test("kiemBangChia: bỏ một tệp / một kịch bản, trùng ở hai phần
     ["bài đo giờ ở phần thường", (b) => b.test[0]!.push(lib.TEP_DO_GIO), /đo giờ/],
     ["ít phần test", (b) => b.test.splice(3, 1), /4 phần|phần npm test/],
     ["ít phần e2e", (b) => b.e2e.splice(5, 1), /6 phần|phần e2e/],
+    ["bỏ một màn khỏi mảnh đo khung", (b) => b.khung[0]!.pop(), /đo khung gốc: thiếu m\d/],
+    ["màn đo khung ở hai mảnh", (b) => b.khung[1]!.push(b.khung[0]![0]!), /đo khung gốc: .*hai phần/],
+    ["không có mảnh đo khung", (b) => (b.khung = []), /đo khung gốc: không có mảnh/],
   ];
   for (const [ten, sua, re] of hong) {
     const b = structuredClone(ok);
@@ -135,13 +157,20 @@ test("gomKetQua (ADR-0179 tiêu chí 2): thiếu báo cáo / phần chạy thi�
     ["Bước 0 đổi tệp sinh", (bc) => ((bc[0].buoc0 = { ok: false, doi: ["docs/x.json"] }), bc), /Bước 0/],
     ["typecheck đỏ", (bc) => ((bc[0].typecheck = { ok: false }), bc), /typecheck/],
     ["bài đo giờ đỏ", (bc) => ((bc[0].doGio.ok = false), bc), /đo giờ/],
-    // ADR-0222 Đ7(b): lệnh đo khung gốc trên trang thật. Thiếu kết quả, có ô không đạt, đo thiếu hay không chạy được (mã 2) đều ĐỎ — không bao giờ coi là bỏ qua.
-    ["thiếu kết quả đo khung gốc", (bc) => (delete bc[0].doKhung, bc), /khung gốc/],
-    ["đo khung gốc có ô không đạt", (bc) => ((bc[0].doKhung = { ok: false, maThoat: 1, khongDat: 3, loi: "3 ô không đạt" }), bc), /khung gốc/],
-    ["đo khung gốc đo thiếu (mã 2)", (bc) => ((bc[0].doKhung = { ok: false, maThoat: 2, doThieu: ["/order-new"], loi: "đo thiếu: /order-new" }), bc), /khung gốc.*đo thiếu/],
-    ["đo khung gốc ok mà mã ≠ 0", (bc) => ((bc[0].doKhung = { ok: true, maThoat: 2 }), bc), /khung gốc/],
-    ["đo khung gốc ok, đủ số màn/ô mà mã 2", (bc) => ((bc[0].doKhung = { ok: true, maThoat: 2, soMan: 4, soO: 316, khongDat: 0, doThieu: [] }), bc), /khung gốc/],
-    ["đo khung gốc không đo màn nào", (bc) => ((bc[0].doKhung = { ok: true, maThoat: 0, soMan: 0, soO: 0 }), bc), /khung gốc/],
+    // ADR-0222 Đ7(b): lệnh đo khung gốc trên trang thật, chia mảnh. Thiếu báo cáo một mảnh, có ô không đạt, mảnh đo thiếu màn được giao (mã 2), mảnh đo KHÁC
+    // phần được giao, hợp các mảnh không phủ mọi trang đã khai khuôn, mảnh lạ hay trùng đều ĐỎ — không bao giờ coi là bỏ qua.
+    ["thiếu báo cáo một mảnh đo khung", (bc) => bc.filter((x) => !(x.loai === "khung" && x.manh === 2)), /thiếu báo cáo đo khung gốc mảnh 2/],
+    ["mảnh đo khung có ô không đạt", (bc) => (Object.assign(bc.find((x) => x.loai === "khung"), { ok: false, maThoat: 1, khongDat: 3, loi: "3 ô không đạt" }), bc), /khung gốc.*mảnh 1.*3 ô không đạt/],
+    ["mảnh đo thiếu màn được giao (mã 2)", (bc) => (Object.assign(bc.find((x) => x.loai === "khung"), { ok: false, maThoat: 2, loi: "mảnh 1/2 đo thiếu màn: m3" }), bc), /khung gốc.*đo thiếu màn/],
+    ["mảnh ok mà mã ≠ 0", (bc) => ((bc.find((x) => x.loai === "khung").maThoat = 2), bc), /khung gốc/],
+    ["mảnh không đo ô nào", (bc) => (Object.assign(bc.find((x) => x.loai === "khung"), { soO: 0 }), bc), /khung gốc/],
+    ["mảnh đo khác phần được giao (bỏ một màn mà vẫn báo đạt)", (bc) => (bc.find((x) => x.loai === "khung").khoa.pop(), bc), /khung gốc.*đo khác phần được giao/],
+    ["hợp các mảnh không phủ một trang đã khai khuôn", (bc) => {
+      for (const x of bc.filter((y) => y.loai === "khung")) x.trang = x.trang.filter((t: string) => t !== "/b");
+      return bc;
+    }, /khung gốc.*đo thiếu \/b/],
+    ["báo cáo mảnh trùng", (bc) => [...bc, structuredClone(bc.find((x) => x.loai === "khung"))], /mảnh 1 có hai báo cáo/],
+    ["báo cáo mảnh lạ", (bc) => [...bc, { ...structuredClone(bc.find((x) => x.loai === "khung")), manh: 9 }], /mảnh lạ/],
     ["báo cáo không đọc được", (bc) => [...bc, "rác"], /không đọc được/],
   ];
   for (const [ten, sua, re] of hong) {
@@ -188,7 +217,11 @@ test("TEP_DIEU_KHIEN (Đ2.3): có quy trình GitHub, bảng chia, bộ chạy, d
 
 test("run.mjs --phan: VẪN chạy audit-invariants --strict cuối phần (chạy lẻ theo tên thì không); ghi báo cáo kèm audit", () => {
   const r = readFileSync(new URL("../tests/e2e/run.mjs", import.meta.url), "utf8");
-  assert.match(r, /const coAudit = phan !== null \|\| !picked\.length;/);
+  assert.match(r, /const coAudit = cacPhan !== null \|\| phan !== null \|\| !picked\.length;/);
+  // Chạy theo máy (--may): mỗi phần một nhóm (D1 + wrangler dev riêng), báo cáo riêng từng phần, xanh chỉ khi audit của chính phần đó xanh và mọi kiểm log xanh.
+  assert.match(r, /const nhomList = cacPhan \? cacPhan\.map\(\(k\) => phanE2e\(k\)\) : chiaNhom\(scripts, soNhom\);/);
+  assert.match(r, /const ok = !m\.chet && daChay\.length === m\.ten\.length && daChay\.every\(\(x\) => x\.ok\) && m\.audit === true && kiemLog;/);
+  assert.match(r, /join\(thuMucKetQua, `e2e-\$\{cacPhan\[m\.k\]\}\.json`\)/);
   assert.match(r, /if \(coAudit\) \{\n\s+console\.log\(`▶ audit-invariants/);
   assert.match(r, /"--persist-to", may\.persist, "--strict"\]/);
   assert.match(r, /kichBan: daChay, audit, ok:/);

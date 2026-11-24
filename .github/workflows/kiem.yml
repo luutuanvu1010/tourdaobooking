@@ -4,8 +4,12 @@
 # Tệp LUẬT + tệp điều khiển việc kiểm (Đ2.3, Đ2.6): chỉ sửa bằng công cụ sửa tệp để chủ được hỏi; đổi nó thì day-len đòi chủ gõ lý do.
 # Mọi bước tải báo cáo có `overwrite: true`: "chạy lại phần đỏ" (gh run rerun --failed) tải lại cùng tên artifact; không ghi đè thì báo trùng tên và gom
 # đọc báo cáo cũ (kiểm độc lập C1, 2026-11-06 — CHƯA quan sát trên GitHub).
-# ADR-0215 Đ1.2: KHÔNG còn việc «Chia phần» chạy trước — danh sách phần ghi thẳng ở ma trận dưới (bài src/kiem-phan.test.ts khoá khớp SO_PHAN_TEST /
-# SO_PHAN_E2E và tổng ≤ 20 việc cùng lúc, trần gói miễn phí). Mỗi phần tự tính danh sách của mình từ cùng commit; máy gom dựng lại bảng và đỏ nếu thiếu/trùng.
+# ADR-0215 Đ1.2: KHÔNG có việc «Chia phần» chạy trước — danh sách việc ghi thẳng ở ma trận dưới (bài src/kiem-phan.test.ts khoá khớp SO_PHAN_TEST /
+# SO_MAY_E2E / SO_MANH_KHUNG và tổng ≤ 20 việc cùng lúc, trần gói miễn phí). Mỗi việc tự tính danh sách của mình từ cùng commit; máy gom dựng lại bảng và đỏ
+# nếu thiếu/trùng.
+# Rút lượt kiểm 25/11/2026 (mục tiêu ≤ 5 phút từ lúc đẩy tới kết luận): D1 tạm dựng bằng một lệnh gộp (scripts/d1-tam.mjs, bài src/d1-tam.test.ts canh tương
+# đương); mỗi máy e2e chạy CÙNG LÚC hai phần (mỗi phần vẫn D1 + wrangler dev + audit riêng); đo khung gốc chia mảnh, nhiều thẻ Chrome mỗi máy; phần riêng chạy
+# ĐẦU máy đo khung mảnh 1, trước khi dựng máy thử (bài đo giờ phải chạy một mình).
 name: Kiểm đủ bộ
 
 on:
@@ -25,12 +29,16 @@ env:
   NODE_VERSION: "22"
 
 jobs:
-  rieng:
-    # Đo khung gốc trên trang thật (ADR-0222 Đ7b) chạy CUỐI phần này, sau bài đo giờ — không thêm việc (trần 20 việc cùng lúc, ADR-0215). Tự dựng D1 tạm +
-    # wrangler dev + Chrome ẩn (scripts/giao-dien/do-khung-ci.mjs); máy GitHub là Linux nên Chrome đi qua scripts/chrome-ci.sh. Đo 21/11/2026 trên máy Mac: ~5 phút.
-    name: Phần riêng (Bước 0, typecheck, bài đo giờ, đo khung gốc)
+  khung:
+    # Đo khung gốc trên trang thật (ADR-0222 Đ7b): mỗi mảnh tự dựng D1 tạm + wrangler dev + Chrome ẩn (scripts/giao-dien/do-khung-ci.mjs --manh m/K); máy GitHub
+    # là Linux nên Chrome đi qua scripts/chrome-ci.sh. Mảnh 1 chạy TRƯỚC phần riêng (Bước 0, typecheck, bài đo giờ một mình).
+    name: Đo khung gốc mảnh ${{ matrix.manh }}${{ matrix.manh == 1 && ' + phần riêng (Bước 0, typecheck, bài đo giờ)' || '' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        manh: [1, 2, 3]
     env:
       CHROME_BIN: ${{ github.workspace }}/scripts/chrome-ci.sh
     steps:
@@ -40,23 +48,27 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
-      - run: mkdir -p bao-cao && node scripts/kiem-phan.mjs rieng --ket-qua bao-cao/rieng.json
+      - if: matrix.manh == 1
+        run: mkdir -p bao-cao && node scripts/kiem-phan.mjs rieng --ket-qua bao-cao/rieng.json
+      # Phần riêng đỏ thì vẫn đo khung (báo đủ lỗi một lần); bị huỷ thì thôi.
+      - if: success() || failure()
+        run: mkdir -p bao-cao && node scripts/kiem-phan.mjs khung ${{ matrix.manh }} --ket-qua bao-cao/khung-${{ matrix.manh }}.json
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bao-cao-rieng
-          path: bao-cao/rieng.json
+          name: bao-cao-khung-${{ matrix.manh }}
+          path: bao-cao/*.json
           if-no-files-found: ignore
           overwrite: true
 
   test:
     name: npm test phần ${{ matrix.phan }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        phan: [1, 2, 3, 4, 5, 6, 7]
+        phan: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -74,13 +86,13 @@ jobs:
           overwrite: true
 
   e2e:
-    name: e2e phần ${{ matrix.phan }}
+    name: e2e máy ${{ matrix.may }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        phan: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        may: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -88,20 +100,21 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
-      # Một D1 tạm + một wrangler dev cho phần này; audit-invariants --strict cuối phần (tests/e2e/run.mjs --phan). Cần mạng: Sheet thật, siteverify.
-      - run: mkdir -p bao-cao && node tests/e2e/run.mjs --phan ${{ matrix.phan }} --ket-qua bao-cao/e2e-${{ matrix.phan }}.json
+      # Các phần của máy này (phanCuaMay ở scripts/kiem-phan.mjs) chạy CÙNG LÚC, mỗi phần một D1 tạm + một wrangler dev; audit-invariants --strict cuối mỗi phần;
+      # một báo cáo bao-cao/e2e-<phần>.json mỗi phần. Cần mạng: Sheet thật, siteverify.
+      - run: mkdir -p bao-cao && node tests/e2e/run.mjs --may ${{ matrix.may }} --ket-qua-thu-muc bao-cao
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bao-cao-e2e-${{ matrix.phan }}
-          path: bao-cao/e2e-${{ matrix.phan }}.json
+          name: bao-cao-e2e-may-${{ matrix.may }}
+          path: bao-cao/e2e-*.json
           if-no-files-found: ignore
           overwrite: true
 
   gom:
     # TÊN việc này là hợp đồng với scripts/release-lib.mjs (VIEC_GOM) — đổi tên ở cả hai nơi.
     name: Gom kết quả kiểm
-    needs: [rieng, test, e2e]
+    needs: [khung, test, e2e]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -116,7 +129,8 @@ jobs:
           path: bao-cao
           merge-multiple: true
         continue-on-error: true
-      # Đỏ nếu hợp các phần ≠ toàn bộ, trùng, thiếu bước riêng, thiếu/trùng báo cáo, phần chạy khác bảng chia (việc lệnh `ma-tran` của việc chia cũ từng làm).
+      # Đỏ nếu hợp các phần ≠ toàn bộ, trùng, thiếu bước riêng, thiếu/trùng báo cáo, phần chạy khác bảng chia, mảnh đo khung đo khác phần được giao, hay hợp các
+      # mảnh không phủ mọi trang đã khai khuôn.
       - run: mkdir -p bao-cao && node scripts/kiem-phan.mjs gom bao-cao --ket-qua ket-qua-tong.json
       - if: always()
         uses: actions/upload-artifact@v4

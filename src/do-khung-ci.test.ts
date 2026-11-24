@@ -12,6 +12,8 @@ const ci = (await import(new URL("../scripts/giao-dien/do-khung-ci.mjs", import.
   dungBangMan: (bang: Dong[], ma: Record<string, string | null>) => { bangMan: { khoa: string; tk: string; trang: string }[]; bo: string[] };
   chiaLuot: (bangMan: { khoa: string; tk: string; trang: string }[], bang?: Dong[]) => { sauGieo: boolean; bang: { khoa: string; tk: string; trang: string }[] }[];
   gopLuot: (luot: { ketQua: { trang: string; loi: string[] }[] | null }[], daChuyen: string[]) => { maThoat: number; soO: number; khongDat: number; doThieu: string[]; chayDuoc: boolean };
+  chiaManh: (bang: { khoa: string }[], soManh: number) => string[][];
+  gopManh: (luot: { ketQua: { man: string; trang: string; loi: string[] }[] | null }[], giao: string[]) => { maThoat: number; soO: number; khongDat: number; khoa: string[]; trang: string[]; thieuKhoa: string[] };
 };
 const { BO_QUYEN } = (await import(new URL("../scripts/giao-dien/moi-truong.mjs", import.meta.url).href)) as { BO_QUYEN: Record<string, string[]> };
 
@@ -51,4 +53,26 @@ test("gopLuot: hai lượt gộp phải phủ mọi trang đã khai khuôn; lư�
   assert.equal(ci.gopLuot([{ ketQua: [o("/orders")] }, { ketQua: null }], daChuyen).maThoat, 2, "lượt không có tệp số đo ⇒ không chạy được");
   assert.equal(ci.gopLuot([{ ketQua: [o("/orders", ["tràn ngang"])] }, { ketQua: [o("/cho-xac-nhan")] }], daChuyen).maThoat, 1, "một ô không đạt ⇒ 1");
   assert.equal(ci.gopLuot([], daChuyen).maThoat, 2, "không lượt nào ⇒ không chạy được");
+});
+
+test("chiaManh (rút lượt kiểm 25/11): mọi màn của BANG_CI đúng MỘT mảnh, tất định, mảnh lệch nhau tối đa một màn; số mảnh sai ⇒ ném lỗi", () => {
+  for (const n of [1, 2, 3, 5]) {
+    const m = ci.chiaManh(ci.BANG_CI, n);
+    assert.equal(m.length, n);
+    assert.deepEqual(m.flat().sort(), ci.BANG_CI.map((d) => d.khoa).sort());
+    assert.ok(Math.max(...m.map((x) => x.length)) - Math.min(...m.map((x) => x.length)) <= 1);
+    assert.deepEqual(ci.chiaManh(ci.BANG_CI, n), m, "cùng đầu vào ⇒ cùng bảng (máy gom dựng lại)");
+  }
+  assert.throws(() => ci.chiaManh(ci.BANG_CI, 0));
+});
+
+test("gopManh: mảnh đạt chỉ khi mọi lượt chạy được, mọi ô đạt và đo ĐỦ màn được giao (gieo hỏng làm rơi một màn ⇒ mã 2, không đạt giả)", () => {
+  const o = (man: string, trang: string, loi: string[] = []) => ({ man, trang, loi });
+  assert.equal(ci.gopManh([{ ketQua: [o("a", "/x"), o("b", "/y")] }], ["a", "b"]).maThoat, 0);
+  const thieu = ci.gopManh([{ ketQua: [o("a", "/x")] }], ["a", "b"]);
+  assert.equal(thieu.maThoat, 2);
+  assert.deepEqual(thieu.thieuKhoa, ["b"]);
+  assert.equal(ci.gopManh([{ ketQua: [o("a", "/x", ["tràn ngang"])] }], ["a"]).maThoat, 1);
+  assert.equal(ci.gopManh([{ ketQua: [o("a", "/x")] }, { ketQua: null }], ["a"]).maThoat, 2, "lượt hai không chạy được");
+  assert.deepEqual(ci.gopManh([{ ketQua: [o("a", "/x"), o("a", "/x")] }], ["a"]).trang, ["/x"]);
 });

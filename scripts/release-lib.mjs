@@ -97,6 +97,7 @@ export async function docMocTinDoiMacDinh() {
 
 const RED = "\x1b[31m";
 const BOLD = "\x1b[1m";
+const YELLOW = "\x1b[33m";
 const RESET = "\x1b[0m";
 
 const ANSI = /\x1b\[[0-9;]*m/g;
@@ -243,9 +244,13 @@ export const UNG_DUNG_ACTIONS = "github-actions";
 export const HAN_KET_QUA_MS = 24 * 3600e3;
 /** Mục tiêu tổng thời gian một lần phát hành (Đ1.1) — vượt thì cảnh báo, không chặn. */
 export const MUC_TIEU_GIAY = 600;
+/** Mục tiêu một lượt kiểm GitHub, từ lúc đẩy nhánh chờ kiểm tới lúc có kết luận (chủ dự án 25/11/2026: «tối đa 5 phút») — vượt thì cảnh báo, không chặn. */
+export const MUC_TIEU_KIEM_GIAY = 300;
 const CHO_LUOT_HIEN_MS = 5 * 60e3;
 const CHO_LUOT_XONG_MS = 45 * 60e3;
-const NHIP_HOI_MS = 15e3;
+// 25/11/2026 (rút lượt kiểm ≤ 5 phút): 15 → 5 giây — kết luận tới tay chủ chậm nhất 5 giây sau khi GitHub xong (~60 lần hỏi cho một lượt 5 phút, xa trần
+// 5.000 lần/giờ của gh).
+const NHIP_HOI_MS = 5e3;
 /** 17/11: một lần `gh run view` chập mạng từng làm day-len dừng dù lượt kiểm đã xanh. Đọc lỗi liền nhau tới số này thì chờ một nhịp rồi hỏi lại; lần kế tiếp lỗi nữa thì dừng. */
 export const SO_LAN_DOC_LOI_TOI_DA = 3;
 const LY_DO_TOI_THIEU = 5;
@@ -638,8 +643,12 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
   if (dayPhu.code !== 0) return dung(`đẩy nhánh chờ kiểm \`${nhanh}\` lỗi — GitHub chưa kiểm. \`main\` trên GitHub chưa đổi.`, ...undo());
 
   log("▶ Chờ GitHub kiểm đủ bộ (npm test, typecheck, e2e — chia nhiều máy chạy cùng lúc)");
+  const batDauCho = now().getTime();
   let w = await choLuot(run, log, sleep, now, sha);
   if (w.loi) return dung(`${w.loi} — không đẩy \`main\`.`, ...undo());
+  // Mục tiêu chủ đặt 25/11/2026: lượt kiểm ≤ 5 phút từ lúc đẩy nhánh chờ kiểm tới lúc có kết luận. Vượt thì nói ra (không chặn) để biết lúc cần chia lại.
+  const giayCho = Math.round((now().getTime() - batDauCho) / 1000);
+  log(giayCho > MUC_TIEU_KIEM_GIAY ? `${YELLOW}Lượt kiểm mất ${Math.floor(giayCho / 60)} phút ${giayCho % 60} giây — vượt mục tiêu ${MUC_TIEU_KIEM_GIAY / 60} phút; báo AI để chia lại phần kiểm.${RESET}` : `Lượt kiểm mất ${Math.floor(giayCho / 60)} phút ${giayCho % 60} giây (mục tiêu ≤ ${MUC_TIEU_KIEM_GIAY / 60} phút).`);
   let luot = w.luot;
   let ketQua = luot.conclusion === "success" ? "xanh" : "do";
   let choQua = null;

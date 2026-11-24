@@ -20,7 +20,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
 // Danh sách kịch bản `ALL`, thứ tự ràng buộc giữa các kịch bản và bảng giờ chia nhóm: tests/e2e/danh-sach.mjs (một nguồn với bảng chia phần của GitHub).
 import { ALL, chiaNhom, laLoiTrungCong, SO_LAN_BAT_TOI_DA } from "./danh-sach.mjs";
-import { phanE2e } from "../../scripts/kiem-phan.mjs";
+import { phanCuaMay, phanE2e } from "../../scripts/kiem-phan.mjs";
 
 // `--phan <k>` (ADR-0179 Đ1.2): chạy ĐÚNG phần k của bảng chia (scripts/kiem-phan.mjs) trên MỘT D1 tạm + MỘT wrangler dev, và VẪN chạy
 // `audit-invariants --strict` cuối phần như chạy đủ bộ (chạy lẻ theo tên thì không). `--ket-qua <tệp>`: ghi báo cáo máy đọc (giây thật từng kịch bản, kết quả
@@ -36,13 +36,20 @@ const layCo = (ten) => {
 };
 const phanCo = layCo("--phan");
 const tepKetQua = layCo("--ket-qua");
+// `--may r --ket-qua-thu-muc <thư mục>` (rút lượt kiểm 25/11/2026): máy GitHub thứ r chạy CÁC PHẦN của nó (phanCuaMay ở scripts/kiem-phan.mjs) CÙNG LÚC — mỗi
+// phần vẫn là một nhóm riêng: một D1 tạm + một wrangler dev + audit-invariants --strict cuối phần + các bước kiểm log của riêng máy chủ đó (ADR-0179 Đ1.2), báo cáo
+// riêng từng phần `<thư mục>/e2e-<k>.json` như chạy `--phan k`. Máy chủ bật LẦN LƯỢT (đua ghi public/js — xem batMayChu).
+const mayCo = layCo("--may");
+const thuMucKetQua = layCo("--ket-qua-thu-muc");
+if (mayCo !== undefined && (phanCo !== undefined || argv.length || !thuMucKetQua)) throw new Error("--may cần --ket-qua-thu-muc và không đi cùng --phan / tên kịch bản.");
+const cacPhan = mayCo !== undefined ? phanCuaMay(Number(mayCo)) : null;
 const phan = phanCo === undefined ? null : Number(phanCo);
 if (phanCo !== undefined && argv.length) throw new Error("--phan không đi cùng tên kịch bản (phần đã xác định danh sách).");
 const picked = argv;
-const scripts = phan !== null ? phanE2e(phan) : picked.length ? picked : ALL;
+const scripts = cacPhan ? cacPhan.flatMap((k) => phanE2e(k)) : phan !== null ? phanE2e(phan) : picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
 /** Chạy đủ bộ hoặc một PHẦN của bảng chia ⇒ có audit-invariants cuối (chạy lẻ theo tên có thể để dữ liệu dở nên không). */
-const coAudit = phan !== null || !picked.length;
+const coAudit = cacPhan !== null || phan !== null || !picked.length;
 
 // ── Chạy song song theo NHÓM (chủ dự án chọn 30/9, phương án A: "nhanh gần gấp đôi, không bỏ bớt bài kiểm nào") ──
 // Mỗi nhóm có D1 tạm + `wrangler dev` + cổng + máy OpenAI giả RIÊNG — không chia sẻ trạng thái nào giữa các nhóm (chế độ bảo trì, tài khoản dùng chung,
@@ -53,13 +60,14 @@ const coAudit = phan !== null || !picked.length;
 const cpu = availableParallelism();
 const MAC_DINH = Math.max(1, Math.min(3, Math.floor(cpu / 3)));
 // Một PHẦN (--phan) = đúng một D1 tạm + một wrangler dev (ADR-0179 Đ1.2): ép một nhóm.
-const songSong = phan !== null ? "1" : (process.env.E2E_SONG_SONG ?? String(MAC_DINH));
+const songSong = cacPhan ? String(cacPhan.length) : phan !== null ? "1" : (process.env.E2E_SONG_SONG ?? String(MAC_DINH));
 if (!/^[1-9]\d*$/.test(songSong)) throw new Error(`E2E_SONG_SONG phải là số nguyên ≥ 1 (đang là "${songSong}")`);
-const soNhom = Math.min(Number(songSong), scripts.length);
+const soNhom = cacPhan ? cacPhan.length : Math.min(Number(songSong), scripts.length);
 
 
-const nhomList = chiaNhom(scripts, soNhom);
-const nhan = (k) => (soNhom > 1 ? ` · nhóm ${k + 1}` : "");
+// Chạy theo máy: nhóm k = ĐÚNG phần cacPhan[k] của bảng chia (không chia lại).
+const nhomList = cacPhan ? cacPhan.map((k) => phanE2e(k)) : chiaNhom(scripts, soNhom);
+const nhan = (k) => (cacPhan ? ` · phần ${cacPhan[k]}` : soNhom > 1 ? ` · nhóm ${k + 1}` : "");
 
 const freePort = () =>
   new Promise((resolve, reject) => {
@@ -339,6 +347,16 @@ console.log(failed ? `E2E: ${failed}/${total} kịch bản LỖI` : `E2E: ${tota
 // KHÔNG `process.exit()`: khi đầu ra đi qua ống (vd `npm run trien-khai` đọc bằng tee), stdout của Node trên macOS ghi bất đồng bộ — thoát ngay có thể
 // cắt mất phần đuôi (tóm tắt + dòng "E2E:") sau khi vừa chuyển hàng trăm KB đầu ra kịch bản. Đặt mã thoát rồi để tiến trình tự kết thúc khi ghi xong.
 // Báo cáo máy đọc cho bước gom của GitHub (ADR-0179 Đ1.3–Đ1.4): danh sách kịch bản ĐÃ CHẠY kèm giây thật, kết quả audit (null = không chạy), tổng xanh/đỏ.
+// Chạy theo máy: một báo cáo cho MỖI phần, xanh khi mọi kịch bản của phần xanh, audit của phần xanh và mọi bước kiểm log của máy chủ phần đó xanh.
+if (cacPhan && thuMucKetQua) {
+  for (const m of cacMay) {
+    const ngoai = m.ghiNhieuLan ? [...m.ghiNhieuLan].filter((d) => !GHI_NHIEU_LAN.some((x) => x.duong === d)) : ["(không đọc được log)"];
+    const kiemLog = !m.log?.includes('"event":"day_loi"') && ngoai.length === 0 && m.loiLa === 0 && (!m.ten.includes("tro-ly") || m.troLy === true);
+    const daChay = m.ketQua.map((x) => ({ ten: x.name, ok: x.ok === true, giay: x.giay ?? null }));
+    const ok = !m.chet && daChay.length === m.ten.length && daChay.every((x) => x.ok) && m.audit === true && kiemLog;
+    writeFileSync(join(thuMucKetQua, `e2e-${cacPhan[m.k]}.json`), `${JSON.stringify({ loai: "e2e", phan: cacPhan[m.k], kichBan: daChay, audit: m.audit ?? null, ok }, null, 1)}\n`);
+  }
+}
 if (tepKetQua) {
   const daChay = cacMay.flatMap((m) => m.ketQua).map((x) => ({ ten: x.name, ok: x.ok === true, giay: x.giay ?? null }));
   const audit = cacMay.every((m) => m.audit === undefined) ? null : cacMay.every((m) => m.audit === true);

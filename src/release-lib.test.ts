@@ -728,8 +728,8 @@ test("day-len: thời gian từng chặng KHÔNG tính lúc chờ chủ trả l�
   };
   assert.equal(await lib.dayLen({ ...h.deps, now: d.now, sleep: d.sleep, target: "worktree-x" }), 0);
   const b = k.daGhi[0]!.banGhi;
-  assert.equal(b.giayDayLen, 15, "chỉ 15 giây chờ GitHub (một nhịp hỏi); 30 phút suy nghĩ không tính");
-  assert.ok(b.chang.some((c: any) => c.ten === "chờ GitHub kiểm" && c.giay === 15));
+  assert.equal(b.giayDayLen, 5, "chỉ 5 giây chờ GitHub (một nhịp hỏi, 25/11/2026); 30 phút suy nghĩ không tính");
+  assert.ok(b.chang.some((c: any) => c.ten === "chờ GitHub kiểm" && c.giay === 5));
 });
 
 // ─── Sự cố 2026-11-21, 12:17–12:23: hai lệnh nhập chạy chồng nhau ───
@@ -1129,13 +1129,13 @@ test("trien-khai: quy trình .github/workflows/kiem.yml có việc gom ĐÚNG t�
   assert.ok(yml.includes(`name: ${libX.VIEC_GOM}\n`), "tên việc gom phải khớp VIEC_GOM");
   assert.match(yml, /push:\n\s+branches: \["cho-kiem\/\*\*"\]/);
   assert.doesNotMatch(yml, /branches:.*\bmain\b/);
-  assert.match(yml, /tests\/e2e\/run\.mjs --phan \$\{\{ matrix\.phan \}\}/, "phần e2e chạy bằng --phan (có audit-invariants cuối phần)");
+  assert.match(yml, /tests\/e2e\/run\.mjs --may \$\{\{ matrix\.may \}\} --ket-qua-thu-muc bao-cao/, "máy e2e chạy các phần của nó bằng --may (mỗi phần có audit-invariants cuối phần)");
   assert.match(yml, /kiem-phan\.mjs gom/);
   // Chạy lại phần đỏ (Đ3.1): artifact cùng tên của lượt trước phải được GHI ĐÈ, không thì việc tải lên báo trùng tên và gom đọc báo cáo cũ (kiểm độc lập C1).
   const soTai = (yml.match(/uses: actions\/upload-artifact@v4/g) ?? []).length;
   assert.equal(soTai, 4);
   assert.equal((yml.match(/^\s+overwrite: true$/gm) ?? []).length, soTai, "mọi bước tải báo cáo phải có overwrite: true");
-  assert.match(yml, /needs: \[rieng, test, e2e\]\n\s+if: always\(\)/, "việc gom chạy cả khi phần khác đỏ, và đợi mọi phần");
+  assert.match(yml, /needs: \[khung, test, e2e\]\n\s+if: always\(\)/, "việc gom chạy cả khi phần khác đỏ, và đợi mọi việc (mảnh đo khung + phần riêng, npm test, máy e2e)");
   // ADR-0215 Đ1.2: không còn việc «Chia phần» chạy trước mọi phần (tốn ~20 giây nối đuôi); bảng phần ghi thẳng trong quy trình, máy gom vẫn soi đủ/trùng.
   assert.doesNotMatch(yml, /kiem-phan\.mjs ma-tran/, "không còn việc chia phần riêng");
   assert.doesNotMatch(yml, /needs\.chia|needs: chia/, "các phần không còn chờ việc chia");

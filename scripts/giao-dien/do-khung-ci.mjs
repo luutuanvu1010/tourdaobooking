@@ -1,5 +1,8 @@
 // Lệnh đo KHUNG GỐC tự gieo dữ liệu (ADR-0222 Đ7b) — bản dùng trong lượt kiểm GitHub (phần riêng của scripts/kiem-phan.mjs) và chạy được y hệt trên máy:
-//   node scripts/giao-dien/do-khung-ci.mjs [--buoc 20] [--ket-qua <tệp.json>]      (chạy từ GỐC kho)
+//   node scripts/giao-dien/do-khung-ci.mjs [--buoc 20] [--manh k/K] [--song-song N] [--han-phut P] [--ket-qua <tệp.json>]      (chạy từ GỐC kho)
+// `--manh k/K` (rút lượt kiểm 25/11/2026): chỉ đo MẢNH k trong K mảnh của BANG_CI (chiaManh, tất định); mỗi mảnh một máy GitHub, tự dựng máy thử và gieo dữ liệu
+// như nhau. Mảnh KHÔNG tự phán «đo thiếu» trên cả trang web: nó báo danh sách màn đã đo, máy gom (scripts/kiem-phan.mjs gom) kiểm mảnh đo đúng phần được giao
+// và HỢP mọi mảnh phủ mọi trang đã khai khuôn. `--song-song N`: N thẻ đo cùng lúc (do-khung-goc.mjs).
 // Khác `npm run do-khung` (máy thử có sẵn kho dữ liệu giả + tệp tài khoản ngoài kho): lệnh này tự dựng D1 tạm + `wrangler dev` (moi-truong.mjs), tạo tài khoản thử,
 // gieo đơn, xe, địa điểm qua API thật, SINH bảng màn từ dữ liệu vừa gieo, rồi gọi NGUYÊN lệnh đo `do-khung-goc.mjs` (tám điều đo giữ nguyên, không chép lại).
 // Mỗi trang khai `data-khung-goc` phải có một dòng trong BANG_CI dưới đây; thiếu dòng ⇒ lệnh đo báo ĐO THIẾU (mã 2) ⇒ lượt kiểm đỏ. Chuyển thêm một màn sang
@@ -49,6 +52,29 @@ export const BANG_CI = [
 /** Bộ quyền chỉ dùng để GIEO (không có màn đo): Toàn quyền đánh cờ «cần xác nhận» cho một dịch vụ giả. */
 const BO_GIEO = ["SUPER_ADMIN"];
 
+/** Chia khoá màn của BANG_CI thành `soManh` mảnh (xoay vòng theo thứ tự bảng — mọi màn cùng số bề rộng nên mảnh cân nhau). Tất định: máy gom dựng lại y hệt. */
+export function chiaManh(bang, soManh) {
+  if (!Number.isInteger(soManh) || soManh < 1) throw new Error(`số mảnh đo khung phải là số nguyên ≥ 1 (nhận ${soManh})`);
+  const ra = Array.from({ length: soManh }, () => []);
+  bang.forEach((d, i) => ra[i % soManh].push(d.khoa));
+  return ra;
+}
+
+/**
+ * Kết luận của MỘT mảnh: `luot` như gopLuot, `giao` = khoá màn mảnh được giao. Mã 2 = có lượt không chạy được hoặc mảnh không đo đủ màn được giao (gieo hỏng ⇒
+ * dòng bị bỏ); 1 = có ô không đạt; 0 = đạt. Việc «hợp các mảnh phủ mọi trang đã khai khuôn» do máy gom làm.
+ */
+export function gopManh(luot, giao) {
+  const chayDuoc = luot.length > 0 && luot.every((l) => Array.isArray(l.ketQua));
+  const ketQua = luot.flatMap((l) => l.ketQua ?? []);
+  const khoa = [...new Set(ketQua.map((x) => x.man))];
+  const trang = [...new Set(ketQua.map((x) => x.trang))];
+  const thieuKhoa = giao.filter((k) => !khoa.includes(k));
+  const khongDat = ketQua.filter((x) => x.loi?.length).length;
+  const maThoat = !chayDuoc ? 2 : khongDat ? 1 : thieuKhoa.length ? 2 : 0;
+  return { maThoat, soO: ketQua.length, khongDat, khoa, trang, thieuKhoa, chayDuoc };
+}
+
 /** Dựng bảng màn [{ khoa, tk, trang }] từ BANG_CI và mã vừa gieo. Dòng cần mã mà gieo hỏng thì BỎ (lệnh đo sẽ báo đo thiếu trang đó — không bao giờ đạt giả). */
 export function dungBangMan(bang, ma) {
   const ra = [];
@@ -84,15 +110,22 @@ const lay = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? proce
 async function chay() {
   const buoc = Number(lay("--buoc", "20"));
   const tepKq = lay("--ket-qua");
+  const manhCo = lay("--manh");
+  const [manh, soManh] = manhCo ? manhCo.split("/").map(Number) : [null, null];
+  if (manhCo && !(Number.isInteger(manh) && Number.isInteger(soManh) && manh >= 1 && manh <= soManh)) throw new Error(`--manh phải dạng k/K, 1 ≤ k ≤ K (nhận ${manhCo})`);
+  const giao = manh ? chiaManh(BANG_CI, soManh)[manh - 1] : BANG_CI.map((d) => d.khoa);
+  const bangGiao = BANG_CI.filter((d) => giao.includes(d.khoa));
+  const songSong = lay("--song-song", "1");
+  const hanPhut = Number(lay("--han-phut", "25"));
   const bat = Date.now();
   const ghi = (bc) => { if (tepKq) writeFileSync(tepKq, `${JSON.stringify(bc, null, 1)}\n`); };
   const tam = mkdtempSync(join(tmpdir(), "tourdao-do-khung-ci-"));
   let moi = null;
-  let ketLuan = { ok: false, maThoat: 2, buoc, loi: null };
+  let ketLuan = { ok: false, maThoat: 2, buoc, ...(manh ? { manh, soManh } : {}), loi: null };
   try {
     const { dungMoiTruong } = await import("./moi-truong.mjs");
-    const cacBo = [...new Set([...BANG_CI.map((d) => d.bo), ...BO_GIEO])];
-    moi = await dungMoiTruong({ bo: cacBo, hanPhut: 25 });
+    const cacBo = [...new Set([...bangGiao.map((d) => d.bo), ...(bangGiao.some((d) => d.sauGieo) ? BO_GIEO : [])])];
+    moi = await dungMoiTruong({ bo: cacBo, hanPhut });
     console.log(`▶ Máy thử tạm: ${moi.base}; tài khoản: ${moi.boChayDuoc.join(", ")}; lỗi gieo đơn: ${moi.loiGieo.length}`);
     for (const l of moi.loiGieo) console.log(`  ✗ gieo ${l.viec}: ${l.status ?? ""} ${l.loi}`);
 
@@ -154,7 +187,7 @@ async function chay() {
         return true;
       } catch (e) { console.log(`  ✗ gieo đơn chờ xác nhận: ${String(e?.message ?? e).slice(0, 300)}`); return false; }
     };
-    const { bangMan, bo } = dungBangMan(BANG_CI, ma);
+    const { bangMan, bo } = dungBangMan(bangGiao, ma);
     for (const b of bo) console.log(`  ✗ bỏ khỏi bảng màn: ${b}`);
 
     const tepTk = join(tam, "tai-khoan.json");
@@ -168,15 +201,21 @@ async function chay() {
       const ra = join(tam, `so-do-${i + 1}`);
       console.log(`▶ Lượt ${i + 1}/${cacLuot.length}${l.sauGieo ? " (sau khi gieo đơn chờ xác nhận)" : ""}: đo ${l.bang.length} màn, bề rộng 360–1.920 bước ${buoc}`);
       // Mỗi lượt chỉ là một phần bảng màn nên do-khung-goc tự báo «đo thiếu» (mã 2): mã thoát từng lượt KHÔNG dùng; kết luận đọc từ tệp số đo của mọi lượt (gopLuot).
-      spawnSync(process.execPath, ["scripts/giao-dien/do-khung-goc.mjs", "--base", moi.base, "--tk", tepTk, "--bang", tepBang, "--ra", ra, "--buoc", String(buoc)], { stdio: "inherit" });
+      spawnSync(process.execPath, ["scripts/giao-dien/do-khung-goc.mjs", "--base", moi.base, "--tk", tepTk, "--bang", tepBang, "--ra", ra, "--buoc", String(buoc), "--song-song", songSong], { stdio: "inherit" });
       const tepSo = join(ra, "do-khung-goc.json");
       kqLuot.push({ ketQua: existsSync(tepSo) ? JSON.parse(readFileSync(tepSo, "utf8")).ketQua : null });
     }
-    const daChuyen = readdirSync("public").filter((t) => t.endsWith(".html")).filter((t) => docThanTrang(readFileSync(join("public", t), "utf8")).khuon !== null).map(duongCuaTrang);
-    const { maThoat, soO, khongDat, doThieu } = gopLuot(kqLuot, daChuyen);
-    ketLuan = { ok: maThoat === 0, maThoat, buoc, soMan: bangMan.length, soO, khongDat, doThieu, loi: maThoat === 0 ? null : maThoat === 1 ? `${khongDat} ô không đạt` : doThieu.length ? `đo thiếu: ${doThieu.join(", ")}` : "lệnh đo không chạy được" };
+    if (manh) {
+      const g = gopManh(kqLuot, giao);
+      ketLuan = { ok: g.maThoat === 0, maThoat: g.maThoat, buoc, manh, soManh, khoa: g.khoa, trang: g.trang, soMan: g.khoa.length, soO: g.soO, khongDat: g.khongDat, thieuKhoa: g.thieuKhoa,
+        loi: g.maThoat === 0 ? null : g.maThoat === 1 ? `${g.khongDat} ô không đạt` : g.thieuKhoa.length ? `mảnh ${manh}/${soManh} đo thiếu màn: ${g.thieuKhoa.join(", ")}` : "lệnh đo không chạy được" };
+    } else {
+      const daChuyen = readdirSync("public").filter((t) => t.endsWith(".html")).filter((t) => docThanTrang(readFileSync(join("public", t), "utf8")).khuon !== null).map(duongCuaTrang);
+      const { maThoat, soO, khongDat, doThieu } = gopLuot(kqLuot, daChuyen);
+      ketLuan = { ok: maThoat === 0, maThoat, buoc, soMan: bangMan.length, soO, khongDat, doThieu, loi: maThoat === 0 ? null : maThoat === 1 ? `${khongDat} ô không đạt` : doThieu.length ? `đo thiếu: ${doThieu.join(", ")}` : "lệnh đo không chạy được" };
+    }
   } catch (e) {
-    ketLuan = { ok: false, maThoat: 2, buoc, loi: String(e?.message ?? e).slice(0, 600) };
+    ketLuan = { ok: false, maThoat: 2, buoc, ...(manh ? { manh, soManh } : {}), loi: String(e?.message ?? e).slice(0, 600) };
     console.error(`✗ Không chạy được: ${ketLuan.loi}`);
   } finally {
     await moi?.dung();
