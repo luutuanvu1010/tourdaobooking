@@ -1028,7 +1028,7 @@ function theCuuHoKhoi(): HTMLElement | null {
             ? dsDong(null, ...t.xe.map((x) => h("a", { class: "dong", href: `/chuyen?id=${encodeURIComponent(x.tripId)}`, "data-action": "cuu-ho-xe" }, h("span", { class: "dong-chu" }, h("strong", null, x.nhan), h("span", { class: "o-phu" }, x.phu)), icon("next", 20))))
             : h("p", { class: "rong" }, "Cùng ngày chưa có xe nào của tài xế công ty."),
           h("p", { class: "o-phu" }, "Mở xe rồi bấm “Thêm điểm đón / thêm khách” (xe đang chạy) hoặc xếp khách (xe chưa chạy)."),
-          h("div", { class: "hang" }, h("a", { class: "nut", "data-cap": "chinh", href: `/chuyen-sua?ngay=${ngay}`, "data-action": "tao-chuyen-cuu-ho" }, "Tạo chuyến cứu hộ")),
+          dsDong(null, h("a", { class: "dong", href: `/chuyen-sua?ngay=${ngay}`, "data-action": "tao-chuyen-cuu-ho" }, h("span", { class: "dong-chu" }, "Tạo chuyến cứu hộ"), icon("next", 20))),
         )
       : null,
   );
