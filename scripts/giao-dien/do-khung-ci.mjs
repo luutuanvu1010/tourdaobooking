@@ -91,9 +91,10 @@ async function chay() {
       if (dd.status !== 201) console.log(`  ✗ gieo địa điểm: ${dd.status} ${JSON.stringify(dd.body?.error ?? dd.body).slice(0, 300)}`);
     }
     // ---- gieo thêm (lượt hai): một đơn ĐANG CHỜ XÁC NHẬN (khung gốc đợt A), để màn «Đơn chờ xác nhận» được đo khi có danh sách, như người dùng thật thấy. Gieo hỏng thì trang
-    // rỗng và phép đo chữ đậm báo vượt trần (không bao giờ đạt giả). Cùng cách kịch bản tests/e2e/gui-don.mjs: dịch vụ giả riêng, Toàn quyền đánh cờ, Bán hàng lập rồi gửi.
+    // rỗng; lượt đó tính là KHÔNG CHẠY ĐƯỢC (mã 2) — không đo màn ở trạng thái rỗng rồi báo đạt (soát độc lập 24/11). Cùng cách kịch bản tests/e2e/gui-don.mjs:
+    // dịch vụ giả riêng, Toàn quyền đánh cờ, Bán hàng lập rồi gửi. Trả true khi đã có một đơn đang chờ xác nhận.
     const gieoDonCho = async () => {
-      if (!moi.taiKhoan.SALES || !moi.taiKhoan.SUPER_ADMIN) { console.log("  ✗ gieo đơn chờ xác nhận: thiếu tài khoản Bán hàng hoặc Toàn quyền"); return; }
+      if (!moi.taiKhoan.SALES || !moi.taiKhoan.SUPER_ADMIN) { console.log("  ✗ gieo đơn chờ xác nhận: thiếu tài khoản Bán hàng hoặc Toàn quyền"); return false; }
       try {
         const AT = "'2026-01-01T00:00:00.000Z'";
         await L.sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ('ZDK1','Dịch vụ đo khung cần xác nhận','perPax',100000,NULL,NULL,NULL,NULL,NULL,NULL,96,1,${AT},${AT}) ON CONFLICT(code) DO UPDATE SET in_sheet = 1`);
@@ -102,8 +103,9 @@ async function chay() {
         const ban = await L.session(moi.taiKhoan.SALES);
         const o = co.status === 200 ? await L.call(ban, "POST", "/api/orders", L.orderInput({ customerName: "Khách Chờ Xác Nhận", customerPhone: "0905 678 901", services: [L.catalogService({ catalogCode: "ZDK1", catalogPriceSeen: { adult: 100000 }, pax: { adult: 2 }, departDate: L.vnDate(3) })] })) : co;
         const gui = o.status === 201 ? await L.call(ban, "POST", `/api/orders/${o.body.order.id}/gui-xac-nhan`, {}) : o;
-        if (gui.status !== 201) console.log(`  ✗ gieo đơn chờ xác nhận: ${gui.status} ${JSON.stringify(gui.body?.error ?? gui.body).slice(0, 300)}`);
-      } catch (e) { console.log(`  ✗ gieo đơn chờ xác nhận: ${String(e?.message ?? e).slice(0, 300)}`); }
+        if (gui.status !== 201) { console.log(`  ✗ gieo đơn chờ xác nhận: ${gui.status} ${JSON.stringify(gui.body?.error ?? gui.body).slice(0, 300)}`); return false; }
+        return true;
+      } catch (e) { console.log(`  ✗ gieo đơn chờ xác nhận: ${String(e?.message ?? e).slice(0, 300)}`); return false; }
     };
     const { bangMan, bo } = dungBangMan(BANG_CI, ma);
     for (const b of bo) console.log(`  ✗ bỏ khỏi bảng màn: ${b}`);
@@ -113,7 +115,7 @@ async function chay() {
     const cacLuot = chiaLuot(bangMan);
     const kqLuot = [];
     for (const [i, l] of cacLuot.entries()) {
-      if (l.sauGieo) await gieoDonCho();
+      if (l.sauGieo && !(await gieoDonCho())) { console.log(`▶ Lượt ${i + 1}/${cacLuot.length}: gieo hỏng, KHÔNG đo — lượt này tính là không chạy được`); kqLuot.push({ ketQua: null }); continue; }
       const tepBang = join(tam, `bang-man-${i + 1}.json`);
       writeFileSync(tepBang, JSON.stringify(l.bang));
       const ra = join(tam, `so-do-${i + 1}`);
