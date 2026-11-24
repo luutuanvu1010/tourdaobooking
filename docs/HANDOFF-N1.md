@@ -2,7 +2,22 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.43 ĐÃ LÊN PRODUCTION (ADR-0234 đợt gốc ngôn ngữ thị giác: khối phẳng không bóng, tiền một màu mực, nút phụ nền trắng, dải nhắc đầu trang nền trắng vạch màu, một họ phông và sáu cỡ chữ, mức «gọn» cho bảng Danh sách ở máy tính có chuột; mặc định núm «Nền trang», «Viền», «Phông tiêu đề» đổi) — không migration — triển khai 2026-11-24 15:03 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.44 ĐÃ LÊN PRODUCTION (khung gốc đợt A, ADR-0222 + ADR-0234: Tạo / Sửa đơn và Đơn chờ xác nhận theo khung chung — một kiểu khối, nút Lưu ở thanh cuối trang dính đáy, bớt chữ đậm, «Kiểm vé» nút phụ, khuôn trạng thái chung cho rỗng / không quyền / đơn không sửa được) — không migration — triển khai 2026-11-24 21:18 giờ Việt Nam
+
+Ghi bởi phiên thi công đợt A, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ.
+
+- Ngày giờ: 2026-11-24 21:18 (giờ Việt Nam)
+- Commit: 09051e850 Sổ việc khung gốc: ghi kết quả soát và lượt kiểm cuối của đợt A
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-24T14:15:42Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45409952398
+- Migration đã áp: không có
+- Worker Version ID: bb59c09c-b97b-42d7-8f28-aa27a3dc7058
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (3 cảnh báo)
+- Phiên bản: 3.44; cổng phiên bản trước và sau deploy: ĐẠT
+- Thời gian: day-len 12 phút 17 giây (chờ GitHub kiểm 12 phút 11 giây); trien-khai 0 phút 52 giây; TỔNG 13 phút 09 giây — lệnh cảnh báo vượt mục tiêu ~10 phút (ADR-0179 Đ1.1, không chặn). Lượt đo khung trên GitHub nay đo 8 màn hai lượt (trước 4 màn).
+- Kiểm sau triển khai (GET công khai, 24/11 ~21:20): `/order-form.html` khai `data-khung-goc="bieu-mau"`; `/app.css` có token `--kg-mui-chon` của đợt A.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 3.43 ĐÃ LÊN PRODUCTION (ADR-0234 đợt gốc ngôn ngữ thị giác: khối phẳng không bóng, tiền một màu mực, nút phụ nền trắng, dải nhắc đầu trang nền trắng vạch màu, một họ phông và sáu cỡ chữ, mức «gọn» cho bảng Danh sách ở máy tính có chuột; mặc định núm «Nền trang», «Viền», «Phông tiêu đề» đổi) — không migration — triển khai 2026-11-24 15:03 giờ Việt Nam
 
 Ghi bởi phiên thi công đợt gốc, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ.
 
