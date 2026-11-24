@@ -2,7 +2,25 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.40 ĐÃ LÊN PRODUCTION (gồm 3.39 ADR-0223 việc 1: mã bản dùng thử demo.tourdao.vn, lệnh `len-demo` vào danh sách AI không tự chạy; và 3.40 ADR-0229 việc 10: giá mùa vụ theo % hoặc số tiền, theo nhóm/dịch vụ và khoảng ngày đi, áp sau khi người thứ hai duyệt, đại lý không hưởng hoa hồng trên phần tăng) — migration `0188`, `0189` — triển khai 2026-11-23 20:16 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.42 ĐÃ LÊN PRODUCTION (gồm 3.41 việc 9 phần (d): màn Quét vé không tự tải lại trang khi máy chủ phát lại «lần quét trước đã được ghi»; và 3.42 việc 15: tên «Nhà cung cấp» thay «Người bán dịch vụ», luật chia phần quầy nhà cung cấp đọc `supplier_party_id` từ bản chụp đơn, chặn ngừng dòng «Mọi dịch vụ», đổi công ty chủ không biến công ty cũ thành nhà cung cấp) — không migration — triển khai 2026-11-24 07:59 giờ Việt Nam
+
+Ghi bởi phiên điều phối kế hoạch 16 việc, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ. Bản 3.41 không triển khai riêng: lên cùng lượt với 3.42.
+
+- Ngày giờ: 2026-11-24 07:59 (giờ Việt Nam)
+- Commit: 85f5b637d Bài kiểm kho vé: hạn dùng vé thử tính theo hôm nay, không ghi cứng
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-24T00:58:10Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45300262765
+- Lần nhập trước đó đỏ (lượt https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45287379563): hai bài `src/modules/ve-dien-tu/nhap-lo-route.test.ts` và `lo-moi-loai-khach.test.ts` ghi cứng hạn dùng vé thử 2026-11-23; kho chỉ đếm vé `valid_to >= hôm nay (giờ VN)` nên từ 24/11 kho báo 0 vé. Mã Nền tảng không sai (bản d63dc4260 cũng đỏ y hệt); commit 85f5b637d đổi hạn dùng thành hôm nay ± 30 ngày.
+- Tệp luật đã đổi — lý do của chủ: Ghi quyết định chủ 23/11: màn Quét vé không tự tải lại trang khi lần quét trước đã được ghi (việc 9 phần cuối) (docs/adr/ADR-0175-ve-tour-dao-va-quet-ve.md)
+- Migration đã áp: không có
+- Worker Version ID: d9b217a1-9f60-4633-8ddc-e68ae240b4e0
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (3 cảnh báo có sẵn: R-VC-14 7 xe thiếu giấy tờ, R-ORD-9 1 đơn, R-PRC-PD-3 1 khu vực đón thiếu mức chung)
+- Phiên bản: 3.42; cổng phiên bản trước và sau deploy: ĐẠT
+- Thời gian: day-len 9 phút 04 giây; trien-khai 0 phút 43 giây; TỔNG 9 phút 47 giây
+- Kiểm sau triển khai (GET công khai `/api/auth/config`, 24/11 ~08:00): `version` = 3.42.
+- Chưa làm: câu đọc chỉ đọc của việc 15 (`node scripts/cau-doc-chia-phan-nha-cung-cap.mjs` in lệnh; hai cột `ca_1`, `ca_2` đều 0 ⇒ không đơn nào đổi tiền chia phần) CHƯA chạy trước triển khai — chủ chạy sau; khác 0 thì báo phiên kỹ thuật. Các việc treo của 3.40 vẫn còn nguyên (dưới).
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.40 ĐÃ LÊN PRODUCTION (gồm 3.39 ADR-0223 việc 1: mã bản dùng thử demo.tourdao.vn, lệnh `len-demo` vào danh sách AI không tự chạy; và 3.40 ADR-0229 việc 10: giá mùa vụ theo % hoặc số tiền, theo nhóm/dịch vụ và khoảng ngày đi, áp sau khi người thứ hai duyệt, đại lý không hưởng hoa hồng trên phần tăng) — migration `0188`, `0189` — triển khai 2026-11-23 20:16 giờ Việt Nam
 
 Ghi bởi phiên điều phối kế hoạch 16 việc, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ. Bản trước: 3.38 (việc 11, bản sửa «Vé do ai phát», triển khai 17:53 23/11 do phiên việc 11 làm); 3.36–3.37 (việc 13 ảnh bàn giao, kèm việc 11 và 12) do phiên việc 13 triển khai chiều 23/11 (một lượt, giờ chính xác không ghi lại ở đây) — khối đầu ra của 3.36, 3.37, 3.38 không được chép vào sổ này, chỉ nằm ở tờ ghi chú chung của nhóm phiên.
 
