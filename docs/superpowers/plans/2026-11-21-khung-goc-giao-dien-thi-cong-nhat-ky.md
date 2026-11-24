@@ -44,7 +44,7 @@
 
 ## Còn lại (cập nhật khi xong từng việc)
 
-- **Đợt gốc ngôn ngữ thị giác (mới, đứng trước đợt A):** chủ chọn phương án B ngày 24/11 («ok chọn B, làm theo khuyến nghị»). Kế hoạch `docs/superpowers/plans/2026-11-24-dot-goc-ngon-ngu-thi-giac.md`; luật đề xuất `docs/superpowers/specs/2026-11-24-danh-gia-thi-giac-va-huong-nang-cap/DE-XUAT-ADR-0234-ngon-ngu-thi-giac.md` (chờ chủ duyệt chữ cùng ảnh). Hệ quả cho sổ này: ảnh đã duyệt 21/11 của bốn màn mẫu thôi là chuẩn so ảnh sau đợt gốc; ảnh xem trước đợt A (21/11) vẽ lại. Trạng thái: chưa thi công.
+- **Đợt gốc ngôn ngữ thị giác (mới, đứng trước đợt A):** chủ chọn phương án B ngày 24/11 («ok chọn B, làm theo khuyến nghị»). Kế hoạch `docs/superpowers/plans/2026-11-24-dot-goc-ngon-ngu-thi-giac.md`; luật đề xuất `docs/superpowers/specs/2026-11-24-danh-gia-thi-giac-va-huong-nang-cap/DE-XUAT-ADR-0234-ngon-ngu-thi-giac.md` (chờ chủ duyệt chữ cùng ảnh). Hệ quả cho sổ này: ảnh đã duyệt 21/11 của bốn màn mẫu thôi là chuẩn so ảnh sau đợt gốc; ảnh xem trước đợt A (21/11) vẽ lại. Trạng thái 24/11: bước 0 xong (không nhánh nào khác đang sửa `public/app.css`, `web/khung.ts`; bản làm việc `claude/dot-goc-thi-giac-e74c62`); bước 1 xong phần chụp — bản sửa tệp kiểu sinh bằng `docs/evidence/2026-11-24-dot-goc-thi-giac/kich-ban/va-tep-kieu.py`, ảnh bảy màn × ba bề rộng, trang ảnh riêng tư đã gửi chủ; **chờ chủ duyệt chữ ADR-0234 và ảnh**, chưa sửa mã sản phẩm.
 - **Năm con số sau đợt này:** 2.558 · 122 · 15 · 148 · 61 (trước: 2.597 · 128 · 16 · 154 · 65); trần đã hạ về đúng số đo.
 - **Chưa làm:** tiêu chí «đúng khuôn» cho trợ lý đánh giá giao diện, đo bề rộng trung gian ở máy đo màn (ADR-0222 Đ7c).
 - **Chưa thử:** iPhone, iPad thật; trạng thái ngoài ảnh của Chi tiết đơn (đơn chờ xác nhận, Trả sau, thành viên tổ chức).
