@@ -36,7 +36,7 @@ function ve(ds: readonly ChuyenTomTatDto[]): void {
     trangEl,
     dauTrang(null, h("p", { class: "doan-dan", "data-dem": "" }, `${ds.length} xe`)),
     khoi(
-      { tieuDe: "Đang chạy", idTieuDe: "xdc-ten", kieu: "bang" },
+      { thuoc: { "aria-label": "Xe đang chạy" } },
       ds.length
         ? dsDong({ class: "xdc-list" }, ...ds.map((c) => {
             const t = theXeDangChay(c, homNay);

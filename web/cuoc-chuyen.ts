@@ -975,7 +975,8 @@ function veXuatBen(dauMang: HTMLElement | null): void {
   const cauNut = thieu.length
     ? (chiThieuTenTuLam(thieu, coBoSungTen && r.trongNgayChay) ? "Chưa cho xe chạy được — bổ sung tên khách ở trên trước." : "Chưa cho xe chạy được — văn phòng đang lo.")
     : `Bấm lúc xe lăn bánh — giờ ghi là lúc bấm (${msToVnLocal(Date.now()).time}).`;
-  replaceChildren(viecEl, nutXuatBen());
+  // Từ 560 nút ở thanh việc đầu trang: câu vì sao (hoặc giờ ghi) đứng ngay dưới nút, không chỉ ở khối điều kiện xa nút.
+  replaceChildren(viecEl, nutXuatBen(), h("p", { class: "o-phu" }, cauNut));
   viecEl.hidden = false;
   replaceChildren(cuoiEl);
   cuoiEl.hidden = true;

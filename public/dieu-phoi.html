@@ -5,8 +5,8 @@
 <div id="strips"></div>
 <main>
   <!-- Điều phối xe (ADR-0049 V1; bản vẽ docs/design/van-chuyen-dieu-phoi/project/01 Dieu phoi xe.dc.html + dp-chua-xep, dp-dong-thoi-gian, dp-can-xu-ly). /dieu-phoi?ngay=YYYY-MM-DD.
-       Khuôn Tổng quan của khung gốc (ADR-0222): đầu trang (bộ chọn ngày bên trái, «+ Chuyến mới» bên phải) → dải số (một khối) → lưới ba khối: Chưa xếp (3/12),
-       Dòng thời gian theo xe (6/12, vùng tự do có tên trong sổ ngoại lệ) và Cần xử lý (3/12). Vùng nội dung hẹp hơn 560: ba khối thành ba thẻ (#dp-tabs), mỗi lúc hiện một. -->
+       Khuôn Tổng quan của khung gốc (ADR-0222): đầu trang (bộ chọn ngày bên trái, «+ Chuyến mới» bên phải) → dải số (một khối) → lưới ba khối: Chưa xếp (4/12) cạnh
+       Dòng thời gian theo xe (8/12, vùng tự do có tên trong sổ ngoại lệ — đủ chỗ cho trục giờ cả ngày), rồi Cần xử lý kín hàng bên dưới. Vùng nội dung hẹp hơn 560: ba khối thành ba thẻ (#dp-tabs), mỗi lúc hiện một. -->
   <h1 id="dp-title">Điều phối xe</h1>
   <div class="dau-trang">
     <div class="hang">
@@ -24,9 +24,9 @@
     <div id="dp-tx-ban" hidden></div>
     <div id="dp-tabs" class="tab-phu" data-kieu="gach" data-chi="hep" role="tablist" aria-label="Phần của bảng điều phối"></div>
     <div class="luoi">
-      <section id="dp-cot-chua-xep" class="khoi" data-kieu="bang" data-cot="3" role="tabpanel" aria-labelledby="dp-tab-chua-xep"></section>
-      <div id="dp-cot-xe" class="cot-khoi" data-cot="6" role="tabpanel" aria-labelledby="dp-tab-xe"></div>
-      <section id="dp-cot-can-xu-ly" class="khoi" data-kieu="bang" data-cot="3" role="tabpanel" aria-labelledby="dp-tab-can-xu-ly"></section>
+      <section id="dp-cot-chua-xep" class="khoi" data-kieu="bang" data-cot="4" role="tabpanel" aria-labelledby="dp-tab-chua-xep"></section>
+      <div id="dp-cot-xe" class="cot-khoi" data-cot="8" role="tabpanel" aria-labelledby="dp-tab-xe"></div>
+      <section id="dp-cot-can-xu-ly" class="khoi" data-kieu="bang" role="tabpanel" aria-labelledby="dp-tab-can-xu-ly"></section>
     </div>
   </div>
 </main>

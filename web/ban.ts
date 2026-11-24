@@ -114,7 +114,7 @@ function ve(): void {
     formEl,
     h("header", { class: "khoi-dau" }, h("h2", { id: "bb-form-title" }, "Ghi khung bận")),
     h("p", { class: "khoi-mo-ta" }, "Văn phòng chỉ thấy là bạn bận, không thấy lý do. Một khung dài tối đa 14 ngày."),
-    luoi(null, truong("Bắt đầu", oTu, { cot: 6 }), truong("Kết thúc", oDen, { cot: 6 }), truong("Lý do", chon, { idNhan: "bb-ly-do", loi })),
+    luoi(null, truong("Bắt đầu", oTu, { cot: 6 }), truong("Kết thúc", oDen, { cot: 6 }), truong("Lý do", chon, { idNhan: "bb-ly-do", loi, goiY: "Chọn một lý do rồi bấm «Lưu khung bận»." })),
     thanhNut({ "data-chi": "hep" }, luuHep),
   );
   replaceChildren(nutEl, luu);

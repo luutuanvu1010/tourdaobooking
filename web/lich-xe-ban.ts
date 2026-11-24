@@ -95,7 +95,7 @@ function ve(): void {
     h("th", null, ""),
   );
   const oXe = (r: (typeof g.hang)[number]): HTMLElement[] =>
-    [h("strong", null, r.bienSo), h("span", { class: "o-phu" }, r.soChoNhan), r.trangThaiNhan ? h("span", null, chip(r.trangThaiNhan, "warn")) : null].filter((x): x is HTMLElement => x !== null);
+    [h("span", null, r.bienSo), h("span", { class: "o-phu" }, r.soChoNhan), r.trangThaiNhan ? h("span", null, chip(r.trangThaiNhan, "warn")) : null].filter((x): x is HTMLElement => x !== null);
   replaceChildren(
     luoiEl,
     ...g.hang.map((r) => h("tr", { "data-xe": r.xeId }, h("td", { "data-gon": "" }, ...oXe(r)), ...r.o.map((muc, i) => h("td", null, ...muc.map((m) => theMuc(m, g.ngay[i]!.k)))), h("td", null, ""))),

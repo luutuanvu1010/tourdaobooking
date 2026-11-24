@@ -55,7 +55,7 @@ async function veDanhSach(): Promise<void> {
     dsEl,
     daTuChoi ? dai("ok", `Đã từ chối chuyến ${daTuChoi}`, ["Văn phòng đã nhận báo và sẽ xếp người khác."]) : null,
     luoi(
-      null,
+      { "data-can": "deu" },
       ...nhomCuoc(r.chuyen, homNay, { tuBoSungTen }).map((g) =>
         khoi(
           { tieuDe: g.tieuDe, idTieuDe: `cu-${g.iso}`, moTa: g.ngay, kieu: "bang", thuoc: { "data-cot": "4", "data-ngay-cuoc": g.iso } },
