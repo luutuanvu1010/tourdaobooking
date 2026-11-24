@@ -430,7 +430,7 @@ try {
   await p.waitFor("(() => { const r = document.getElementById('save-error').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()", "iPad dọc (641–959px): banner lỗi nằm trong khung nhìn sau khi bấm Lưu");
   assert.deepEqual(p.consoleErrors, []);
   p.close();
-  ok("bố cục theo khổ: 1040 hai cột + nút Lưu trong khung nhìn, lỗi → focus ô lỗi đầu tiên; 800 thanh Lưu có nền, lỗi → banner trong khung nhìn; không tràn ngang");
+  ok("bố cục theo khổ: 1280 hai cột + nút Lưu trong khung nhìn, lỗi → focus ô lỗi đầu tiên; 800 thanh Lưu có nền, lỗi → banner trong khung nhìn; không tràn ngang");
 
   // ---- 12c) khối tóm tắt số tiền ở thanh dính đáy (Bước 2 Đợt B, Fix round 1 — lỗi thứ tự CSS từng làm nó KHÔNG BAO GIỜ hiện):
   //       390px (điện thoại) và 800px (khổ giữa, vd iPad dọc — từ Việc 8 18/10) phải hiện với đúng số tiền; 1040px (máy tính) phải ẩn ----

@@ -4858,9 +4858,9 @@ body[data-khung-goc] .thanh-nut { display: flex; flex-wrap: wrap; align-items: c
 body[data-khung-goc] .thanh-nut > .day-phai { margin-left: auto; }
 body[data-khung-goc] .khoi .thanh-nut > .nut, body[data-khung-goc] .khoi .thanh-nut > .gop > .nut { flex: 1 1 auto; white-space: normal; } /* chữ nút dài hơn khối thì xuống dòng trong nút, không đẩy tràn trang */
 @container khoi (min-width: 560px) { body[data-khung-goc] .khoi .thanh-nut > .nut, body[data-khung-goc] .khoi .thanh-nut > .gop > .nut { flex: 0 1 auto; } }
-body[data-khung-goc] main > .thanh-nut[data-kieu="trang"] { display: none; }
+body[data-khung-goc] :is(main, main > .vung-ve) > .thanh-nut[data-kieu="trang"] { display: none; }
 @container trang (min-width: 560px) {
-  body[data-khung-goc] main > .thanh-nut[data-kieu="trang"] { display: flex; position: sticky; bottom: var(--s4); z-index: var(--z-dinh); padding: var(--s3) var(--kg-dem); background: var(--c-surface); border-radius: var(--kg-bo); box-shadow: var(--ring-card), var(--shadow-card); }
+  body[data-khung-goc] :is(main, main > .vung-ve) > .thanh-nut[data-kieu="trang"] { display: flex; position: sticky; bottom: var(--s4); z-index: var(--z-dinh); padding: var(--s3) var(--kg-dem); background: var(--c-surface); border-radius: var(--kg-bo); box-shadow: var(--ring-card), var(--shadow-card); }
 }
 /* Thanh dính đáy ở điện thoại (vùng nội dung hẹp hơn 560): kín bề ngang, nút chính cao 52. Là con của main, hoặc của vùng vẽ (.vung-ve) trong main. Mang lớp .thanh-hanh-dong-cuoi nên thanh tab tự nhường chỗ (web/shell.ts). */
 body[data-khung-goc] :is(main, main > .vung-ve) > .thanh-day { position: sticky; bottom: 0; z-index: var(--z-dinh); display: flex; flex-wrap: wrap; gap: var(--s3); margin: 0 calc(-1 * var(--luoi-le)) calc(-1 * var(--s4)); padding: var(--s3) var(--luoi-le) calc(var(--s3) + env(safe-area-inset-bottom)); background: var(--c-surface); border-top: 1px solid var(--c-border); }
