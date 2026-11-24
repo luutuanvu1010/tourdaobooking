@@ -1,7 +1,7 @@
 // Cách dựng NHANH D1 tạm (scripts/d1-tam.mjs: một lệnh `d1 execute --file` gộp mọi migration) phải cho ĐÚNG kết quả của `wrangler d1 migrations apply --local`
 // (cách cũ, chậm). Bài dựng bằng cả hai cách trên cùng commit và so: mọi đối tượng schema (câu tạo nguyên văn), mọi dòng dữ liệu do migration chèn (bỏ giờ tạo
 // và mã ngẫu nhiên), danh sách `d1_migrations`. Chạy trong mỗi lượt kiểm, nên một migration mà hai cách cho kết quả khác nhau làm npm test đỏ.
-// Cần `npx wrangler` (có trong devDependencies), không cần mạng.
+// Cần `npx wrangler` (có trong devDependencies), không cần mạng. Chạy 20–60 giây trên Mac (phải dựng cả cách cũ); trần 9 phút, dưới trần mỗi tệp 10 phút.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
@@ -49,7 +49,7 @@ function anh(persist: string) {
   }
 }
 
-test("dựng nhanh (một lệnh d1 execute gộp) cho đúng schema + dữ liệu + d1_migrations như `wrangler d1 migrations apply --local`", { timeout: 300_000 }, async () => {
+test("dựng nhanh (một lệnh d1 execute gộp) cho đúng schema + dữ liệu + d1_migrations như `wrangler d1 migrations apply --local`", { timeout: 540_000 }, async () => {
   const cham = mkdtempSync(join(tmpdir(), "tourdao-d1-cham-"));
   const nhanh = mkdtempSync(join(tmpdir(), "tourdao-d1-nhanh-"));
   try {

@@ -169,6 +169,7 @@ test("gomKetQua (ADR-0179 tiêu chí 2): thiếu báo cáo / phần chạy thi�
       for (const x of bc.filter((y) => y.loai === "khung")) x.trang = x.trang.filter((t: string) => t !== "/b");
       return bc;
     }, /khung gốc.*đo thiếu \/b/],
+    ["mảnh báo số mảnh khác bảng chia (chạy theo bảng cũ)", (bc) => ((bc.find((x) => x.loai === "khung").soManh = 5), bc), /khung gốc.*mảnh 1.*đo khác phần được giao/],
     ["báo cáo mảnh trùng", (bc) => [...bc, structuredClone(bc.find((x) => x.loai === "khung"))], /mảnh 1 có hai báo cáo/],
     ["báo cáo mảnh lạ", (bc) => [...bc, { ...structuredClone(bc.find((x) => x.loai === "khung")), manh: 9 }], /mảnh lạ/],
     ["báo cáo không đọc được", (bc) => [...bc, "rác"], /không đọc được/],

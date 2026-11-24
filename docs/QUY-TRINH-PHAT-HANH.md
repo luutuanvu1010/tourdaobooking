@@ -86,7 +86,7 @@ Thay `<tên-nhánh>` bằng tên AI báo ở bước 2. Nếu nhánh chính đã
    - `x`: **ngồi chờ**, xem kết quả rồi mới quyết (đúng cách cũ: đỏ thì hỏi `r`/`d`/`q`, cuối cùng hỏi "Đẩy lên GitHub? (c/k)").
    - `k` (hay bất cứ chữ nào khác): dừng, không đẩy gì lên GitHub.
 8. **Đẩy đúng bản vừa gộp lên một nhánh phụ trên GitHub** tên `cho-kiem/<mã bản>`. Đây là **lần đẩy phụ**: nhánh chính trên GitHub chưa đổi, nhưng nhánh phụ này công khai như mọi nhánh khác của kho.
-9. **Chờ GitHub kiểm đủ bộ** (toàn bộ bài kiểm và kiểm thử đầu-cuối, chia nhiều máy chạy cùng lúc). Lệnh in tiến độ, ví dụ "đang kiểm: 7/13 phần xong".
+9. **Chờ GitHub kiểm đủ bộ** (toàn bộ bài kiểm, kiểm thử đầu-cuối và đo khung giao diện trên trang thật, chia 20 máy chạy cùng lúc). Lệnh in tiến độ, ví dụ "đang kiểm: 7/20 phần xong". Mục tiêu bạn đặt ngày 25/11/2026: **tối đa 5 phút** từ lúc đẩy nhánh phụ tới lúc có kết luận. Xong, lệnh in "Lượt kiểm mất … phút … giây"; vượt 5 phút thì in thêm dòng vàng nhắc báo AI chia lại phần kiểm (chỉ nhắc, không chặn).
 10. Nếu kiểm **đỏ**:
     - đã chọn `c`: lệnh **tự chạy lại phần đỏ đúng một lần** (kiểm thử đầu-cuối từng đỏ giả rồi chạy lại xanh). Vẫn đỏ thì **dừng, không đẩy**, báo bằng thông báo và in tên bài đỏ. Lệnh **không bao giờ tự cho qua**.
     - đã chọn `x`: lệnh nêu tên bài đỏ và hỏi chạy lại (`r`), dừng (`d`), hay cho qua (`q`). Cho qua thì phải **gõ lý do**, ví dụ "giá Sheet thật vừa đổi".
