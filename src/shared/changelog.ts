@@ -22,7 +22,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "3.46",
     date: "2026-11-25",
     items: [
-      { kind: "doi", text: "Mười màn Tiền (Sổ công nợ, Hoa hồng đối tác, Cấp độ đại lý, Hạn mức trả sau…) dựng lại theo khuôn chung: khối, nút, bảng thẳng hàng như Đơn hàng. Số tiền không đổi." },
+      { kind: "doi", text: "Mười màn Tiền (Sổ công nợ, Hoa hồng đối tác, Cấp độ đại lý, Hạn mức trả sau…) dựng lại theo khuôn chung: khối, nút, bảng thẳng hàng. Số tiền không đổi." },
       { kind: "doi", text: "Sổ công nợ: ba số tổng nằm chung một dải; danh sách các bên và phần đối chiếu từng đơn đứng cạnh nhau ở máy tính; số tiền một màu, dễ đọc." },
       { kind: "doi", text: "Hoa hồng đối tác: nút «＋ Thêm mức riêng cho đối tác» nằm ở đầu khối của thẻ đang xem; ở điện thoại vẫn ở thanh dưới cùng." },
       { kind: "doi", text: "Cấp độ đại lý: mức giảm phí đưa đón của mỗi cấp hiện thành một dòng; bấm «Sửa» để đổi số tiền hoặc kết thúc mức giảm." },
