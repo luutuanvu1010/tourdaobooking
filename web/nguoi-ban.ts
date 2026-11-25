@@ -92,11 +92,11 @@ async function main(): Promise<void> {
         return h(
           "tr",
           { "data-ngung": k.tt === "DA_DONG" ? "" : undefined, "data-id": d.id },
-          h("td", null, k.phamVi),
+          h("td", null, k.phamVi, h("span", { class: "o-phu", "data-thay-cot": "" }, `Từ ${k.tu} · đến ${k.den}`)),
           h("td", null, k.nguoiBan),
           h("td", { "data-so": "" }, k.tyLe),
-          h("td", null, k.tu),
-          h("td", null, k.den),
+          h("td", { "data-cot-phu": "" }, k.tu),
+          h("td", { "data-cot-phu": "" }, k.den),
           h("td", null, huyHieu(k.tt)),
           h("td", null, nutDong(d, k)),
         );

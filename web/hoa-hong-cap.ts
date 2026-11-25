@@ -221,7 +221,7 @@ function veMaTran(mt: ReturnType<typeof maTranCap>, d: DuLieuHoaHong, mo: MoHop,
     luoi({ class: "hh-ma-tran-loc" }, truong("Tìm", tim, { cot: 4 }), truong("Nhóm", chonNhom, { cot: 4 }), h("label", { class: "check", "data-cot": 4 }, oThieu, NHAN_CON_THIEU)),
     khongKiem && h("p", { class: "khoi-mo-ta", id: "hh-mt-thieu-chu-thich" }, CAU_CON_THIEU_CHUA_KIEM),
     dem,
-    h("div", { class: "hh-ma-tran-khung" }, bang),
+    h("div", { class: "hh-ma-tran-khung vung-tu-do" }, bang), // vùng tự do: bảng nhập cấp × dịch vụ cuộn hai chiều (chờ chủ duyệt mục sổ ngoại lệ, đợt C)
   );
 }
 
@@ -325,7 +325,7 @@ export function dsDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat: b
           "div",
           { class: "dong-chu" },
           // Dòng nằm trong mục con đã có tên in đậm (vai, đối tác): tên phạm vi chữ thường — mỗi khối một thứ đậm (ADR-0234 nguyên tắc 1).
-          thayBang ? h("strong", null, pv) : h("div", null, pv),
+          h("div", null, pv),
           h("div", { class: "o-phu" }, cot.tinhBang, " · ", cot.apCho),
           coTheoLoai ? h("div", null, "Người lớn ", cot.nguoiLon, " · Trẻ em ", cot.treEm, " · Người cao tuổi ", cot.nguoiCaoTuoi) : h("div", null, cot.nguoiLon),
           h("div", { class: "o-phu" }, nhanHieuLuc(r)),

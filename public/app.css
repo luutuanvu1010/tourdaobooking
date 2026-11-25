@@ -3892,13 +3892,14 @@ body[data-title="Tạo đơn"] .topbar-new { display: none; }
 .bang.hh-ma-tran td, .bang.hh-ma-tran td:last-child { padding: var(--s1) var(--s2); text-align: left; white-space: normal; overflow-wrap: break-word; vertical-align: top; }
 .bang.hh-ma-tran th { padding: var(--s1) var(--s2); }
 /* Căn dọc: đầu cột cùng một đường (giữa), tên dịch vụ / giá / ô mức cùng căn ĐỈNH; chữ dòng đầu của tên và giá dịch xuống nửa phần thừa của ô 44 px để thẳng với chữ trong nút ô. */
-.bang.hh-ma-tran thead th { vertical-align: middle; }
+.nut.hh-viec-khac { font-weight: var(--fw-regular); } /* nút «⋯» chỉ là dấu, không phải chữ đậm (ADR-0234 nguyên tắc 1) */
+table.bang.hh-ma-tran thead th { position: sticky; top: 0; z-index: var(--z-dinh); vertical-align: middle; } /* khung đặt th tĩnh: bảng nhập cuộn trong khung giữ đầu cột dính */
 .bang.hh-ma-tran tbody th, .bang.hh-ma-tran tbody td { vertical-align: top; }
 .bang.hh-ma-tran tbody th, .bang.hh-ma-tran td.hh-gia { padding-top: calc((var(--tap-min) - 1lh) / 2 + var(--s1)); }
 .bang.hh-ma-tran th[scope="col"] { width: var(--w-hh-cot-cap); }
 .bang.hh-ma-tran thead th:first-child { left: 0; z-index: calc(var(--z-dinh) + 1); width: var(--w-hh-cot-dv); }
 .bang.hh-ma-tran thead th:nth-child(2) { width: var(--w-hh-cot-gia); }
-.bang.hh-ma-tran th[scope="row"] { position: sticky; left: 0; z-index: var(--z-dinh); font-size: var(--fs-ui); font-weight: var(--fw-regular); color: var(--c-text); background: var(--c-surface); border-bottom: 1px solid var(--c-border); overflow-wrap: break-word; }
+.bang.hh-ma-tran th[scope="row"] { position: sticky; left: 0; white-space: normal; z-index: var(--z-dinh); font-size: var(--fs-ui); font-weight: var(--fw-regular); color: var(--c-text); background: var(--c-surface); border-bottom: 1px solid var(--c-border); overflow-wrap: break-word; }
 .hh-ma-tran tr[data-pham-vi="ALL"] th[scope="row"], .hh-ma-tran tr[data-pham-vi="GROUP"] th[scope="row"] { font-weight: var(--fw-semibold); }
 .hh-ma-tran-nhom { display: block; font-size: var(--fs-label); font-weight: var(--fw-regular); color: var(--c-text-muted); }
 .hh-ma-tran .hh-gia { font-size: var(--fs-label); }
@@ -4786,12 +4787,15 @@ body[data-khung-goc] .dai-so dd, body[data-khung-goc] .huy-hieu { white-space: n
 /* Dải số có ít ô mà nhãn dài (ba ô tổng của Sổ công nợ): ô rộng bằng cột «dài» của thang thay cho cột «ngắn». */
 body[data-khung-goc] .dai-so[data-o="dai"] { grid-template-columns: repeat(auto-fill, minmax(var(--kg-cot-dai), 1fr)); }
 body[data-khung-goc] .khoi[data-kieu="bang"] > .thanh-loc { padding: 0 var(--kg-dem) var(--s3); }
+body[data-khung-goc] .cap > :last-child .nut { white-space: normal; text-align: left; } /* nút mở bảng đứng làm giá trị (ô «Cấp độ đại lý»): chữ dài xuống dòng trong nút, không thò ra khối */
 body[data-khung-goc] .khoi-mo-ta + .muc-con { padding-top: var(--s4); border-top: 1px solid var(--c-border); }
 
 /* Huy hiệu và hộp cảnh báo thế hệ cũ (.chip, .vc-chip, .vc-alert) ở trang đã chuyển: chữ thường như .huy-hieu (ADR-0234 nguyên tắc 1 — trong một dòng chỉ một thứ đậm). Đợt B, 24/11/2026. */
 body[data-khung-goc] :is(.chip, .vc-chip, .vc-alert) { font-weight: var(--fw-regular); }
 /* Câu chính của trạng thái rỗng (.rong > strong): chữ thường màu mực, câu phụ màu nhạt — thứ bậc bằng màu, không bằng độ đậm. */
 body[data-khung-goc] .rong > strong { font-weight: var(--fw-regular); color: var(--c-text); }
+/* Cùng luật cho câu chính của khuôn trạng thái chung khi rỗng (đợt C, 25/11/2026): trạng thái rỗng nói khẽ, không phải thứ đậm của khối. */
+body[data-khung-goc] .trang-thai[data-loai="rong"] .trang-thai-tieu-de { font-weight: var(--fw-regular); }
 
 /* -- Khuôn Tổng quan (đợt B, 24/11/2026): đầu trang (đoạn dẫn hoặc bộ chọn ngày bên trái, tối đa MỘT nút chính bên phải) → dải số (tuỳ chọn, một khối)
    → lưới khối (.luoi; mỗi khối khai data-cot 3 · 4 · 6 · 8 hoặc kín hàng). Dòng thời gian của Điều phối xe là vùng tự do trong một khối (sổ ngoại lệ).

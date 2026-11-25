@@ -65,14 +65,24 @@ export async function khoiGiamPhiDon(el: HTMLElement): Promise<void> {
           nut.push(ketThuc);
         }
       }
+      // Khuôn Thiết lập (đợt C): mỗi cấp một dòng chỉ xem, «Sửa» ở cuối dòng mở ô nhập tại chỗ — mỗi lúc tối đa một nút nền đặc «Lưu mức giảm» (ADR-0234 nguyên tắc 7).
+      const sua = r.doiDuoc ? h("div", { class: "vung-phu", hidden: true }, luoi(null, truong("Mức giảm mỗi khách (đồng)", o, { cot: 4 }), truong("Từ ngày", tu, { cot: 4 })), nut.length > 0 && thanhNut(null, ...nut)) : null;
+      const moSua = r.doiDuoc ? h("button", { class: "nut", "data-cap": "phu", type: "button", "aria-expanded": "false", "aria-label": `Sửa mức giảm của ${c.name}` }, "Sửa") : null;
+      moSua?.addEventListener("click", () => {
+        for (const k of bang.querySelectorAll<HTMLElement>("[data-gpd-sua]")) if (k !== sua) k.hidden = true;
+        for (const b of bang.querySelectorAll<HTMLElement>("[data-gpd-mo]")) b.setAttribute("aria-expanded", "false");
+        sua!.hidden = !sua!.hidden;
+        moSua.setAttribute("aria-expanded", String(!sua!.hidden));
+        if (!sua!.hidden) o.focus();
+      });
+      sua?.setAttribute("data-gpd-sua", "");
+      moSua?.setAttribute("data-gpd-mo", "");
       bang.append(
         h("div", { class: "dong" },
-          h("div", { class: "dong-chu" },
-            cap(c.name, d ? `${tien(d.amount)} mỗi khách, từ ${ngay(d.validFromDate)}` : "Chưa đặt"),
-            r.doiDuoc && luoi(null, truong("Mức giảm mỗi khách (đồng)", o, { cot: 4 }), truong("Từ ngày", tu, { cot: 4 })),
-            nut.length > 0 && thanhNut(null, ...nut),
-          ),
+          h("div", { class: "dong-chu" }, cap(c.name, d ? `${tien(d.amount)} mỗi khách, từ ${ngay(d.validFromDate)}` : "Chưa đặt")),
+          moSua,
         ),
+        sua ?? "",
       );
     }
     el.className = "khoi";
