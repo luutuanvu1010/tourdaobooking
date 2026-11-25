@@ -4494,6 +4494,9 @@ body[data-khung-goc] .nut[data-chi="rong"], body[data-khung-goc] .khoi[data-chi=
 /* Đầu trang: đoạn dẫn một câu (trái) và nút chính của trang (phải) */
 body[data-khung-goc] .dau-trang { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s3) var(--s4); }
 body[data-khung-goc] .dau-trang > .doan-dan { flex: 1 1 calc(2 * var(--kg-nhan)); }
+@container trang (min-width: 560px) {
+  body[data-khung-goc] .dau-trang > .nut[data-cap="chinh"] { margin-left: auto; } /* nút chính rớt xuống hàng dưới (chữ ngày dài như «Thứ Năm · hôm nay» ở Điều phối 600) vẫn đứng mép phải đầu trang; lượt kiểm GitHub 26/11/2026 */
+}
 body[data-khung-goc] .doan-dan { max-width: var(--kg-doan); margin: 0; font-size: var(--fs-label); line-height: var(--lh-20); color: var(--c-text-muted); }
 
 /* Thanh tìm và lọc (khuôn Danh sách): ô tìm không dài quá --kg-o-tim; nút cùng hàng cao bằng ô */
