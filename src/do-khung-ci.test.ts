@@ -12,7 +12,8 @@ const ci = (await import(new URL("../scripts/giao-dien/do-khung-ci.mjs", import.
   dungBangMan: (bang: Dong[], ma: Record<string, string | null>) => { bangMan: { khoa: string; tk: string; trang: string }[]; bo: string[] };
   chiaLuot: (bangMan: { khoa: string; tk: string; trang: string }[], bang?: Dong[]) => { sauGieo: boolean; bang: { khoa: string; tk: string; trang: string }[] }[];
   gopLuot: (luot: { ketQua: { trang: string; loi: string[] }[] | null }[], daChuyen: string[]) => { maThoat: number; soO: number; khongDat: number; doThieu: string[]; chayDuoc: boolean };
-  chiaManh: (bang: { khoa: string }[], soManh: number) => string[][];
+  chiaManh: (bang: { khoa: string }[], soManh: number, gio?: Record<string, number>) => string[][];
+  giayTungMan: (ketQua: { man: string; ms?: number }[]) => Record<string, number>;
   gopManh: (luot: { ketQua: { man: string; trang: string; loi: string[] }[] | null }[], giao: string[]) => { maThoat: number; soO: number; khongDat: number; khoa: string[]; trang: string[]; thieuKhoa: string[] };
 };
 const { BO_QUYEN } = (await import(new URL("../scripts/giao-dien/moi-truong.mjs", import.meta.url).href)) as { BO_QUYEN: Record<string, string[]> };
@@ -55,15 +56,25 @@ test("gopLuot: hai lượt gộp phải phủ mọi trang đã khai khuôn; lư�
   assert.equal(ci.gopLuot([], daChuyen).maThoat, 2, "không lượt nào ⇒ không chạy được");
 });
 
-test("chiaManh (rút lượt kiểm 25/11): mọi màn của BANG_CI đúng MỘT mảnh, tất định, mảnh lệch nhau tối đa một màn; số mảnh sai ⇒ ném lỗi", () => {
-  for (const n of [1, 2, 3, 5]) {
+test("chiaManh (rút lượt kiểm 25/11): mọi màn của BANG_CI đúng MỘT mảnh, tất định, không mảnh rỗng; cân theo giây đo; số mảnh sai ⇒ ném lỗi", () => {
+  for (const n of [1, 2, 3, 4, 5]) {
     const m = ci.chiaManh(ci.BANG_CI, n);
     assert.equal(m.length, n);
     assert.deepEqual(m.flat().sort(), ci.BANG_CI.map((d) => d.khoa).sort());
-    assert.ok(Math.max(...m.map((x) => x.length)) - Math.min(...m.map((x) => x.length)) <= 1);
+    assert.ok(m.every((x) => x.length > 0), "mảnh rỗng");
     assert.deepEqual(ci.chiaManh(ci.BANG_CI, n), m, "cùng đầu vào ⇒ cùng bảng (máy gom dựng lại)");
   }
+  // Cân theo giây: màn nặng đứng riêng, các màn nhẹ dồn sang mảnh kia; màn chưa có số tính bằng trung vị; không có số nào thì như xoay vòng (lệch ≤ 1 màn).
+  const bang = ["a", "b", "c", "d", "e"].map((khoa) => ({ khoa }));
+  assert.deepEqual(ci.chiaManh(bang, 2, { a: 100, b: 10, c: 10, d: 10, e: 10 }), [["a"], ["b", "c", "d", "e"]]);
+  assert.deepEqual(ci.chiaManh(bang, 2, { a: 100, b: 10, c: 10, d: 10 }), [["a"], ["b", "c", "d", "e"]], "e chưa có số ⇒ trung vị 10");
+  const deu = ci.chiaManh(bang, 2, {});
+  assert.ok(Math.max(...deu.map((x) => x.length)) - Math.min(...deu.map((x) => x.length)) <= 1);
   assert.throws(() => ci.chiaManh(ci.BANG_CI, 0));
+});
+
+test("giayTungMan: cộng ms các ô theo màn, ra giây (0,1); ô không có ms bỏ qua", () => {
+  assert.deepEqual(ci.giayTungMan([{ man: "a", ms: 1500 }, { man: "a", ms: 2520 }, { man: "b", ms: 100 }, { man: "c" }]), { a: 4, b: 0.1 });
 });
 
 test("gopManh: mảnh đạt chỉ khi mọi lượt chạy được, mọi ô đạt và đo ĐỦ màn được giao (gieo hỏng làm rơi một màn ⇒ mã 2, không đạt giả)", () => {

@@ -27,11 +27,12 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const TEP_DO_GIO = "src/claude-guard-thoi-gian.test.ts";
 export const BUOC_RIENG = ["buoc-0", "typecheck", TEP_DO_GIO];
 // Lệnh đo khung gốc trên trang thật (ADR-0222 Đ7b; scripts/giao-dien/do-khung-ci.mjs tự dựng D1 tạm + wrangler dev + gieo dữ liệu). Rút lượt kiểm 25/11/2026:
-// chia SO_MANH_KHUNG mảnh (chiaManh, tất định), mỗi mảnh một việc GitHub, mỗi máy THE_KHUNG thẻ đo cùng lúc. Phần riêng chạy ĐẦU việc mảnh 1, TRƯỚC khi dựng
+// chia SO_MANH_KHUNG mảnh (chiaManh: cân theo giây đo từng màn ở scripts/giao-dien/thoi-gian-khung.json, tất định), mỗi mảnh một việc GitHub, mỗi máy THE_KHUNG thẻ đo cùng lúc. Phần riêng chạy ĐẦU việc mảnh 1, TRƯỚC khi dựng
 // máy thử (bài đo giờ phải chạy một mình). Máy gom: mỗi mảnh đo đúng phần được giao, HỢP các mảnh phủ mọi trang đã khai khuôn. Bước bề rộng: BUOC_KHUNG_CI
 // (máy thử tay vẫn bước 20) — xem docs/SO-HANG-RAO.md dòng «Lệnh đo khung gốc».
 export const BUOC_KHUNG_CI = 20;
-export const SO_MANH_KHUNG = 3;
+// Lượt 45541773422 (3 mảnh xoay vòng): mảnh đo 119–207 giây + ~55 giây dựng máy thử, mảnh 1 cả việc 4,8 phút ⇒ 4 mảnh cân theo giây.
+export const SO_MANH_KHUNG = 4;
 // Đo 25/11 trên Mac, mảnh 5 màn (395 ô): 4 thẻ 85 giây, 8 thẻ 46 giây — phần lớn là chờ trang tải, nên thêm thẻ gần như nhân tốc độ.
 export const THE_KHUNG = 8;
 /** Trần giờ của một mảnh đo (phút): treo thì đỏ sớm, không chờ GitHub huỷ. */
@@ -46,11 +47,12 @@ export const TRAN_TEP_MS = 600_000;
 export const CO_TRAN_TEP = `--test-timeout=${TRAN_TEP_MS}`;
 // Số phần chỉnh theo số đo (ADR-0179 Đ1.2). Lượt đầu 6/11 (4 + 6 phần, chia theo cỡ tệp): 19 phút, phần npm test chậm nhất 17,5 phút ⇒ 10 + 8 phần,
 // chia theo giây thật. 16/11 (ADR-0215 Đ1.3, lượt 43819969293): 10 phần npm test chạy bài 54–333 giây (tổng ~1.280), 8 phần e2e 275–413 giây (e2e là
-// phần lâu) ⇒ 7 + 12 phần. 25/11 (rút lượt kiểm ≤ 5 phút): D1 tạm dựng ~2 giây, hai phần e2e mỗi máy, đo khung chia mảnh ⇒ SO_PHAN_TEST việc npm test +
+// phần lâu) ⇒ 7 + 12 phần. 25/11 (rút lượt kiểm ≤ 5 phút): D1 tạm dựng bằng lệnh gộp (~25 giây trên GitHub), hai phần e2e mỗi máy, đo khung chia mảnh;
+// lượt 45541773422: npm test 8 phần nhưng mỗi phần chỉ ~430 giây tệp (3 tệp cùng lúc) ⇒ 7 phần, nhường một việc cho mảnh đo khung thứ tư ⇒ SO_PHAN_TEST việc npm test +
 // SO_MAY_E2E việc e2e (SO_PHAN_E2E phần) + SO_MANH_KHUNG việc đo khung (mảnh 1 gánh cả phần riêng). Mức tối thiểu ADR (≥ 4, ≥ 6) do MIN_* canh. Kho công
 // khai: mỗi lượt ≤ 20 việc chạy cùng lúc (bài src/kiem-phan.test.ts khoá). Danh sách việc ghi thẳng ở ma trận của .github/workflows/kiem.yml — đổi số ở đây
 // thì đổi cả ở đó.
-export const SO_PHAN_TEST = 8;
+export const SO_PHAN_TEST = 7;
 export const SO_PHAN_E2E = 18;
 /** Các phần e2e của máy r (1…SO_MAY_E2E): chia đều theo thứ tự phần, tất định. */
 export function phanCuaMay(r, soPhan = SO_PHAN_E2E, soMay = SO_MAY_E2E) {
@@ -87,6 +89,7 @@ export const TEP_DIEU_KHIEN = [
   "tests/e2e/danh-sach.mjs",
   "tests/e2e/thoi-gian.json",
   "scripts/thoi-gian-test.json",
+  "scripts/giao-dien/thoi-gian-khung.json",
   "scripts/audit-invariants.mjs",
   "scripts/audit-checks.mjs",
   "scripts/audit-thuong-mai.mjs",
@@ -188,6 +191,7 @@ export function gomKetQua(bang, baoCao, toanBo) {
   const loi = [...kiemBangChia(bang, toanBo)];
   const baiDo = [];
   const giayE2e = {};
+  const giayKhung = {};
   const giayTep = {};
   const giayTuong = {};
   const chep = (dich) => (m) => {
@@ -289,7 +293,8 @@ export function gomKetQua(bang, baoCao, toanBo) {
     }
   });
 
-  return { ok: loi.length === 0, loi, baiDo, tong: { soTep: toanBo.tests.length, soBai, soBoQua, soKichBan: toanBo.e2e.length }, giayE2e, giayTep, giayTuong };
+  for (const k of khung) for (const [man, g] of Object.entries(k?.giayMan ?? {})) if (typeof g === "number") giayKhung[man] = g;
+  return { ok: loi.length === 0, loi, baiDo, tong: { soTep: toanBo.tests.length, soBai, soBoQua, soKichBan: toanBo.e2e.length }, giayE2e, giayKhung, giayTep, giayTuong };
 }
 
 /** Đường dẫn mọi trang đã khai khuôn khung gốc (`data-khung-goc`) của commit đang có — cùng cách do-khung-ci.mjs tính, để máy gom kiểm hợp các mảnh đo. */
@@ -402,6 +407,7 @@ async function dongLenh(argv) {
     for (const l of kq.loi) console.log(`✘ ${l}`);
     console.log(kq.ok ? "✔ KIỂM ĐỦ BỘ: XANH" : `✘ KIỂM ĐỦ BỘ: ĐỎ (${kq.loi.length} lỗi)`);
     console.log(`Giây thật từng kịch bản e2e (chép vào tests/e2e/thoi-gian.json khi cần chia lại):\n${JSON.stringify(kq.giayE2e)}`);
+    console.log(`Giây đo từng màn khung gốc (chép vào scripts/giao-dien/thoi-gian-khung.json khi cần chia lại):\n${JSON.stringify(kq.giayKhung)}`);
     const choLau = tepChoLau(kq);
     if (choLau.length) console.log(`Tệp chờ lâu (đồng hồ tường hơn giây các bài ≥ 15 giây):\n${choLau.map((x) => `  ${x.tep}: ${x.giayTuong} giây tường, ${x.giayBai} giây bài`).join("\n")}`);
     console.log(`Giây thật từng tệp kiểm (chép vào scripts/thoi-gian-test.json khi cần chia lại): có trong tệp ket-qua-tong, khoá giayTuong — đồng hồ tường cả tệp, gồm việc làm ngoài bài (${Object.keys(kq.giayTuong).length} tệp).`);

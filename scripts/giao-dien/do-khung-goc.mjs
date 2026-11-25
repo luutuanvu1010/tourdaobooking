@@ -48,7 +48,7 @@ const rel = relative(resolve(process.cwd()), ra);
 if (rel === "" || (!rel.startsWith("..") && !isAbsolute(rel))) dung(`--ra (${ra}) nằm trong kho: số đo không ghi vào kho.`);
 
 let bang = JSON.parse(readFileSync(nha(tepBang), "utf8"));
-const chon = lay("--man") ? new Set(lay("--man").split(",")) : null;
+const chon = lay("--man") ? new Set(lay("--man").split(",")) : process.env.DK_CHI_MAN ? new Set(process.env.DK_CHI_MAN.split(",")) : null; // DK_CHI_MAN: chẩn đoán (kết quả luôn là ĐO THIẾU)
 if (chon) bang = bang.filter((m) => chon.has(m.khoa));
 const khuonCua = new Map(daChuyen.map((t) => [duongCuaTrang(t.ten), t.khuon]));
 const laMan = bang.filter((m) => !khuonCua.has(m.trang.split("?")[0]));
@@ -63,8 +63,11 @@ const { dangNhap, moChrome, sleep } = await import("./cdp.mjs");
 // Trang «đã tải xong» (siết 25/11/2026, khi đo nhiều thẻ cùng lúc): trước đây chỉ chờ DOM yên 350 ms (tối đa 5 giây) rồi ĐO LUÔN dù trang còn chờ dữ liệu — máy bận
 // thì dữ liệu về chậm hơn 350 ms, đo trang dở (đo thử 3 mảnh × 8 thẻ trên Mac: đỏ giả «không thấy khối», «chữ đậm vượt trần»; và có thể BỎ SÓT lỗi chỉ hiện khi có
 // dữ liệu). Nay đếm lệnh fetch đang dở ngay trong trang (DEM_FETCH, gắn trước khi trang chạy; bảng tin dùng WebSocket nên không giữ số này) và chỉ đo khi: tài liệu
-// đã tải, không còn fetch dở, không còn khung chờ, DOM yên 350 ms. Quá HAN_TAI_MS mà chưa yên ⇒ ô đó KHÔNG ĐẠT («trang chưa tải xong»), không đo trang dở.
-export const DEM_FETCH = "(() => { if (window.__dkFetch) return; window.__dkFetch = true; window.__dangTai = 0; const goc = window.fetch; window.fetch = function (...a) { window.__dangTai++; const p = goc.apply(this, a); const xong = () => { window.__dangTai--; }; p.then(xong, xong); return p; }; })();";
+// đã tải, không còn fetch dở (kể cả đang ĐỌC THÂN trả lời — json/text…: máy chậm thì khoảng giữa nhận đầu trả lời và dựng xong dài hơn 350 ms, đo thử
+// CPU chậm 4 lần trên Mac 25/11 ra ~60 ô đỏ giả), không còn khung chờ, DOM yên 350 ms. Quá HAN_TAI_MS mà chưa yên ⇒ ô đó KHÔNG ĐẠT («trang chưa tải xong»), không đo trang dở.
+export const DEM_FETCH = "(() => { if (window.__dkFetch) return; window.__dkFetch = true; window.__dangTai = 0; window.__loiTai = 0; const dem = (p) => { window.__dangTai++; const xong = () => { window.__dangTai--; }; p.then(xong, xong); return p; }; const goc = window.fetch; window.fetch = function (...a) { const p = dem(goc.apply(this, a)); p.then((r) => { if (!r.ok) window.__loiTai++; }, () => { window.__loiTai++; }); return p; }; for (const ten of ['json', 'text', 'arrayBuffer', 'blob', 'formData']) { const g = Response.prototype[ten]; if (g) Response.prototype[ten] = function (...a) { return dem(g.apply(this, a)); }; } })();";
+/** Chẩn đoán cho ô KHÔNG ĐẠT (chỉ in, không đổi kết luận): số chữ thấy được, chữ của hộp báo lỗi đang hiện, số lời gọi máy chủ trả lỗi / hỏng. */
+const CHAN_DOAN = "(() => { const hop = [...document.querySelectorAll('[role=alert], .error, .loi, .thong-bao-loi')].filter((e) => e.offsetParent !== null && e.textContent.trim()).map((e) => e.textContent.trim().slice(0, 80)); const ban = [...document.querySelectorAll('.trang-thai-xuong, .xuong, [aria-busy=true], .skeleton-list:not([hidden])')].map((e) => String(e.id || e.className || e.tagName).slice(0, 40)); return { chu: (document.body.innerText || '').length, hop, loiTai: window.__loiTai ?? -1, dangTai: window.__dangTai ?? -1, tt: document.readyState, ban }; })()";
 const HAN_TAI_MS = 20_000;
 const mo = async (ngan, url) => {
   const het = Date.now() + HAN_TAI_MS;
@@ -98,6 +101,8 @@ try {
         if (!nganCua[m.tk]) {
           nganCua[m.tk] = await chrome.moNgan();
           await nganCua[m.tk].s("Page.addScriptToEvaluateOnNewDocument", { source: DEM_FETCH });
+          // DK_CHAM_CPU=N (chẩn đoán): làm chậm CPU của thẻ N lần — tái hiện trên Mac máy GitHub bận (đo trang dở chỉ lộ khi máy chậm).
+          if (Number(process.env.DK_CHAM_CPU) > 1) await nganCua[m.tk].s("Emulation.setCPUThrottlingRate", { rate: Number(process.env.DK_CHAM_CPU) });
           await nganCua[m.tk].cookie(cookieCua[m.tk], base);
         }
         const ngan = nganCua[m.tk];
@@ -105,6 +110,7 @@ try {
         const dt = w < 600;
         await ngan.khung(w, dt ? 844 : 900, dt, 1, dt ? "iphone" : "may-tinh");
         let o;
+        const batO = Date.now();
         try {
           if (!(await mo(ngan, base + m.trang))) throw new Error(`trang chưa tải xong sau ${HAN_TAI_MS / 1000} giây (còn lệnh gọi máy chủ dở hoặc khung chờ) — không đo trang dở`);
           o = await ngan.ev(DO_TRONG_TRANG);
@@ -112,8 +118,11 @@ try {
           if (o.soKhoi === 0) { await sleep(1800); o = await ngan.ev(DO_TRONG_TRANG); }
         } catch (e) { o = { loi: String(e.message ?? e).slice(0, 160) }; }
         const loi = chamO(o, khuon);
-        if (loi.length) console.log(`✗ ${m.khoa} @${w}: ${loi.join(" · ")}`);
-        oCua.set(i, { man: m.khoa, trang: m.trang.split("?")[0], khuon, rong: w, ...o, loi });
+        if (loi.length) {
+          const cd = await ngan.ev(CHAN_DOAN).catch(() => null);
+          console.log(`✗ ${m.khoa} @${w}: ${loi.join(" · ")}${cd ? ` [chẩn đoán: ${cd.chu} ký tự chữ; hộp lỗi: ${cd.hop.length ? cd.hop.map((x) => `«${x}»`).join(" ") : "không"}; lời gọi máy chủ lỗi: ${cd.loiTai}; còn dở: ${cd.dangTai}; tài liệu: ${cd.tt}; khung chờ: ${cd.ban.join(", ") || "không"}]` : ""}`);
+        }
+        oCua.set(i, { man: m.khoa, trang: m.trang.split("?")[0], khuon, rong: w, ...o, loi, ms: Date.now() - batO });
       }
     } finally {
       for (const n of Object.values(nganCua)) await n.dong().catch(() => {});

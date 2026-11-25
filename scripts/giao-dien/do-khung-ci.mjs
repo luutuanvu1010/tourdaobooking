@@ -52,13 +52,40 @@ export const BANG_CI = [
 /** Bộ quyền chỉ dùng để GIEO (không có màn đo): Toàn quyền đánh cờ «cần xác nhận» cho một dịch vụ giả. */
 const BO_GIEO = ["SUPER_ADMIN"];
 
-/** Chia khoá màn của BANG_CI thành `soManh` mảnh (xoay vòng theo thứ tự bảng — mọi màn cùng số bề rộng nên mảnh cân nhau). Tất định: máy gom dựng lại y hệt. */
-export function chiaManh(bang, soManh) {
-  if (!Number.isInteger(soManh) || soManh < 1) throw new Error(`số mảnh đo khung phải là số nguyên ≥ 1 (nhận ${soManh})`);
-  const ra = Array.from({ length: soManh }, () => []);
-  bang.forEach((d, i) => ra[i % soManh].push(d.khoa));
-  return ra;
+/** Giây đo từng màn (tổng giây các ô của màn, lượt kiểm GitHub ghi lại — `node scripts/kiem-phan.mjs gom` in ra để chép). Chỉ để CHIA cho cân, không phải cổng. */
+let THOI_GIAN_KHUNG = {};
+try {
+  THOI_GIAN_KHUNG = JSON.parse(readFileSync(new URL("./thoi-gian-khung.json", import.meta.url), "utf8"));
+} catch {
+  THOI_GIAN_KHUNG = {};
 }
+/**
+ * Chia khoá màn của BANG_CI thành `soManh` mảnh, CÂN THEO GIÂY ĐO (rút lượt kiểm 25/11/2026: chia xoay vòng để mảnh 1 đo 207 giây, mảnh 3 đo 119 giây). Tham
+ * lam tất định: màn nặng trước (cùng giây thì theo thứ tự bảng), mỗi màn vào mảnh đang nhẹ nhất (cùng nặng thì mảnh số nhỏ). Màn chưa có số đo tính bằng trung vị
+ * các màn đã đo. Tất định theo (bảng, số mảnh, tệp giây): máy gom dựng lại y hệt.
+ */
+export function chiaManh(bang, soManh, gio = THOI_GIAN_KHUNG) {
+  if (!Number.isInteger(soManh) || soManh < 1) throw new Error(`số mảnh đo khung phải là số nguyên ≥ 1 (nhận ${soManh})`);
+  const daDo = bang.map((d) => gio[d.khoa]).filter((x) => typeof x === "number" && x > 0).sort((a, b) => a - b);
+  const macDinh = daDo.length ? daDo[Math.floor(daDo.length / 2)] : 1;
+  const nang = (d) => (typeof gio[d.khoa] === "number" && gio[d.khoa] > 0 ? gio[d.khoa] : macDinh);
+  const thuTu = bang.map((d, i) => ({ d, i })).sort((a, b) => nang(b.d) - nang(a.d) || a.i - b.i);
+  const ra = Array.from({ length: soManh }, () => []);
+  const tai = Array(soManh).fill(0);
+  for (const { d, i } of thuTu) {
+    let m = 0;
+    for (let k = 1; k < soManh; k++) if (tai[k] < tai[m]) m = k;
+    ra[m].push({ khoa: d.khoa, i });
+    tai[m] += nang(d);
+  }
+  return ra.map((x) => x.sort((a, b) => a.i - b.i).map((y) => y.khoa));
+}
+/** Giây đo từng màn của một mảnh: tổng `ms` các ô của màn (đồng hồ thẻ, không chia số thẻ), làm tròn 0,1 giây. */
+export const giayTungMan = (ketQua) => {
+  const g = {};
+  for (const o of ketQua) if (typeof o?.ms === "number") g[o.man] = (g[o.man] ?? 0) + o.ms / 1000;
+  return Object.fromEntries(Object.entries(g).map(([k, v]) => [k, Math.round(v * 10) / 10]));
+};
 
 /**
  * Kết luận của MỘT mảnh: `luot` như gopLuot, `giao` = khoá màn mảnh được giao. Mã 2 = có lượt không chạy được hoặc mảnh không đo đủ màn được giao (gieo hỏng ⇒
@@ -124,7 +151,10 @@ async function chay() {
   let ketLuan = { ok: false, maThoat: 2, buoc, ...(manh ? { manh, soManh } : {}), loi: null };
   try {
     const { dungMoiTruong } = await import("./moi-truong.mjs");
-    const cacBo = [...new Set([...bangGiao.map((d) => d.bo), ...(bangGiao.some((d) => d.sauGieo) ? BO_GIEO : [])])];
+    // MỌI mảnh dựng ĐỦ tài khoản của cả BANG_CI (+ bộ chỉ dùng để gieo), không chỉ bộ của màn mình: việc gieo cần tài khoản khác màn (chuyến cần Tài xế, đơn chờ
+    // xác nhận cần Bán hàng + Toàn quyền, đơn mẫu cần Bán hàng) — thiếu thì màn bị bỏ hoặc đo trên trang thưa hơn bản một máy (đo thử 25/11: mảnh 4/4 chỉ có
+    // ADMIN, DRIVER_PARTNER, SUPER_ADMIN ⇒ bỏ /chuyen-sua «thiếu mã chuyen», lượt gieo đơn chờ hỏng). Nhờ vậy mỗi màn đo trên CÙNG dữ liệu dù rơi vào mảnh nào.
+    const cacBo = [...new Set([...BANG_CI.map((d) => d.bo), ...BO_GIEO])];
     moi = await dungMoiTruong({ bo: cacBo, hanPhut });
     console.log(`▶ Máy thử tạm: ${moi.base}; tài khoản: ${moi.boChayDuoc.join(", ")}; lỗi gieo đơn: ${moi.loiGieo.length}`);
     for (const l of moi.loiGieo) console.log(`  ✗ gieo ${l.viec}: ${l.status ?? ""} ${l.loi}`);
@@ -205,9 +235,15 @@ async function chay() {
       const tepSo = join(ra, "do-khung-goc.json");
       kqLuot.push({ ketQua: existsSync(tepSo) ? JSON.parse(readFileSync(tepSo, "utf8")).ketQua : null });
     }
+    console.log(
+      manh
+        ? `(Dòng «ĐO THIẾU» của từng lượt ở trên chỉ nói lượt đó không đo các trang của mảnh khác — không phải kết luận. Mảnh ${manh}/${soManh} đỏ khi đo thiếu màn được giao; máy gom đỏ khi hợp các mảnh không phủ mọi trang đã khai khuôn.)`
+        : "(Dòng «ĐO THIẾU» của từng lượt ở trên chỉ nói lượt đó là một phần bảng màn — kết luận đo thiếu đọc ở dưới, trên hợp mọi lượt.)",
+    );
     if (manh) {
       const g = gopManh(kqLuot, giao);
       ketLuan = { ok: g.maThoat === 0, maThoat: g.maThoat, buoc, manh, soManh, khoa: g.khoa, trang: g.trang, soMan: g.khoa.length, soO: g.soO, khongDat: g.khongDat, thieuKhoa: g.thieuKhoa,
+        giayMan: giayTungMan(kqLuot.flatMap((l) => l.ketQua ?? [])),
         loi: g.maThoat === 0 ? null : g.maThoat === 1 ? `${g.khongDat} ô không đạt` : g.thieuKhoa.length ? `mảnh ${manh}/${soManh} đo thiếu màn: ${g.thieuKhoa.join(", ")}` : "lệnh đo không chạy được" };
     } else {
       const daChuyen = readdirSync("public").filter((t) => t.endsWith(".html")).filter((t) => docThanTrang(readFileSync(join("public", t), "utf8")).khuon !== null).map(duongCuaTrang);

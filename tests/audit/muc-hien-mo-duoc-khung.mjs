@@ -3,9 +3,10 @@
 // Neo: Hiến chương K4 (docs/ARCHITECTURE.md — một bản đồ quyền; mọi route hỏi `can()`) và web/CLAUDE.md ("ẩn/hiện hỏi CÙNG bảng với máy chủ; máy chủ luôn kiểm
 // lại"). Bảng mục: src/shared/muc-giao-dien.ts (TRANG + các nơi đặt) và src/shared/trang-chu-o.ts (O_TRANG_CHU).
 //
-// Tệp này là phần CHUNG (dữ liệu, luật, dựng khung thử) — ba tệp src/muc-hien-mo-duoc-{1,2,3}.test.ts mỗi tệp gọi `kiemPhan(i)`: gọi một phần ba danh sách
-// đường gọi chính (chia theo thứ tự chữ, phần = chỉ số % 3 — đường MỚI tự rơi vào một phần; phần 1 khẳng định HỢP ba phần = toàn bộ, không trùng) để ba tệp
-// chạy song song. Phần 1 chạy thêm các kiểm tĩnh (không gọi máy chủ). Đặt ở tests/audit/ (không ở src/) vì nó nhập khung thử .mjs và node:* — `tsc` của src
+// Tệp này là phần CHUNG (dữ liệu, luật, dựng khung thử) — SO_PHAN tệp src/muc-hien-mo-duoc-<n>.test.ts mỗi tệp gọi `kiemPhan(n−1)`: gọi một phần danh sách
+// đường gọi chính (chia CÂN THEO GIÁ GỌI — GIA_GOI, rút lượt kiểm 25/11/2026: `GET /api/staff` trả cả 2048 tài khoản thử nên một mình tốn ~40 % thời gian; chia
+// theo chỉ số % 3 như cũ dồn nó cùng 15 đường khác thành một tệp 258 giây trên GitHub; đường MỚI tự rơi vào phần nhẹ nhất; phần 1 khẳng định HỢP các phần =
+// toàn bộ, không trùng) để các tệp chạy song song. Phần 1 chạy thêm các kiểm tĩnh (không gọi máy chủ). Đặt ở tests/audit/ (không ở src/) vì nó nhập khung thử .mjs và node:* — `tsc` của src
 // không có khai kiểu cho hai thứ đó.
 //
 // CHẶN (trên ĐỦ 2048 tập quyền = mọi tập con của PERMISSION_CODES; mỗi tập một tài khoản thật trong CSDL thử, gọi route THẬT qua khung thử harness.mjs — router,
@@ -34,7 +35,7 @@
 // lại" src/shared/dashboard-review.ts, dải chào web/trang-chu-may-tinh.ts, `data-back`); huy hiệu số; chốt chặn phía trình duyệt CHỈ phủ trang có khai
 // `moTrang` (hôm nay: Địa điểm, Trang chủ tài xế, Cuốc của tôi — trang tự hỏi quyền theo cách khác mà không khai thì bài không thấy); "một nguồn" chỉ đọc MẪU
 // chữ `if (!moTrang("<khoá>", …))` trong tệp trang (đã bỏ chú thích) — không chứng minh nhánh đó thật sự dừng trang; khung mất mạng (bốn tab cơ bản khi không
-// biết vai). Đường gọi chính là MỘT lời gọi đọc đại diện cho trang; trang cần thêm lời gọi khác thì bài không thấy. Xoá CẢ ba tệp mỏng thì không còn bài nào.
+// biết vai). Đường gọi chính là MỘT lời gọi đọc đại diện cho trang; trang cần thêm lời gọi khác thì bài không thấy. Xoá CẢ các tệp mỏng thì không còn bài nào.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -47,7 +48,7 @@ import { O_TOI, O_TRANG_CHU, nhomMayTinh } from "../../src/shared/trang-chu-o.ts
 // Đường gọi chính tách khỏi TRANG (Ruling R-P27, sổ đại lý đợt 2 Task 12): cùng giá trị, chỉ đổi nguồn.
 import { GOI_CHINH } from "../../src/shared/muc-giao-dien-goi.ts";
 
-export const SO_PHAN = 3;
+export const SO_PHAN = 4;
 const SO_TAP = 1 << PERMISSION_CODES.length;
 const TAP = Array.from({ length: SO_TAP }, (_, m) => m);
 const idCua = (m) => `00000000-0000-4000-8000-${String(m).padStart(12, "0")}`;
@@ -203,7 +204,35 @@ const tepTrang = (k) => TEP_TRANG[k] ?? `web/${TRANG[k].duong.slice(1)}.ts`;
 
 /** Mọi đường gọi chính (khử trùng), theo thứ tự chữ. */
 export const GOI_TAT_CA = [...new Set(KHOA_TRANG.map((k) => GOI_CHINH[k]).filter((g) => typeof g === "string"))].sort();
-export const goiCuaPhan = (phan) => GOI_TAT_CA.filter((_, i) => i % SO_PHAN === phan);
+/**
+ * Giá gọi (ms cho đủ 2048 tập, đo trên Mac 25/11/2026 bằng vòng gọi y như kiemPhan) của các đường NẶNG; đường không có tên ở đây tính GIA_MAC_DINH (các đường
+ * nhẹ đo 1.360–1.600 ms). Chỉ dùng để chia cho cân — sai số chỉ làm lệch giờ chạy, không làm sót đường (bài [tĩnh] chia đường canh hợp = toàn bộ).
+ */
+export const GIA_GOI = {
+  "GET /api/staff": 65_000,
+  "GET /api/parties": 19_000,
+  "GET /api/thong-bao/da-gui": 12_000,
+  "GET /api/sessions": 4_700,
+  "GET /api/audit": 3_600,
+  "GET /api/van-chuyen/lich": 2_700,
+  "GET /api/pricing/cap-dai-ly": 2_300,
+  "GET /api/pricing/cung-ung": 2_100,
+};
+const GIA_MAC_DINH = 1_500;
+const giaGoi = (g) => GIA_GOI[g] ?? GIA_MAC_DINH;
+/** Chia tham lam tất định: đường đắt trước (cùng giá thì theo chữ), mỗi đường vào phần đang nhẹ nhất (cùng nặng thì phần số nhỏ). */
+const CHIA = (() => {
+  const tai = Array(SO_PHAN).fill(0);
+  const phan = Array.from({ length: SO_PHAN }, () => []);
+  for (const g of [...GOI_TAT_CA].sort((a, b) => giaGoi(b) - giaGoi(a) || (a < b ? -1 : a > b ? 1 : 0))) {
+    let p = 0;
+    for (let i = 1; i < SO_PHAN; i++) if (tai[i] < tai[p]) p = i;
+    phan[p].push(g);
+    tai[p] += giaGoi(g);
+  }
+  return phan.map((x) => x.sort());
+})();
+export const goiCuaPhan = (phan) => CHIA[phan] ?? [];
 const goiCua = (k) => (typeof GOI_CHINH[k] === "string" ? GOI_CHINH[k] : null);
 
 /**
@@ -285,7 +314,7 @@ export async function kiemPhan(phan) {
   });
 
   test(`${nhan} [tĩnh] (8) nối dây: đúng ${SO_PHAN} tệp src/muc-hien-mo-duoc-<n>.test.ts, tệp thứ n gọi đúng một lần kiemPhan(n−1) — chạy ở mọi phần`, () => {
-    assert.deepEqual(loiNoiDay(), [], "tệp mỏng gọi nhầm / thiếu / thừa phần ⇒ một phần ba đường gọi lặng lẽ thôi được canh — sửa tệp mỏng (hoặc SO_PHAN)");
+    assert.deepEqual(loiNoiDay(), [], "tệp mỏng gọi nhầm / thiếu / thừa phần ⇒ một phần đường gọi lặng lẽ thôi được canh — sửa tệp mỏng (hoặc SO_PHAN)");
   });
 
   test(`${nhan} (3) mã trạng thái của các đường gọi chính chỉ là 2xx / 401 / 403 (404 khi có khai) — mã lạ là đường gọi khai sai`, () => {

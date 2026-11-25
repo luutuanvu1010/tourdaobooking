@@ -53,6 +53,15 @@ assert.equal(r.status, 409, `hồ sơ chưa mang Vai người dùng của đối
 assert.doesNotMatch(thongBao(r), MA_THO, "câu báo không lộ mã thô");
 r = await call(ADM, "POST", `/api/parties/${BEN}/roles`, { roleTypeCode: "TRAVEL_AGENCY" });
 assert.equal(r.status, 201, JSON.stringify(r.body));
+// Hoa hồng 0 % RIÊNG cho hồ sơ này: số nợ ở mục 3–4 (300.000 = giá đại lý) không phụ thuộc mức theo vai TRAVEL_AGENCY mà kịch bản khác chung D1 có thể để lại
+// (so-dai-ly đặt 10 % ⇒ nợ thành 270.000 — đỏ thật ở lượt GitHub 45541773422 khi hai kịch bản cùng một phần).
+{
+  const m0 = await call(ACC, "POST", "/api/pricing/muc-ta", { ten: `Không hoa hồng ${TEN}` });
+  assert.equal(m0.status, 201, JSON.stringify(m0.body));
+  assert.equal((await call(ACC, "POST", `/api/pricing/muc-ta/${m0.body.muc.code}/dong`, { phamVi: "ALL", kieu: "RATE", tyLeBp: 0, tuNgay: vnDate(0) })).status, 201);
+  const g = await call(ACC, "POST", `/api/pricing/ho-so/${BEN}/muc-rieng`, { muc: m0.body.muc.code, tuNgay: vnDate(0) });
+  assert.equal(g.status, 201, JSON.stringify(g.body));
+}
 // Mức tối đa là cài đặt chung chỉ-thêm: lần chạy trước trên cùng D1 có thể đã đặt. Đặt lại đúng số cần cho bài.
 assert.equal((await call(ADM, "POST", "/api/tra-sau/muc-toi-da", { so: HAN_MUC })).status, 403, "Quản trị không đặt được mức tối đa");
 r = await call(SA, "POST", "/api/tra-sau/muc-toi-da", { so: HAN_MUC - 1 });
@@ -189,7 +198,7 @@ console.log("✓ 4) Huỷ đơn nợ ⇒ nợ về 0; ngừng hạn mức ⇒ đ
   r = await nop(1000);
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const noDon = async () => (await call(ACC, "GET", `/api/tra-sau/han-muc/${BEN5}/don`)).body.don.map((d) => [d.orderId, d.no]);
-  // ADR-0182 Đ1 (12/11): nợ tính theo GIÁ ĐẠI LÝ ngay từ lúc xác nhận — đơn 200.000, hoa hồng 20.000 (mức 10% của vai TRAVEL_AGENCY do kịch bản sổ đại lý để lại trên D1) ⇒
+  // ADR-0182 Đ1 (12/11): nợ tính theo GIÁ ĐẠI LÝ ngay từ lúc xác nhận — đơn 200.000, hoa hồng 20.000 (mức riêng 10 % cấp cho BEN5 ở trên — không dựa vào mức theo vai do kịch bản khác để lại) ⇒
   // 180.000 − 1.000 nộp = 179.000, đúng số «sau Khách đã trả đủ» bên dưới (bản cũ: 199.000 rồi mới tụt xuống 179.000).
   assert.deepEqual(await noDon(), [[don.id, 179_000]], "nộp một phần: còn nợ = giá đại lý − phần đã nộp");
   r = await call(DT, "GET", `/api/tra-sau/con-duoc-dung?benDat=${BEN5}`);
