@@ -1,0 +1,18 @@
+{
+  "ghiChu": "13 màn của đợt C khung gốc (10 trang Tiền), số màn giữ theo bảng 20/11 và bang-man-them.json của lượt 24/11. Hoa hồng đối tác chụp thêm với Bán hàng (116) và Đối tác (108, máy chủ 403 — mẫu trạng thái không quyền); Sổ công nợ thêm Toàn quyền (123).",
+  "man": [
+    { "so": 43, "bo": "ACCOUNTING", "trang": "/so-cong-no", "ho": "C tiền" },
+    { "so": 123, "bo": "SUPER_ADMIN", "trang": "/so-cong-no", "ho": "C tiền" },
+    { "so": 44, "bo": "ACCOUNTING", "trang": "/khoa-thang", "ho": "C tiền" },
+    { "so": 45, "bo": "ACCOUNTING", "trang": "/dieu-chinh-cong-no", "ho": "C tiền" },
+    { "so": 46, "bo": "ACCOUNTING", "trang": "/phan-dinh", "ho": "C tiền" },
+    { "so": 47, "bo": "ACCOUNTING", "trang": "/hoa-hong", "ho": "C tiền" },
+    { "so": 116, "bo": "SALES", "trang": "/hoa-hong", "ho": "C tiền" },
+    { "so": 108, "bo": "PARTNER", "trang": "/hoa-hong", "ho": "C tiền" },
+    { "so": 48, "bo": "ACCOUNTING", "trang": "/cap-dai-ly", "ho": "C tiền" },
+    { "so": 49, "bo": "ACCOUNTING", "trang": "/han-muc-tra-sau", "ho": "C tiền" },
+    { "so": 50, "bo": "ACCOUNTING", "trang": "/nguoi-ban", "ho": "C tiền" },
+    { "so": 51, "bo": "ACCOUNTING", "trang": "/chup-bu", "ho": "C tiền" },
+    { "so": 52, "bo": "SUPER_ADMIN", "trang": "/hoa-hong-gioi-han", "ho": "C tiền" }
+  ]
+}

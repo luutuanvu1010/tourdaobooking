@@ -4783,12 +4783,13 @@ body[data-khung-goc] .rong > strong { font-weight: var(--fw-regular); color: var
 
 /* -- Khuôn Tổng quan (đợt B, 24/11/2026): đầu trang (đoạn dẫn hoặc bộ chọn ngày bên trái, tối đa MỘT nút chính bên phải) → dải số (tuỳ chọn, một khối)
    → lưới khối (.luoi; mỗi khối khai data-cot 3 · 4 · 6 · 8 hoặc kín hàng). Dòng thời gian của Điều phối xe là vùng tự do trong một khối (sổ ngoại lệ).
-   Dải số: mỗi ô một nhãn nhỏ và một con số cỡ tiêu đề khối, chữ thường (không đậm — ADR-0234 nguyên tắc 1), số đều cột; ô tự xếp theo bề rộng khối. -- */
-body[data-khung-goc="tong-quan"] .dai-so { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--kg-cot-ngan), 1fr)); gap: var(--s3) var(--kg-khe); margin: 0; }
-body[data-khung-goc="tong-quan"] .dai-so > div { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
-body[data-khung-goc="tong-quan"] .dai-so dt { font-size: var(--fs-label); line-height: var(--lh-20); color: var(--c-text-muted); }
-body[data-khung-goc="tong-quan"] .dai-so dd { margin: 0; font-size: var(--fs-step-10); line-height: var(--lh-28); font-variant-numeric: tabular-nums; color: var(--c-text); }
-body[data-khung-goc="tong-quan"] .dai-so dd > .o-phu { display: inline; margin-left: var(--s2); }
+   Dải số: mỗi ô một nhãn nhỏ và một con số cỡ tiêu đề khối, chữ thường (không đậm — ADR-0234 nguyên tắc 1), số đều cột; ô tự xếp theo bề rộng khối.
+   Dải số là thành phần chung của mọi khuôn từ đợt C (25/11/2026: ba ô tổng của Sổ công nợ, khuôn Danh sách). -- */
+body[data-khung-goc] .dai-so { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--kg-cot-ngan), 1fr)); gap: var(--s3) var(--kg-khe); margin: 0; }
+body[data-khung-goc] .dai-so > div { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+body[data-khung-goc] .dai-so dt { font-size: var(--fs-label); line-height: var(--lh-20); color: var(--c-text-muted); }
+body[data-khung-goc] .dai-so dd { margin: 0; font-size: var(--fs-step-10); line-height: var(--lh-28); font-variant-numeric: tabular-nums; color: var(--c-text); }
+body[data-khung-goc] .dai-so dd > .o-phu { display: inline; margin-left: var(--s2); }
 /* Nút chính của trang ở đầu trang: vùng nội dung hẹp hơn 560 thì kín bề ngang, hàng riêng dưới đoạn dẫn; từ 560 thì đứng mép phải. */
 body[data-khung-goc="tong-quan"] .dau-trang > .nut { flex: 1 1 100%; }
 @container trang (min-width: 560px) { body[data-khung-goc="tong-quan"] .dau-trang > .nut { flex: 0 0 auto; } }
