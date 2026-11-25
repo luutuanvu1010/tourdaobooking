@@ -4784,11 +4784,12 @@ body[data-khung-goc] .ds-dong > button.dong { width: 100%; font: inherit; text-a
 body[data-khung-goc] .ds-dong > button.dong[aria-current="true"] { background: var(--c-primary-soft); }
 @media (hover: hover) { body[data-khung-goc] .ds-dong > button.dong:not([aria-current="true"]):hover { background: var(--c-soft-hover); } }
 body[data-khung-goc] .dai-so dd, body[data-khung-goc] .huy-hieu { white-space: nowrap; }
-/* Dải số có ít ô mà nhãn dài (ba ô tổng của Sổ công nợ): ô rộng bằng cột «dài» của thang thay cho cột «ngắn». */
-body[data-khung-goc] .dai-so[data-o="dai"] { grid-template-columns: repeat(auto-fill, minmax(var(--kg-cot-dai), 1fr)); }
+/* Dải số có ít ô mà nhãn dài (ba ô tổng của Sổ công nợ): ô rộng bằng cột «vừa» của thang thay cho cột «ngắn» (điện thoại hai ô một hàng). */
+body[data-khung-goc] .dai-so[data-o="dai"] { grid-template-columns: repeat(auto-fill, minmax(var(--kg-cot-vua), 1fr)); }
+body[data-khung-goc] .bang td[data-so] { white-space: nowrap; } /* tiền trong bảng viết đủ một dòng (không rớt «₫») */
 body[data-khung-goc] .khoi[data-kieu="bang"] > .thanh-loc { padding: 0 var(--kg-dem) var(--s3); }
 body[data-khung-goc] .cap > :last-child .nut { white-space: normal; text-align: left; } /* nút mở bảng đứng làm giá trị (ô «Cấp độ đại lý»): chữ dài xuống dòng trong nút, không thò ra khối */
-body[data-khung-goc] .khoi-mo-ta + .muc-con { padding-top: var(--s4); border-top: 1px solid var(--c-border); }
+body[data-khung-goc] .khoi-mo-ta + .muc-con { padding-top: var(--s2); }
 
 /* Huy hiệu và hộp cảnh báo thế hệ cũ (.chip, .vc-chip, .vc-alert) ở trang đã chuyển: chữ thường như .huy-hieu (ADR-0234 nguyên tắc 1 — trong một dòng chỉ một thứ đậm). Đợt B, 24/11/2026. */
 body[data-khung-goc] :is(.chip, .vc-chip, .vc-alert) { font-weight: var(--fw-regular); }

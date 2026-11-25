@@ -277,6 +277,7 @@ if (!can(staff, "ledger.view")) {
   });
   laRong = rong();
   new ResizeObserver(() => {
+    if (beRongMain() <= 0) return; // khung tạm có bề rộng 0 (chụp cả trang, thẻ ẩn): không coi là đổi khổ, khỏi bỏ mất bên đang mở
     const moi = rong();
     if (moi === laRong) return;
     laRong = moi;
