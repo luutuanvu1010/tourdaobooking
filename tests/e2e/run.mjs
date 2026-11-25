@@ -4,7 +4,7 @@
 // Cần mạng: admin.mjs và catalog.mjs đọc Google Sheet thật (quyết định của chủ dự án 2026-09-19).
 import { execFile, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { availableParallelism, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -97,11 +97,11 @@ function chay(cmd, args, { env, stream }) {
   });
 }
 
-// Dựng D1 tạm cho một nhóm: áp migration + nạp tài khoản test. Các nhóm dựng ĐỒNG THỜI (thư mục riêng, không khoá nhau).
+// Dựng D1 tạm cho nhóm đầu: áp migration + nạp tài khoản test (các nhóm sau chép bản này — xem chỗ gọi).
 async function dungD1(may) {
   may.persist = mkdtempSync(join(tmpdir(), "tourdao-e2e-"));
-  // Một lệnh `d1 execute` gộp mọi migration (scripts/d1-tam.mjs; ~2 giây thay ~66 giây của `migrations apply` trên máy GitHub). Tương đương được bài
-  // src/d1-tam.test.ts kiểm trong mỗi lượt kiểm (dựng cả hai cách, so schema + dữ liệu).
+  // Gộp migration thành vài khối, mỗi khối một lệnh `d1 execute` (scripts/d1-tam.mjs) thay `migrations apply` (~66 giây trên máy GitHub). Tương đương được
+  // bài src/d1-tam.test.ts kiểm trong mỗi lượt kiểm (dựng cả hai cách, so schema + dữ liệu).
   await apMigrationNhanh(ROOT, may.persist, wrangler);
   const seed = join(may.persist, "seed.sql");
   writeFileSync(seed, (await Promise.all(Object.values(ACCOUNTS).map((a) => insertStaffSql({ name: a.name, phone: a.phone, pin: a.pin, permissions: a.permissions })))).join("\n"));
@@ -297,9 +297,14 @@ donKhiBiNgat("SIGINT", 130);
 donKhiBiNgat("SIGTERM", 143);
 try {
   if (soNhom > 1) console.log(`Chạy song song ${soNhom} nhóm, mỗi nhóm một D1 tạm + wrangler dev riêng (E2E_SONG_SONG=1: tuần tự như cũ):\n${cacMay.map((m) => `  nhóm ${m.k + 1}: ${m.ten.join(", ")}`).join("\n")}\n`);
-  const dung = await Promise.allSettled(cacMay.map((m) => dungD1(m)));
-  const loiD1 = dung.find((p) => p.status === "rejected");
-  if (loiD1) throw loiD1.reason;
+  // Rút lượt kiểm 25/11/2026: dựng D1 cho nhóm ĐẦU (migration + tài khoản thử), các nhóm sau CHÉP nguyên thư mục D1 đó (bản giống từng byte, rồi mỗi
+  // nhóm chạy trên bản riêng của mình — không chia sẻ trạng thái nào). Dựng D1 trên máy GitHub (wrangler 4.135, 12 khối) tốn ~30 giây; chép < 1 giây.
+  await dungD1(cacMay[0]);
+  for (const m of cacMay.slice(1)) {
+    m.persist = mkdtempSync(join(tmpdir(), "tourdao-e2e-"));
+    cpSync(cacMay[0].persist, m.persist, { recursive: true });
+    console.log(`D1 tạm${nhan(m.k)}: ${m.persist} (chép từ D1 của${nhan(0)})`);
+  }
   for (const m of cacMay) await batMayChu(m);
   console.log("");
 

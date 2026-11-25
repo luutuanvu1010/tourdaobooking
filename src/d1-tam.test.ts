@@ -11,8 +11,10 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { DatabaseSync } from "node:sqlite";
 
-const { apMigrationNhanh, sqlGop, tepMigration } = (await import(new URL("../scripts/d1-tam.mjs", import.meta.url).href)) as {
+const { apMigrationNhanh, sqlGop, tepMigration, khoiGop, TRAN_KHOI_BYTE } = (await import(new URL("../scripts/d1-tam.mjs", import.meta.url).href)) as {
   apMigrationNhanh: (goc: string, persist: string, wrangler: (a: string[]) => Promise<unknown>) => Promise<unknown>;
+  khoiGop: (goc: string, tranByte?: number) => string[];
+  TRAN_KHOI_BYTE: number;
   sqlGop: (goc: string) => string;
   tepMigration: (goc: string) => string[];
 };
@@ -78,6 +80,27 @@ test("gộp migration: tệp không kết thúc bằng «;» ⇒ ném lỗi (kh�
     assert.match(sql, /INSERT INTO d1_migrations \(name\) VALUES \('0001_a\.sql'\);\nINSERT INTO d1_migrations \(name\) VALUES \('0002_b\.sql'\);/);
     writeFileSync(join(goc, "migrations", "0003_c.sql"), "CREATE TABLE c (x INTEGER)\n-- thiếu chấm phẩy\n");
     assert.throws(() => sqlGop(goc), /0003_c\.sql không kết thúc bằng «;»/);
+  } finally {
+    rmSync(goc, { recursive: true, force: true });
+  }
+});
+
+test("khối gộp ≤ 90 KB (wrangler 4.135 coi cả tệp --file là một câu, quá ~100 KB ⇒ SQLITE_TOOBIG); không tệp migration nào bị cắt đôi; nối các khối = toàn bộ", () => {
+  assert.ok(TRAN_KHOI_BYTE <= 95_000, `trần khối ${TRAN_KHOI_BYTE} quá sát 100 KB`);
+  const k = khoiGop(GOC);
+  for (const x of k) assert.ok(Buffer.byteLength(x, "utf8") <= TRAN_KHOI_BYTE, `khối ${Buffer.byteLength(x, "utf8")} byte vượt trần`);
+  assert.equal(k.join("\n"), sqlGop(GOC));
+  for (const f of tepMigration(GOC)) assert.equal(k.filter((x) => x.includes(`-- ===== ${f}\n`)).length, 1, `${f} phải nằm trọn trong đúng một khối`);
+  // Tệp lớn hơn trần: đứng riêng một khối (không cắt giữa câu).
+  const goc = mkdtempSync(join(tmpdir(), "tourdao-d1-khoi-"));
+  try {
+    mkdirSync(join(goc, "migrations"));
+    writeFileSync(join(goc, "migrations", "0001_a.sql"), "CREATE TABLE a (x INTEGER);");
+    writeFileSync(join(goc, "migrations", "0002_to.sql"), `-- ${"x".repeat(300)}\nCREATE TABLE b (x INTEGER);`);
+    writeFileSync(join(goc, "migrations", "0003_c.sql"), "CREATE TABLE c (x INTEGER);");
+    const kk = khoiGop(goc, 200);
+    assert.ok(kk.length >= 3);
+    assert.equal(kk.filter((x) => x.includes("CREATE TABLE b")).length, 1);
   } finally {
     rmSync(goc, { recursive: true, force: true });
   }
