@@ -80,6 +80,17 @@ test("quy trình kiem.yml: ma trận mảnh khung / phần npm test / máy e2e k
   if (lib.SO_PHAN_E2E < 2 * lib.SO_MAY_E2E) assert.deepEqual(lib.phanCuaMay(1), [1], "phần nặng nhất chạy một mình một máy");
 });
 
+test("gopDem: cộng số bài của hai tiến trình, nối bài đỏ, gộp giây; thiếu một bản hoặc số hỏng ⇒ máy gom không coi là đếm được", () => {
+  const g = (lib as unknown as { gopDem: (a: unknown, b: unknown) => Record<string, unknown> | null }).gopDem;
+  const a = { tests: 3, pass: 2, fail: 1, skipped: 0, todo: 0, baiDo: ["src/a.test.ts: x"], giayTep: { "src/a.test.ts": 1 }, giayTuong: { "src/a.test.ts": 2 } };
+  const b = { tests: 5, pass: 5, fail: 0, skipped: 1, todo: 0, baiDo: [], giayTep: { "src/b.test.ts": 3 }, giayTuong: { "src/b.test.ts": 4 } };
+  assert.deepEqual(g(a, b), { tests: 8, pass: 7, fail: 1, skipped: 1, todo: 0, baiDo: ["src/a.test.ts: x"], giayTep: { "src/a.test.ts": 1, "src/b.test.ts": 3 }, giayTuong: { "src/a.test.ts": 2, "src/b.test.ts": 4 } });
+  assert.equal(g(a, null), null);
+  assert.equal(g(null, b), null);
+  const hong = g(a, { ...b, tests: undefined }) as { tests: number };
+  assert.ok(Number.isNaN(hong.tests), "số hỏng ⇒ NaN ⇒ laDem của máy gom từ chối");
+});
+
 test("phanCuaMay: 17 phần / 9 máy ⇒ máy 1 một mình phần 1, máy khác hai phần; 18 phần ⇒ hai phần mỗi máy; số phần ngoài [máy, 2·máy] ⇒ ném lỗi", () => {
   const p = (r: number, n: number) => (lib.phanCuaMay as unknown as (r: number, n: number, m: number) => number[])(r, n, 9);
   assert.deepEqual(Array.from({ length: 9 }, (_, i) => p(i + 1, 17)), [[1], [2, 10], [3, 11], [4, 12], [5, 13], [6, 14], [7, 15], [8, 16], [9, 17]]);

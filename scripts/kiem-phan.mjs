@@ -15,8 +15,9 @@
 //   node scripts/kiem-phan.mjs khung <m> --ket-qua <tệp> → mảnh m của lệnh đo khung gốc trên trang thật (do-khung-ci.mjs --manh m/SO_MANH_KHUNG)
 //   node scripts/kiem-phan.mjs test <k> --ket-qua <tệp> → phần k của npm test
 //   node scripts/kiem-phan.mjs gom <thư mục> --ket-qua <tệp> → gom mọi báo cáo; đỏ ⇒ thoát 1. (Phần e2e: node tests/e2e/run.mjs --phan k --ket-qua <tệp>)
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { globSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ALL, chiaNhom } from "../tests/e2e/danh-sach.mjs";
@@ -55,7 +56,9 @@ export const CO_TRAN_TEP = `--test-timeout=${TRAN_TEP_MS}`;
 export const SO_PHAN_TEST = 7;
 // Lượt 45559378918: phần 1 (chỉ «dispatch», kịch bản dài nhất) chung máy với một phần ~180 giây ⇒ dispatch 212 giây, máy 4,5 phút trong khi các máy khác ~3 phút
 // ⇒ 17 phần: phần 1 (nặng nhất — chiaNhom xếp kịch bản nặng nhất vào phần 1) chạy MỘT MÌNH một máy, 16 phần còn lại hai phần mỗi máy.
-export const SO_PHAN_E2E = 17;
+// Lượt 45564677884, 45566632142: «chuyen-khach» (nặng nhì) chung máy với một phần khác ⇒ 225–233 giây, máy 5,2–5,5 phút ⇒ 16 phần: HAI phần nặng nhất mỗi phần
+// một máy riêng, 14 phần còn lại hai phần mỗi máy.
+export const SO_PHAN_E2E = 16;
 /**
  * Các phần e2e của máy r (1…SO_MAY_E2E), tất định. soPhan ∈ [soMay, 2·soMay]: (2·soMay − soPhan) máy đầu mỗi máy MỘT phần (các phần đầu — nặng nhất), các máy
  * còn lại mỗi máy hai phần: máy thứ j trong nhóm sau nhận phần thứ j và thứ j + (số máy nhóm sau) của các phần còn lại.
@@ -344,6 +347,47 @@ function chayNodeTest(files, tepDem, them = []) {
   return { ok: r.status === 0, dem };
 }
 
+/** Gộp hai bản đếm của scripts/dem-bai.mjs (hai tiến trình node --test của cùng một phần). Thiếu một bản ⇒ null (máy gom coi là không đếm được — đỏ). */
+export function gopDem(a, b) {
+  if (!a || !b) return null;
+  const so = (k) => (Number.isInteger(a[k]) && Number.isInteger(b[k]) ? a[k] + b[k] : NaN);
+  return {
+    tests: so("tests"), pass: so("pass"), fail: so("fail"), skipped: so("skipped"), todo: so("todo"),
+    baiDo: [...(a.baiDo ?? []), ...(b.baiDo ?? [])].slice(0, 50),
+    giayTep: { ...(a.giayTep ?? {}), ...(b.giayTep ?? {}) },
+    giayTuong: { ...(a.giayTuong ?? {}), ...(b.giayTuong ?? {}) },
+  };
+}
+
+const chayNodeTestNen = (files, tepDem, them) =>
+  new Promise((xong) => {
+    const p = spawn(process.execPath, ["--test", CO_TRAN_TEP, ...them, "--test-reporter=spec", "--test-reporter-destination=stdout", `--test-reporter=${REPORTER}`, `--test-reporter-destination=${tepDem}`, ...files], { cwd: ROOT, stdio: "inherit" });
+    p.on("error", () => xong({ status: -1 }));
+    p.on("close", (status) => xong({ status }));
+  });
+const docDem = (tep) => {
+  try {
+    return JSON.parse(readFileSync(tep, "utf8"));
+  } catch {
+    return null;
+  }
+};
+/**
+ * Một phần npm test: tệp ĐẦU danh sách (nặng nhất — chiaTheoCo xếp nặng trước) chạy trong tiến trình `node --test` RIÊNG, CÙNG LÚC với các tệp còn lại.
+ * Lý do (lượt 45566632142): `node --test` tự xếp tệp theo CHỮ trước khi chạy, nên tệp 190 giây `src/muc-hien-mo-duoc-1.test.ts` luôn bắt đầu sau cùng và kéo
+ * phần 1 thành 5,2 phút dù các tệp khác xong sau ~2 phút. Hai tiến trình chung số luồng như một (tệp còn lại: số lõi − 2, tối thiểu 1). Đạt khi CẢ HAI thoát
+ * 0 và cả hai đếm được; số bài, bài đỏ, giây gộp lại (gopDem).
+ */
+async function chayPhanTest(files, tepDem) {
+  if (files.length < 2) return chayNodeTest(files, tepDem);
+  const [r1, r2] = await Promise.all([
+    chayNodeTestNen(files.slice(0, 1), `${tepDem}.dau`, []),
+    chayNodeTestNen(files.slice(1), `${tepDem}.con`, [`--test-concurrency=${Math.max(1, availableParallelism() - 2)}`]),
+  ]);
+  const dem = gopDem(docDem(`${tepDem}.dau`), docDem(`${tepDem}.con`));
+  return { ok: r1.status === 0 && r2.status === 0 && dem !== null, dem };
+}
+
 async function dongLenh(argv) {
   const [lenh, thamSo] = argv;
   const tepKq = layCo(argv, "--ket-qua");
@@ -399,7 +443,7 @@ async function dongLenh(argv) {
     const tep = bang.test[k - 1];
     if (!tep) throw new Error(`Phần npm test phải là 1…${bang.test.length}`);
     console.log(`▶ npm test phần ${k}/${bang.test.length}: ${tep.length} tệp`);
-    const r = chayNodeTest(tep, `${tepKq}.dem`);
+    const r = await chayPhanTest(tep, `${tepKq}.dem`);
     ghi(tepKq, { loai: "test", phan: k, tep, ok: r.ok, dem: r.dem, baiDo: r.dem?.baiDo ?? [], giayTep: r.dem?.giayTep ?? {}, giayTuong: r.dem?.giayTuong ?? {} });
     return r.ok ? 0 : 1;
   }
