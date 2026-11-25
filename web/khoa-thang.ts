@@ -105,11 +105,11 @@ if (!can(staff, "ledger.view")) {
     h("div", { class: "dong" }, h("span", { class: "dong-chu" }, h("span", null, k.orderCode ?? "—"), cap(ngayDayDu(k.ngay), vnd(k.amount), { kieu: "so" })));
 
   /** Mục con khoản (mã đơn, số tiền, ngày): số khoản ở đầu (`demKhoan`: rỗng ghi "Không có"). Chỉ đếm bằng `length`, không cộng tiền. */
-  function khoiKhoan(tieuDe: string, ds: readonly { orderCode: string | null; amount: number; ngay: string }[], dau: string): HTMLElement {
+  function khoiKhoan(tieuDe: HTMLElement, ds: readonly { orderCode: string | null; amount: number; ngay: string }[], dau: string): HTMLElement {
     return h(
       "div",
       { class: "muc-con", "data-khoi": dau },
-      h("h3", null, tieuDe),
+      tieuDe, // h("h3", …) viết ở chỗ gọi: máy sinh sơ đồ trang (scripts/sinh-so-do-trang.mjs) chỉ đọc tiêu đề mục ở dạng literal
       h("p", { class: "khoi-mo-ta" }, demKhoan(ds.length)),
       ds.length > 0 && dsDong(null, ...ds.map(dongKhoan)),
     );
@@ -124,8 +124,8 @@ if (!can(staff, "ledger.view")) {
     replaceChildren(
       bangKiemEl,
       h("p", { class: "khoi-mo-ta" }, CAU_BANG_KIEM_KHONG_CHAN),
-      khoiKhoan("Khoản thu chờ đối chiếu", b.choXacNhanCongTy, "cho-xac-nhan"),
-      khoiKhoan("Khoản thu chưa rõ người thu tiền", b.chuaRoNguoiThu, "chua-ro"),
+      khoiKhoan(h("h3", null, "Khoản thu chờ đối chiếu"), b.choXacNhanCongTy, "cho-xac-nhan"),
+      khoiKhoan(h("h3", null, "Khoản thu chưa rõ người thu tiền"), b.chuaRoNguoiThu, "chua-ro"),
       h(
         "div",
         { class: "muc-con", "data-khoi": "so-du" },

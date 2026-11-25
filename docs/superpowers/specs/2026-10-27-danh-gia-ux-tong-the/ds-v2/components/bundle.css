@@ -268,7 +268,6 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .sidebar-name, .sidebar-role { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
 }
 
-
 /* [10] Trang Tôi, máy tính: thẻ xếp kín hai cột kiểu cột báo (trước: lưới hai cột ép hàng ngang, để lại hố trống); hẹp hơn hai cột thì tự về một cột.
    Dòng «Đăng xuất» trong danh sách bị trùng với nút ở chân thanh bên — ẩn ở máy tính (điện thoại không có thanh bên nên giữ). */
 @media (min-width: 900px) {
@@ -287,7 +286,6 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 }
 
 /* [12] Hoa hồng: dải cảnh báo không dính sát hàng đầu trang và khối Tra nhanh. */
-#hh-dai:not([hidden]) { margin: var(--s3) 0; }
 
 /* [13] Ô chọn không đẩy trang tràn ngang ở điện thoại (Nhật ký). */
 main select { max-width: 100%; }
@@ -751,25 +749,43 @@ body[data-khung-goc] .nhom-chon > legend { margin: 0 0 var(--s1); padding: 0; fo
 body[data-khung-goc] .nhom-chon > label { display: flex; align-items: center; gap: var(--s3); min-height: var(--kg-cao-o); margin: 0; font-weight: var(--fw-regular); }
 body[data-khung-goc] .nhom-chon > p { margin: 0; font-size: var(--fs-label); line-height: var(--lh-20); color: var(--c-text-muted); }
 body[data-khung-goc] .khoi input:is([type="radio"], [type="checkbox"]) { flex: none; width: var(--s5); height: var(--s5); margin: 0; accent-color: var(--c-primary); }
-body[data-khung-goc] .khoi select:not([multiple]):not(.o-noi-khung > select) { -webkit-appearance: none; appearance: none; padding-right: var(--s6); background-color: var(--c-surface); background-image: linear-gradient(45deg, transparent 50%, var(--c-text-muted) 50%), linear-gradient(135deg, var(--c-text-muted) 50%, transparent 50%); background-size: var(--kg-mui-chon) var(--kg-mui-chon); background-position: calc(100% - var(--s4) - var(--kg-mui-chon)) 50%, calc(100% - var(--s4)) 50%; background-repeat: no-repeat; }
+body[data-khung-goc] :is(.khoi, .thanh-loc) select:not([multiple]):not(.o-noi-khung > select) { -webkit-appearance: none; appearance: none; padding-right: var(--s6); background-color: var(--c-surface); background-image: linear-gradient(45deg, transparent 50%, var(--c-text-muted) 50%), linear-gradient(135deg, var(--c-text-muted) 50%, transparent 50%); background-size: var(--kg-mui-chon) var(--kg-mui-chon); background-position: calc(100% - var(--s4) - var(--kg-mui-chon)) 50%, calc(100% - var(--s4)) 50%; background-repeat: no-repeat; }
 
 /* Dòng là liên kết (cả dòng bấm được, mở trang chi tiết): chữ màu thường, không gạch chân (đợt B, 24/11/2026 — bổ sung, không đổi luật đang có). */
 body[data-khung-goc] .ds-dong > a.dong { color: inherit; text-decoration: none; }
 @media (hover: hover) { body[data-khung-goc] .ds-dong > a.dong:hover { background: var(--c-soft-hover); } }
 
+/* Đợt C (25/11/2026), bổ sung, không đổi luật đang có:
+   - dòng bấm được dạng nút (button.dong — chọn một bên ở Sổ công nợ): trông như dòng, đang chọn (aria-current) nền xanh nhạt;
+   - số của dải số và huy hiệu không xuống dòng giữa số và đơn vị;
+   - thanh lọc đứng trong khối bảng nhận đệm như đầu khối; mô tả khối đứng ngay trên mục con đầu tiên thì mục con giữ đệm trên. */
+body[data-khung-goc] .ds-dong > button.dong { width: 100%; font: inherit; text-align: left; color: inherit; background: none; border-radius: 0; cursor: pointer; }
+body[data-khung-goc] .ds-dong > button.dong[aria-current="true"] { background: var(--c-primary-soft); }
+@media (hover: hover) { body[data-khung-goc] .ds-dong > button.dong:not([aria-current="true"]):hover { background: var(--c-soft-hover); } }
+body[data-khung-goc] .dai-so dd, body[data-khung-goc] .huy-hieu { white-space: nowrap; }
+/* Dải số có ít ô mà nhãn dài (ba ô tổng của Sổ công nợ): ô rộng bằng cột «vừa» của thang thay cho cột «ngắn» (điện thoại hai ô một hàng). */
+body[data-khung-goc] .dai-so[data-o="dai"] { grid-template-columns: repeat(auto-fill, minmax(var(--kg-cot-vua), 1fr)); }
+body[data-khung-goc] .bang td[data-so] { white-space: nowrap; } /* tiền trong bảng viết đủ một dòng (không rớt «₫») */
+body[data-khung-goc] .khoi[data-kieu="bang"] > .thanh-loc { padding: 0 var(--kg-dem) var(--s3); }
+body[data-khung-goc] .cap > :last-child .nut { white-space: normal; text-align: left; } /* nút mở bảng đứng làm giá trị (ô «Cấp độ đại lý»): chữ dài xuống dòng trong nút, không thò ra khối */
+body[data-khung-goc] .khoi-mo-ta + .muc-con { padding-top: var(--s2); }
+
 /* Huy hiệu và hộp cảnh báo thế hệ cũ (.chip, .vc-chip, .vc-alert) ở trang đã chuyển: chữ thường như .huy-hieu (ADR-0234 nguyên tắc 1 — trong một dòng chỉ một thứ đậm). Đợt B, 24/11/2026. */
 body[data-khung-goc] :is(.chip, .vc-chip, .vc-alert) { font-weight: var(--fw-regular); }
 /* Câu chính của trạng thái rỗng (.rong > strong): chữ thường màu mực, câu phụ màu nhạt — thứ bậc bằng màu, không bằng độ đậm. */
 body[data-khung-goc] .rong > strong { font-weight: var(--fw-regular); color: var(--c-text); }
+/* Cùng luật cho câu chính của khuôn trạng thái chung khi rỗng (đợt C, 25/11/2026): trạng thái rỗng nói khẽ, không phải thứ đậm của khối. */
+body[data-khung-goc] .trang-thai[data-loai="rong"] .trang-thai-tieu-de { font-weight: var(--fw-regular); }
 
 /* -- Khuôn Tổng quan (đợt B, 24/11/2026): đầu trang (đoạn dẫn hoặc bộ chọn ngày bên trái, tối đa MỘT nút chính bên phải) → dải số (tuỳ chọn, một khối)
    → lưới khối (.luoi; mỗi khối khai data-cot 3 · 4 · 6 · 8 hoặc kín hàng). Dòng thời gian của Điều phối xe là vùng tự do trong một khối (sổ ngoại lệ).
-   Dải số: mỗi ô một nhãn nhỏ và một con số cỡ tiêu đề khối, chữ thường (không đậm — ADR-0234 nguyên tắc 1), số đều cột; ô tự xếp theo bề rộng khối. -- */
-body[data-khung-goc="tong-quan"] .dai-so { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--kg-cot-ngan), 1fr)); gap: var(--s3) var(--kg-khe); margin: 0; }
-body[data-khung-goc="tong-quan"] .dai-so > div { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
-body[data-khung-goc="tong-quan"] .dai-so dt { font-size: var(--fs-label); line-height: var(--lh-20); color: var(--c-text-muted); }
-body[data-khung-goc="tong-quan"] .dai-so dd { margin: 0; font-size: var(--fs-step-10); line-height: var(--lh-28); font-variant-numeric: tabular-nums; color: var(--c-text); }
-body[data-khung-goc="tong-quan"] .dai-so dd > .o-phu { display: inline; margin-left: var(--s2); }
+   Dải số: mỗi ô một nhãn nhỏ và một con số cỡ tiêu đề khối, chữ thường (không đậm — ADR-0234 nguyên tắc 1), số đều cột; ô tự xếp theo bề rộng khối.
+   Dải số là thành phần chung của mọi khuôn từ đợt C (25/11/2026: ba ô tổng của Sổ công nợ, khuôn Danh sách). -- */
+body[data-khung-goc] .dai-so { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--kg-cot-ngan), 1fr)); gap: var(--s3) var(--kg-khe); margin: 0; }
+body[data-khung-goc] .dai-so > div { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+body[data-khung-goc] .dai-so dt { font-size: var(--fs-label); line-height: var(--lh-20); color: var(--c-text-muted); }
+body[data-khung-goc] .dai-so dd { margin: 0; font-size: var(--fs-step-10); line-height: var(--lh-28); font-variant-numeric: tabular-nums; color: var(--c-text); }
+body[data-khung-goc] .dai-so dd > .o-phu { display: inline; margin-left: var(--s2); }
 /* Nút chính của trang ở đầu trang: vùng nội dung hẹp hơn 560 thì kín bề ngang, hàng riêng dưới đoạn dẫn; từ 560 thì đứng mép phải. */
 body[data-khung-goc="tong-quan"] .dau-trang > .nut { flex: 1 1 100%; }
 @container trang (min-width: 560px) { body[data-khung-goc="tong-quan"] .dau-trang > .nut { flex: 0 0 auto; } }
