@@ -70,3 +70,4 @@ Lưu ý cho lần so mốc tiền: bước 5 ghi thật vào kho thử, nên m�
 
 - Bảng nhập hoa hồng lệch dọc (bước V1040, V1440): luật chung của khung `body[data-khung-goc] .bang td` (căn giữa) nặng ngang luật riêng `.bang.hh-ma-tran …` (căn trên) mà đứng sau nên thắng. Thêm `table` vào đầu các bộ chọn riêng của bảng nhập; đo lại trên máy thử: ô mức về cùng đường với tên dịch vụ.
 - Sáu cột ở 1.440 (bước R1440): `--w-hh-cot-cap` 7,5rem → 7,25rem, tổng 66,5rem ≈ 1.064 px, vừa khung khối «vừa» 1.070 px, giữ tiêu chí ADR-0161 mà vẫn giữ bề rộng «vừa» chủ đã duyệt.
+- Bước V còn đỏ ở câu «chữ khách còn nguyên một dòng» vì kịch bản đọc `div.lastChild`, mà đợt C bọc số tiền trong `span.money-due` (màu tiền). Bản chép đọc chữ bên trong thẻ đó; chạy lại `bang-nhap-smoke` trên nhánh sau hai sửa: **25/25 bước xanh** (25/11/2026).

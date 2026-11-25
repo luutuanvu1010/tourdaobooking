@@ -284,7 +284,7 @@ try {
           }
           // Ô hẹp không cắt giữa chữ: «50.000đ/khách» ngắt SAU dấu «/» (<wbr>), chữ «khách» còn nguyên trên một dòng và ô không tràn.
           const cat = await p.ev(`(() => { const nut = [...document.querySelectorAll('.hh-ma-tran tbody button.hh-o-nut')].find((b) => b.innerText.trim() === '50.000đ/khách'); if (!nut) return null;
-            const div = nut.querySelector('div'); const cuoi = div.lastChild; const r = document.createRange(); r.selectNodeContents(cuoi);
+            const div = nut.querySelector('div'); const cuoi = (div.querySelector('.money-due') ?? div).lastChild; /* đợt C: số tiền bọc trong span.money-due (màu tiền) */ const r = document.createRange(); r.selectNodeContents(cuoi);
             return { chu: cuoi.textContent, dong: r.getClientRects().length, tran: nut.scrollWidth > nut.clientWidth + 1 }; })()`);
           assert.notEqual(cat, null, "có ô «50.000đ/khách» (Kim cương, Tour thử 001)");
           assert.deepEqual(cat, { chu: "khách", dong: 1, tran: false }, "chữ «khách» còn nguyên một dòng, ô không tràn");
