@@ -1677,7 +1677,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Hoa hồng: mức riêng của MỘT đối tác",
-    manHinh: "Hoa hồng đối tác › nút đầu trang (máy tính) và thanh dính đáy (điện thoại) › hộp «Thêm mức hoa hồng»",
+    manHinh: "Hoa hồng đối tác › nút ở đầu khối của thẻ đang chọn (máy tính) và thanh dính đáy (điện thoại) › hộp «Thêm mức hoa hồng»",
     ten: "＋ Thêm mức riêng cho đối tác",
     thatSuLam: "Người dùng gõ tên MỘT đối tác, chọn dịch vụ (hoặc nhóm, hoặc mọi dịch vụ), chọn tính bằng phần trăm hay số tiền, chọn ngày; Nền tảng tạo một dòng mức chỉ của đối tác đó. Khi tính hoa hồng đây là bậc ưu tiên cao nhất: dòng của đối tác (dịch vụ, rồi nhóm, rồi mọi dịch vụ) thắng cấp riêng, mức riêng của vai trò và cấp của vai trò. Đơn đã xác nhận không đổi.",
     hoiLai: "có hộp nhập",
@@ -1685,7 +1685,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     duongLenh: ["/api/pricing/hoa-hong"],
     maNhatKy: ["prc_commission_rule_added"],
     noiDat: [
-      { tep: "public/hoa-hong.html", chu: "Thêm mức riêng cho đối tác" },
+      { tep: "web/hoa-hong-cap.ts", chu: "Thêm mức riêng cho đối tác" },
+      { tep: "web/hoa-hong-doi-tac.ts", chu: "Thêm mức riêng cho đối tác" },
       { tep: "web/hoa-hong.ts", chu: "Thêm mức riêng cho đối tác" },
       { tep: "web/hoa-hong-hop.ts", chu: "Thêm mức" },
     ],

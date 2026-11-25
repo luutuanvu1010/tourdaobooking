@@ -17,6 +17,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt C khung gốc (ADR-0222, ADR-0234; chủ duyệt ảnh 25/11 «Duyệt theo khuyến nghị»): 10 trang Tiền. Nhánh claude/khung-goc-dot-c-9a95ac. Không migration, không đổi số tiền.
+    // Số 3.46 = số trống kế tiếp sau 3.45 (bản chạy thật lúc soạn, GET /api/auth/config 25/11); bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.46",
+    date: "2026-11-25",
+    items: [
+      { kind: "doi", text: "Mười màn Tiền (Sổ công nợ, Hoa hồng đối tác, Cấp độ đại lý, Hạn mức trả sau…) dựng lại theo khuôn chung: khối, nút, bảng thẳng hàng như Đơn hàng. Số tiền không đổi." },
+      { kind: "doi", text: "Sổ công nợ: ba số tổng nằm chung một dải; danh sách các bên và phần đối chiếu từng đơn đứng cạnh nhau ở máy tính; số tiền một màu, dễ đọc." },
+      { kind: "doi", text: "Hoa hồng đối tác: nút «＋ Thêm mức riêng cho đối tác» nằm ở đầu khối của thẻ đang xem; ở điện thoại vẫn ở thanh dưới cùng." },
+      { kind: "doi", text: "Cấp độ đại lý: mức giảm phí đưa đón của mỗi cấp hiện thành một dòng; bấm «Sửa» để đổi số tiền hoặc kết thúc mức giảm." },
+    ],
+  },
+  {
     // Đợt B khung gốc (ADR-0222, ADR-0234; chủ duyệt ảnh 24/11 «Duyệt cả ba»): 15 trang Tài xế – Vận chuyển. Nhánh claude/khung-goc-dot-b-18ab84. Không migration.
     // Số 3.45 = số trống kế tiếp sau 3.44 (đợt A khung gốc, đã trên main) lúc gộp bản chính 25/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
     version: "3.45",
