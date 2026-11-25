@@ -2,7 +2,22 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.44 ĐÃ LÊN PRODUCTION (khung gốc đợt A, ADR-0222 + ADR-0234: Tạo / Sửa đơn và Đơn chờ xác nhận theo khung chung — một kiểu khối, nút Lưu ở thanh cuối trang dính đáy, bớt chữ đậm, «Kiểm vé» nút phụ, khuôn trạng thái chung cho rỗng / không quyền / đơn không sửa được) — không migration — triển khai 2026-11-24 21:18 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.45 ĐÃ LÊN PRODUCTION (khung gốc đợt B, ADR-0222 + ADR-0234: 15 trang Tài xế – Vận chuyển theo khung chung, lần đầu dùng khuôn «Tổng quan» (trang `dieu-phoi`, `cuoc` và các trang tổng quan khác của đợt); kèm phần rút lượt kiểm GitHub xuống ~6 phút) — không migration — triển khai 2026-11-25 14:39 giờ Việt Nam
+
+Ghi bởi phiên thi công đợt B. Phiên này KHÔNG có đầu ra `npm run trien-khai` của lần chạy thật (lệnh chạy ở ô Terminal của phiên khác), nên các dòng dưới lấy từ nguồn kiểm được; dòng nào không kiểm được thì ghi rõ.
+
+- Ngày giờ: 2026-11-25 14:39 (giờ Việt Nam) — theo `wrangler deployments list` (Created 2026-11-25T07:39:53Z)
+- Commit: d19b70166 Sổ bàn giao: ghi trạng thái triển khai bản 3.44 (khung gốc đợt A) — `main` trên máy và GitHub lúc deploy (reflog: `main` tới d19b70166 lúc 14:14, không đổi tới khi deploy); gồm đợt B (0900cc328) và phần rút lượt kiểm (f2c82b783)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-25T07:20:24Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45566632142
+- Migration đã áp: không có (`git diff 09051e850 d19b70166 -- migrations` rỗng)
+- Worker Version ID: ff4109fe-7d2b-45d7-ba2d-6b7126ec0db1
+- Kiểm dữ liệu (audit-invariants --db remote): CHƯA GHI — phiên này không có đầu ra của lần chạy thật và không được phép tự chạy lệnh đọc D1 remote
+- Phiên bản: 3.45; lần chạy lại `trien-khai` sau đó dừng ở cổng phiên bản (3.45 = 3.45), không deploy thêm (theo phiên «Đợt gốc ngôn ngữ thị giác»)
+- Thời gian day-len / trien-khai: CHƯA GHI (không có đầu ra)
+- Kiểm sau triển khai (GET công khai, 25/11 ~15:00): `/cuoc.html` và `/dieu-phoi.html` khai `data-khung-goc="tong-quan"`, `/xe.html` khai `data-khung-goc="danh-sach"`; `/app.css` có token `lh-28` của đợt B.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 3.44 ĐÃ LÊN PRODUCTION (khung gốc đợt A, ADR-0222 + ADR-0234: Tạo / Sửa đơn và Đơn chờ xác nhận theo khung chung — một kiểu khối, nút Lưu ở thanh cuối trang dính đáy, bớt chữ đậm, «Kiểm vé» nút phụ, khuôn trạng thái chung cho rỗng / không quyền / đơn không sửa được) — không migration — triển khai 2026-11-24 21:18 giờ Việt Nam
 
 Ghi bởi phiên thi công đợt A, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ.
 
