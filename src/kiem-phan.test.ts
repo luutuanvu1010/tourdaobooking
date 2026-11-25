@@ -25,7 +25,7 @@ type Lib = {
   TEP_DIEU_KHIEN: string[];
 };
 const lib = (await import(new URL("../scripts/kiem-phan.mjs", import.meta.url).href)) as Lib;
-const { ALL } = (await import(new URL("../tests/e2e/danh-sach.mjs", import.meta.url).href)) as { ALL: string[] };
+const { ALL, THOI_GIAN: THOI_GIAN_E2E } = (await import(new URL("../tests/e2e/danh-sach.mjs", import.meta.url).href)) as { ALL: string[]; THOI_GIAN: Record<string, number> };
 
 const TESTS = ["src/a.test.ts", "src/b.test.ts", "src/c.test.ts", "src/d.test.ts", "src/e.test.ts", "src/claude-guard-thoi-gian.test.ts"];
 const E2E = ["s1", "s2", "s3", "s4", "s5", "s6", "s7"];
@@ -73,6 +73,20 @@ test("quy trình kiem.yml: ma trận mảnh khung / phần npm test / máy e2e k
   for (const ps of theoMay) assert.ok(ps.length >= 1, "không máy e2e nào rỗng");
   assert.throws(() => lib.phanCuaMay(0));
   assert.throws(() => lib.phanCuaMay(lib.SO_MAY_E2E + 1));
+  // Phần 1 giữ kịch bản nặng nhất (chiaNhom: nặng trước, vào phần nhẹ nhất ⇒ phần 1) và chạy một mình khi số phần < 2 × số máy (lượt 45559378918).
+  const bang = lib.bangChia();
+  const nangNhat = [...bang.e2e.flat()].sort((a, b) => (THOI_GIAN_E2E[b] ?? 15) - (THOI_GIAN_E2E[a] ?? 15))[0];
+  assert.ok(bang.e2e[0].includes(nangNhat), `phần 1 phải chứa kịch bản nặng nhất (${nangNhat})`);
+  if (lib.SO_PHAN_E2E < 2 * lib.SO_MAY_E2E) assert.deepEqual(lib.phanCuaMay(1), [1], "phần nặng nhất chạy một mình một máy");
+});
+
+test("phanCuaMay: 17 phần / 9 máy ⇒ máy 1 một mình phần 1, máy khác hai phần; 18 phần ⇒ hai phần mỗi máy; số phần ngoài [máy, 2·máy] ⇒ ném lỗi", () => {
+  const p = (r: number, n: number) => (lib.phanCuaMay as unknown as (r: number, n: number, m: number) => number[])(r, n, 9);
+  assert.deepEqual(Array.from({ length: 9 }, (_, i) => p(i + 1, 17)), [[1], [2, 10], [3, 11], [4, 12], [5, 13], [6, 14], [7, 15], [8, 16], [9, 17]]);
+  assert.deepEqual(Array.from({ length: 9 }, (_, i) => p(i + 1, 18)), [[1, 10], [2, 11], [3, 12], [4, 13], [5, 14], [6, 15], [7, 16], [8, 17], [9, 18]]);
+  assert.deepEqual(Array.from({ length: 9 }, (_, i) => p(i + 1, 9)), [[1], [2], [3], [4], [5], [6], [7], [8], [9]]);
+  assert.throws(() => p(1, 8));
+  assert.throws(() => p(1, 19));
 });
 
 // ADR-0222 Đ7(b): máy GitHub là Linux — Chrome phải qua scripts/chrome-ci.sh (bộ bọc mặc định trỏ Chrome macOS). Phần riêng chạy ĐẦU việc mảnh 1, TRƯỚC bước đo

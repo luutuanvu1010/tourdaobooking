@@ -53,11 +53,21 @@ export const CO_TRAN_TEP = `--test-timeout=${TRAN_TEP_MS}`;
 // khai: mỗi lượt ≤ 20 việc chạy cùng lúc (bài src/kiem-phan.test.ts khoá). Danh sách việc ghi thẳng ở ma trận của .github/workflows/kiem.yml — đổi số ở đây
 // thì đổi cả ở đó.
 export const SO_PHAN_TEST = 7;
-export const SO_PHAN_E2E = 18;
-/** Các phần e2e của máy r (1…SO_MAY_E2E): chia đều theo thứ tự phần, tất định. */
+// Lượt 45559378918: phần 1 (chỉ «dispatch», kịch bản dài nhất) chung máy với một phần ~180 giây ⇒ dispatch 212 giây, máy 4,5 phút trong khi các máy khác ~3 phút
+// ⇒ 17 phần: phần 1 (nặng nhất — chiaNhom xếp kịch bản nặng nhất vào phần 1) chạy MỘT MÌNH một máy, 16 phần còn lại hai phần mỗi máy.
+export const SO_PHAN_E2E = 17;
+/**
+ * Các phần e2e của máy r (1…SO_MAY_E2E), tất định. soPhan ∈ [soMay, 2·soMay]: (2·soMay − soPhan) máy đầu mỗi máy MỘT phần (các phần đầu — nặng nhất), các máy
+ * còn lại mỗi máy hai phần: máy thứ j trong nhóm sau nhận phần thứ j và thứ j + (số máy nhóm sau) của các phần còn lại.
+ */
 export function phanCuaMay(r, soPhan = SO_PHAN_E2E, soMay = SO_MAY_E2E) {
   if (!Number.isInteger(r) || r < 1 || r > soMay) throw new Error(`Máy e2e phải là số nguyên 1…${soMay} (nhận ${r})`);
-  return Array.from({ length: soPhan }, (_, i) => i + 1).filter((k) => (k - 1) % soMay === r - 1);
+  if (!(soPhan >= soMay && soPhan <= 2 * soMay)) throw new Error(`số phần e2e (${soPhan}) phải trong ${soMay}…${2 * soMay} (một hoặc hai phần mỗi máy)`);
+  const motMinh = 2 * soMay - soPhan;
+  if (r <= motMinh) return [r];
+  const soMayDoi = soMay - motMinh;
+  const j = r - motMinh; // 1…soMayDoi
+  return [motMinh + j, motMinh + j + soMayDoi];
 }
 const MIN_PHAN_TEST = 4;
 const MIN_PHAN_E2E = 6;
@@ -113,7 +123,9 @@ function chiaTheoCo(list, n, co) {
     nhe.tong += co(t);
     nhe.tep.push(t);
   }
-  return phan.map((p) => p.tep.sort());
+  // Giữ thứ tự NẶNG TRƯỚC trong mỗi phần (không xếp lại theo chữ): `node --test` chạy tệp theo thứ tự được đưa, vài tệp một lúc — tệp 194 giây đứng giữa danh
+  // sách chữ thì bắt đầu muộn và kéo dài cả phần (lượt 45559378918: phần 1 tổng 541 giây tệp mà chạy 4,8 phút). Tất định: cùng giây thì theo chữ.
+  return phan.map((p) => p.tep);
 }
 
 const coTep = (root) => (f) => {
