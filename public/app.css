@@ -3850,6 +3850,7 @@ table.bang.hh-ma-tran th[scope="row"] { position: sticky; left: 0; white-space: 
 .hh-cap-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s3) 0; }
 
 .bang.hh-muc-cap td:last-child { white-space: nowrap; }
+body[data-khung-goc] table.bang.hh-muc-cap thead th { white-space: normal; } /* đợt C: bảng 7–9 cột từ khối 800 — chữ đầu cột («Thời gian áp dụng», «Tính bằng») xuống dòng thay vì đẩy bảng ra ngoài khối (đo GitHub 1.100: thò 13 phần tử) */
 .hh-nhan-dt { display: none; }
 .hh-viec { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--s2); }
 .nut.hh-viec-khac { min-width: var(--h-control); padding: 0; font-size: var(--fs-h2); line-height: 1; }
