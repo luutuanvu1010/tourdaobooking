@@ -219,12 +219,15 @@ async function chay() {
       const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
       const thu = async (viec, r, mong = [200, 201]) => { if (!mong.includes(r.status)) console.log(`  ✗ gieo tiền — ${viec}: ${r.status} ${JSON.stringify(r.body?.error ?? r.body).slice(0, 200)}`); return mong.includes(r.status) ? r.body : null; };
       const cap = {};
-      for (const [ten, ty, giam, goiY] of [["Đại lý vàng", 1500, 50000, { hanMuc: 50_000_000, gioTra: 168, gioAnHan: 24 }], ["Đại lý bạc", 1000, 30000, { hanMuc: 20_000_000, gioTra: 72, gioAnHan: 12 }]]) {
+      // Dòng theo từng dịch vụ như gieo-tien.mjs (soát 25/11: chỉ gieo dòng «mọi dịch vụ» thì trang Hoa hồng thiếu một khối so với trang chủ duyệt, đo lệch hình).
+      const dvGieo = ((await L.call(kt, "GET", "/api/catalog")).body?.items ?? []).filter((i) => i.supported && i.unit === "perPax" && i.prices?.adult > 0).map((i) => i.code).slice(0, 3);
+      const theoDv = (ty, moiKhach) => dvGieo.map((c, i) => (i === 0 ? { phamVi: "SERVICE", catalogCode: c, kieu: "RATE", tyLeBp: ty + 300 } : { phamVi: "SERVICE", catalogCode: c, kieu: "PER_PAX", moiKhach: moiKhach * i }));
+      for (const [ten, ty, giam, goiY, moiKhach] of [["Đại lý vàng", 1500, 50000, { hanMuc: 50_000_000, gioTra: 168, gioAnHan: 24 }, 150000], ["Đại lý bạc", 1000, 30000, { hanMuc: 20_000_000, gioTra: 72, gioAnHan: 12 }, 120000]]) {
         const m = await thu(`tạo cấp ${ten}`, await L.call(kt, "POST", "/api/pricing/muc-ta", { ten }), [201]);
         if (!m?.muc?.code) continue;
         cap[ten] = m.muc.code;
         if (!m.muc.dangBat) await thu(`bật cấp ${ten}`, await L.call(kt, "POST", `/api/pricing/muc-ta/${m.muc.code}/bat`, {}));
-        await thu(`mức ${ten}`, await L.call(kt, "POST", `/api/pricing/muc-ta/${m.muc.code}/dong`, { phamVi: "ALL", kieu: "RATE", tyLeBp: ty, tuNgay: homNay }), [201]);
+        for (const d of [{ phamVi: "ALL", kieu: "RATE", tyLeBp: ty }, ...theoDv(ty, moiKhach)]) await thu(`mức ${ten} (${d.catalogCode ?? "mọi dịch vụ"})`, await L.call(kt, "POST", `/api/pricing/muc-ta/${m.muc.code}/dong`, { ...d, tuNgay: homNay }), [201]);
         await thu(`giảm phí đưa đón ${ten}`, await L.call(kt, "POST", "/api/pricing/giam-phi-don", { tierCode: m.muc.code, amount: giam, validFromDate: homNay }));
         await thu(`gợi ý Trả sau ${ten}`, await L.call(tq, "PUT", `/api/tra-sau/goi-y/${m.muc.code}`, goiY));
       }
