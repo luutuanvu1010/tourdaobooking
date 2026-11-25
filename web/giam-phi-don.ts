@@ -2,6 +2,7 @@
 // Đợt 1 chỉ đặt và hiện số; máy tính phí dùng số này ở Đợt 2. Gọi: GET/POST /api/pricing/giam-phi-don, POST …/:id/ket-thuc. Máy chủ hỏi lại ô partner.commission.write. Không innerHTML.
 import { ApiError, api, type Api } from "./api";
 import { h, replaceChildren } from "./dom";
+import { cap, luoi, thanhNut, truong } from "./khung";
 import { nhanDong } from "../src/shared/so-dai-ly-nhan";
 
 const URL = "/api/pricing/giam-phi-don";
@@ -25,11 +26,9 @@ export async function khoiGiamPhiDon(el: HTMLElement): Promise<void> {
       loi.hidden = false;
     };
     const hienHanh = (code: string): Api.GiamPhiDonDto | undefined => r.dong.filter((d) => d.tierCode === code && d.validToDate === null).sort((a, b) => a.validFromDate.localeCompare(b.validFromDate)).pop();
-    const bang = h("div", { class: "dd-cot" });
+    const bang = h("div", { class: "ds-dong" });
     for (const c of r.cap) {
       const d = hienHanh(c.code);
-      const vung = h("div", { class: "khoi dd-cot" });
-      const dongTieuDe = h("div", null, h("strong", null, c.name), " · ", d ? `${tien(d.amount)} mỗi khách, từ ${ngay(d.validFromDate)}` : "Chưa đặt");
       const o = h("input", { class: "o", type: "text", inputmode: "numeric", id: `gpd-tien-${c.code}`, "aria-label": `Mức giảm mỗi khách của ${c.name}, đồng`, autocomplete: "off", value: d ? String(d.amount) : "" });
       const tu = h("input", { class: "o", type: "date", id: `gpd-ngay-${c.code}`, "aria-label": `Ngày bắt đầu mức giảm của ${c.name}`, min: homNay(), value: homNay() });
       const luu = h("button", { class: "nut", "data-cap": "chinh", type: "button" }, "Lưu mức giảm");
@@ -47,9 +46,9 @@ export async function khoiGiamPhiDon(el: HTMLElement): Promise<void> {
           luu.disabled = false;
         }
       });
-      vung.append(dongTieuDe);
+      const nut: HTMLElement[] = [];
       if (r.doiDuoc) {
-        vung.append(h("div", { class: "toolbar" }, o, tu, luu));
+        nut.push(luu);
         if (d && d.validFromDate <= homNay()) {
           const ketThuc = h("button", { class: "nut", "data-cap": "phu", type: "button" }, "Kết thúc mức giảm");
           ketThuc.addEventListener("click", async () => {
@@ -63,17 +62,27 @@ export async function khoiGiamPhiDon(el: HTMLElement): Promise<void> {
               ketThuc.disabled = false;
             }
           });
-          vung.append(ketThuc);
+          nut.push(ketThuc);
         }
       }
-      bang.append(vung);
+      bang.append(
+        h("div", { class: "dong" },
+          h("div", { class: "dong-chu" },
+            cap(c.name, d ? `${tien(d.amount)} mỗi khách, từ ${ngay(d.validFromDate)}` : "Chưa đặt"),
+            r.doiDuoc && luoi(null, truong("Mức giảm mỗi khách (đồng)", o, { cot: 4 }), truong("Từ ngày", tu, { cot: 4 })),
+            nut.length > 0 && thanhNut(null, ...nut),
+          ),
+        ),
+      );
     }
+    el.className = "khoi";
+    el.setAttribute("aria-labelledby", "gpd-heading");
     replaceChildren(
       el,
-      h("h2", { id: "gpd-heading" }, "Mức giảm phí đưa đón"),
-      h("p", { class: "muted" }, "Số tiền trừ cho mỗi khách đi chung, theo cấp độ đại lý, áp cho mọi dịch vụ. Xe riêng không giảm. Giảm quá giá gốc thì phí là 0 đồng."),
+      h("header", { class: "khoi-dau" }, h("h2", { id: "gpd-heading" }, "Mức giảm phí đưa đón")),
+      h("p", { class: "khoi-mo-ta" }, "Số tiền trừ cho mỗi khách đi chung, theo cấp độ đại lý, áp cho mọi dịch vụ. Xe riêng không giảm. Giảm quá giá gốc thì phí là 0 đồng."),
       loi,
-      r.cap.length === 0 ? h("p", { class: "muted" }, "Chưa có cấp độ đại lý nào đang bật.") : bang,
+      r.cap.length === 0 ? h("p", { class: "khoi-mo-ta" }, "Chưa có cấp độ đại lý nào đang bật.") : bang,
     );
     el.hidden = false;
   };

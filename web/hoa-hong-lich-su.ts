@@ -4,24 +4,33 @@
 import { NHAN_TRANG_THAI, nhanHieuLuc, nhanNutLichSu, trangThaiDong, type TrangThaiDong } from "../src/shared/hoa-hong-hien-thi";
 import { h } from "./dom";
 
-/** Đang áp: xanh; sắp áp: nháp; đã ngừng, đã huỷ: xám. */
-export const huyHieuTrangThai = (tt: TrangThaiDong): HTMLElement =>
-  h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
+/** Đang áp: xanh; sắp áp: nháp; đã ngừng, đã huỷ: xám. `khung` (trang theo khung gốc, ADR-0222): huy hiệu chung `.huy-hieu[data-tong]`; mặc định giữ hình cũ (Danh bạ). */
+export const huyHieuTrangThai = (tt: TrangThaiDong, khung = false): HTMLElement =>
+  khung
+    ? h("span", { class: "huy-hieu", "data-tong": tt === "DANG_AP" ? "la" : tt === "SAP_AP" ? "cat" : "xam" }, NHAN_TRANG_THAI[tt])
+    : h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
 
 /**
  * Nút bật «Xem lịch sử (n)» + danh sách ẩn các lần đã ngừng / đã huỷ (`ds` = phần `lichSu` của `chiaLanGan`). `id` = mã danh sách (duy nhất trên trang, cho `aria-controls`);
  * `ten(g)` = chữ đầu dòng (tên loại hoặc tên chính sách). Rỗng ⇒ null (không nút).
  */
 export function khoiLichSuGan<T extends { id: string; tuNgay: string; denNgay: string | null; conHieuLuc: boolean; daHuy?: boolean }>(
-  ds: readonly T[], homNay: string, ten: (g: T) => string, id: string,
+  ds: readonly T[], homNay: string, ten: (g: T) => string, id: string, khung = false,
 ): HTMLElement | null {
   if (ds.length === 0) return null;
   const ul = h(
     "ul",
     { class: "hh-tl-gan hh-lich-su", id, hidden: true },
-    ...ds.map((g) => h("li", { "data-gan-id": g.id }, h("span", null, h("strong", null, ten(g)), " · ", h("span", { class: "muted" }, nhanHieuLuc(g))), huyHieuTrangThai(trangThaiDong(g, homNay)))),
+    ...ds.map((g) =>
+      h(
+        "li",
+        { "data-gan-id": g.id },
+        khung ? h("span", null, ten(g), " · ", h("span", { class: "muted" }, nhanHieuLuc(g))) : h("span", null, h("strong", null, ten(g)), " · ", h("span", { class: "muted" }, nhanHieuLuc(g))),
+        huyHieuTrangThai(trangThaiDong(g, homNay), khung),
+      ),
+    ),
   );
-  const nut = h("button", { type: "button", class: "btn", "aria-expanded": "false", "aria-controls": id }, nhanNutLichSu(ds.length, false));
+  const nut = h("button", { type: "button", class: khung ? "nut" : "btn", "data-cap": khung ? "loi" : undefined, "aria-expanded": "false", "aria-controls": id }, nhanNutLichSu(ds.length, false));
   nut.addEventListener("click", () => {
     const mo = nut.getAttribute("aria-expanded") !== "true";
     ul.hidden = !mo;

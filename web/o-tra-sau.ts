@@ -10,6 +10,7 @@ import { ApiError, api, type Api, type Staff } from "./api";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
+import { cap, khoi, thanhNut, truong } from "./khung";
 import { hienBaoNgan } from "./toast";
 import { can } from "../src/shared/permissions";
 import { cauDangNo, cauGoiYDienSan, cauHanMuc, cauHanMucVanPhong, cauMucToiDa, dongDangNo, docGio, docHanMuc, goiYCuaCap, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
@@ -54,7 +55,7 @@ export function oTraSau(ho: { partyId: string; ten: string; capCode: string | nu
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   let chinh: HTMLElement;
   if (bc.coQuyenSua) {
-    const nut = h("button", { type: "button", class: "btn btn-link", "aria-label": `Trả sau: ${ho.ten} — ${chu}` }, chu);
+    const nut = h("button", { type: "button", class: "nut", "data-cap": "loi", "aria-label": `Trả sau: ${ho.ten} — ${chu}` }, chu);
     nut.addEventListener("click", () => void moBangTraSau(ho, bc, nut, loi, lamMoi));
     chinh = nut;
   } else chinh = h("span", v?.coHanMuc ? null : { class: "muted" }, chu);
@@ -96,8 +97,8 @@ async function moBangTraSau(
   const oGio = h("input", { id: "ts-gio-tra", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 4, value: so?.gioTra != null ? String(so.gioTra) : "" });
   const oAn = h("input", { id: "ts-gio-an-han", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 4, value: so ? String(so.gioAnHan ?? 0) : "0" });
   const oLyDo = h("input", { id: "ts-ly-do", class: "vc-input", type: "text", autocomplete: "off", maxLength: 200 });
-  const luu = h("button", { type: "button", class: "btn btn-primary btn-block", "data-action": "dat-han-muc" }, dangBat ? "Điều chỉnh hạn mức" : "Cấp hạn mức");
-  const ngung = dangBat ? h("button", { type: "button", class: "btn btn-block", "data-action": "ngung-han-muc" }, "Đóng hạn mức") : null;
+  const luu = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-co": "lon", "data-action": "dat-han-muc" }, dangBat ? "Điều chỉnh hạn mức" : "Cấp hạn mức");
+  const ngung = dangBat ? h("button", { type: "button", class: "nut", "data-cap": "phu", "data-co": "lon", "data-action": "ngung-han-muc" }, "Đóng hạn mức") : null;
   const goiYCau = cauGoiYDienSan(dangBat, gy ? ho.tenCap : null);
   const mucCau = cauMucToiDa(bc.mucToiDa, bc.coQuyenDatMucToiDa);
   const bang = moBangTruot({
@@ -171,10 +172,10 @@ async function moBangTraSau(
  */
 export async function khoiCaiDatTraSau(bc: BoiCanhTraSau | null, veLai: () => Promise<void>): Promise<HTMLElement | null> {
   if (bc === null) return null;
-  let cap: { code: string; ten: string }[] = [];
+  let dsCap: { code: string; ten: string }[] = [];
   const loiChung = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   try {
-    cap = (await api<Api.MucTaListResponse>("/api/pricing/muc-ta")).muc.filter((m) => m.dangBat).map((m) => ({ code: m.code, ten: m.ten }));
+    dsCap = (await api<Api.MucTaListResponse>("/api/pricing/muc-ta")).muc.filter((m) => m.dangBat).map((m) => ({ code: m.code, ten: m.ten }));
   } catch (err) {
     baoLoi(loiChung, `Không tải được danh sách cấp: ${lyDoLoi(err)}`);
   }
@@ -182,22 +183,22 @@ export async function khoiCaiDatTraSau(bc: BoiCanhTraSau | null, veLai: () => Pr
     const g = goiYCuaCap(bc.goiY, c.code);
     const chu = g ? cauHanMuc(g) : "Chưa có số gợi ý";
     const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
-    const noi = bc.coQuyenSua ? h("button", { type: "button", class: "btn btn-link", "aria-label": `Số gợi ý Trả sau của cấp ${c.ten} — ${chu}` }, chu) : h("span", g ? null : { class: "muted" }, chu);
+    const noi = bc.coQuyenSua ? h("button", { type: "button", class: "nut", "data-cap": "loi", "aria-label": `Số gợi ý Trả sau của cấp ${c.ten} — ${chu}` }, chu) : h("span", g ? null : { class: "muted" }, chu);
     if (noi instanceof HTMLButtonElement) noi.addEventListener("click", () => moBangGoiY(c, g, noi, veLai));
-    return h("li", { "data-cap": c.code }, h("strong", null, c.ten), " · ", noi, loi);
+    return cap(c.ten, [noi, loi], { thuoc: { "data-ma-cap": c.code } });
   };
-  const ds = cap.length === 0 ? h("p", { class: "muted" }, "Chưa có Cấp độ đại lý nào đang bật.") : h("ul", { class: "ts-goi-y" }, ...cap.map(dongCap));
+  const ds = dsCap.length === 0 ? h("p", { class: "khoi-mo-ta" }, "Chưa có Cấp độ đại lý nào đang bật.") : h("div", null, ...dsCap.map(dongCap));
 
-  const muc = h("div", { class: "vc-field" });
+  const muc = h("div", { class: "luoi" });
   const veMuc = (): void => {
     const cau = bc.mucToiDa === null ? "Chưa đặt: Quản trị chưa bật được Trả sau cho ai." : dongTien(bc.mucToiDa);
     if (!bc.coQuyenDatMucToiDa) {
-      replaceChildren(muc, h("p", null, h("strong", null, "Mức tối đa Quản trị được cấp: "), cau));
+      replaceChildren(muc, cap("Mức tối đa Quản trị được cấp", cau, { kieu: bc.mucToiDa === null ? undefined : "so" }));
       return;
     }
-    const o = h("input", { id: "ts-muc-toi-da", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 14, value: bc.mucToiDa === null ? "" : String(bc.mucToiDa) });
+    const o = h("input", { id: "ts-muc-toi-da", class: "o", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 14, value: bc.mucToiDa === null ? "" : String(bc.mucToiDa) });
     const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
-    const nut = h("button", { type: "button", class: "btn", "data-action": "luu-muc-toi-da" }, "Lưu");
+    const nut = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-action": "luu-muc-toi-da" }, "Lưu");
     nut.addEventListener("click", async () => {
       loi.hidden = true;
       const r = docHanMuc(o.value);
@@ -214,19 +215,13 @@ export async function khoiCaiDatTraSau(bc: BoiCanhTraSau | null, veLai: () => Pr
     });
     replaceChildren(
       muc,
-      h("label", { for: "ts-muc-toi-da" }, "Mức tối đa Quản trị được cấp (đồng)"),
-      o,
-      h("div", { class: "vc-hint" }, `Hiện tại: ${cau} Quản trị chỉ đặt được hạn mức của một đối tác tới số này; Toàn quyền không bị giới hạn.`),
-      h("div", { class: "handler-actions" }, nut),
-      loi,
+      truong("Mức tối đa Quản trị được cấp (đồng)", o, { cot: 6, loi, goiY: `Hiện tại: ${cau} Quản trị chỉ đặt được hạn mức của một đối tác tới số này; Toàn quyền không bị giới hạn.` }),
+      thanhNut(null, nut),
     );
   };
   veMuc();
-  return h(
-    "section",
-    { class: "card card-col", id: "ts-cai-dat", "aria-labelledby": "ts-cai-dat-tieu-de" },
-    h("h2", { id: "ts-cai-dat-tieu-de" }, "Hạn mức trả sau"),
-    h("p", { class: "muted" }, "Số gợi ý theo cấp chỉ điền sẵn khi cấp hạn mức cho một đối tác; không tự cấp cho ai. Đổi số gợi ý không đổi hạn mức đã cấp."),
+  return khoi(
+    { tieuDe: "Hạn mức trả sau", idTieuDe: "ts-cai-dat-tieu-de", moTa: "Số gợi ý theo cấp chỉ điền sẵn khi cấp hạn mức cho một đối tác; không tự cấp cho ai. Đổi số gợi ý không đổi hạn mức đã cấp.", thuoc: { id: "ts-cai-dat" } },
     loiChung,
     ds,
     muc,
@@ -239,7 +234,7 @@ function moBangGoiY(c: { code: string; ten: string }, g: Api.GoiYTraSauDto | nul
   const oHan = h("input", { id: "gy-han-muc", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 14, value: g ? String(g.hanMuc) : "" });
   const oGio = h("input", { id: "gy-gio-tra", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 4, value: g ? String(g.gioTra) : "" });
   const oAn = h("input", { id: "gy-gio-an-han", class: "vc-input", type: "text", inputMode: "numeric", autocomplete: "off", maxLength: 4, value: g ? String(g.gioAnHan) : "0" });
-  const luu = h("button", { type: "button", class: "btn btn-primary btn-block", "data-action": "luu-goi-y" }, "Lưu");
+  const luu = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-co": "lon", "data-action": "luu-goi-y" }, "Lưu");
   const bang = moBangTruot({
     title: `Số gợi ý Trả sau: cấp ${c.ten}`,
     body: [
@@ -294,12 +289,13 @@ export async function khoiKenhThuDoiTac(staff: Staff): Promise<HTMLElement | nul
     return null;
   }
   const doiDuoc = can(staff, "billing.partner_channel.write");
-  const the = h("section", { class: "card card-col", id: "kenh-thu-doi-tac", "aria-labelledby": "kenh-thu-tieu-de" });
+  const the = khoi({ tieuDe: "Khách của đối tác trả cho Công ty", idTieuDe: "kenh-thu-tieu-de", thuoc: { id: "kenh-thu-doi-tac" } });
+  const dau = [...the.children];
   const ve = (s: Api.KenhThuDoiTacDto): void => {
     const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
     let nut: HTMLButtonElement | null = null;
     if (doiDuoc) {
-      const n = h("button", { type: "button", class: s.congTyThu ? "btn" : "btn btn-primary", id: "kenh-thu-doi" }, s.congTyThu ? "Tắt" : "Bật") as HTMLButtonElement;
+      const n = h("button", { type: "button", class: "nut", "data-cap": s.congTyThu ? "phu" : "chinh", id: "kenh-thu-doi" }, s.congTyThu ? "Tắt" : "Bật") as HTMLButtonElement;
       n.addEventListener("click", async () => {
         loi.hidden = true;
         if (s.congTyThu) {
@@ -326,17 +322,12 @@ export async function khoiKenhThuDoiTac(staff: Staff): Promise<HTMLElement | nul
     const lichSu = s.lichSu.slice(0, 5);
     replaceChildren(
       the,
-      h("h2", { id: "kenh-thu-tieu-de" }, "Khách của đối tác trả cho Công ty"),
-      h("p", { id: "kenh-thu-trang-thai" }, h("strong", null, s.congTyThu ? "Bật" : "Tắt"), s.tuLuc ? ` · từ ${dateTime(s.tuLuc)}` : " · mặc định"),
-      h(
-        "p",
-        { class: "muted" },
-        "Bật: khách của đơn do tài khoản Đối tác lập trả được cho Công ty (chuyển khoản, mã QR, nhân viên hoặc hướng dẫn viên thu). ",
-        "Tắt: đơn Đối tác lập từ lúc tắt chỉ do chính đối tác đó ghi khoản thu, không có mã QR công ty; đối tác nộp tiền về công ty như hôm nay. Mỗi đơn giữ cách thu của lúc lập, đổi công tắc không đổi đơn đã lập.",
-      ),
-      lichSu.length > 0 && h("ul", { class: "muted", "data-khoi": "kenh-thu-lich-su" }, ...lichSu.map((d) => h("li", null, `${d.congTyThu ? "Bật" : "Tắt"} · ${dateTime(d.tuLuc)} · ${d.nguoiDoi}`))),
+      ...dau,
+      cap("Trạng thái", [s.congTyThu ? "Bật" : "Tắt", s.tuLuc ? ` · từ ${dateTime(s.tuLuc)}` : " · mặc định"], { thuoc: { id: "kenh-thu-trang-thai" } }),
+      h("p", { class: "khoi-mo-ta" }, "Bật: khách của đơn do tài khoản Đối tác lập trả được cho Công ty (chuyển khoản, mã QR, nhân viên hoặc hướng dẫn viên thu). ", "Tắt: đơn Đối tác lập từ lúc tắt chỉ do chính đối tác đó ghi khoản thu, không có mã QR công ty; đối tác nộp tiền về công ty như hôm nay. Mỗi đơn giữ cách thu của lúc lập, đổi công tắc không đổi đơn đã lập."),
+      lichSu.length > 0 && h("ul", { class: "khoi-mo-ta", "data-khoi": "kenh-thu-lich-su" }, ...lichSu.map((d) => h("li", null, `${d.congTyThu ? "Bật" : "Tắt"} · ${dateTime(d.tuLuc)} · ${d.nguoiDoi}`))),
       loi,
-      nut && h("div", { class: "handler-actions" }, nut),
+      nut && thanhNut(null, nut),
     );
   };
   ve(s);

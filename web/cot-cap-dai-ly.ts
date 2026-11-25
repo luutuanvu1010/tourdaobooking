@@ -13,6 +13,8 @@ import type { CapHienHanhDto } from "../src/shared/contracts";
 
 type DongTaiKhoan = Pick<StaffAccount, "permissions" | "partyId" | "fullName">;
 const TRANG_HOA_HONG = "/hoa-hong";
+/** Bật trong lúc `oCapHoSo` dựng ô (màn Cấp độ đại lý đã sang khung gốc); Quản lý tài khoản luôn giữ kiểu cũ. */
+let kieuKhungGoc = false;
 
 /** Nạp cấp hiện hành của mọi hồ sơ được hưởng. Lỗi bất kỳ ⇒ null (trang vẫn vẽ bảng, ô hiện «—»). Chỉ gọi khi `thayCotCap`. */
 export async function taiCapHienHanh(): Promise<Map<string, CapHienHanhDto> | null> {
@@ -64,16 +66,23 @@ export function oCap(dong: DongTaiKhoan, v: CapHienHanhDto | undefined, suaDuoc:
  * Ô cấp của MỘT hồ sơ ở màn «Cấp độ đại lý» (có cả hồ sơ chưa có tài khoản): cùng ô và cùng bảng đặt cấp với dòng tài khoản, nhưng không hỏi quyền của hồ sơ. Máy chủ đã chỉ trả hồ sơ đang mang vai trò được hưởng.
  */
 export function oCapHoSo(ho: { partyId: string; ten: string; coTaiKhoan: boolean }, v: CapHienHanhDto, suaDuoc: boolean, lamMoi: (partyId: string) => Promise<void>): HTMLElement {
-  return dungO(oCapCuaHoSo(v), ho.partyId, ho.ten, ho.coTaiKhoan, v, suaDuoc, lamMoi);
+  // Bài kiểm src/cot-cap-dai-ly-noi-day.test.ts giữ nguyên chữ của lời gọi `dungO`; kiểu nút của khung gốc đi qua cờ tạm, chỉ có hiệu lực trong lần dựng này.
+  kieuKhungGoc = true;
+  try {
+    return dungO(oCapCuaHoSo(v), ho.partyId, ho.ten, ho.coTaiKhoan, v, suaDuoc, lamMoi);
+  } finally {
+    kieuKhungGoc = false;
+  }
 }
 
-/** Phần dựng chung của ô: chữ, nút mở bảng, nhãn phụ. `ten` chỉ để đọc cho người dùng (nhãn nút, tiêu đề bảng). */
+/** Phần dựng chung của ô: chữ, nút mở bảng, nhãn phụ. `ten` chỉ để đọc cho người dùng (nhãn nút, tiêu đề bảng). `khungGoc`: nút theo kiểu khung gốc (màn Cấp độ đại lý); mặc định giữ kiểu cũ cho Quản lý tài khoản. */
 function dungO(o: OCap, partyId: string | null, ten: string, coTaiKhoan: boolean, v: CapHienHanhDto | undefined, suaDuoc: boolean, lamMoi: (partyId: string) => Promise<void>): HTMLElement {
+  const khungGoc = kieuKhungGoc;
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   let chinh: HTMLElement;
   if (v !== undefined && nutMoBang(o, suaDuoc)) {
-    const nut = h("button", { type: "button", class: "btn btn-link", "aria-label": `${CHU_CAP.chonCapRieng}: ${ten} — ${o.chu}` }, o.chu);
-    nut.addEventListener("click", () => void moBangDatCap(ten, coTaiKhoan, v, nut, loi, lamMoi));
+    const nut = h("button", { type: "button", ...(khungGoc ? { class: "nut", "data-cap": "loi" } : { class: "btn btn-link" }), "aria-label": `${CHU_CAP.chonCapRieng}: ${ten} — ${o.chu}` }, o.chu);
+    nut.addEventListener("click", () => void moBangDatCap(ten, coTaiKhoan, v, nut, loi, lamMoi, khungGoc));
     chinh = nut;
   } else {
     chinh = h("span", o.moBang ? null : { class: "muted" }, o.chu);
@@ -90,7 +99,7 @@ function dungO(o: OCap, partyId: string | null, ten: string, coTaiKhoan: boolean
 }
 
 /** Mở bảng bấm: chọn cấp + «Từ ngày» (+ «Dùng cấp theo vai trò» khi máy chủ nhận). Mọi dữ liệu của bảng tải ở đây; lỗi tải hiện ngay trong ô, không mở bảng. */
-async function moBangDatCap(ten: string, coTaiKhoan: boolean, v: CapHienHanhDto, opener: HTMLElement, loiO: HTMLElement, lamMoi: (partyId: string) => Promise<void>): Promise<void> {
+async function moBangDatCap(ten: string, coTaiKhoan: boolean, v: CapHienHanhDto, opener: HTMLElement, loiO: HTMLElement, lamMoi: (partyId: string) => Promise<void>, khungGoc = false): Promise<void> {
   loiO.hidden = true;
   let mt: Api.MucTaListResponse;
   let xem: Api.SuaXemTruocResponse | null;
@@ -112,8 +121,8 @@ async function moBangDatCap(ten: string, coTaiKhoan: boolean, v: CapHienHanhDto,
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   const oMuc = h("select", { id: "cap-chon", class: "vc-input" }, h("option", { value: "" }, CHU_CAP.chonCap), ...bat.map((c) => h("option", { value: c.code }, c.ten)));
   const oTu = h("input", { id: "cap-tu-ngay", class: "vc-input", type: "date", value: m.tuNgay, min: m.tuNgay });
-  const luu = h("button", { type: "button", class: "btn btn-primary btn-block" }, CHU_CAP.luu);
-  const dung = m.dungTheoVaiDuoc ? h("button", { type: "button", class: "btn", id: "cap-dung-theo-vai-tro" }, CHU_CAP.dungTheoVaiTro) : null;
+  const luu = h("button", { type: "button", ...(khungGoc ? { class: "nut", "data-cap": "chinh", "data-co": "lon" } : { class: "btn btn-primary btn-block" }) }, CHU_CAP.luu);
+  const dung = m.dungTheoVaiDuoc ? h("button", { type: "button", id: "cap-dung-theo-vai-tro", ...(khungGoc ? { class: "nut", "data-cap": "phu" } : { class: "btn" }) }, CHU_CAP.dungTheoVaiTro) : null;
   const bang = moBangTruot({
     title: `${CHU_CAP.chonCapRieng}: ${ten}`,
     body: [

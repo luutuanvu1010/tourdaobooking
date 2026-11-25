@@ -13,7 +13,10 @@ import {
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime, vnd } from "./format";
 import { regroupMoney } from "./money-input";
+import { homeRedirect } from "../src/shared/start-page";
+import { dsDong } from "./khung";
 import { initShell, showError } from "./shell";
+import { trangThaiHeThong, trangThaiToanTrang } from "./trang-thai-he-thong";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -27,9 +30,11 @@ function hienOk(text: string | null): void {
 
 const duocTao = can(staff, "ledger.write");
 const duocDuyet = can(staff, "ledger.adjust.approve");
+/** Tông huy hiệu của từng trạng thái (chỉ chọn màu có sẵn của khung, không có số tiền). */
+const TONG_TRANG_THAI = { cho_duyet: "cat", da_duyet: "la", tu_choi: "do", da_rut: "xam", het_han: "xam" } as const;
 
 if (!duocTao && !duocDuyet) {
-  showError(errorEl, "Trang Điều chỉnh công nợ chỉ Kế toán, Quản trị và Toàn quyền dùng được.");
+  trangThaiToanTrang("403", { cau: "Trang Điều chỉnh công nợ chỉ Kế toán, Quản trị và Toàn quyền dùng được.", trangDau: homeRedirect(staff) ?? "/" });
 } else {
   byId("dc-giai-thich").textContent = CAU_GIAI_THICH;
   byId("dc-noi-dung").hidden = false;
@@ -69,49 +74,49 @@ if (!duocTao && !duocDuyet) {
 
   function theYeuCau(y: Api.YeuCauDieuChinhDto): HTMLElement {
     const nut: HTMLElement[] = [];
-    const khuTuChoi = h("div", { class: "dc-tu-choi", hidden: true });
+    const lyDo = h("textarea", { class: "o", "data-loai": "nhieu-dong", rows: 2, maxlength: 300, autocomplete: "off", "aria-label": CAU_LY_DO_TU_CHOI, placeholder: CAU_LY_DO_TU_CHOI });
+    const chot = h("button", { type: "button", class: "nut", "data-cap": "nguy-hiem", "data-act": "chot-tu-choi" }, "Xác nhận từ chối");
+    const khuTuChoi = h("div", { class: "dc-tu-choi", hidden: true }, lyDo, chot);
     const tat = (t: boolean): void => { for (const n of nut) (n as HTMLButtonElement).disabled = t; };
     if (y.coTheDuyet) {
-      const duyet = h("button", { type: "button", class: "btn btn-primary", "data-act": "duyet" }, "Duyệt");
+      const duyet = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-act": "duyet" }, "Duyệt");
       duyet.addEventListener("click", () => void chay(() => api(`/api/ledger/adjustment-requests/${y.id}/approve`, { method: "POST" }), "Đã duyệt — số dư đã đổi.", tat));
       nut.push(duyet);
     }
     if (y.coTheTuChoi) {
-      const tc = h("button", { type: "button", class: "btn", "data-act": "tu-choi" }, "Từ chối");
-      const lyDo = h("textarea", { rows: 2, maxlength: 300, autocomplete: "off", "aria-label": CAU_LY_DO_TU_CHOI, placeholder: CAU_LY_DO_TU_CHOI });
-      const chot = h("button", { type: "button", class: "btn btn-primary", "data-act": "chot-tu-choi" }, "Xác nhận từ chối");
+      const tc = h("button", { type: "button", class: "nut", "data-cap": "loi", "data-act": "tu-choi" }, "Từ chối");
       chot.addEventListener("click", () => void chay(() => api(`/api/ledger/adjustment-requests/${y.id}/reject`, { method: "POST", body: { lyDo: lyDo.value.trim() } }), "Đã từ chối yêu cầu.", tat));
-      khuTuChoi.append(lyDo, chot);
       tc.addEventListener("click", () => { khuTuChoi.hidden = !khuTuChoi.hidden; if (!khuTuChoi.hidden) lyDo.focus({ preventScroll: true }); });
       nut.push(tc);
     }
     if (y.coTheRut) {
-      const rut = h("button", { type: "button", class: "btn", "data-act": "rut" }, "Rút yêu cầu");
+      const rut = h("button", { type: "button", class: "nut", "data-cap": "loi", "data-act": "rut" }, "Rút yêu cầu");
       rut.addEventListener("click", () => void chay(() => api(`/api/ledger/adjustment-requests/${y.id}/withdraw`, { method: "POST" }), "Đã rút yêu cầu.", tat));
       nut.push(rut);
     }
     return h(
-      "li",
-      { class: "dc-the", "data-id": y.id, "data-trang-thai": y.trangThai },
-      h("div", { class: "dc-dau" }, h("strong", null, y.maDon ?? "—"), h("span", { class: LOP_TRANG_THAI[y.trangThai] }, NHAN_TRANG_THAI[y.trangThai]), h("span", { class: "muted" }, huongNhan(y.huong))),
-      h("p", { class: "dc-tien" }, `${cauNoiDung(y, vnd(y.soTien))} · ${y.loaiDongNhan}`),
-      h("p", { class: "muted" }, `Ngày phát sinh ${y.ngayPhatSinh} · ${y.lyDo}`),
-      h("p", { class: "muted" }, dongPhu(y, dateTime(y.hetHanLuc))),
-      nut.length > 0 && h("div", { class: "dc-nut" }, ...nut),
-      khuTuChoi,
+      "div",
+      { class: "dong", "data-id": y.id, "data-trang-thai": y.trangThai },
+      h(
+        "div",
+        { class: "dong-chu" },
+        h("span", null, h("strong", null, y.maDon ?? "—"), " ", h("span", { class: "huy-hieu", "data-tong": TONG_TRANG_THAI[y.trangThai] }, NHAN_TRANG_THAI[y.trangThai]), " ", h("span", { class: "o-phu" }, huongNhan(y.huong))),
+        h("span", null, `${cauNoiDung(y, vnd(y.soTien))} · ${y.loaiDongNhan}`),
+        h("span", { class: "o-phu" }, `Ngày phát sinh ${y.ngayPhatSinh} · ${y.lyDo}`),
+        h("span", { class: "o-phu" }, dongPhu(y, dateTime(y.hetHanLuc))),
+        y.coTheTuChoi ? khuTuChoi : null,
+      ),
+      nut.length > 0 && h("div", { class: "thanh-nut" }, ...nut),
     );
   }
 
-  function veKhoi(dsId: string, rongId: string, rows: Api.YeuCauDieuChinhDto[], cauRong: string): void {
-    replaceChildren(byId(dsId), ...rows.map(theYeuCau));
-    const rong = byId(rongId);
-    rong.hidden = rows.length > 0;
-    rong.textContent = rows.length > 0 ? "" : cauRong;
+  function veKhoi(dsId: string, rows: Api.YeuCauDieuChinhDto[], cauRong: string): void {
+    replaceChildren(byId(dsId), rows.length > 0 ? dsDong(null, ...rows.map(theYeuCau)) : trangThaiHeThong("rong", { cau: cauRong }));
   }
 
   function render(): void {
-    if (duocDuyet) veKhoi("dc-duyet-ds", "dc-duyet-rong", choDuyetTruoc(ds), CAU_RONG_CHO_DUYET);
-    if (duocTao) veKhoi("dc-cua-toi-ds", "dc-cua-toi-rong", cuaToiTruoc(ds), CAU_RONG_CUA_TOI);
+    if (duocDuyet) veKhoi("dc-duyet-ds", choDuyetTruoc(ds), CAU_RONG_CHO_DUYET);
+    if (duocTao) veKhoi("dc-cua-toi-ds", cuaToiTruoc(ds), CAU_RONG_CUA_TOI);
   }
 
   // ---- Form «Gửi yêu cầu mới» (chỉ ô ledger.write) ----
@@ -144,9 +149,9 @@ if (!duocTao && !duocDuyet) {
           try {
             const rows = await tim(t);
             replaceChildren(kq, ...rows.map((r) => {
-              const b = h("button", { type: "button", class: "btn dc-kq-nut" }, r.nhan);
+              const b = h("button", { type: "button", class: "nut", "data-cap": "phu" }, r.nhan);
               b.addEventListener("click", () => { khiChon(r); q.value = r.nhan; kq.hidden = true; capNhatDaChon(); });
-              return h("li", null, b);
+              return b;
             }));
             kq.hidden = rows.length === 0;
           } catch (err) {
@@ -162,7 +167,7 @@ if (!duocTao && !duocDuyet) {
     oTim("dc-no-q", "dc-no-kq", timBen, (x) => { chon.benNo = { id: x.id, ten: x.nhan }; });
     oTim("dc-duoc-q", "dc-duoc-kq", timBen, (x) => { chon.benDuocNo = { id: x.id, ten: x.nhan }; });
 
-    byId<HTMLFormElement>("dc-form").addEventListener("submit", (e) => {
+    byId<HTMLFormElement>("dc-khoi-gui").addEventListener("submit", (e) => {
       e.preventDefault();
       if (!chon.orderId || !chon.benNo || !chon.benDuocNo) { showError(errorEl, "Chọn đơn, bên nợ và bên được nợ từ danh sách gợi ý."); return; }
       const soTien = regroupMoney(tienEl);

@@ -4,6 +4,7 @@
 // Số nợ, hạn mức khả dụng, trạng thái hạn của từng đơn do máy chủ tính; trang chỉ hiện, giờ theo giờ Việt Nam (`cauDonNo`). Không innerHTML.
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { cap } from "./khung";
 import { initShell, showError } from "./shell";
 import { canhBaoVuotHanMuc, cauDonNo, cauHanMucVanPhong, dongDangNo, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { dongTien } from "../src/shared/tra-sau";
@@ -39,8 +40,12 @@ async function xemDon(d: Api.HanMucTraSauDto): Promise<void> {
   try {
     const r = await api<Api.DonNoTraSauResponse>(`/api/tra-sau/han-muc/${encodeURIComponent(d.partyId)}/don`);
     const dong = (x: Api.DonNoTraSauDto): HTMLElement =>
-      h("li", { "data-trang-thai": x.trangThai }, h("a", { class: "ts-ma-don", href: `/order?id=${encodeURIComponent(x.orderId)}` }, x.maDon), ` · ${cauDonNo(x)}`);
-    replaceChildren(donEl, h("h2", null, `Đơn còn nợ của ${r.ten}`), r.don.length === 0 ? h("p", { class: "muted" }, "Không có đơn nào còn nợ.") : h("ul", null, ...r.don.map(dong)));
+      h("div", { class: "dong", "data-trang-thai": x.trangThai }, h("div", { class: "dong-chu" }, h("span", null, h("a", { class: "ts-ma-don", href: `/order?id=${encodeURIComponent(x.orderId)}` }, x.maDon), ` · ${cauDonNo(x)}`)));
+    replaceChildren(
+      donEl,
+      h("header", { class: "khoi-dau" }, h("h2", null, `Đơn còn nợ của ${r.ten}`)),
+      r.don.length === 0 ? h("p", { class: "khoi-mo-ta" }, "Không có đơn nào còn nợ.") : h("div", { class: "ds-dong" }, ...r.don.map(dong)),
+    );
     donEl.hidden = false;
     donEl.scrollIntoView({ block: "nearest" });
   } catch (err) {
@@ -49,34 +54,37 @@ async function xemDon(d: Api.HanMucTraSauDto): Promise<void> {
 }
 
 const nutXem = (d: Api.HanMucTraSauDto): HTMLElement | null =>
-  d.soDonNo > 0 ? h("button", { type: "button", class: "btn", "data-action": "xem-don-no", onclick: () => void xemDon(d) }, "Xem đơn nợ") : null;
+  d.soDonNo > 0 ? h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "xem-don-no", onclick: () => void xemDon(d) }, "Xem đơn nợ") : null;
 
 const canhBao = (d: Api.HanMucTraSauDto): HTMLElement | null => {
   const c = canhBaoVuotHanMuc(d);
   return c ? h("div", { class: "alert", role: "status" }, c) : null;
 };
-const conDuoc = (d: Api.HanMucTraSauDto): string => (d.conDuocDung === null ? "—" : dongTien(d.conDuocDung));
+const khongNgat = (x: string): string => x.replace(/ đ/g, "\u00a0đ"); // tiền không xuống dòng giữa số và «đ»
+const conDuoc = (d: Api.HanMucTraSauDto): string => (d.conDuocDung === null ? "—" : khongNgat(dongTien(d.conDuocDung)));
 const cauHan = (d: Api.HanMucTraSauDto): string => [nhanQuaHan(d.soDonQuaHan), nhanAnHan(d.soDonAnHan)].filter((x) => x !== null).join(" · ") || "—";
 
 const hang = (d: Api.HanMucTraSauDto): HTMLElement =>
   h("tr", null,
     h("td", null, d.ten, canhBao(d)),
     h("td", null, cauHanMucVanPhong(d)),
-    h("td", null, ...dongDangNo(d).map((x) => h("div", null, x))),
-    h("td", null, conDuoc(d)),
+    h("td", { "data-so": "" }, ...dongDangNo(d).map((x) => h("div", null, khongNgat(x)))),
+    h("td", { "data-so": "" }, conDuoc(d)),
     h("td", null, cauHan(d)),
-    h("td", null, h("div", { class: "handler-actions" }, nutXem(d))),
+    h("td", null, nutXem(d)),
   );
 
 const the = (d: Api.HanMucTraSauDto): HTMLElement =>
-  h("div", { class: "card card-col" },
-    h("div", null, h("strong", null, d.ten)),
-    h("div", { class: "muted" }, cauHanMucVanPhong(d)),
-    h("div", null, h("span", { class: "muted" }, "Đang nợ"), ...dongDangNo(d).map((x) => h("div", null, x))),
-    h("div", null, `Hạn mức khả dụng ${conDuoc(d)}`),
-    cauHan(d) !== "—" ? h("div", { class: "muted" }, cauHan(d)) : null,
-    canhBao(d),
-    h("div", { class: "handler-actions" }, nutXem(d)),
+  h("div", { class: "dong" },
+    h("div", { class: "dong-chu" },
+      h("strong", null, d.ten),
+      h("div", { class: "o-phu" }, cauHanMucVanPhong(d)),
+      cap("Đang nợ", dongDangNo(d).map((x) => h("div", null, khongNgat(x))), { kieu: "so" }),
+      cap("Hạn mức khả dụng", conDuoc(d), { kieu: "so" }),
+      cauHan(d) !== "—" ? h("div", { class: "o-phu" }, cauHan(d)) : null,
+      canhBao(d),
+    ),
+    nutXem(d),
   );
 
 function ve(): void {

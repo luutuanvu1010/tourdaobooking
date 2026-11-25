@@ -63,7 +63,9 @@ import { dongMa, thamSuaCap, type MoHop } from "./hoa-hong-hop";
 import { huyHieuTrangThai, khoiLichSuGan } from "./hoa-hong-lich-su";
 import { moViecKhac, nutViecKhac } from "./hoa-hong-menu";
 import { icon } from "./icons";
+import { dsDong, khoi, luoi, thanhNut, truong } from "./khung";
 import { chuanTim } from "./so-dai-ly-ui";
+import { trangThaiHeThong } from "./trang-thai-he-thong";
 
 /** Bố cục điện thoại của trang (Q-11: dưới 900, gồm 641–899). Đọc lúc bấm, không lúc vẽ. */
 const DIEN_THOAI = "(max-width: 899px)";
@@ -122,15 +124,15 @@ function veMaTran(mt: ReturnType<typeof maTranCap>, d: DuLieuHoaHong, mo: MoHop,
   const thieu = new Set<string>();
   if (d.dichVuPhu !== null) for (const m of d.mucTa.muc) if (m.dangBat) for (const sv of dichVuThieuCuaCap({ cap: m, dichVu: d.dichVuPhu, homNay: d.homNay })) thieu.add(sv.code);
 
-  const tim = h("input", { id: "hh-mt-tim", type: "search", autocomplete: "off", placeholder: "Gõ tên hoặc mã dịch vụ", "aria-label": NHAN_TIM_HANG, value: locBang.tim });
-  const chonNhom = h("select", { id: "hh-mt-nhom", "aria-label": NHAN_LOC_NHOM }, h("option", { value: "" }, NHAN_TAT_CA_NHOM), ...d.dm.nhom.map((g) => h("option", { value: g.code }, g.name)));
+  const tim = h("input", { id: "hh-mt-tim", class: "o", type: "search", autocomplete: "off", placeholder: "Gõ tên hoặc mã dịch vụ", "aria-label": NHAN_TIM_HANG, value: locBang.tim });
+  const chonNhom = h("select", { id: "hh-mt-nhom", class: "o", "aria-label": NHAN_LOC_NHOM }, h("option", { value: "" }, NHAN_TAT_CA_NHOM), ...d.dm.nhom.map((g) => h("option", { value: g.code }, g.name)));
   chonNhom.value = locBang.nhom ?? "";
   locBang.nhom = chonNhom.value === "" ? null : chonNhom.value; // nhóm đã tắt khỏi danh mục: về «Tất cả nhóm»
   const khongKiem = d.dichVuPhu === null;
   const oThieu = h("input", { id: "hh-mt-thieu", type: "checkbox", class: "o-tick", disabled: khongKiem, "aria-describedby": khongKiem ? "hh-mt-thieu-chu-thich" : null });
   oThieu.checked = locBang.chiThieu && !khongKiem;
   locBang.chiThieu = oThieu.checked;
-  const dem = h("p", { class: "hint", role: "status", "aria-live": "polite" });
+  const dem = h("p", { class: "khoi-mo-ta", role: "status", "aria-live": "polite" });
 
   const tenO = (c: { ten: string }, x: HangMaTran): string => `${c.ten} · ${x.ten}`;
   const oBang = (x: HangMaTran, o: OMaTran, c: ReturnType<typeof maTranCap>["cot"][number]): HTMLElement => {
@@ -145,7 +147,8 @@ function veMaTran(mt: ReturnType<typeof maTranCap>, d: DuLieuHoaHong, mo: MoHop,
       return h("td", { class: "hh-o-trong" }, nut);
     }
     const viec = o.dong.flatMap((r, i) => viecDongMuc(r, { homNay: d.homNay, capDangBat: c.dangBat, ghi, sua }).map((v) => ({ r, v, nhan: o.nhan![i]! })));
-    const noiDung = o.nhan.map((n) => h("div", null, ...ngatSauGach(n)));
+    // Số tiền màu mực (ADR-0234): chữ của ô bọc trong `.money-due` (màu tiền chung) vì nút ô mang màu biển của bảng nhập.
+    const noiDung = o.nhan.map((n) => h("div", null, h("span", { class: "money-due" }, ...ngatSauGach(n))));
     if (viec.length === 0) return h("td", null, ...noiDung);
     const nut = h("button", { type: "button", class: "hh-o-nut", "data-o": khoa, "aria-haspopup": "dialog", "aria-label": `Đổi, sửa hoặc ngừng hoa hồng: ${tenO(c, x)} · ${o.nhan.join(" · ")}` }, ...noiDung);
     const nhieuDong = o.dong.length > 1;
@@ -215,8 +218,8 @@ function veMaTran(mt: ReturnType<typeof maTranCap>, d: DuLieuHoaHong, mo: MoHop,
   return h(
     "div",
     { class: "hh-ma-tran-bang" },
-    h("div", { class: "hh-loc hh-ma-tran-loc" }, h("label", null, "Tìm", tim), h("label", null, "Nhóm", chonNhom), h("label", { class: "check" }, oThieu, NHAN_CON_THIEU)),
-    khongKiem && h("p", { class: "hint", id: "hh-mt-thieu-chu-thich" }, CAU_CON_THIEU_CHUA_KIEM),
+    luoi({ class: "hh-ma-tran-loc" }, truong("Tìm", tim, { cot: 4 }), truong("Nhóm", chonNhom, { cot: 4 }), h("label", { class: "check", "data-cot": 4 }, oThieu, NHAN_CON_THIEU)),
+    khongKiem && h("p", { class: "khoi-mo-ta", id: "hh-mt-thieu-chu-thich" }, CAU_CON_THIEU_CHUA_KIEM),
     dem,
     h("div", { class: "hh-ma-tran-khung" }, bang),
   );
@@ -281,14 +284,14 @@ export function bangDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat:
         return h(
           "tr",
           { "data-dong-id": r.id },
-          h("td", { class: "hh-mc-dv" }, h("strong", null, pv)),
+          h("td", { class: "hh-mc-dv" }, pv),
           h("td", { class: "hh-mc-phu" }, cot.tinhBang),
           h("td", { class: "hh-mc-phu" }, cot.apCho),
           h("td", { "data-so": "" }, h("span", { class: "hh-nhan-dt" }, coTheoLoai ? "Người lớn " : ""), cot.nguoiLon),
           coTheoLoai && h("td", { "data-so": "" }, h("span", { class: "hh-nhan-dt" }, "Trẻ em "), cot.treEm),
           coTheoLoai && h("td", { "data-so": "" }, h("span", { class: "hh-nhan-dt" }, "Người cao tuổi "), cot.nguoiCaoTuoi),
           h("td", { class: "hh-mc-phu" }, nhanHieuLuc(r)),
-          h("td", null, huyHieuTrangThai(trangThaiDong(r, d.homNay))),
+          h("td", null, huyHieuTrangThai(trangThaiDong(r, d.homNay), true)),
           h("td", { class: "hh-mc-viec" }, o),
         );
       }),
@@ -298,6 +301,42 @@ export function bangDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat:
 
 const bangMucCap = (m: Api.MucTaDto, d: DuLieuHoaHong, ghi: boolean, mo: MoHop): HTMLElement | null => bangDongMuc(m.dong, m.dangBat, d, ghi, mo);
 
+/**
+ * Danh sách dòng thay bảng (khung gốc: `.ds-dong[data-thay-bang]`, hiện khi khối bảng hẹp hơn 800) cho cùng các dòng của `bangDongMuc`: tên phạm vi, cách tính, mức, thời gian áp
+ * dụng, trạng thái, nút việc. Chữ và số lấy nguyên từ cùng các hàm của bảng (`cotMucCap`, `nhanHieuLuc`) — không tính lại gì. Null khi không có dòng.
+ * `thayBang: false`: danh sách đứng một mình ở mọi khổ (mức riêng của vai, của đối tác — nằm trong mục con của khối, không có bảng đi kèm).
+ */
+export function dsDongMuc(tatCa: readonly Api.CommissionRuleDto[], capDangBat: boolean | null, d: DuLieuHoaHong, ghi: boolean, mo: MoHop, chiConHieuLuc = true, thayBang = true): HTMLElement | null {
+  const dong = chiConHieuLuc ? tatCa.filter((r) => conApHoacSap(r, d.homNay)) : [...tatCa];
+  if (dong.length === 0) return null;
+  const coTheoLoai = dong.some((r) => r.theoLoai !== null);
+  const sua = coQuyenSua(d.nguoiDung);
+  return dsDong(
+    { "data-thay-bang": thayBang ? "" : undefined },
+    ...dong.map((r) => {
+      const pv = nhanPhamVi(r, d.ten);
+      const cot = cotMucCap(r);
+      const viec = viecDongMuc(r, { homNay: d.homNay, capDangBat, ghi, sua });
+      const o = oViec(`${pv} · ${nhanMucTheoDonVi(r, cachGhiTienCuaDong(r, d.dm.dichVu).donVi)}`, viec, "dong", { DOI: () => mo.doi(r), SUA: () => mo.sua(r), NGUNG: () => mo.ngung(r, urlNgung(r)) });
+      return h(
+        "div",
+        { class: "dong", "data-dong-id": r.id },
+        h(
+          "div",
+          { class: "dong-chu" },
+          // Dòng nằm trong mục con đã có tên in đậm (vai, đối tác): tên phạm vi chữ thường — mỗi khối một thứ đậm (ADR-0234 nguyên tắc 1).
+          thayBang ? h("strong", null, pv) : h("div", null, pv),
+          h("div", { class: "o-phu" }, cot.tinhBang, " · ", cot.apCho),
+          coTheoLoai ? h("div", null, "Người lớn ", cot.nguoiLon, " · Trẻ em ", cot.treEm, " · Người cao tuổi ", cot.nguoiCaoTuoi) : h("div", null, cot.nguoiLon),
+          h("div", { class: "o-phu" }, nhanHieuLuc(r)),
+          h("div", null, huyHieuTrangThai(trangThaiDong(r, d.homNay), true)),
+        ),
+        o,
+      );
+    }),
+  );
+}
+
 /** Các lần xếp loại vào cấp: đang áp, sắp áp (việc theo `viecLanGan`, «Đổi cấp» giữ cả khi cấp đang khoá), rồi «Xem lịch sử (n)». */
 function lanXepLoai(m: Api.MucTaDto, d: DuLieuHoaHong, ghi: boolean, mo: MoHop): HTMLElement[] {
   const k = chiaLanGan(m.gan, d.homNay);
@@ -306,12 +345,12 @@ function lanXepLoai(m: Api.MucTaDto, d: DuLieuHoaHong, ghi: boolean, mo: MoHop):
     h(
       "li",
       { "data-gan-id": g.id, "data-sap-ap": sap ? "" : null },
-      h("span", null, h("strong", null, g.loai.ten), " · ", sap ? h("span", { class: "badge badge-draft" }, nhanSapAp(g)) : h("span", { class: "muted" }, nhanHieuLuc(g))),
+      h("span", null, g.loai.ten, " · ", sap ? h("span", { class: "huy-hieu", "data-tong": "cat" }, nhanSapAp(g)) : h("span", { class: "muted" }, nhanHieuLuc(g))),
       oViec(g.loai.ten, viecLanGan(g, { homNay: d.homNay, ghi, sua, coDoi: true }), "gan", { DOI: () => mo.doiChinhSach(g), SUA: () => mo.suaApDung(g), NGUNG: () => mo.ngungApDung(g) }),
     );
   const ds = [...k.dangAp.map((g) => dong(g, false)), ...k.sapAp.map((g) => dong(g, true))];
-  const lichSu = khoiLichSuGan(k.lichSu, d.homNay, (g) => g.loai.ten, `hh-ls-gan-${m.code}`);
-  return [ds.length > 0 ? h("ul", { class: "hh-tl-gan" }, ...ds) : h("p", { class: "muted" }, CAU_CAP_CHUA_AP_LOAI), ...(lichSu ? [lichSu] : [])];
+  const lichSu = khoiLichSuGan(k.lichSu, d.homNay, (g) => g.loai.ten, `hh-ls-gan-${m.code}`, true);
+  return [ds.length > 0 ? h("ul", { class: "hh-tl-gan" }, ...ds) : h("p", { class: "khoi-mo-ta" }, CAU_CAP_CHUA_AP_LOAI), ...(lichSu ? [lichSu] : [])];
 }
 
 /** Nút «Khoá cấp» (hỏi lại bằng `hopKhoaCap`) / «Mở lại cấp» (không hỏi). Lỗi máy chủ hiện nguyên câu dưới hàng nút. */
@@ -333,12 +372,16 @@ function nutKhoaCap(m: Api.MucTaDto, mo: MoHop, loiEl: HTMLElement): HTMLElement
   return n;
 }
 
-/** Chi tiết một cấp (§3 bảng vùng): tên, huy hiệu, câu nhắc phủ mức §4.3, số loại và đối tác, nút của cấp, bảng «Mức của cấp», các lần xếp loại. */
+/**
+ * Chi tiết một cấp (§3 bảng vùng), khuôn Thiết lập của khung gốc: lưới `luoi` (#hh-cap-ct, tabpanel của chip đang chọn) chứa hai khối — (1) tên cấp + huy hiệu, mã, câu nhắc
+ * phủ mức §4.3, số vai và đối tác, nút của cấp, các lần xếp vai vào cấp (mục con); (2) khối bảng «Hoa hồng của cấp theo dịch vụ» (bảng khi khối rộng từ 800, danh sách dòng
+ * khi hẹp hơn).
+ */
 function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
   const ghi = can(d.nguoiDung, "partner.commission.write");
   const nhac = cauNhacCap(phuMucCap({ cap: m, dichVu: d.dichVuPhu, homNay: d.homNay }));
   const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
-  const nut = h("div", { class: "hh-cap-nut" });
+  const nut = thanhNut({ class: "hh-cap-nut" });
   if (ghi) {
     const sua = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Sửa: ${m.ten}` }, "Sửa");
     sua.addEventListener("click", () => mo.suaDanhMuc(thamSuaCap(m)));
@@ -356,24 +399,24 @@ function chiTietCap(m: Api.MucTaDto, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
     nut.append(nutKhoaCap(m, mo, loiEl));
   }
   const bang = bangMucCap(m, d, ghi, mo);
+  const ten = document.createDocumentFragment();
+  ten.append(m.ten, m.dangBat ? huyHieu("la", "checkCircle", NHAN_TRANG_THAI.DANG_AP) : huyHieu("cat", "lock", NHAN_CAP_DA_KHOA));
   return h(
-    "section",
-    { class: "the hh-cap-ct", id: "hh-cap-ct", role: "tabpanel", "data-cap": m.code, "aria-labelledby": idChip(m.code) },
-    h(
-      "div",
-      { class: "hh-cap-ct-dau" },
-      h("h3", { id: "hh-cap-ct-ten" }, m.ten),
-      m.dangBat ? huyHieu("la", "checkCircle", NHAN_TRANG_THAI.DANG_AP) : huyHieu("cat", "lock", NHAN_CAP_DA_KHOA),
+    "div",
+    { class: "luoi hh-cap-ct", id: "hh-cap-ct", role: "tabpanel", "data-cap": m.code, "aria-labelledby": idChip(m.code) },
+    khoi(
+      { tieuDe: ten, idTieuDe: "hh-cap-ct-ten", thuoc: { class: "hh-cap-ct-dau" } },
+      dongMa(m.code, false),
+      nhac !== null && h("p", { class: "hh-cap-nhac" }, nhac),
+      h("p", { class: "khoi-mo-ta" }, cauDemCap(demTheoCap(m, d.mucTa.ganRieng, d.homNay))),
+      ghi && nut,
+      loiEl,
+      // Các lần xếp vai vào cấp: mục con của khối cấp (nhãn mờ thay tiêu đề riêng — ADR-0234 nguyên tắc 1, mỗi khối một thứ đậm).
+      h("div", { class: "muc-con" }, h("p", { class: "khoi-mo-ta", id: "hh-cap-ct-vai" }, "Vai người dùng đang theo cấp này"), ...lanXepLoai(m, d, ghi, mo)),
     ),
-    dongMa(m.code, false),
-    nhac !== null && h("p", { class: "hh-cap-nhac" }, nhac),
-    h("p", { class: "muted" }, cauDemCap(demTheoCap(m, d.mucTa.ganRieng, d.homNay))),
-    ghi && nut,
-    loiEl,
-    h("h4", null, "Hoa hồng của cấp theo dịch vụ"),
-    bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, CAU_KHONG_CO_MUC),
-    h("h4", null, "Vai người dùng đang theo cấp này"),
-    ...lanXepLoai(m, d, ghi, mo),
+    bang
+      ? khoi({ tieuDe: "Hoa hồng của cấp theo dịch vụ", idTieuDe: "hh-cap-ct-muc", kieu: "bang" }, bang, dsDongMuc(m.dong, m.dangBat, d, ghi, mo))
+      : khoi({ tieuDe: "Hoa hồng của cấp theo dịch vụ", idTieuDe: "hh-cap-ct-muc" }, trangThaiHeThong("rong", { cau: CAU_KHONG_CO_MUC })),
   );
 }
 
@@ -424,15 +467,22 @@ export function veTheCap(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
   const mt = maTranCap({ muc: d.mucTa.muc, dichVu: d.dm.dichVu, nhom: d.dm.nhom, homNay: d.homNay });
   if (capChon === null || !mt.cot.some((c) => c.code === capChon)) capChon = mt.cot[0]?.code ?? null;
 
-  const dau = h("div", { class: "hh-cap-dau" }, h("h2", { class: "hh-muc-ten" }, "Cấp độ đại lý"));
+  // Khuôn Thiết lập (ADR-0222): khối «Cấp độ đại lý» (nút «thêm» ở đầu khối; bảng nhập ở khổ ≥ 900, chip chọn cấp ở khổ hẹp), các khối chi tiết của cấp đang chọn,
+  // rồi khối «Cấp cho đối tác tự đăng ký». Các lớp bọc là lưới 12 cột của khung (`luoi`): khối kín hàng, cách nhau đúng nhịp; `.hh-cap` giữ bộ chọn của tệp kiểu.
+  const viec: HTMLElement[] = [];
   if (ghi) {
     const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm cấp độ đại lý");
     them.addEventListener("click", () => mo.themChinhSach());
-    dau.append(them);
+    // Nút chính của trang (ADR-0161 Đ6), khuôn Thiết lập: ở đầu khối của thẻ đang chọn, chỉ khi vùng nội dung từ 560 (hẹp hơn: thanh dính đáy, web/hoa-hong.ts).
+    // Thẻ «Vai người dùng» có bản thứ hai ở đầu khối «Người có cấp riêng» (web/hoa-hong-doi-tac.ts); mỗi lúc chỉ một thẻ hiện nên chỉ một nút nền đặc.
+    const themMuc = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-chi": "rong", id: "hh-them-muc" }, "＋ Thêm mức riêng cho đối tác");
+    themMuc.addEventListener("click", () => mo.themMuc());
+    viec.push(them, themMuc);
   }
+  const tuyKhoi = { tieuDe: "Cấp độ đại lý", idTieuDe: "hh-cap-ten", viec, viecODau: true, thuoc: { class: "hh-cap-dau" } };
   const m = d.mucTa.muc.find((x) => x.code === capChon);
   if (!m) {
-    replaceChildren(goc, h("section", { class: "hh-cap" }, dau, h("p", { class: "muted" }, CAU_KHONG_CO_MUC_TA)), khoiCapDangKy(d.nguoiDung));
+    replaceChildren(goc, h("div", { class: "luoi hh-cap" }, khoi(tuyKhoi, trangThaiHeThong("rong", { cau: CAU_KHONG_CO_MUC_TA }))), khoiCapDangKy(d.nguoiDung));
     traViTri(goc, viTri);
     return;
   }
@@ -455,13 +505,15 @@ export function veTheCap(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
   replaceChildren(
     goc,
     h(
-      "section",
-      { class: "hh-cap" },
-      dau,
-      // Vùng ma trận (chỉ khổ ≥ 900): bảng + câu ô «—». Câu thứ tự áp mức là luật chung nên hiện ở mọi khổ; dưới 900 nó đứng trước dải chọn cấp.
-      h("div", { class: "hh-ma-tran-vung" }, veMaTran(mt, d, mo, chon), h("p", { class: "hint hh-cap-cau" }, CAU_O_TRONG)),
-      h("p", { class: "hint hh-cap-cau" }, CAU_THU_TU_AP_MUC),
-      veChonCap(mt, chon),
+      "div",
+      { class: "luoi hh-cap" },
+      khoi(
+        tuyKhoi,
+        // Vùng ma trận (chỉ khổ ≥ 900): bảng + câu ô «—». Câu thứ tự áp mức là luật chung nên hiện ở mọi khổ; dưới 900 nó đứng trước dải chọn cấp.
+        h("div", { class: "hh-ma-tran-vung" }, veMaTran(mt, d, mo, chon), h("p", { class: "khoi-mo-ta hh-cap-cau" }, CAU_O_TRONG)),
+        h("p", { class: "khoi-mo-ta hh-cap-cau" }, CAU_THU_TU_AP_MUC),
+        veChonCap(mt, chon),
+      ),
       khung,
     ),
     khoiCapDangKy(d.nguoiDung), // ADR-0209 Đ5: «Cấp cho đối tác tự đăng ký», dựng một lần, giữ qua các lần vẽ lại

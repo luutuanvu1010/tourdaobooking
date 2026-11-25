@@ -38,6 +38,8 @@ const tenBo = lay("--ten-bo") ?? "hien-tai";
 const caoToiDa = Number(lay("--cao-toi-da") ?? 5200);
 // --tiem nhận một hay nhiều tệp cách nhau bằng dấu phẩy, ghép theo thứ tự (phương án B = lớp A rồi lớp B).
 const thayCss = lay("--thay-css") ? readFileSync(lay("--thay-css").replace(/^~/, homedir()), "utf8") : null;
+// --dat-rong /phan-dinh=hep,/hoa-hong=rong (đợt C): đổi data-rong của <body> sau khi tải — ảnh «phương án B» (giữ bề rộng cũ) của trang khai lệch bề rộng.
+const datRong = Object.fromEntries((lay("--dat-rong") ?? "").split(",").filter(Boolean).map((x) => x.split("=")));
 const tiemCss = lay("--tiem") ? lay("--tiem").split(",").map((t) => readFileSync(t, "utf8")).join("\n") : null;
 
 const { moChrome, dangNhap, sleep } = await import(pathToFileURL(join(GOC, "scripts/giao-dien/cdp.mjs")).href);
@@ -69,6 +71,7 @@ async function motO(ngan, m, w) {
   // Tạo đơn giữ một dải trống ở đầu trang tới 8 giây khi trang trước có dải nhắc (web/giu-cho-dai.ts): chờ hết rồi mới chụp.
   await sleep(tenTrang(m.trang) === "order-form" ? 9000 : 1100);
   if (thayCss) { const n = await ngan.ev(`(() => { const l = document.querySelector('link[rel="stylesheet"][href^="/app.css"]'); if (!l) return 0; const s = document.createElement("style"); s.id = "tep-kieu-thay"; s.textContent = ${JSON.stringify(thayCss)}; l.before(s); l.remove(); return 1; })()`); if (n !== 1) throw new Error("không thấy thẻ <link> /app.css để thay"); await sleep(400); }
+  if (datRong[m.trang.split("?")[0]]) { await ngan.ev(`document.body.dataset.rong = ${JSON.stringify(datRong[m.trang.split("?")[0]])}; 0`); await sleep(400); }
   if (tiemCss) { await ngan.ev(`(() => { const s = document.createElement("style"); s.id = "lop-kieu-de-xuat"; s.textContent = ${JSON.stringify(tiemCss)}; document.head.appendChild(s); })(); 0`); await sleep(350); }
   const cuoi = String(await ngan.ev("location.pathname + location.search"));
   const o = { url: cuoi.replace(/id=[^&]+/, "id=…"), chuyen: cuoi.split("?")[0] !== m.trang.split("?")[0] };

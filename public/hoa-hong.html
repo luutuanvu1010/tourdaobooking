@@ -1,32 +1,31 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Hoa hồng đối tác — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="rong" data-title="Hoa hồng đối tác" data-back="/account">
+<body data-rong="vua" data-khung-goc="thiet-lap" data-title="Hoa hồng đối tác" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
   <!-- Hoa hồng đối tác (thiết kế lại, PR 2). Xem: partner.commission.view; thêm / ngừng mức: partner.commission.write. Tài khoản giữ quyền Đối tác không vào được (máy chủ 403).
-       web/hoa-hong.ts nạp dữ liệu và chuyển hai thẻ; dải cảnh báo (web/hoa-hong-dai.ts) vẽ vào #hh-dai, Tra nhanh vào #hh-tra-nhanh, nội dung từng thẻ do các khối web/hoa-hong-*.ts vẽ vào #hh-the-cap và #hh-the-loai (thẻ vai gồm hai vùng: #hh-loai-ds là danh sách vai, #hh-loai-rieng là khối «Người có cấp riêng»). -->
-  <div class="hh-dau">
-    <h1>Hoa hồng đối tác</h1>
-    <button type="button" id="hh-them-muc" class="btn btn-primary btn-chinh" hidden>＋ Thêm mức riêng cho đối tác</button>
-  </div>
+       Khuôn Thiết lập của khung gốc (ADR-0222): đoạn dẫn, rồi vùng vẽ #hh-noi-dung — dải cảnh báo (#hh-dai), khối «Kiểm tra hoa hồng» (#hh-tra-nhanh), hai thẻ con,
+       và các khối của thẻ đang chọn. Hai vùng thẻ (#hh-the-cap, #hh-the-loai) là lưới 12 cột
+       của khung (`luoi`): các khối bên trong kín hàng, cách nhau đúng nhịp giữa các khối. Nút «＋ Thêm mức riêng cho đối tác» đứng ở đầu khối của thẻ đang chọn; điện thoại: thanh dính đáy #hh-thanh-cuoi (web/hoa-hong.ts). -->
+  <h1>Hoa hồng đối tác</h1>
+  <div class="dau-trang"><p class="doan-dan">Mức hoa hồng theo cấp độ đại lý, theo vai người dùng và riêng từng đối tác.</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
   <!-- Ẩn cho tới khi máy chủ trả dữ liệu (khỏi hiện khung trống cho tài khoản không có quyền xem). -->
-  <div id="hh-noi-dung" hidden>
+  <div id="hh-noi-dung" class="vung-ve" hidden>
     <div id="hh-dai" hidden></div>
     <div id="hh-tra-nhanh"></div>
     <div class="tab-phu hh-the" data-kieu="gach" role="tablist" aria-label="Hoa hồng đối tác">
       <button type="button" role="tab" id="hh-tab-cap" aria-selected="true" aria-controls="hh-the-cap" tabindex="0" data-the="cap">Cấp độ đại lý</button>
       <button type="button" role="tab" id="hh-tab-loai" aria-selected="false" aria-controls="hh-the-loai" tabindex="-1" data-the="loai">Vai người dùng</button>
     </div>
-    <section id="hh-the-cap" role="tabpanel" aria-labelledby="hh-tab-cap"></section>
-    <section id="hh-the-loai" role="tabpanel" aria-labelledby="hh-tab-loai" hidden>
+    <section id="hh-the-cap" class="luoi" role="tabpanel" aria-labelledby="hh-tab-cap"></section>
+    <section id="hh-the-loai" class="luoi" role="tabpanel" aria-labelledby="hh-tab-loai" hidden>
       <div id="hh-loai-ds"></div>
       <div id="hh-loai-rieng"></div>
     </section>
   </div>
-  <div id="hh-thanh-cuoi" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden></div>
 </main>
 <script type="module" src="/js/hoa-hong.js"></script>
 </body></html>

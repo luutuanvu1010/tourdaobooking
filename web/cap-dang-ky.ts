@@ -5,6 +5,7 @@
 import { ApiError, api, type Api } from "./api";
 import { can, type PermissionHolder } from "../src/shared/permissions";
 import { h, replaceChildren } from "./dom";
+import { khoi as dungKhoi, luoi } from "./khung";
 
 let khoi: HTMLElement | null = null;
 
@@ -12,15 +13,15 @@ export function khoiCapDangKy(nguoiDung: PermissionHolder): HTMLElement | null {
   if (!can(nguoiDung, "partner.commission.view")) return null;
   if (khoi) return khoi;
   const ghi = can(nguoiDung, "partner.signup_tier.write");
-  const than = h("div", { id: "cap-dang-ky-than" }, h("p", { class: "muted" }, "Đang tải…"));
-  const bao = h("p", { class: "hint", role: "status", hidden: true });
-  khoi = h("section", { class: "the dk-cap-dang-ky", id: "cap-dang-ky", "aria-labelledby": "cap-dang-ky-tieu-de" },
-    h("h3", { id: "cap-dang-ky-tieu-de" }, "Cấp cho đối tác tự đăng ký"),
-    h("p", { class: "hint" }, "Người được duyệt từ phiếu đăng ký nhận sẵn cấp này làm cấp riêng, theo vai trò người duyệt chọn. Đổi cấp chỉ áp cho phiếu duyệt về sau."),
+  // Khuôn Thiết lập (ADR-0222): một khối, mỗi vai một trường trên lưới 12 cột (ô chọn cùng nút «Lưu» của vai đó trên một hàng), các trường thẳng cột.
+  const than = luoi({ id: "cap-dang-ky-than" }, h("p", { class: "khoi-mo-ta", role: "status" }, "Đang tải…"));
+  const bao = h("p", { class: "khoi-mo-ta", role: "status", hidden: true });
+  khoi = dungKhoi(
+    { tieuDe: "Cấp cho đối tác tự đăng ký", idTieuDe: "cap-dang-ky-tieu-de", moTa: "Người được duyệt từ phiếu đăng ký nhận sẵn cấp này làm cấp riêng, theo vai trò người duyệt chọn. Đổi cấp chỉ áp cho phiếu duyệt về sau.", thuoc: { id: "cap-dang-ky", class: "dk-cap-dang-ky" } },
     bao, than);
   const veCapDk = (d: Api.CapMacDinhResponse) => {
     replaceChildren(than, ...d.loai.map((l) => {
-      const chon = h("select", { class: "o", "aria-label": `Cấp cho ${l.ten}`, disabled: !ghi || !l.dangBat, "data-loai": l.code },
+      const chon = h("select", { class: "o", id: `cap-dang-ky-${l.code}`, disabled: !ghi || !l.dangBat, "data-loai": l.code },
         h("option", { value: "" }, "Theo cấp của vai trò"),
         ...d.cap.map((c) => h("option", { value: c.code, selected: l.hienHanh?.muc?.code === c.code }, c.ten)),
         l.hienHanh?.muc && !d.cap.some((c) => c.code === l.hienHanh!.muc!.code) ? h("option", { value: l.hienHanh.muc.code, selected: true, disabled: true }, `${l.hienHanh.muc.ten} (đang khoá)`) : null) as HTMLSelectElement;
@@ -39,11 +40,11 @@ export function khoiCapDangKy(nguoiDung: PermissionHolder): HTMLElement | null {
           luu.disabled = false;
         }
       });
-      return h("div", { class: "hs-dong", "data-cap-loai": l.code }, h("span", null, l.ten, l.dangBat ? null : h("span", { class: "muted" }, " (đang tắt)")), h("span", { class: "dk-hang-nut" }, chon, luu));
+      return h("div", { class: "truong", "data-cot": 6, "data-cap-loai": l.code }, h("label", { for: chon.id }, l.ten, l.dangBat ? null : " (đang tắt)"), h("div", { class: "hang" }, chon, luu));
     }));
   };
   const taiCapDk = async () => {
-    try { veCapDk(await api<Api.CapMacDinhResponse>("/api/pricing/cap-mac-dinh")); } catch (e) { replaceChildren(than, h("p", { class: "o-loi" }, e instanceof ApiError ? e.message : "Không tải được.")); }
+    try { veCapDk(await api<Api.CapMacDinhResponse>("/api/pricing/cap-mac-dinh")); } catch (e) { replaceChildren(than, h("p", { class: "truong-loi" }, e instanceof ApiError ? e.message : "Không tải được.")); }
   };
   void taiCapDk();
   return khoi;

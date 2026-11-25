@@ -30,11 +30,13 @@ import type { Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
 import type { DuLieuHoaHong } from "./hoa-hong";
-import { bangDongMuc, oViec } from "./hoa-hong-cap";
+import { dsDongMuc, oViec } from "./hoa-hong-cap";
 import { dongMa, thamSuaLoai, type MoHop } from "./hoa-hong-hop";
 import { khoiLichSuGan } from "./hoa-hong-lich-su";
 import { moViecKhac } from "./hoa-hong-menu";
 import { icon } from "./icons";
+import { khoi, luoi, truong } from "./khung";
+import { trangThaiHeThong } from "./trang-thai-he-thong";
 
 const HINH = { xam: "ban", la: "checkCircle", do: "alertCircle", cat: "alertCircle" } as const;
 
@@ -67,7 +69,7 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
   const cs = chinhSachCuaLoai(d.mucTa, loai.code);
   const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
 
-  const dau = h("div", { class: "hh-loai-dau" }, h("h3", null, loai.ten), nhan.nguon !== "" && h("span", { class: "badge badge-draft" }, nhan.nguon), hh && h("span", { class: "huy-hieu", "data-tong": hh.tong }, icon(HINH[hh.tong], 14), hh.chu));
+  const dau = h("div", { class: "hh-loai-dau" }, h("h3", null, loai.ten), nhan.nguon !== "" && h("span", { class: "huy-hieu", "data-tong": "cat" }, nhan.nguon), hh && h("span", { class: "huy-hieu", "data-tong": hh.tong }, icon(HINH[hh.tong], 14), hh.chu));
   if (ghi) {
     const sua = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Sửa: ${loai.ten}` }, "Sửa");
     sua.addEventListener("click", () => mo.suaDanhMuc(thamSuaLoai(loai)));
@@ -94,19 +96,21 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
   }
 
   const lanGan = d.mucTa.muc.flatMap((m) => m.gan.filter((g) => g.loai.code === loai.code));
-  const lichSu = khoiLichSuGan(chiaLanGan(lanGan, d.homNay).lichSu, d.homNay, (g) => g.muc.ten, `hh-ls-loai-${loai.code}`);
-  const bang = bangDongMuc(dongLoai, null, d, ghi, mo, false);
+  const lichSu = khoiLichSuGan(chiaLanGan(lanGan, d.homNay).lichSu, d.homNay, (g) => g.muc.ten, `hh-ls-loai-${loai.code}`, true);
+  // Mức riêng của vai: danh sách dòng của khung ở mọi khổ (trong mục con không đổi được sang bảng theo bề rộng khối).
+  const bang = dsDongMuc(dongLoai, null, d, ghi, mo, false, false);
+  // Mỗi vai là một mục con của khối «Vai người dùng» (khung gốc: thay thẻ lồng trong thẻ), ngăn bằng nét kẻ.
   return h(
     "article",
-    { class: "the hh-loai-the", "data-loai": loai.code, "data-phu": ketQua.kieu },
+    { class: "muc-con hh-loai-the", "data-loai": loai.code, "data-phu": ketQua.kieu },
     dau,
     dongMa(loai.code, loai.coSan),
-    sapApTu !== null && h("p", { class: "muted hh-loai-sap" }, cauSapApLoai(sapApTu)),
-    ketQua.kieu === "KHONG_CO" && h("p", { class: "hh-cap-nhac" }, CAU_CHUA_CO_MUC_LOAI),
+    sapApTu !== null && h("p", { class: "khoi-mo-ta hh-loai-sap" }, cauSapApLoai(sapApTu)),
+    ketQua.kieu === "KHONG_CO" && h("p", { class: "khoi-mo-ta" }, CAU_CHUA_CO_MUC_LOAI),
     dongCap,
     lichSu,
-    h("h4", null, "Hoa hồng riêng của vai trò"),
-    bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, CAU_LOAI_CHUA_CO_MUC_RIENG),
+    h("p", { class: "khoi-mo-ta" }, "Hoa hồng riêng của vai trò"),
+    bang ?? h("p", { class: "khoi-mo-ta" }, CAU_LOAI_CHUA_CO_MUC_RIENG),
     loiEl,
   );
 }
@@ -114,15 +118,15 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
 /** Vẽ thẻ «Loại đối tác» vào `goc`. Thứ tự `xepTheoPhu`; loại tắt không còn dòng riêng vẫn hiện (trạng thái «Đã tắt»). */
 export function veTheLoai(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
   const ghi = can(d.nguoiDung, "partner.commission.write");
-  const dau = h("div", { class: "hh-cap-dau" }, h("h2", { class: "hh-muc-ten" }, "Vai người dùng"));
+  const viec: HTMLElement[] = [];
   if (ghi) {
     const them = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm vai trò");
     them.addEventListener("click", () => mo.themLoai());
-    dau.append(them);
+    viec.push(them);
   }
   const tatCa = xepTheoPhu(d.loai.map((loai) => ({ loai, ten: loai.ten, ...phuMucLoai({ loai, dong: d.dong, muc: d.mucTa.muc, dichVu: d.dichVuPhu, homNay: d.homNay }) })));
-  const o = h("input", { id: "hh-loc-tim-loai", type: "search", autocomplete: "off", placeholder: "Tìm vai trò hoặc dịch vụ", "aria-label": "Tìm vai trò hoặc dịch vụ", value: loc.tim });
-  const tt = h("select", { id: "hh-loc-tt-loai", "aria-label": "Trạng thái" }, h("option", { value: "ap" }, "Đang và sắp áp dụng"), h("option", { value: "tat-ca" }, "Tất cả"));
+  const o = h("input", { id: "hh-loc-tim-loai", class: "o", type: "search", autocomplete: "off", placeholder: "Tìm vai trò hoặc dịch vụ", "aria-label": "Tìm vai trò hoặc dịch vụ", value: loc.tim });
+  const tt = h("select", { id: "hh-loc-tt-loai", class: "o", "aria-label": "Trạng thái" }, h("option", { value: "ap" }, "Đang và sắp áp dụng"), h("option", { value: "tat-ca" }, "Tất cả"));
   tt.value = loc.chiConHieuLuc ? "ap" : "tat-ca";
   const noi = h("div", null);
   const ve = (): void => {
@@ -133,7 +137,7 @@ export function veTheLoai(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
       const x = hien.find((k) => k.loai.code === it.loai.code);
       return x ? [{ ...it, dong: x.dong }] : [];
     });
-    replaceChildren(noi, d.loai.length === 0 ? h("p", { class: "muted" }, CAU_KHONG_CO_LOAI) : ds.length === 0 ? h("p", { class: "muted" }, CAU_KHONG_KHOP_LOC) : h("div", { class: "hh-loai-ds" }, ...ds.map((it) => cumLoai(it, d, mo, ghi))));
+    replaceChildren(noi, d.loai.length === 0 ? trangThaiHeThong("rong", { cau: CAU_KHONG_CO_LOAI }) : ds.length === 0 ? trangThaiHeThong("rong", { cau: CAU_KHONG_KHOP_LOC }) : h("div", { class: "hh-loai-ds" }, ...ds.map((it) => cumLoai(it, d, mo, ghi))));
   };
   o.addEventListener("input", () => {
     loc = { ...loc, tim: o.value };
@@ -147,17 +151,16 @@ export function veTheLoai(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
     ve();
   });
   hienTai = { noi, ve, o, tt };
+  // Khuôn Thiết lập (ADR-0222): một khối, nút «thêm» ở đầu khối, hàng lọc trên lưới 12 cột, mỗi vai một mục con, ba câu giải thích ở cuối khối.
   replaceChildren(
     goc,
-    h(
-      "section",
-      { class: "hh-loai-vung" },
-      dau,
-      h("div", { class: "hh-loc" }, h("label", null, "Tìm", o), h("label", null, "Trạng thái", tt)),
+    khoi(
+      { tieuDe: "Vai người dùng", idTieuDe: "hh-loai-ten", viec, viecODau: true, thuoc: { class: "hh-loai-vung" } },
+      luoi(null, truong("Tìm", o, { cot: 6 }), truong("Trạng thái", tt, { cot: 6 })),
       noi,
-      h("p", { class: "hint" }, CAU_NHAC_UU_TIEN),
-      ...(d.loai.some((l) => l.coSan) ? [h("p", { class: "hint" }, CAU_LOAI_CO_SAN)] : []),
-      h("p", { class: "hint" }, CAU_XEP_LOAI),
+      h("p", { class: "khoi-mo-ta" }, CAU_NHAC_UU_TIEN),
+      ...(d.loai.some((l) => l.coSan) ? [h("p", { class: "khoi-mo-ta" }, CAU_LOAI_CO_SAN)] : []),
+      h("p", { class: "khoi-mo-ta" }, CAU_XEP_LOAI),
     ),
   );
   ve();

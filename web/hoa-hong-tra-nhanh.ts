@@ -11,6 +11,7 @@ import {
 import { api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
+import { khoi, thanhNut, truong } from "./khung";
 import type { DuLieuHoaHong } from "./hoa-hong";
 import { lyDoLoi, taoChonDichVu } from "./so-dai-ly-ui";
 
@@ -26,15 +27,15 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
   let hen: number | undefined;
   let stt = 0;
 
-  const o = h("input", { id: `${id}-ai`, type: "search", autocomplete: "off", placeholder: duocTimTen ? "Gõ tên đối tác hoặc chọn vai trò" : "Chọn vai người dùng", "aria-label": "Đối tác hoặc vai người dùng" });
+  const o = h("input", { id: `${id}-ai`, class: "o", type: "search", autocomplete: "off", placeholder: duocTimTen ? "Gõ tên đối tác hoặc chọn vai trò" : "Chọn vai người dùng", "aria-label": "Đối tác hoặc vai người dùng" });
   const goiY = h("div", { class: "hh-tim-ket-qua", "aria-live": "polite" });
   const daChon = h("p", { class: "hh-da-chon", hidden: true });
   const loiAi = h("p", { class: "field-error", role: "alert", hidden: true });
-  const dv = taoChonDichVu(d.dm, `${id}-dv`);
+  const dv = taoChonDichVu(d.dm, `${id}-dv`, { lopO: "o" });
   const loiDv = h("p", { class: "field-error", role: "alert", hidden: true });
-  const ngay = h("input", { id: `${id}-ngay`, type: "date", value: d.homNay });
+  const ngay = h("input", { id: `${id}-ngay`, class: "o", type: "date", value: d.homNay });
   const loiNgay = h("p", { class: "field-error", role: "alert", hidden: true });
-  const tra = h("button", { type: "submit", class: "btn btn-primary" }, "Tra");
+  const tra = h("button", { type: "submit", class: "nut", "data-cap": "phu" }, "Tra");
   const ketQua = h("div", { class: "hh-tn-ket-qua", "aria-live": "polite" });
 
   const loaiBat = d.loai.filter((l) => l.dangBat);
@@ -42,7 +43,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
     const q = chuanTim(o.value);
     const loai = loaiBat.filter((l) => q === "" || chuanTim(l.ten).includes(q));
     const nut = (nhan: string, c: Chon): HTMLElement => {
-      const b = h("button", { type: "button", class: "btn", "data-goi-y": c.kieu }, nhan);
+      const b = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-goi-y": c.kieu }, nhan);
       b.addEventListener("click", () => datChon(c));
       return b;
     };
@@ -51,7 +52,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
       ...loai.map((l) => nut(`Vai trò: ${l.ten}`, { kieu: "loai", code: l.code, ten: l.ten })),
       ...(Array.isArray(timDoiTac) ? timDoiTac.map((k) => nut(`${k.ten} · ${k.loai === "PERSON" ? "Cá nhân" : "Tổ chức"}`, { kieu: "doi-tac", partyId: k.partyId, ten: k.ten })) : []),
       typeof timDoiTac === "string" && h("p", { class: "field-error" }, timDoiTac),
-      Array.isArray(timDoiTac) && timDoiTac.length === 0 && loai.length === 0 && h("p", { class: "muted" }, "Không thấy đối tác hay vai trò nào."),
+      Array.isArray(timDoiTac) && timDoiTac.length === 0 && loai.length === 0 && h("p", { class: "truong-goi-y" }, "Không thấy đối tác hay vai trò nào."),
     );
   }
   function veDaChon(): void {
@@ -62,7 +63,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
       replaceChildren(daChon);
       return;
     }
-    const bo = h("button", { type: "button", class: "btn btn-link" }, "Bỏ chọn");
+    const bo = h("button", { type: "button", class: "nut", "data-cap": "loi" }, "Bỏ chọn");
     bo.addEventListener("click", () => {
       chon = null;
       o.value = "";
@@ -70,7 +71,7 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
       veGoiY(null);
       o.focus();
     });
-    replaceChildren(daChon, chon.kieu === "loai" ? "Vai người dùng: " : "Đối tác: ", h("strong", null, chon.ten), " · ", bo);
+    replaceChildren(daChon, chon.kieu === "loai" ? "Vai người dùng: " : "Đối tác: ", chon.ten, " ", bo);
   }
   function datChon(c: Chon): void {
     chon = c;
@@ -101,13 +102,14 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
   o.addEventListener("focus", () => veGoiY(null));
   veDaChon();
 
+  // Khuôn Thiết lập (ADR-0222): ba trường trên lưới 12 cột, nút «Tra» một hàng riêng, kết quả dưới cùng.
   const form = h(
     "form",
-    { class: "hh-tn-form", novalidate: true },
-    h("div", { class: "hh-truong" }, h("span", { class: "hh-truong-nhan" }, "Đối tác hoặc vai người dùng"), o, goiY, daChon, loiAi),
-    h("div", { class: "hh-truong" }, h("span", { class: "hh-truong-nhan" }, "Dịch vụ"), dv.root, loiDv),
-    h("div", null, h("label", null, "Ngày", ngay), loiNgay),
-    h("div", { class: "actions" }, tra),
+    { class: "luoi hh-tn-form-khung", novalidate: true },
+    h("div", { class: "truong", "data-cot": 4 }, h("label", { for: o.id }, "Đối tác hoặc vai người dùng"), o, goiY, daChon, loiAi),
+    h("div", { class: "truong", "data-cot": 4 }, h("label", { for: `${id}-dv-tim` }, "Dịch vụ"), dv.root, loiDv),
+    truong("Ngày", ngay, { cot: 4, loi: loiNgay }),
+    thanhNut(null, tra),
     ketQua,
   );
   form.addEventListener("submit", async (e) => {
@@ -124,12 +126,12 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
     if (chon.kieu === "loai") q.set("loai", chon.code);
     else q.set("doiTac", chon.partyId);
     tra.disabled = true;
-    replaceChildren(ketQua, h("p", { class: "muted" }, "Đang tra…"));
+    replaceChildren(ketQua, h("p", { class: "khoi-mo-ta", role: "status" }, "Đang tra…"));
     try {
       const r = await api<Api.ThuTraResponse>(`/api/pricing/thu-tra?${q.toString()}`);
       const k = r.ketQua;
       // «Xem dòng ↓» chỉ khi có dòng thắng (SET); thẻ và cách tìm dòng do `nhayToiDong` (web/hoa-hong.ts) quyết theo `theChoKetQua`.
-      const xem = theChoKetQua(k) !== null ? h("button", { type: "button", class: "btn btn-link", "data-xem-dong": k.trangThai === "SET" ? k.muc.id : "" }, "Xem mức này ↓") : null;
+      const xem = theChoKetQua(k) !== null ? h("button", { type: "button", class: "nut", "data-cap": "loi", "data-xem-dong": k.trangThai === "SET" ? k.muc.id : "" }, "Xem mức này ↓") : null;
       xem?.addEventListener("click", () => {
         truocKhiCuon();
         cuonToi(k);
@@ -139,8 +141,8 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
         h(
           "div",
           { class: thuTraThieuMuc(r) ? "hh-tn-kq is-thieu" : "hh-tn-kq" },
-          k.trangThai === "SET" && h("div", { class: "hh-tn-so" }, nhanMucDto(k.muc)),
-          h("div", null, h("p", { class: "hh-ket-qua" }, cauThuTra(r)), r.theoLoai && h("p", { class: "muted" }, CAU_TRA_THEO_LOAI), xem),
+          k.trangThai === "SET" && h("strong", { class: "hh-tn-muc" }, nhanMucDto(k.muc)), // con số nổi duy nhất của khối, màu mực (ADR-0234)
+          h("div", null, h("p", { class: "hh-ket-qua" }, cauThuTra(r)), r.theoLoai && h("p", { class: "khoi-mo-ta" }, CAU_TRA_THEO_LOAI), xem),
         ),
       );
     } catch (err) {
@@ -155,11 +157,11 @@ function dungForm(d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) =
 /** Vẽ «Tra nhanh» vào `goc`: khối nằm sẵn (máy tính) hoặc nút mở hộp trượt (điện thoại). `cuonToi(ketQua)` chuyển đúng thẻ, mở và cuộn tới dòng thắng (SET). */
 export function veTraNhanh(goc: HTMLElement, d: DuLieuHoaHong, cuonToi: (k: Api.ThuTraResponse["ketQua"]) => void): void {
   if (window.matchMedia("(max-width: 640px)").matches) {
-    const nut = h("button", { type: "button", class: "btn hh-tn-nut", id: "hh-tra-nhanh-nut" }, "Kiểm tra hoa hồng");
+    const nut = h("button", { type: "button", class: "nut hh-tn-nut", "data-cap": "phu", id: "hh-tra-nhanh-nut" }, "Kiểm tra hoa hồng");
     nut.addEventListener("click", () => {
       let dong: (() => void) | null = null;
       const form = dungForm(d, cuonToi, () => dong?.());
-      const dongNut = h("button", { type: "button", class: "btn" }, "Đóng");
+      const dongNut = h("button", { type: "button", class: "nut", "data-co": "lon" }, "Đóng");
       const sheet = moBangTruot({ title: "Kiểm tra hoa hồng", body: [form], foot: [dongNut], opener: nut });
       if (!sheet) return;
       dong = () => sheet.close(false);
@@ -168,5 +170,5 @@ export function veTraNhanh(goc: HTMLElement, d: DuLieuHoaHong, cuonToi: (k: Api.
     replaceChildren(goc, nut);
     return;
   }
-  replaceChildren(goc, h("section", { class: "card hh-tra-nhanh", "aria-label": "Kiểm tra hoa hồng" }, h("h2", null, "Kiểm tra hoa hồng"), dungForm(d, cuonToi, () => undefined)));
+  replaceChildren(goc, khoi({ tieuDe: "Kiểm tra hoa hồng", idTieuDe: "hh-tra-nhanh-ten", thuoc: { class: "hh-tra-nhanh" } }, dungForm(d, cuonToi, () => undefined)));
 }

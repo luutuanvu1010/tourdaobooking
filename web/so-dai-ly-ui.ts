@@ -131,9 +131,10 @@ export interface ChonDichVu {
   datLai(): void;
 }
 
-export function taoChonDichVu(dm: DanhMuc, idTienTo: string): ChonDichVu {
-  const tim = h("input", { id: `${idTienTo}-tim`, type: "search", autocomplete: "off", placeholder: "Gõ tên hoặc mã dịch vụ để lọc", "aria-label": "Lọc dịch vụ" });
-  const chon = h("select", { id: idTienTo, "aria-label": "Dịch vụ" });
+/** `tuy.lopO`: lớp gắn thêm cho ô tìm và ô chọn (trang theo khung gốc truyền "o"); không truyền thì giữ hình cũ (Người bán dịch vụ, hộp Hoa hồng). */
+export function taoChonDichVu(dm: DanhMuc, idTienTo: string, tuy: { lopO?: string } = {}): ChonDichVu {
+  const tim = h("input", { id: `${idTienTo}-tim`, class: tuy.lopO, type: "search", autocomplete: "off", placeholder: "Gõ tên hoặc mã dịch vụ để lọc", "aria-label": "Lọc dịch vụ" });
+  const chon = h("select", { id: idTienTo, class: tuy.lopO, "aria-label": "Dịch vụ" });
   const ve = (): void => {
     const q = chuanTim(tim.value);
     const dangChon = chon.value;

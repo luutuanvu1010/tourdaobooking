@@ -1,32 +1,33 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Cấp độ đại lý — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Cấp độ đại lý" data-back="/account">
+<body data-rong="vua" data-khung-goc="thiet-lap" data-title="Cấp độ đại lý" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Màn gom hồ sơ đang mang vai trò được hưởng (đặc tả 2026-11-04-man-cap-dai-ly). Ô partner.commission.write, không giữ quyền Đối tác. Cột «Trả sau» và khối «Hạn mức trả sau» (ADR-0172 Đ1): web/o-tra-sau.ts. web/cap-dai-ly.ts dựng nội dung. -->
+  <!-- Khuôn Thiết lập của khung gốc (ADR-0222): đoạn dẫn, rồi mỗi nhóm một khối. Màn gom hồ sơ đang mang vai trò được hưởng (đặc tả 2026-11-04-man-cap-dai-ly). Ô partner.commission.write, không giữ quyền Đối tác.
+       Cột «Trả sau» và khối «Hạn mức trả sau» (ADR-0172 Đ1): web/o-tra-sau.ts. web/cap-dai-ly.ts dựng nội dung. Khối bảng hiện bảng từ 800, hẹp hơn hiện danh sách dòng (#cdl-the). -->
   <h1>Cấp độ đại lý</h1>
-  <p class="muted">Đặt cấp và Trả sau cho mọi đối tác đang được hưởng hoa hồng, gồm cả hồ sơ chưa có tài khoản.</p>
-  <p id="cdl-nhac-phi-don" class="muted" hidden></p>
+  <div class="dau-trang"><p class="doan-dan">Đặt cấp và Trả sau cho mọi đối tác đang được hưởng hoa hồng, gồm cả hồ sơ chưa có tài khoản.</p></div>
+  <p id="cdl-nhac-phi-don" class="doan-dan" hidden></p>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="cdl-khong-cap" class="alert" role="status" hidden></div>
-  <div id="cdl-khung" hidden>
-    <div class="toolbar">
+  <div id="cdl-khung" class="vung-ve" hidden>
+    <div class="thanh-loc">
       <input id="cdl-tim" class="o" type="search" placeholder="Tìm theo tên" aria-label="Tìm theo tên" autocomplete="off" enterkeyhint="search">
       <button id="cdl-chua-co" class="vien" type="button" aria-pressed="false">Chưa có cấp</button>
     </div>
-    <p id="cdl-dem" class="muted" role="status"></p>
-    <section id="cdl-bang-wrap" class="card table-wrap">
-      <table class="items">
-        <thead><tr><th>Tên</th><th>Loại hồ sơ</th><th>Vai trò</th><th>Tài khoản</th><th>Cấp độ đại lý</th><th>Trả sau</th></tr></thead>
+    <p id="cdl-dem" class="khoi-mo-ta" role="status"></p>
+    <section id="cdl-bang-wrap" class="khoi" data-kieu="bang" aria-labelledby="cdl-ten">
+      <header class="khoi-dau"><h2 id="cdl-ten">Đối tác được hưởng</h2></header>
+      <table class="bang">
+        <thead><tr><th>Tên</th><th data-cot-phu>Loại hồ sơ</th><th data-cot-phu>Vai trò</th><th data-cot-phu>Tài khoản</th><th>Cấp độ đại lý</th><th>Trả sau</th><th></th></tr></thead>
         <tbody id="cdl-bang"></tbody>
       </table>
+      <div id="cdl-the" class="ds-dong" data-thay-bang></div>
     </section>
-    <div id="cdl-the" class="card-list"></div>
-    <p id="cdl-rong" class="muted" hidden></p>
-    <button id="cdl-them" class="btn" type="button" hidden>Xem thêm</button>
-    <div id="cdl-giam-phi-don"></div>
-    <div id="cdl-tra-sau"></div>
+    <p id="cdl-rong" class="khoi-mo-ta" hidden></p>
+    <button id="cdl-them" class="nut" data-cap="phu" type="button" hidden>Xem thêm</button>
+    <section id="cdl-giam-phi-don" class="khoi" aria-labelledby="gpd-heading" hidden></section>
   </div>
 </main>
 <script type="module" src="/js/cap-dai-ly.js"></script>

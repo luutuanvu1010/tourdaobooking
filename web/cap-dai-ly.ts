@@ -6,6 +6,7 @@ import { ApiError, api, type Api } from "./api";
 import { khoiGiamPhiDon } from "./giam-phi-don";
 import { datTieuDiemODongCap, oCapHoSo } from "./cot-cap-dai-ly";
 import { byId, h, replaceChildren } from "./dom";
+import { cap } from "./khung";
 import { datTieuDiemOTraSau, khoiCaiDatTraSau, khoiKenhThuDoiTac, oTraSau, taiTraSau, type BoiCanhTraSau } from "./o-tra-sau";
 import { initShell, showError } from "./shell";
 import { CHU_MAN, SO_DONG_MOI_LAN, cauDem, locDong, nhanLoaiHoSo, nhanTaiKhoan, nhanVaiTro, suaDuocDong } from "../src/shared/cap-dai-ly-hien-thi";
@@ -22,9 +23,10 @@ const theEl = byId("cdl-the");
 const rongEl = byId("cdl-rong");
 const themEl = byId<HTMLButtonElement>("cdl-them");
 const khungEl = byId("cdl-khung");
-const traSauEl = byId("cdl-tra-sau");
 const giamPhiDonEl = byId("cdl-giam-phi-don");
 
+/** Các khối Trả sau đang hiện (cài đặt chung, thẻ công tắc kênh thu): vẽ lại thì gỡ khối cũ rồi nối khối mới vào cuối màn. */
+let khoiTraSau: HTMLElement[] = [];
 let tatCa: Api.CapDaiLyDongDto[] = [];
 let traSau: BoiCanhTraSau | null = null;
 let coCapBat = true;
@@ -76,7 +78,9 @@ async function veCaiDat(): Promise<void> {
     }
   });
   const kt = await khoiKenhThuDoiTac(staff); // ADR-0178 Đ1 mục 1: thẻ công tắc ngay dưới khối «Hạn mức trả sau»
-  replaceChildren(traSauEl, ...(k ? [k] : []), ...(kt ? [kt] : []));
+  for (const e of khoiTraSau) e.remove();
+  khoiTraSau = [...(k ? [k] : []), ...(kt ? [kt] : [])];
+  khungEl.append(...khoiTraSau);
 }
 
 const oTraSauCuaDong = (d: Api.CapDaiLyDongDto): HTMLElement =>
@@ -86,21 +90,24 @@ const oCuaDong = (d: Api.CapDaiLyDongDto): HTMLElement => oCapHoSo({ partyId: d.
 
 const hang = (d: Api.CapDaiLyDongDto): HTMLElement =>
   h("tr", null,
-    h("td", null, d.ten),
-    h("td", null, nhanLoaiHoSo(d.loaiHoSo)),
-    h("td", null, nhanVaiTro(d)),
-    h("td", null, nhanTaiKhoan(d.coTaiKhoan)),
+    h("td", null, d.ten, h("span", { class: "o-phu", "data-thay-cot": "" }, nhanLoaiHoSo(d.loaiHoSo), " · ", nhanTaiKhoan(d.coTaiKhoan)), h("span", { class: "o-phu", "data-thay-cot": "" }, `${CHU_MAN.nhanVaiTro}: `, nhanVaiTro(d))),
+    h("td", { "data-cot-phu": "" }, nhanLoaiHoSo(d.loaiHoSo)),
+    h("td", { "data-cot-phu": "" }, nhanVaiTro(d)),
+    h("td", { "data-cot-phu": "" }, nhanTaiKhoan(d.coTaiKhoan)),
     h("td", null, oCuaDong(d)),
     h("td", null, oTraSauCuaDong(d)),
+    h("td", null),
   );
 
 const the = (d: Api.CapDaiLyDongDto): HTMLElement =>
-  h("div", { class: "card card-col" },
-    h("div", null, h("strong", null, d.ten)),
-    h("div", { class: "muted" }, nhanLoaiHoSo(d.loaiHoSo), " · ", nhanTaiKhoan(d.coTaiKhoan)),
-    h("div", { class: "muted" }, `${CHU_MAN.nhanVaiTro}: `, nhanVaiTro(d)),
-    h("div", null, h("span", { class: "muted" }, `${CHU_MAN.tieuDe}: `), oCuaDong(d)),
-    h("div", null, h("span", { class: "muted" }, "Trả sau: "), oTraSauCuaDong(d)),
+  h("div", { class: "dong" },
+    h("div", { class: "dong-chu" },
+      h("strong", null, d.ten),
+      h("div", { class: "o-phu" }, nhanLoaiHoSo(d.loaiHoSo), " · ", nhanTaiKhoan(d.coTaiKhoan)),
+      h("div", { class: "o-phu" }, `${CHU_MAN.nhanVaiTro}: `, nhanVaiTro(d)),
+      cap(CHU_MAN.tieuDe, oCuaDong(d)),
+      cap("Trả sau", oTraSauCuaDong(d)),
+    ),
   );
 
 function ve(): void {
@@ -110,6 +117,7 @@ function ve(): void {
   replaceChildren(bangEl, ...hien.map(hang));
   replaceChildren(theEl, ...hien.map(the));
   bangWrapEl.hidden = hien.length === 0;
+  demEl.hidden = false;
   demEl.textContent = cauDem(khop.length, tatCa.length);
   rongEl.textContent = tatCa.length === 0 ? CHU_MAN.rong : CHU_MAN.khongKhop;
   rongEl.hidden = hien.length > 0;

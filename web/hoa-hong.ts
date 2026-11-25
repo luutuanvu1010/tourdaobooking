@@ -19,7 +19,8 @@ import { datLaiLocLoai, veTheLoai } from "./hoa-hong-loai";
 import { veTraNhanh } from "./hoa-hong-tra-nhanh";
 import { initShell, showError } from "./shell";
 import { hienBaoNgan } from "./toast";
-import { trangThaiToanTrang } from "./trang-thai-he-thong";
+import { thanhDay } from "./khung";
+import { trangThaiHeThong, trangThaiToanTrang } from "./trang-thai-he-thong";
 import { lyDoLoi, taiDanhMuc, type DanhMuc } from "./so-dai-ly-ui";
 
 /** Dữ liệu một lần nạp, truyền cho mọi khối. Ghi xong gọi `napLai` để nạp lại và vẽ lại cả hai thẻ. */
@@ -45,8 +46,6 @@ const KHOA_THE = "hh-the";
 
 const errorEl = byId("error");
 const noiDungEl = byId("hh-noi-dung");
-const nutThemEl = byId<HTMLButtonElement>("hh-them-muc");
-const thanhCuoiEl = byId("hh-thanh-cuoi");
 const daiEl = byId("hh-dai");
 const traNhanhEl = byId("hh-tra-nhanh");
 const panelEl: Record<The, HTMLElement> = { cap: byId("hh-the-cap"), loai: byId("hh-the-loai") };
@@ -136,6 +135,8 @@ export async function nhayToiDong(k: Api.ThuTraResponse["ketQua"]): Promise<void
   if (!t) return;
   chonThe(t.the);
   const sel = `[data-dong-id="${CSS.escape(t.dongId)}"]`;
+  // Bảng mức của cấp có hai dạng cùng mang data-dong-id (bảng ở khối rộng, danh sách dòng ở khối hẹp — khung gốc ẩn một trong hai): chọn dạng đang hiện.
+  const hienTrong = (goc: ParentNode | null | undefined): HTMLElement | null => [...(goc?.querySelectorAll<HTMLElement>(sel) ?? [])].find((e) => e.getClientRects().length > 0) ?? goc?.querySelector<HTMLElement>(sel) ?? null;
   let el: HTMLElement | null = null;
   if (t.doiTuong.loai === "DOI_TAC") {
     const tim = (): HTMLElement | null => loaiRiengEl.querySelector<HTMLElement>(`.hh-dt[data-party="${CSS.escape(t.doiTuong.loai === "DOI_TAC" ? t.doiTuong.partyId : "")}"] ${sel}`);
@@ -155,8 +156,8 @@ export async function nhayToiDong(k: Api.ThuTraResponse["ketQua"]): Promise<void
     }
   } else {
     const khung = moChiTietCap(t.doiTuong.code);
-    el = khung?.querySelector<HTMLElement>(sel) ?? null;
-    if (el && t.capRieng) khung!.prepend(h("p", { class: "hint hh-cap-rieng-tra" }, h("strong", null, t.doiTuong.ten), ` ${CAU_CAP_RIENG_DANG_TRA}`));
+    el = hienTrong(khung);
+    if (el && t.capRieng) khung!.querySelector(".khoi")?.append(h("p", { class: "khoi-mo-ta hh-cap-rieng-tra" }, t.doiTuong.ten, ` ${CAU_CAP_RIENG_DANG_TRA}`));
   }
   if (!el) {
     hienBaoNgan(CAU_KHONG_THAY_DONG, { tong: "bien" });
@@ -168,7 +169,7 @@ function veTraNhanhVaDai(d: DuLieuHoaHong): void {
   veDai(daiEl, d);
   veTraNhanh(traNhanhEl, d, (k) => void nhayToiDong(k));
 }
-/** Mở hộp «Thêm mức» cho một đối tác (nút đầu trang và thanh dính đáy). */
+/** Mở hộp «Thêm mức» cho một đối tác (thanh dính đáy ở điện thoại; khổ rộng: nút ở đầu khối của thẻ đang chọn, web/hoa-hong-cap.ts và -doi-tac.ts). */
 function moThemMuc(): void {
   moHop.themMuc();
 }
@@ -201,7 +202,7 @@ export async function napLai(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const dangTai = h("p", { class: "muted", role: "status" }, "Đang tải…");
+  const dangTai = trangThaiHeThong("dang-tai", { khuon: "thiet-lap" });
   noiDungEl.before(dangTai);
   try {
     const [ds, dm, loai, mucTa, gioiHan] = await Promise.all([
@@ -231,14 +232,12 @@ async function main(): Promise<void> {
     });
   });
 
-  // Nút «＋ Thêm mức riêng cho đối tác» (ADR-0161 Đ6: vai trò chỉ đi qua cấp): chỉ người có quyền ghi (máy chủ kiểm lại). Điện thoại: thanh dính đáy; máy tính: nút ở đầu trang.
+  // Nút «＋ Thêm mức riêng cho đối tác» (ADR-0161 Đ6: vai trò chỉ đi qua cấp): chỉ người có quyền ghi (máy chủ kiểm lại). Khuôn Thiết lập: vùng nội dung từ 560 thì nút
+  // ở đầu khối của thẻ đang chọn («Cấp độ đại lý», «Người có cấp riêng»); hẹp hơn thì thanh dính đáy của khung (thanhDay, tự ẩn từ 560).
   if (can(staff, "partner.commission.write")) {
-    nutThemEl.hidden = false;
-    nutThemEl.addEventListener("click", moThemMuc);
-    const nutDay = h("button", { type: "button", class: "btn btn-primary btn-chinh vc-btn", id: "hh-them-muc-day" }, "＋ Thêm mức riêng cho đối tác");
+    const nutDay = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "hh-them-muc-day" }, "＋ Thêm mức riêng cho đối tác");
     nutDay.addEventListener("click", moThemMuc);
-    thanhCuoiEl.append(nutDay);
-    thanhCuoiEl.hidden = false;
+    document.querySelector("main")?.append(thanhDay({ id: "hh-thanh-cuoi" }, nutDay));
     // Nút nổi Trợ lý chỉ đo lại thanh đáy khi cuộn/đổi khổ (web/tro-ly.ts): thanh vừa hiện nên báo một lần để nút được nâng, không che «＋ Thêm mức riêng cho đối tác».
     window.dispatchEvent(new Event("resize"));
   }

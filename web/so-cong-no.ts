@@ -16,14 +16,17 @@ import { byId, h, replaceChildren } from "./dom";
 import { dateTime, vnd } from "./format";
 import { hienBaoNgan } from "./toast";
 import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
-import { initShell, showError } from "./shell";
+import { homeRedirect } from "../src/shared/start-page";
+import { cap, dsDong, vungPhu } from "./khung";
+import { initShell } from "./shell";
+import { trangThaiHeThong, trangThaiToanTrang } from "./trang-thai-he-thong";
 
 const NHAN_PHAN_DINH = "Khoản phải nộp do phân định";
 
-const errorEl = byId("error");
 const noiDungEl = byId("scn-noi-dung");
 const canhBaoEl = byId("scn-canh-bao");
 const tongEl = byId("scn-tong");
+const tongKhuEl = byId("scn-tong-khu");
 const dsKhuEl = byId("scn-ds-khu");
 const ctKhuEl = byId("scn-ct-khu");
 const dsEl = byId("scn-ds");
@@ -34,10 +37,17 @@ const xepEl = byId<HTMLSelectElement>("scn-xep");
 const staff = await initShell();
 ganDaiTrangAnhEm("/so-cong-no", staff); // mục gộp «Sổ công nợ & khoá sổ» (25/10): dải chuyển nhanh hai trang
 const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
-const rong = (): boolean => window.matchMedia("(min-width: 1024px)").matches;
+// Hai cột chỉ khi vùng nội dung (main) từ 800 — đúng ngưỡng mà lưới của khung gom hai khối cạnh nhau, nên «trang con» ở khổ hẹp khớp với bố cục thật.
+const mainEl = document.querySelector("main") as HTMLElement;
+const beRongMain = (): number => {
+  const cs = getComputedStyle(mainEl);
+  return mainEl.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+};
+let laRong = false; // giá trị đã thấy ở lần đo trước, chỉ để ResizeObserver biết khổ có đổi
+const rong = (): boolean => beRongMain() >= 800;
 
 if (!can(staff, "ledger.view")) {
-  showError(errorEl, "Trang Sổ công nợ chỉ Kế toán và Toàn quyền xem được.");
+  trangThaiToanTrang("403", { cau: "Trang Sổ công nợ chỉ Kế toán và Toàn quyền xem được.", trangDau: homeRedirect(staff) ?? "/" });
 } else {
   noiDungEl.hidden = false;
   let so: Api.SoCongNoResponse | null = null;
@@ -69,7 +79,7 @@ if (!can(staff, "ledger.view")) {
 
   // ADR-0182 phần B (Đ2 mục 4, 8): khoản nộp của đại lý đang chờ — Kế toán mở đơn để đối chiếu và xác nhận / từ chối trên phiếu công nợ (cạnh khoản «Công ty thu» chờ của cùng đơn).
   // Ô `dai-ly.nop.xem`, không tài khoản giữ quyền Đối tác — cùng cổng máy chủ. Không có khoản chờ thì không hiện gì.
-  const nopEl = h("section", { class: "card", "data-khoi": "khoan-nop-cho", hidden: true });
+  const nopEl = h("section", { class: "khoi", "data-khoi": "khoan-nop-cho", hidden: true });
   canhBaoEl.after(nopEl);
   async function taiNopCho(): Promise<void> {
     if (!can(staff, "dai-ly.nop.xem") || holdsPartner(staff)) return;
@@ -78,13 +88,17 @@ if (!can(staff, "ledger.view")) {
       nopEl.hidden = ds.length === 0;
       replaceChildren(
         nopEl,
-        h("h2", null, `${TEN_KHOAN_NOP} chờ xác nhận (${ds.length})`),
-        h("ul", { class: "pay-list" }, ...ds.map((k) => h(
-          "li",
-          { "data-khoan-nop": k.id },
-          h("a", { href: `/order?id=${encodeURIComponent(k.orderId)}` }, k.maDon),
-          ` · ${k.daiLy} · ${vnd(k.soTien)} · chuyển ngày ${ngayDayDu(k.ngayChuyen)}`,
-          k.coCongTyCho ? h("span", { class: "muted" }, " · đơn còn khoản «Công ty thu» chờ đối chiếu") : null,
+        h("header", { class: "khoi-dau" }, h("h2", null, `${TEN_KHOAN_NOP} chờ xác nhận (${ds.length})`)),
+        dsDong(null, ...ds.map((k) => h(
+          "div",
+          { class: "dong", "data-khoan-nop": k.id },
+          h(
+            "span",
+            { class: "dong-chu" },
+            h("span", null, h("a", { href: `/order?id=${encodeURIComponent(k.orderId)}` }, k.maDon), ` · ${k.daiLy}`),
+            cap(`Chuyển ngày ${ngayDayDu(k.ngayChuyen)}`, vnd(k.soTien), { kieu: "so" }),
+            k.coCongTyCho ? h("span", { class: "o-phu" }, "Đơn còn khoản «Công ty thu» chờ đối chiếu") : null,
+          ),
         ))),
       );
     } catch (err) {
@@ -95,16 +109,16 @@ if (!can(staff, "ledger.view")) {
   void taiNopCho();
 
   function veTong(s: Api.SoCongNoResponse): void {
-    const o = (nhan: string, so: string) => h("div", { class: "scn-o-tong" }, h("span", { class: "muted" }, nhan), h("strong", null, so));
+    const o = (nhan: string, so: string) => h("div", null, h("dt", null, nhan), h("dd", null, so));
     replaceChildren(tongEl, o("Các bên đang giữ", vnd(s.tongDangGiu)), o("Công ty đang nợ", vnd(s.tongCongTyNo)), ...(s.tongPhanDinh > 0 ? [o(NHAN_PHAN_DINH, vnd(s.tongPhanDinh))] : []), o("Số bên", String(s.soDu.length)));
   }
 
   function veLoc(s: Api.SoCongNoResponse): void {
-    const nutSoat = soatDuoc && h("button", { type: "button", class: "scn-loc-nut", "aria-pressed": String(cheDoSoat), "data-loc": "tu-ghi" }, `${NHAN_CAN_SOAT} (${tuGhi ? tuGhi.soChuaSoat : "…"})`);
+    const nutSoat = soatDuoc && h("button", { type: "button", class: "vien", "aria-pressed": String(cheDoSoat), "data-loc": "tu-ghi" }, `${NHAN_CAN_SOAT} (${tuGhi ? tuGhi.soChuaSoat : "…"})`);
     if (nutSoat) nutSoat.addEventListener("click", () => { cheDoSoat = true; veLoc(s); veDanhSach(); });
     replaceChildren(locEl, ...(Object.keys(NHAN_LOC) as LocSoCongNo[]).map((k) => {
       const dem = s.soDu.filter((b) => qua(k, b.dangGiu)).length;
-      const b = h("button", { type: "button", class: "scn-loc-nut", "aria-pressed": String(!cheDoSoat && loc === k) }, `${NHAN_LOC[k]} (${dem})`);
+      const b = h("button", { type: "button", class: "vien", "aria-pressed": String(!cheDoSoat && loc === k) }, `${NHAN_LOC[k]} (${dem})`);
       b.addEventListener("click", () => { loc = k; cheDoSoat = false; soBenHien = BEN_MOI_LAN; veLoc(s); veDanhSach(); });
       return b;
     }), nutSoat);
@@ -123,17 +137,17 @@ if (!can(staff, "ledger.view")) {
 
   /** Danh sách dòng «tự ghi đơn mình lập»: chưa soát trước, rồi đã soát 30 ngày gần nhất. Nút «Đã soát» chỉ cho người có ô ledger.write và KHÁC người ghi (máy chủ kiểm lại: 403 tu_soat). */
   function veSoat(): void {
-    if (!tuGhi) { replaceChildren(dsEl, tuGhiLoi ? h("div", { class: "alert", role: "alert" }, `Không tải được danh sách: ${tuGhiLoi}`) : h("p", { class: "muted" }, "Đang tải…")); return; }
-    if (tuGhi.dong.length === 0) { replaceChildren(dsEl, h("p", { class: "muted" }, CAU_CHUA_CO_DONG)); return; }
-    replaceChildren(dsEl, h("ul", { class: "scn-ds" }, ...tuGhi.dong.map((d) => {
+    if (!tuGhi) { replaceChildren(dsEl, tuGhiLoi ? h("div", { class: "alert", role: "alert" }, `Không tải được danh sách: ${tuGhiLoi}`) : trangThaiHeThong("dang-tai", { khuon: "danh-sach" })); return; }
+    if (tuGhi.dong.length === 0) { replaceChildren(dsEl, trangThaiHeThong("rong", { cau: CAU_CHUA_CO_DONG })); return; }
+    replaceChildren(dsEl, dsDong(null, ...tuGhi.dong.map((d) => {
       const nut = can(staff, "ledger.write") && d.nguoiSoat === null && d.nguoiGhiId !== staff.id
         && h("button", { type: "button", class: "nut", "data-cap": "phu", "data-soat": d.auditId }, NUT_DA_SOAT);
       if (nut) nut.addEventListener("click", () => void daSoat(d.auditId, nut));
-      return h("li", { class: "scn-soat-dong", "data-trang-thai": d.nguoiSoat ? "da-soat" : "chua-soat" },
-        h("div", { class: "scn-soat-than" },
-          h("span", { class: "scn-soat-ma" }, d.orderId ? h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon ?? "—") : (d.maDon ?? "—"), " · ", d.hanhDong),
-          h("span", { class: "muted" }, `${d.nguoiGhi} ghi lúc ${dateTime(d.luc)}`),
-          h("span", { class: d.nguoiSoat ? "muted" : "scn-soat-cho" }, cauTrangThaiSoat(d, dateTime))),
+      return h("div", { class: "dong", "data-trang-thai": d.nguoiSoat ? "da-soat" : "chua-soat" },
+        h("span", { class: "dong-chu" },
+          h("span", null, d.orderId ? h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon ?? "—") : (d.maDon ?? "—"), " · ", d.hanhDong),
+          h("span", { class: "o-phu" }, `${d.nguoiGhi} ghi lúc ${dateTime(d.luc)}`),
+          h("span", { class: "o-phu" }, cauTrangThaiSoat(d, dateTime))),
         nut);
     })));
   }
@@ -154,19 +168,21 @@ if (!can(staff, "ledger.view")) {
     if (!so) return;
     const tim = timEl.value;
     const loc2 = xepBen(so.soDu.filter((b) => qua(loc, b.dangGiu) && (!tim.trim() || khopTen(b.ten, tim))), xep);
-    if (so.soDu.length === 0) { replaceChildren(dsEl, h("p", { class: "muted" }, "Chưa bên nào có số dư với công ty.")); return; }
-    if (loc2.length === 0) { replaceChildren(dsEl, h("p", { class: "muted" }, tim.trim() ? `Không tìm thấy bên nào tên «${tim.trim()}».` : "Không có bên nào trong nhóm này.")); return; }
+    if (so.soDu.length === 0) { replaceChildren(dsEl, trangThaiHeThong("rong", { cau: "Chưa bên nào có số dư với công ty." })); return; }
+    if (loc2.length === 0) { replaceChildren(dsEl, trangThaiHeThong("rong", { cau: tim.trim() ? `Không tìm thấy bên nào tên «${tim.trim()}».` : "Không có bên nào trong nhóm này." })); return; }
     const hien = loc2.slice(0, soBenHien);
-    const ul = h("ul", { class: "scn-ds" }, ...hien.map((b) => {
-      const nut = h("button", { type: "button", class: "scn-ben", "aria-current": String(b.partyId === dangChon), "data-ben": b.partyId },
-        h("span", { class: "scn-ben-ten" }, b.ten),
-        h("span", { class: b.dangGiu > 0 ? "scn-so scn-giu" : "scn-so scn-no" }, cauSoDu(b.dangGiu, vnd)),
-        b.khoanPhanDinh ? h("span", { class: "scn-so scn-khoan muted", "data-khoi": "khoan-phan-dinh" }, `${NHAN_PHAN_DINH}: ${vnd(b.khoanPhanDinh)}`) : false);
+    const ul = dsDong(null, ...hien.map((b) => {
+      // Mỗi bên một dòng bấm được (nút giữ data-ben); `scn-ben` chỉ còn lo nền nút và dấu «đang chọn» (khung chưa có).
+      const nut = h("button", { type: "button", class: "dong scn-ben", "aria-current": String(b.partyId === dangChon), "data-ben": b.partyId },
+        h("span", { class: "dong-chu" },
+          h("strong", null, b.ten),
+          b.khoanPhanDinh ? h("span", { class: "o-phu", "data-khoi": "khoan-phan-dinh" }, `${NHAN_PHAN_DINH}: ${vnd(b.khoanPhanDinh)}`) : false),
+        h("span", null, cauSoDu(b.dangGiu, vnd)));
       nut.addEventListener("click", () => void chon(b.partyId));
-      return h("li", null, nut);
+      return nut;
     }));
     const con = loc2.length - hien.length;
-    const them = con > 0 && h("button", { type: "button", class: "btn scn-them" }, `Xem thêm ${Math.min(BEN_MOI_LAN, con)} bên`);
+    const them = con > 0 && h("button", { type: "button", class: "nut", "data-cap": "phu" }, `Xem thêm ${Math.min(BEN_MOI_LAN, con)} bên`);
     if (them) them.addEventListener("click", () => { soBenHien += BEN_MOI_LAN; veDanhSach(); });
     replaceChildren(dsEl, ul, them);
   }
@@ -175,42 +191,46 @@ if (!can(staff, "ledger.view")) {
     if (n.don.length === 0) return false;
     const hien = n.don.slice(0, soDonHien[khoa]);
     const con = n.don.length - hien.length;
-    const them = con > 0 && h("button", { type: "button", class: "btn scn-them" }, `Xem thêm ${Math.min(DON_MOI_LAN, con)} đơn`);
+    const them = con > 0 && h("button", { type: "button", class: "nut", "data-cap": "phu" }, `Xem thêm ${Math.min(DON_MOI_LAN, con)} đơn`);
     if (them) them.addEventListener("click", () => { soDonHien[khoa] += DON_MOI_LAN; veChiTiet(); });
-    return h("div", { class: "scn-nhom", "data-nhom": khoa },
-      h("h3", { class: "scn-nhom-dau" }, h("span", null, `${tieuDe} · ${n.don.length} đơn`), h("strong", null, vnd(n.tong))),
-      h("ul", { class: "scn-don-ds" }, ...hien.map((d) => h("li", { class: "scn-don" },
-        h("span", { class: "scn-don-ma" }, d.orderId ? h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon ?? "—") : (d.maDon ?? "—")),
-        h("span", { class: d.daHuy ? "scn-don-tt scn-huy" : "scn-don-tt muted" }, d.trangThai),
-        h("span", { class: "scn-don-ngay muted" }, `Phát sinh ${ngayDayDu(d.ngayGanNhat)}`),
-        h("strong", { class: "scn-don-tien" }, vnd(d.soTien))))),
+    return h("div", { class: "muc-con", "data-nhom": khoa },
+      cap(`${tieuDe} · ${n.don.length} đơn`, vnd(n.tong), { kieu: "so" }),
+      dsDong(null, ...hien.map((d) => h("div", { class: "dong" },
+        h("span", { class: "dong-chu" },
+          h("span", null, d.orderId ? h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon ?? "—") : (d.maDon ?? "—")),
+          d.daHuy ? h("span", { class: "huy-hieu", "data-tong": "do" }, d.trangThai) : h("span", { class: "o-phu" }, d.trangThai),
+          cap(`Phát sinh ${ngayDayDu(d.ngayGanNhat)}`, vnd(d.soTien), { kieu: "so" }))))),
       them);
   }
 
   function veChiTiet(): void {
-    const quay = !rong() && h("button", { type: "button", class: "btn scn-quay" }, "‹ Danh sách");
+    const quay = !rong() && h("button", { type: "button", class: "nut", "data-cap": "loi" }, "‹ Danh sách");
     if (quay) quay.addEventListener("click", () => history.back());
+    const dau = (ten: string | null): (HTMLElement | false)[] => [
+      h("header", { class: "khoi-dau" }, ten === null ? h("h2", { class: "visually-hidden" }, "Chi tiết") : h("h2", null, ten)),
+      quay && h("div", { class: "khoi-viec", "data-cho": "dau" }, quay),
+    ];
     if (!dangChon) {
-      replaceChildren(ctKhuEl, h("p", { class: "muted" }, "Chọn một bên ở danh sách để xem từng đơn."));
+      replaceChildren(ctKhuEl, trangThaiHeThong("rong", { cau: "Chọn một bên ở danh sách để xem từng đơn." }));
       return;
     }
-    if (ctLoi) { replaceChildren(ctKhuEl, quay, h("div", { class: "alert", role: "alert" }, ctLoi)); return; }
-    if (!ct || ct.partyId !== dangChon) { replaceChildren(ctKhuEl, quay, h("p", { class: "muted" }, "Đang tải…")); return; }
+    if (ctLoi) { replaceChildren(ctKhuEl, ...dau(null), h("div", { class: "alert", role: "alert" }, ctLoi)); return; }
+    if (!ct || ct.partyId !== dangChon) { replaceChildren(ctKhuEl, ...dau(null), trangThaiHeThong("dang-tai", { khuon: "chi-tiet" })); return; }
     const c = ct;
     const lech = c.lech !== 0;
     replaceChildren(ctKhuEl,
-      quay,
-      h("div", { class: "scn-ct-dau" }, h("h2", null, c.ten), h("p", { class: c.soDu > 0 ? "scn-ct-so scn-giu" : "scn-ct-so scn-no" }, cauSoDu(c.soDu, vnd))),
+      ...dau(c.ten),
+      h("p", null, cauSoDu(c.soDu, vnd)),
       lech && h("div", { class: "alert scn-lech", role: "alert" }, CAU_LECH(vnd(Math.abs(c.lech)))),
       nhom("Bên này đang giữ", "dangGiu", c.dangGiu),
       nhom("Công ty nợ bên này", "congTyNo", c.congTyNo),
       nhom(NHAN_PHAN_DINH, "khoanPhanDinh", c.khoanPhanDinh),
-      h("div", { class: lech ? "scn-phep-tinh scn-phep-lech" : "scn-phep-tinh" },
-        h("span", null, `Đang giữ ${vnd(c.dangGiu.tong)}`),
-        h("span", null, `Công ty nợ ${vnd(c.congTyNo.tong)}`),
-        c.khoanPhanDinh.tong > 0 ? h("span", null, `${NHAN_PHAN_DINH} ${vnd(c.khoanPhanDinh.tong)}`) : false,
-        h("span", null, `Cộng các đơn ${vnd(c.congCacDon)}`),
-        h("strong", null, lech ? `Số dư sổ ${vnd(c.soDu)} — lệch ${vnd(Math.abs(c.lech))}` : `= Số dư ${vnd(c.soDu)} ✓ Khớp`)),
+      vungPhu(null,
+        cap("Đang giữ", vnd(c.dangGiu.tong), { kieu: "so" }),
+        cap("Công ty nợ", vnd(c.congTyNo.tong), { kieu: "so" }),
+        c.khoanPhanDinh.tong > 0 ? cap(NHAN_PHAN_DINH, vnd(c.khoanPhanDinh.tong), { kieu: "so" }) : false,
+        cap("Cộng các đơn", vnd(c.congCacDon), { kieu: "so" }),
+        lech ? cap("Số dư sổ", `${vnd(c.soDu)} — lệch ${vnd(Math.abs(c.lech))}`, { manh: true }) : cap("= Số dư", `${vnd(c.soDu)} ✓ Khớp`, { manh: true })),
     );
   }
 
@@ -218,7 +238,7 @@ if (!can(staff, "ledger.view")) {
     const coCt = dangChon !== null;
     // Hẹp: chi tiết là «trang con» — ẩn danh sách, ba ô tổng và dòng cảnh báo; rộng: hai cột cùng lúc.
     dsKhuEl.hidden = !rong() && coCt;
-    tongEl.hidden = !rong() && coCt;
+    tongKhuEl.hidden = !rong() && coCt;
     canhBaoEl.hidden = !rong() && coCt;
     ctKhuEl.hidden = !rong() && !coCt;
     veChiTiet();
@@ -255,12 +275,16 @@ if (!can(staff, "ledger.view")) {
     if (p) void chon(p, true);
     else { dangChon = null; ct = null; veBo(); }
   });
-  window.matchMedia("(min-width: 1024px)").addEventListener("change", () => {
+  laRong = rong();
+  new ResizeObserver(() => {
+    const moi = rong();
+    if (moi === laRong) return;
+    laRong = moi;
     if (tuDongChon && !rong() && !tuHash()) { dangChon = null; ct = null; tuDongChon = false; }
     veBo();
-  });
+  }).observe(mainEl);
 
-  replaceChildren(dsEl, h("p", { class: "muted" }, "Đang tải…"));
+  replaceChildren(dsEl, trangThaiHeThong("dang-tai", { khuon: "danh-sach" }));
   try {
     so = await api<Api.SoCongNoResponse>("/api/ledger");
     veCanhBao(so);
@@ -268,7 +292,7 @@ if (!can(staff, "ledger.view")) {
     veLoc(so);
     if (soatDuoc) void taiTuGhi(); // số cho chip «Cần người thứ hai soát» (và danh sách khi mở bằng #tu-ghi)
   } catch (err) {
-    replaceChildren(dsEl, h("div", { class: "alert", role: "alert" }, `Không tải được sổ: ${reasonOf(err)}`));
+    replaceChildren(dsEl, trangThaiHeThong("loi-may-chu", { loi: err instanceof ApiError ? err : null, thuLai: () => location.reload() }));
   }
   const dau = tuHash();
   const dauDanhSach = so && rong() ? xepBen(so.soDu.filter((b) => qua(loc, b.dangGiu)), xep)[0] : undefined;

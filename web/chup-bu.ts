@@ -8,9 +8,11 @@ import { can, holdsPartner } from "../src/shared/permissions";
 import { cauKetQuaChupBu, donChupBuConLai, nhanLyDoChupBu } from "../src/shared/ben-kia-hien-thi";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
-import { initShell, showError } from "./shell";
+import { dsDong } from "./khung";
+import { homeRedirect } from "../src/shared/start-page";
+import { initShell } from "./shell";
+import { trangThaiHeThong, trangThaiToanTrang } from "./trang-thai-he-thong";
 
-const errorEl = byId("error");
 const okEl = byId("ok");
 const noiDungEl = byId("cb-noi-dung");
 const caDsEl = byId("cb-ca-danh-sach");
@@ -25,10 +27,10 @@ function hienOk(text: string | null): void {
 }
 
 if (!can(staff, "order.terms.override") || holdsPartner(staff)) {
-  showError(errorEl, "Trang Chụp bù mức chỉ Kế toán, Quản trị và Toàn quyền dùng được.");
+  trangThaiToanTrang("403", { cau: "Trang Chụp bù mức chỉ Kế toán, Quản trị và Toàn quyền dùng được.", trangDau: homeRedirect(staff) ?? "/" });
 } else {
   noiDungEl.hidden = false;
-  replaceChildren(dsEl, h("p", { class: "muted" }, "Đang tải…"));
+  replaceChildren(dsEl, trangThaiHeThong("dang-tai", { khuon: "danh-sach" }));
 
   /** Một đơn: chụp bù; trả câu lỗi (409 của máy chủ) hoặc null khi xong. Nút + dòng trạng thái của đơn do nơi gọi vẽ. */
   const chupMot = async (d: Api.ChoChupBuDto): Promise<string | null> => {
@@ -42,29 +44,33 @@ if (!can(staff, "order.terms.override") || holdsPartner(staff)) {
 
   const dongDon = (d: Api.ChoChupBuDto): { li: HTMLElement; chay: () => Promise<boolean>; daChup: () => boolean } => {
     let daChup = false;
-    const nut = h("button", { type: "button", class: "btn", "data-action": "chup-bu-don", "data-order-id": d.orderId }, "Chụp bù");
-    const trangThai = h("p", { class: "muted", role: "status", hidden: true });
+    const nut = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "chup-bu-don", "data-order-id": d.orderId }, "Chụp bù");
+    const trangThai = h("span", { class: "o-phu", role: "status", hidden: true });
     const li = h(
-      "li",
-      { "data-order-id": d.orderId },
-      h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon),
-      ` · xác nhận ${ngayDayDu(d.ngayXacNhan)} · ${d.benDat ? `bên đặt ${d.benDat}` : "khách lẻ"}`,
-      h("p", { class: "muted" }, nhanLyDoChupBu(d.lyDo)),
-      h("div", { class: "handler-actions" }, nut),
-      trangThai,
+      "div",
+      { class: "dong", "data-order-id": d.orderId },
+      h(
+        "span",
+        { class: "dong-chu" },
+        h("span", null, h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon)),
+        h("span", { class: "o-phu" }, `Xác nhận ${ngayDayDu(d.ngayXacNhan)} · ${d.benDat ? `bên đặt ${d.benDat}` : "khách lẻ"}`),
+        h("span", { class: "o-phu" }, nhanLyDoChupBu(d.lyDo)),
+        trangThai,
+      ),
+      nut,
     );
     const chay = async (): Promise<boolean> => {
       nut.disabled = true;
       const loi = await chupMot(d);
       trangThai.hidden = false;
       if (loi === null) {
-        trangThai.className = "muted";
+        trangThai.className = "o-phu";
         trangThai.textContent = d.lyDo === "nhap_tay" ? "Đã chụp bù. Mở đơn để ghi mức tay cho dịch vụ nhập tay." : "Đã chụp bù.";
         nut.remove();
         daChup = true;
         return true;
       }
-      trangThai.className = "alert";
+      trangThai.className = "truong-loi";
       trangThai.textContent = loi;
       nut.disabled = false;
       return false;
@@ -78,17 +84,17 @@ if (!can(staff, "order.terms.override") || holdsPartner(staff)) {
     try {
       res = await api<Api.ChoChupBuResponse>("/api/orders/cho-chup-bu");
     } catch (err) {
-      replaceChildren(caDsEl);
-      replaceChildren(dsEl, h("p", { class: "alert", role: "alert" }, reasonOf(err)));
+      caDsEl.hidden = true;
+      replaceChildren(dsEl, trangThaiHeThong("loi-may-chu", { loi: err instanceof ApiError ? err : null, thuLai: () => void tai() }));
       return;
     }
     if (res.don.length === 0) {
-      replaceChildren(caDsEl);
-      replaceChildren(dsEl, h("p", { class: "muted" }, "Không còn đơn nào chờ chụp bù."));
+      caDsEl.hidden = true;
+      replaceChildren(dsEl, trangThaiHeThong("rong", { cau: "Không còn đơn nào chờ chụp bù." }));
       return;
     }
     const dong = res.don.map(dongDon);
-    const caDs = h("button", { type: "button", class: "btn btn-primary", "data-action": "chup-bu-ca-danh-sach" }, `Chụp bù cả danh sách (${res.don.length} đơn)`);
+    const caDs = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-action": "chup-bu-ca-danh-sach" }, `Chụp bù cả danh sách (${res.don.length} đơn)`);
     caDs.addEventListener("click", async () => {
       caDs.disabled = true;
       hienOk(null);
@@ -101,8 +107,9 @@ if (!can(staff, "order.terms.override") || holdsPartner(staff)) {
       hienOk(cauKetQuaChupBu(xong, con));
       caDs.disabled = con === 0;
     });
-    replaceChildren(caDsEl, h("div", { class: "handler-actions" }, caDs));
-    replaceChildren(dsEl, h("ul", { class: "pay-list cb-list", "data-khoi": "cho-chup-bu" }, ...dong.map((d) => d.li)));
+    caDsEl.hidden = false;
+    replaceChildren(caDsEl, caDs);
+    replaceChildren(dsEl, dsDong({ "data-khoi": "cho-chup-bu" }, ...dong.map((d) => d.li)));
   }
   await tai();
 }

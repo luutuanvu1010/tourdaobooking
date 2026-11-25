@@ -25,7 +25,10 @@ import { ngayDayDu } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { vnd } from "./format";
 import { ganDaiTrangAnhEm } from "./dai-trang-anh-em";
+import { homeRedirect } from "../src/shared/start-page";
+import { dsDong, thanhNut, truong, cap } from "./khung";
 import { initShell, showError } from "./shell";
+import { trangThaiHeThong, trangThaiToanTrang } from "./trang-thai-he-thong";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -46,7 +49,7 @@ function hienOk(text: string | null): void {
 }
 
 if (!can(staff, "ledger.view")) {
-  showError(errorEl, "Trang Khoá sổ tháng chỉ Kế toán và Toàn quyền xem được.");
+  trangThaiToanTrang("403", { cau: "Trang Khoá sổ tháng chỉ Kế toán và Toàn quyền xem được.", trangDau: homeRedirect(staff) ?? "/" });
 } else {
   /** Có ô khoá thật (hỏi bảng quyền) — cộng với `coTheKhoa` máy chủ báo (còn tháng để khoá). */
   const duocKhoa = can(staff, "ledger.period.close");
@@ -55,7 +58,7 @@ if (!can(staff, "ledger.view")) {
   let xacNhan = false;
 
   noiDungEl.hidden = false;
-  const dangTai = (): HTMLElement => h("p", { class: "muted" }, "Đang tải…");
+  const dangTai = (): HTMLElement => trangThaiHeThong("dang-tai", { khuon: "bieu-mau" });
   replaceChildren(daKhoaEl, dangTai());
   replaceChildren(bangKiemEl, dangTai());
 
@@ -99,37 +102,40 @@ if (!can(staff, "ledger.view")) {
   }
 
   const dongKhoan = (k: { orderCode: string | null; amount: number; ngay: string }): HTMLElement =>
-    h("li", { class: "ky-dong" }, h("strong", null, k.orderCode ?? "—"), h("span", { class: "ky-dong-tien" }, vnd(k.amount)), h("span", { class: "muted" }, ngayDayDu(k.ngay)));
+    h("div", { class: "dong" }, h("span", { class: "dong-chu" }, h("span", null, k.orderCode ?? "—"), cap(ngayDayDu(k.ngay), vnd(k.amount), { kieu: "so" })));
 
-  /** Khối khoản (mã đơn, số tiền, ngày): số khoản ở đầu (`demKhoan`: rỗng ghi "Không có"). Chỉ đếm bằng `length`, không cộng tiền. */
-  function khoiKhoan(tieuDe: HTMLElement, ds: readonly { orderCode: string | null; amount: number; ngay: string }[], dau: string): HTMLElement {
+  /** Mục con khoản (mã đơn, số tiền, ngày): số khoản ở đầu (`demKhoan`: rỗng ghi "Không có"). Chỉ đếm bằng `length`, không cộng tiền. */
+  function khoiKhoan(tieuDe: string, ds: readonly { orderCode: string | null; amount: number; ngay: string }[], dau: string): HTMLElement {
     return h(
       "div",
-      { class: "ky-khoi", "data-khoi": dau },
-      tieuDe,
-      h("p", { class: "muted" }, demKhoan(ds.length)),
-      ds.length > 0 && h("ul", { class: "ky-dong-ds" }, ...ds.map(dongKhoan)),
+      { class: "muc-con", "data-khoi": dau },
+      h("h3", null, tieuDe),
+      h("p", { class: "khoi-mo-ta" }, demKhoan(ds.length)),
+      ds.length > 0 && dsDong(null, ...ds.map(dongKhoan)),
     );
   }
 
   function veBangKiem(k: Api.KySoResponse): void {
     const b = k.bangKiem;
     if (k.keTiep === null || b === null) {
-      replaceChildren(bangKiemEl, h("p", { class: "muted" }, CAU_HET_THANG_KHOA));
+      replaceChildren(bangKiemEl, trangThaiHeThong("rong", { cau: CAU_HET_THANG_KHOA }));
       return;
     }
     replaceChildren(
       bangKiemEl,
-      h("p", { class: "muted" }, CAU_BANG_KIEM_KHONG_CHAN),
-      khoiKhoan(h("h3", null, "Khoản thu chờ đối chiếu"), b.choXacNhanCongTy, "cho-xac-nhan"),
-      khoiKhoan(h("h3", null, "Khoản thu chưa rõ người thu tiền"), b.chuaRoNguoiThu, "chua-ro"),
+      h("p", { class: "khoi-mo-ta" }, CAU_BANG_KIEM_KHONG_CHAN),
+      khoiKhoan("Khoản thu chờ đối chiếu", b.choXacNhanCongTy, "cho-xac-nhan"),
+      khoiKhoan("Khoản thu chưa rõ người thu tiền", b.chuaRoNguoiThu, "chua-ro"),
       h(
         "div",
-        { class: "ky-khoi", "data-khoi": "so-du" },
+        { class: "muc-con", "data-khoi": "so-du" },
         h("h3", null, "Số dư từng bên cuối tháng"),
         b.soDuCuoiThang.length === 0
-          ? h("p", { class: "muted" }, CAU_KHONG_CO)
-          : h("ul", { class: "ky-dong-ds" }, ...b.soDuCuoiThang.map((s) => h("li", { class: "ky-dong" }, h("strong", null, s.ten), h("span", { class: "ky-dong-tien" }, vnd(s.soDu)), s.khoanPhanDinh ? h("span", { class: "muted", "data-khoi": "khoan-phan-dinh" }, `Khoản phải nộp do phân định: ${vnd(s.khoanPhanDinh)}`) : false))),
+          ? h("p", { class: "khoi-mo-ta" }, CAU_KHONG_CO)
+          : dsDong(null, ...b.soDuCuoiThang.map((s) => h("div", { class: "dong" }, h("span", { class: "dong-chu" },
+            h("span", null, s.ten),
+            s.khoanPhanDinh ? h("span", { class: "o-phu", "data-khoi": "khoan-phan-dinh" }, `Khoản phải nộp do phân định: ${vnd(s.khoanPhanDinh)}`) : false,
+            cap("Số dư", vnd(s.soDu), { kieu: "so" }))))),
       ),
     );
   }
@@ -139,22 +145,24 @@ if (!can(staff, "ledger.view")) {
     const period = k.keTiep;
     if (period === null || !k.coTheKhoa || !duocKhoa) {
       replaceChildren(khuKhoaEl);
+      khuKhoaEl.hidden = true;
       return;
     }
+    khuKhoaEl.hidden = false;
     if (!xacNhan) {
-      const nut = h("button", { type: "button", id: "ky-khoa-btn", class: "btn btn-primary btn-chinh" }, nhanNutKhoa(period));
+      const nut = h("button", { type: "button", id: "ky-khoa-btn", class: "nut", "data-cap": "chinh" }, nhanNutKhoa(period));
       nut.addEventListener("click", () => {
         xacNhan = true;
         veKhu(k);
         byId("ky-xac-nhan").focus(); // đưa người dùng tới hộp (không focus ô gõ: bàn phím điện thoại sẽ bật lên che câu cảnh báo)
         byId("ky-xac-nhan").scrollIntoView({ block: "nearest" });
       });
-      replaceChildren(khuKhoaEl, h("div", { class: "actions" }, nut));
+      replaceChildren(khuKhoaEl, thanhNut(null, nut));
       return;
     }
-    const ghiChuEl = h("textarea", { id: "ky-ghi-chu", rows: 2, maxlength: GHI_CHU_KHOA_TOI_DA, autocomplete: "off", "aria-describedby": "ky-ghi-chu-goi-y" });
-    const nutXacNhan = h("button", { type: "button", id: "ky-xac-nhan-btn", class: "btn btn-primary btn-chinh" }, nhanNutXacNhanKhoa(period));
-    const nutThoi = h("button", { type: "button", class: "btn" }, "Thôi");
+    const ghiChuEl = h("textarea", { id: "ky-ghi-chu", class: "o", "data-loai": "nhieu-dong", rows: 2, maxlength: GHI_CHU_KHOA_TOI_DA, autocomplete: "off", "aria-describedby": "ky-ghi-chu-goi-y" });
+    const nutXacNhan = h("button", { type: "button", id: "ky-xac-nhan-btn", class: "nut", "data-cap": "chinh" }, nhanNutXacNhanKhoa(period));
+    const nutThoi = h("button", { type: "button", class: "nut", "data-cap": "loi" }, "Thôi");
     const tat = (t: boolean): void => {
       nutXacNhan.disabled = t;
       nutThoi.disabled = t;
@@ -170,11 +178,10 @@ if (!can(staff, "ledger.view")) {
       khuKhoaEl,
       h(
         "div",
-        { id: "ky-xac-nhan", class: "maint-confirm", role: "group", "aria-label": "Xác nhận khoá sổ tháng", tabindex: -1 },
-        h("p", null, h("strong", null, cauXacNhanKhoa(period))),
-        h("label", null, "Ghi chú (không bắt buộc)", ghiChuEl),
-        h("span", { class: "hint", id: "ky-ghi-chu-goi-y" }, GOI_Y_GHI_CHU_KHOA), // ngoài nhãn để đọc màn hình không đọc hai lần (đã nối bằng aria-describedby)
-        h("div", { class: "maint-actions" }, nutXacNhan, nutThoi),
+        { id: "ky-xac-nhan", class: "vung-phu", role: "group", "aria-label": "Xác nhận khoá sổ tháng", tabindex: -1 },
+        h("p", null, cauXacNhanKhoa(period)),
+        truong("Ghi chú (không bắt buộc)", ghiChuEl, { goiY: h("span", { id: "ky-ghi-chu-goi-y" }, GOI_Y_GHI_CHU_KHOA) }), // aria-describedby trỏ tới câu gợi ý
+        thanhNut(null, nutXacNhan, nutThoi),
       ),
     );
   }
@@ -184,14 +191,15 @@ if (!can(staff, "ledger.view")) {
       replaceChildren(daKhoaEl);
       replaceChildren(bangKiemEl);
       replaceChildren(khuKhoaEl);
+      khuKhoaEl.hidden = true;
       return;
     }
     const ds = thangDaKhoaMoiTruoc(ky.daKhoa);
     replaceChildren(
       daKhoaEl,
       ds.length === 0
-        ? h("p", { class: "muted" }, CAU_CHUA_KHOA_THANG_NAO)
-        : h("ul", { class: "ky-thang" }, ...ds.map((p) => h("li", { "data-thang": p }, h("span", { class: "badge badge-confirmed" }, nhanThang(p))))),
+        ? trangThaiHeThong("rong", { cau: CAU_CHUA_KHOA_THANG_NAO })
+        : dsDong(null, ...ds.map((p) => h("div", { class: "dong", "data-thang": p }, h("span", { class: "dong-chu" }, h("span", null, nhanThang(p)))))),
     );
     tieuDeKeTiepEl.textContent = tieuDeKeTiep(ky.keTiep);
     veBangKiem(ky);

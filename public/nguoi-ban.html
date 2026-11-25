@@ -1,36 +1,32 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Nhà cung cấp — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Nhà cung cấp" data-back="/account">
+<body data-rong="vua" data-khung-goc="thiet-lap" data-title="Nhà cung cấp" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Người bán dịch vụ (sổ đại lý đợt 1, Task 10; ADR-0078 B1). Xem: ô supply.terms.view (Bán hàng không xem tỷ lệ mua lại); thêm / đóng: supply.terms.write. Tài khoản giữ quyền Đối tác
-       không vào được (máy chủ 403). web/nguoi-ban.ts dựng nội dung; id cố định cho kịch bản Chrome: #dk-list, #dk-add-form. -->
+  <!-- Khuôn Thiết lập của khung gốc (ADR-0222). Người bán dịch vụ (sổ đại lý đợt 1, Task 10; ADR-0078 B1). Xem: ô supply.terms.view (Bán hàng không xem tỷ lệ mua lại); thêm / đóng: supply.terms.write. Tài khoản giữ quyền Đối tác
+       không vào được (máy chủ 403). web/nguoi-ban.ts dựng nội dung; id cố định cho kịch bản Chrome: #dk-list, #dk-add-form. Khối bảng hiện bảng từ 800, hẹp hơn hiện danh sách dòng (#dk-list-cards). -->
   <h1>Nhà cung cấp</h1>
-  <p class="muted">Dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán và Tour Đảo mua lại bao nhiêu phần trăm.</p>
+  <div class="dau-trang"><p class="doan-dan">Dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán và Tour Đảo mua lại bao nhiêu phần trăm.</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
   <!-- Ẩn cho tới khi máy chủ trả bảng điều khoản (khỏi hiện khung trống cho tài khoản không có quyền xem). -->
-  <div id="nb-noi-dung" hidden>
-    <section class="card" aria-labelledby="dk-tieu-de">
-      <h2 id="dk-tieu-de">Các điều khoản hiện có</h2>
-      <div class="hh-loc">
-        <label>Hiện<select id="dk-loc-trang-thai"><option value="dang-ap">Đang và sắp áp dụng</option><option value="tat-ca">Tất cả</option></select></label>
-      </div>
-      <div class="table-wrap">
-        <table class="items">
-          <thead><tr><th>Phạm vi</th><th>Nhà cung cấp</th><th>Tỷ lệ mua lại</th><th>Từ ngày</th><th>Đến ngày</th><th>Trạng thái</th><th></th></tr></thead>
-          <tbody id="dk-list"></tbody>
-        </table>
-      </div>
-      <div id="dk-list-cards" class="card-list"></div>
-      <p id="dk-luon-giu" class="hint" hidden></p>
-      <p id="dk-rong" class="muted" hidden></p>
-      <!-- Hộp «Đóng» (ngày kết thúc) hiện ở đây khi bấm nút của một dòng. -->
+  <div id="nb-noi-dung" class="vung-ve" hidden>
+    <div id="dk-loc-khu" class="thanh-loc"></div>
+    <section class="khoi" data-kieu="bang" aria-labelledby="dk-tieu-de">
+      <header class="khoi-dau"><h2 id="dk-tieu-de">Các điều khoản hiện có</h2></header>
+      <table class="bang">
+        <thead><tr><th>Phạm vi</th><th>Nhà cung cấp</th><th data-so>Tỷ lệ mua lại</th><th>Từ ngày</th><th>Đến ngày</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody id="dk-list"></tbody>
+      </table>
+      <div id="dk-list-cards" class="ds-dong" data-thay-bang></div>
+      <p id="dk-luon-giu" class="khoi-mo-ta" hidden></p>
+      <p id="dk-rong" class="khoi-mo-ta" hidden></p>
+      <!-- Hộp «Ngừng điều khoản» (ngày kết thúc) hiện ở đây khi bấm nút của một dòng. -->
       <div id="dk-dong-khu"></div>
     </section>
-    <section id="dk-add-card" class="card" aria-labelledby="dk-add-tieu-de" hidden>
-      <h2 id="dk-add-tieu-de">Thêm điều khoản</h2>
+    <section id="dk-add-card" class="khoi" aria-labelledby="dk-add-tieu-de" hidden>
+      <header class="khoi-dau"><h2 id="dk-add-tieu-de">Thêm điều khoản</h2></header>
       <form id="dk-add-form" autocomplete="off" novalidate></form>
     </section>
   </div>

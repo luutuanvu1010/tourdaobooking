@@ -12,6 +12,7 @@ import { docThanDieuKhoan } from "../src/shared/so-dai-ly-nhap";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { luoi, thanhNut, truong } from "./khung";
 import { initShell, showError } from "./shell";
 import { trangThaiToanTrang } from "./trang-thai-he-thong";
 import { lyDoLoi, taiDanhMuc, taoBangLoi, taoChonPhamVi, veHopDong, type DanhMuc } from "./so-dai-ly-ui";
@@ -24,7 +25,8 @@ const theEl = byId("dk-list-cards");
 const rongEl = byId("dk-rong");
 const luonGiuEl = byId("dk-luon-giu");
 const dongKhuEl = byId("dk-dong-khu");
-const locTrangThaiEl = byId<HTMLSelectElement>("dk-loc-trang-thai");
+const locTrangThaiEl = h("select", { id: "dk-loc-trang-thai", class: "o" }, h("option", { value: "dang-ap" }, "Đang và sắp áp dụng"), h("option", { value: "tat-ca" }, "Tất cả")) as HTMLSelectElement;
+replaceChildren(byId("dk-loc-khu"), truong("Hiện", locTrangThaiEl));
 
 const staff = await initShell();
 
@@ -72,11 +74,11 @@ async function main(): Promise<void> {
     tt: trangThaiDong(d, ds.homNay),
   });
   const huyHieu = (tt: ReturnType<typeof trangThaiDong>): HTMLElement =>
-    h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
+    h("span", { class: "huy-hieu", "data-tong": tt === "DANG_AP" ? "la" : tt === "SAP_AP" ? "cat" : "xam" }, NHAN_TRANG_THAI[tt].replace(/ /g, "\u00a0")); // không ngắt dòng trong huy hiệu
   const nutDong = (d: Api.SupplyTermDto, k: ReturnType<typeof khungDong>): HTMLElement | false => {
     // Việc 15: dòng «Mọi dịch vụ» của công ty chủ hiện tại không ngừng được (máy chủ 409) — không nút; câu giải thích hiện MỘT lần dưới danh sách (`luonGiuEl`).
     if (!duocGhi || !ngungDieuKhoanDuoc(d)) return false;
-    const nut = h("button", { type: "button", class: "btn", "data-dong": d.id, "aria-label": `Ngừng điều khoản: ${k.phamVi} · ${k.nguoiBan}` }, "Ngừng điều khoản");
+    const nut = h("button", { type: "button", class: "nut", "data-cap": "nguy-hiem", "data-dong": d.id, "aria-label": `Ngừng điều khoản: ${k.phamVi} · ${k.nguoiBan}` }, "Ngừng điều khoản");
     nut.addEventListener("click", () => moDong(d, k));
     return nut;
   };
@@ -89,14 +91,14 @@ async function main(): Promise<void> {
         const k = khungDong(d);
         return h(
           "tr",
-          { class: k.tt === "DA_DONG" ? "row-off" : "", "data-id": d.id },
+          { "data-ngung": k.tt === "DA_DONG" ? "" : undefined, "data-id": d.id },
           h("td", null, k.phamVi),
           h("td", null, k.nguoiBan),
-          h("td", null, k.tyLe),
+          h("td", { "data-so": "" }, k.tyLe),
           h("td", null, k.tu),
           h("td", null, k.den),
           h("td", null, huyHieu(k.tt)),
-          h("td", { class: "row-actions" }, nutDong(d, k)),
+          h("td", null, nutDong(d, k)),
         );
       }),
     );
@@ -106,11 +108,16 @@ async function main(): Promise<void> {
         const k = khungDong(d);
         return h(
           "div",
-          { class: k.tt === "DA_DONG" ? "card card-col row-off" : "card card-col", "data-id": d.id },
-          h("div", null, h("strong", null, k.phamVi), " ", huyHieu(k.tt)),
-          h("div", null, "Nhà cung cấp: ", h("strong", null, k.nguoiBan)),
-          h("div", { class: "muted" }, "Tỷ lệ mua lại: ", k.tyLe),
-          h("div", { class: "muted" }, "Từ ", k.tu, " · đến ", k.den),
+          { class: "dong", "data-ngung": k.tt === "DA_DONG" ? "" : undefined, "data-id": d.id },
+          h(
+            "div",
+            { class: "dong-chu" },
+            h("strong", null, k.phamVi),
+            h("div", null, huyHieu(k.tt)),
+            h("div", { class: "o-phu" }, "Nhà cung cấp: ", k.nguoiBan),
+            h("div", { class: "o-phu" }, "Tỷ lệ mua lại: ", k.tyLe),
+            h("div", { class: "o-phu" }, "Từ ", k.tu, " · đến ", k.den),
+          ),
           nutDong(d, k),
         );
       }),
@@ -163,28 +170,33 @@ async function main(): Promise<void> {
   const congTyId = ds.congTyChu?.partyId ?? null;
   const nguoiBan = h(
     "select",
-    { id: "dk-nguoi-ban" },
+    { id: "dk-nguoi-ban", class: "o" },
     congTyId !== null && h("option", { value: congTyId }, NHAN_CONG_TY),
     ...ds.nhaCungCap.map((n) => h("option", { value: n.partyId }, n.ten)),
   );
-  const tyLeMua = h("input", { id: "dk-ty-le-mua", type: "text", inputMode: "decimal", maxLength: 7, placeholder: "80", autocomplete: "off" });
-  const khuTyLe = h("div", null, h("label", null, "Tỷ lệ Tour Đảo mua lại (%)", tyLeMua), loi.dong("tyLeMua"));
+  const tyLeMua = h("input", { id: "dk-ty-le-mua", class: "o", type: "text", inputMode: "decimal", maxLength: 7, placeholder: "80", autocomplete: "off" });
+  const khuTyLe = truong("Tỷ lệ Tour Đảo mua lại (%)", tyLeMua, { cot: 6, loi: loi.dong("tyLeMua") });
   const veTyLe = (): void => {
     khuTyLe.hidden = nguoiBan.value === "" || nguoiBan.value === congTyId;
   };
   nguoiBan.addEventListener("change", veTyLe);
   veTyLe();
-  const tuNgay = h("input", { id: "dk-tu-ngay", type: "date", value: ds.homNay });
-  const denNgay = h("input", { id: "dk-den-ngay", type: "date" });
-  const ghiChu = h("input", { id: "dk-ghi-chu", type: "text", maxLength: 200, autocomplete: "off" });
-  const them = h("button", { type: "submit", class: "btn btn-primary" }, "Thêm điều khoản");
+  const tuNgay = h("input", { id: "dk-tu-ngay", class: "o", type: "date", value: ds.homNay });
+  const denNgay = h("input", { id: "dk-den-ngay", class: "o", type: "date" });
+  const ghiChu = h("input", { id: "dk-ghi-chu", class: "o", type: "text", maxLength: 200, autocomplete: "off" });
+  const them = h("button", { type: "submit", class: "nut", "data-cap": "chinh" }, "Thêm điều khoản");
   replaceChildren(
     form,
-    phamVi.root,
-    h("div", { class: "grid two" }, h("div", null, h("label", null, "Nhà cung cấp", nguoiBan), loi.dong("nguoiBan"), congTyId === null && h("span", { class: "hint" }, "Chưa có hồ sơ công ty chủ.")), khuTyLe),
-    h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ ngày", tuNgay), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến ngày (không bắt buộc)", denNgay), loi.dong("denNgay"))),
-    h("div", null, h("label", null, "Ghi chú (không bắt buộc)", ghiChu), loi.dong("ghiChu")),
-    h("div", { class: "actions" }, them),
+    luoi(
+      null,
+      phamVi.root,
+      truong("Nhà cung cấp", nguoiBan, { cot: 6, loi: loi.dong("nguoiBan"), goiY: congTyId === null ? "Chưa có hồ sơ công ty chủ." : undefined }),
+      khuTyLe,
+      truong("Từ ngày", tuNgay, { cot: 6, loi: loi.dong("tuNgay") }),
+      truong("Đến ngày (không bắt buộc)", denNgay, { cot: 6, loi: loi.dong("denNgay") }),
+      truong("Ghi chú (không bắt buộc)", ghiChu, { loi: loi.dong("ghiChu") }),
+      thanhNut(null, them),
+    ),
   );
 
   form.addEventListener("submit", async (e) => {

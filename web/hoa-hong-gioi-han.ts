@@ -8,6 +8,7 @@ import { cauGioiHanDangAp } from "../src/shared/hoa-hong-hien-thi";
 import { docTienMoiKhach, docTyLePhanTram } from "../src/shared/so-dai-ly-nhap";
 import { nhanDong, nhanTyLeBp } from "../src/shared/so-dai-ly-nhan";
 import { byId, h, replaceChildren } from "./dom";
+import { thanhNut, truong } from "./khung";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -32,18 +33,19 @@ if (!moTrang("hoaHongGioiHan", staff)) {
     let hienTai = await api<Api.GioiHanNhapResponse>("/api/pricing/gioi-han-nhap");
     const oTyLe = h("input", { type: "text", class: "o", id: "hgh-ty-le", inputMode: "decimal", autocomplete: "off", maxLength: 7, required: true, value: nhanTyLeBp(hienTai.tranTyLeBp).replace("%", "") });
     const oBuoc = h("input", { type: "text", class: "o", id: "hgh-buoc-tien", inputMode: "numeric", autocomplete: "off", maxLength: 9, required: true, value: nhanDong(hienTai.buocTien) });
-    const dangAp = h("p", { class: "muted", id: "hgh-dang-ap" }, cauGioiHanDangAp(hienTai));
+    const dangAp = h("p", { class: "khoi-mo-ta", id: "hgh-dang-ap" }, cauGioiHanDangAp(hienTai));
     const loi = h("p", { class: "alert", role: "alert", hidden: true });
-    const nut = h("button", { type: "submit", class: "btn btn-primary", "data-action": "luu-gioi-han" }, "Lưu");
+    const nut = h("button", { type: "submit", class: "nut", "data-cap": "chinh", "data-action": "luu-gioi-han" }, "Lưu");
+    // Khuôn Thiết lập (ADR-0222): một khối, hai trường trên lưới 12 cột, câu áp dụng dưới hai ô, nút «Lưu» là nút chính trong khối.
     const form = h(
       "form",
-      { id: "hgh-form" },
+      { id: "hgh-form", class: "luoi" },
       dangAp,
-      h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "hgh-ty-le" }, "Phần trăm tối đa (%)"), oTyLe),
-      h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "hgh-buoc-tien" }, "Số tiền phải chia hết cho (đồng)"), oBuoc),
-      h("p", { class: "muted" }, CAU_AP_CHO),
+      truong("Phần trăm tối đa (%)", oTyLe, { cot: 6 }),
+      truong("Số tiền phải chia hết cho (đồng)", oBuoc, { cot: 6 }),
+      h("p", { class: "khoi-mo-ta" }, CAU_AP_CHO),
       loi,
-      h("div", { class: "handler-actions" }, nut),
+      thanhNut(null, nut),
     );
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();

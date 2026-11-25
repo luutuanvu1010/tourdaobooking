@@ -121,9 +121,9 @@ export const thamSuaCap = (m: Api.MucTaDto): ThamSuaDanhMuc => ({
 /** Dòng mã: mã mờ + «Chép mã» (không có với loại Có sẵn — ô hiện câu `CAU_MA_CO_SAN`). Chép hỏng thì chọn sẵn chữ mã để chép tay. */
 export function dongMa(code: string, coSan: boolean): HTMLElement {
   const ma = h("code", { class: "hh-ma" }, nhanMa(code, coSan));
-  if (coSan) return h("p", { class: "muted hh-ma-dong" }, ma);
+  if (coSan) return h("p", { class: "o-phu hh-ma-dong" }, ma);
   const bao = h("span", { class: "hint", role: "status" });
-  const chep = h("button", { type: "button", class: "btn btn-link", "aria-label": `Chép mã ${code}` }, "Chép mã");
+  const chep = h("button", { type: "button", class: "nut", "data-cap": "loi", "aria-label": `Chép mã ${code}` }, "Chép mã");
   chep.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(code);
@@ -134,7 +134,7 @@ export function dongMa(code: string, coSan: boolean): HTMLElement {
       bao.textContent = CAU_KHONG_CHEP_DUOC;
     }
   });
-  return h("p", { class: "muted hh-ma-dong" }, ma, chep, bao);
+  return h("p", { class: "o-phu hh-ma-dong" }, ma, chep, bao);
 }
 
 export interface NguCanhHop {
@@ -154,8 +154,8 @@ const MA_NGAY = (s: string): string => ngayDayDu(s);
 /** Mở một hộp một-bước: `chuan` đọc ô (hiện lỗi ô nếu sai, trả null), `truocNap` (nếu có) nhận phản hồi ngay sau khi đóng hộp, TRƯỚC `napLai`; `xong` chạy sau khi đã vẽ lại trang. */
 function moHop(ctx: NguCanhHop, o: { title: string; body: Child[]; nhan: string; chuan: () => { path: string; body: unknown } | null; truocNap?: (r: unknown) => void; xong: (r: unknown) => void }): void {
   const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
-  const gui = h("button", { type: "button", class: "btn btn-primary" }, o.nhan);
-  const huy = h("button", { type: "button", class: "btn" }, "Huỷ");
+  const gui = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-co": "lon" }, o.nhan);
+  const huy = h("button", { type: "button", class: "nut", "data-cap": "loi", "data-co": "lon" }, "Huỷ");
   const sheet = moBangTruot({ title: o.title, body: [loiEl, ...o.body], foot: [huy, gui], footClass: "loc-foot", opener: document.activeElement instanceof HTMLElement ? document.activeElement : null });
   if (!sheet) return;
   huy.addEventListener("click", () => sheet.close());
@@ -900,9 +900,9 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     });
     const loiTen = h("p", { class: "field-error", role: "alert", hidden: true });
     const loiEl = h("p", { class: "sheet-warn", role: "alert", hidden: true });
-    const moLai = h("button", { type: "button", class: "btn", hidden: true }, "Mở lại");
-    const gui = h("button", { type: "button", class: "btn btn-primary" }, "Lưu");
-    const huy = h("button", { type: "button", class: "btn" }, "Huỷ");
+    const moLai = h("button", { type: "button", class: "nut", "data-cap": "phu", hidden: true }, "Mở lại");
+    const gui = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-co": "lon" }, "Lưu");
+    const huy = h("button", { type: "button", class: "nut", "data-cap": "loi", "data-co": "lon" }, "Huỷ");
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const sheet = moBangTruot({
       title: la ? "Sửa vai trò" : "Sửa cấp độ đại lý",

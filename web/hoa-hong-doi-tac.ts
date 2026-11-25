@@ -30,10 +30,12 @@ import { can } from "../src/shared/permissions";
 import { api, type Api } from "./api";
 import { h, replaceChildren, type Child } from "./dom";
 import type { DuLieuHoaHong } from "./hoa-hong";
-import { bangDongMuc, oViec } from "./hoa-hong-cap";
+import { dsDongMuc, oViec } from "./hoa-hong-cap";
 import type { MoHop } from "./hoa-hong-hop";
 import { khoiLichSuGan } from "./hoa-hong-lich-su";
 import { icon } from "./icons";
+import { khoi, luoi, truong } from "./khung";
+import { trangThaiHeThong } from "./trang-thai-he-thong";
 import { lyDoLoi } from "./so-dai-ly-ui";
 
 type DoiTacRieng = ReturnType<typeof ghepDoiTacRieng>[number];
@@ -63,13 +65,13 @@ function khoiCapRieng(r: Api.HoaHongHoSoResponse, x: DoiTacRieng, d: DuLieuHoaHo
     h(
       "li",
       { "data-gan-id": g.id, "data-sap-ap": sap ? "" : null },
-      h("span", null, h("strong", null, nhanCapRieng(g.muc.ten)), " · ", sap ? h("span", { class: "badge badge-draft" }, nhanSapAp(g)) : h("span", { class: "muted" }, nhanHieuLuc(g))),
+      h("span", null, nhanCapRieng(g.muc.ten), " · ", sap ? h("span", { class: "huy-hieu", "data-tong": "cat" }, nhanSapAp(g)) : h("span", { class: "muted" }, nhanHieuLuc(g))),
       !g.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_DA_KHOA),
       oViec(nhanCapRieng(g.muc.ten), viecLanGan(g, { homNay: r.homNay, ghi, sua, coDoi: true }), "gan", { DOI: () => mo.doiCapRieng(g, x.partyId), SUA: () => mo.suaCapRieng(g, x.partyId), NGUNG: () => mo.ngungCapRieng(g, x.partyId) }),
     );
   const ds = [...k.dangAp.map((g) => dong(g, false)), ...k.sapAp.map((g) => dong(g, true))];
-  const out: Child[] = [ds.length > 0 ? h("ul", { class: "hh-tl-gan" }, ...ds) : h("p", { class: "muted" }, CAU_DT_CHUA_CO_CAP_RIENG)];
-  const lichSu = khoiLichSuGan(k.lichSu, r.homNay, (g) => nhanCapRieng(g.muc.ten), `hh-ls-rieng-${x.partyId}`);
+  const out: Child[] = [ds.length > 0 ? h("ul", { class: "hh-tl-gan" }, ...ds) : h("p", { class: "khoi-mo-ta" }, CAU_DT_CHUA_CO_CAP_RIENG)];
+  const lichSu = khoiLichSuGan(k.lichSu, r.homNay, (g) => nhanCapRieng(g.muc.ten), `hh-ls-rieng-${x.partyId}`, true);
   if (lichSu) out.push(lichSu);
   if (ghi && ds.length === 0 && d.mucTa.muc.some((m) => m.dangBat)) {
     const dat = h("button", { type: "button", class: "nut", "data-cap": "phu", "aria-label": `Chọn cấp riêng cho đối tác: ${x.ten}` }, "Chọn cấp riêng cho đối tác");
@@ -86,22 +88,23 @@ function noiDungCum(x: DoiTacRieng, d: DuLieuHoaHong, mo: MoHop): Child[] {
   const loi = loiHoSo.get(x.partyId);
   const out: Child[] = [];
   if (loi !== undefined) out.push(h("p", { class: "sheet-warn", role: "alert" }, loi));
-  else if (!r) out.push(h("p", { class: "muted", role: "status" }, "Đang tải…"));
+  else if (!r) out.push(h("p", { class: "khoi-mo-ta", role: "status" }, "Đang tải…"));
   if (r) {
-    if (r.xungDot) out.push(h("div", { class: "hh-loai-cap" }, huyHieu("do", "alertCircle", NHAN_XUNG_DOT)), h("p", { class: "hh-cap-nhac" }, CAU_XUNG_DOT));
+    if (r.xungDot) out.push(h("div", { class: "hh-loai-cap" }, huyHieu("do", "alertCircle", NHAN_XUNG_DOT)), h("p", { class: "khoi-mo-ta" }, CAU_XUNG_DOT));
     if (r.vai.length > 0) {
       out.push(
-        h("h4", null, "Vai trò"),
-        h("ul", { class: "hh-tl-gan" }, ...r.vai.map((v) => h("li", null, h("span", null, h("strong", null, v.loai.ten), " · ", h("span", { class: "muted" }, cauVaiHoSo(v))), v.muc !== null && !v.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_DA_KHOA)))),
+        h("p", { class: "khoi-mo-ta" }, "Vai trò"),
+        h("ul", { class: "hh-tl-gan" }, ...r.vai.map((v) => h("li", null, h("span", null, v.loai.ten, " · ", h("span", { class: "muted" }, cauVaiHoSo(v))), v.muc !== null && !v.muc.dangBat && huyHieu("cat", "lock", NHAN_CAP_DA_KHOA)))),
       );
     }
-    if (r.mucRieng) out.push(h("p", { class: "hint" }, CAU_CAP_RIENG_BO_CAP_LOAI));
+    if (r.mucRieng) out.push(h("p", { class: "khoi-mo-ta" }, CAU_CAP_RIENG_BO_CAP_LOAI));
   }
   const tatCa = d.dong.filter((r2) => r2.doiTuong.loai === "DOI_TAC" && r2.doiTuong.partyId === x.partyId);
-  const bang = bangDongMuc(dongRiengDoiTac(d.dong, x.partyId, loc, d.homNay, d.ten), null, d, ghi, mo, false);
-  out.push(h("h4", null, "Mức riêng của đối tác"), bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, tatCa.length === 0 ? CAU_DT_CHUA_CO_MUC_RIENG : CAU_KHONG_KHOP_LOC));
-  if (r) out.push(h("h4", null, "Cấp riêng"), ...khoiCapRieng(r, x, d, mo, ghi));
-  out.push(h("p", { class: "hint" }, h("a", { href: `/parties?id=${encodeURIComponent(x.partyId)}` }, "Mở hồ sơ ở Danh bạ ›")));
+  // Mức riêng của đối tác: danh sách dòng của khung ở mọi khổ (trong mục con không đổi được sang bảng theo bề rộng khối).
+  const bang = dsDongMuc(dongRiengDoiTac(d.dong, x.partyId, loc, d.homNay, d.ten), null, d, ghi, mo, false, false);
+  out.push(h("p", { class: "khoi-mo-ta" }, "Mức riêng của đối tác"), bang ?? h("p", { class: "khoi-mo-ta" }, tatCa.length === 0 ? CAU_DT_CHUA_CO_MUC_RIENG : CAU_KHONG_KHOP_LOC));
+  if (r) out.push(h("p", { class: "khoi-mo-ta" }, "Cấp riêng"), ...khoiCapRieng(r, x, d, mo, ghi));
+  out.push(h("p", { class: "khoi-mo-ta" }, h("a", { href: `/parties?id=${encodeURIComponent(x.partyId)}` }, "Mở hồ sơ ở Danh bạ ›")));
   return out;
 }
 
@@ -146,7 +149,7 @@ function cumDoiTac(x: DoiTacRieng, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
   const nut = h(
     "button",
     { type: "button", class: "hh-loai-nut", "aria-expanded": String(dangMo), "aria-controls": ct.id, "aria-label": `${x.ten}${x.mucRieng ? ", mức riêng" : ""}${x.chinhSach !== null ? `, ${nhanCapRieng(x.chinhSach)}` : ""}` },
-    h("span", { class: "hh-lo-ten" }, h("strong", null, x.ten), x.mucRieng && h("span", { class: "badge badge-confirmed" }, "Mức riêng"), x.chinhSach !== null && h("span", { class: "badge badge-delivered" }, nhanCapRieng(x.chinhSach))),
+    h("span", { class: "hh-lo-ten" }, h("strong", null, x.ten), x.mucRieng && h("span", { class: "huy-hieu", "data-tong": "la" }, "Mức riêng"), x.chinhSach !== null && h("span", { class: "huy-hieu", "data-tong": "bien" }, nhanCapRieng(x.chinhSach))),
     tom !== "" && h("span", { class: "hh-tom-tat muted" }, tom),
   );
   nut.addEventListener("click", () => {
@@ -161,28 +164,36 @@ function cumDoiTac(x: DoiTacRieng, d: DuLieuHoaHong, mo: MoHop): HTMLElement {
     replaceChildren(ct, ...noiDungCum(x, d, mo));
     void napHoSo(x.partyId);
   });
-  return h("article", { class: "hh-lo hh-dt", "data-party": x.partyId }, nut, ct);
+  // Mỗi đối tác là một mục con của khối «Người có cấp riêng» (khung gốc: thay thẻ lồng trong thẻ).
+  return h("article", { class: "muc-con hh-lo hh-dt", "data-party": x.partyId }, nut, ct);
 }
 
 /** Vẽ khối «Người có cấp riêng» vào `goc` (`#hh-loai-rieng`, dưới danh sách vai). Đối tác đang mở vẽ ngay từ hồ sơ đã nạp, rồi GET lại (trừ hồ sơ vừa nhận phản hồi của một lần ghi). */
 export function veTheDoiTac(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
   const ghi = can(d.nguoiDung, "partner.commission.write");
-  const dau = h("div", { class: "hh-cap-dau" }, h("h3", { class: "hh-muc-ten" }, "Người có cấp riêng"));
+  // Nút của khối (khuôn Thiết lập: ở đầu khối). «＋ Thêm mức riêng cho đối tác» là nút chính của trang (ADR-0161 Đ6), từng đứng riêng ở đầu trang: nay ở đầu khối của
+  // thẻ đang chọn (bản ở thẻ cấp: web/hoa-hong-cap.ts), chỉ hiện khi vùng nội dung từ 560 (data-chi="rong"); hẹp hơn thì ở thanh dính đáy (web/hoa-hong.ts). «Chọn cấp riêng cho đối tác» xuống nút phụ: mỗi lúc một nút nền đặc.
+  const viec: HTMLElement[] = [];
+  if (ghi) {
+    const themMuc = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-chi": "rong", id: "hh-them-muc-rieng" }, "＋ Thêm mức riêng cho đối tác");
+    themMuc.addEventListener("click", () => mo.themMuc());
+    viec.push(themMuc);
+  }
   if (ghi && d.mucTa.muc.some((m) => m.dangBat)) {
-    const dat = h("button", { type: "button", class: "nut", "data-cap": "chinh" }, "Chọn cấp riêng cho đối tác");
+    const dat = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Chọn cấp riêng cho đối tác");
     dat.addEventListener("click", () => mo.datCapRieng());
-    dau.append(dat);
+    viec.push(dat);
   }
   const tatCa = ghepDoiTacRieng(d.dong, d.mucTa.ganRieng, d.homNay);
-  const o = h("input", { id: "hh-loc-tim-doi-tac", type: "search", autocomplete: "off", placeholder: "Tìm đối tác, cấp hoặc dịch vụ", "aria-label": "Tìm đối tác, cấp hoặc dịch vụ", value: loc.tim });
-  const tt = h("select", { id: "hh-loc-tt-doi-tac", "aria-label": "Trạng thái" }, h("option", { value: "ap" }, "Đang và sắp áp dụng"), h("option", { value: "tat-ca" }, "Tất cả"));
+  const o = h("input", { id: "hh-loc-tim-doi-tac", class: "o", type: "search", autocomplete: "off", placeholder: "Tìm đối tác, cấp hoặc dịch vụ", "aria-label": "Tìm đối tác, cấp hoặc dịch vụ", value: loc.tim });
+  const tt = h("select", { id: "hh-loc-tt-doi-tac", class: "o", "aria-label": "Trạng thái" }, h("option", { value: "ap" }, "Đang và sắp áp dụng"), h("option", { value: "tat-ca" }, "Tất cả"));
   const noi = h("div", null);
   const ve = (): void => {
     o.value = loc.tim;
     tt.value = loc.chiConHieuLuc ? "ap" : "tat-ca";
     const tim = chuanTim(loc.tim);
     const ds = tatCa.filter((x) => tim === "" || chuanTim(x.ten).includes(tim) || chuanTim(x.chinhSach ?? "").includes(tim) || dongRiengDoiTac(d.dong, x.partyId, loc, d.homNay, d.ten).length > 0);
-    replaceChildren(noi, tatCa.length === 0 ? h("p", { class: "muted" }, CAU_KHONG_CO_DOI_TAC_RIENG) : ds.length === 0 ? h("p", { class: "muted" }, CAU_KHONG_KHOP_LOC) : h("div", { class: "hh-bang" }, ...ds.map((x) => cumDoiTac(x, d, mo))));
+    replaceChildren(noi, tatCa.length === 0 ? trangThaiHeThong("rong", { cau: CAU_KHONG_CO_DOI_TAC_RIENG }) : ds.length === 0 ? trangThaiHeThong("rong", { cau: CAU_KHONG_KHOP_LOC }) : h("div", { class: "hh-bang" }, ...ds.map((x) => cumDoiTac(x, d, mo))));
   };
   o.addEventListener("input", () => {
     loc = { ...loc, tim: o.value };
@@ -198,7 +209,12 @@ export function veTheDoiTac(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void
   hienTai = { goc, d, mo, ds: tatCa, ve };
   replaceChildren(
     goc,
-    h("section", { class: "hh-dt-vung" }, dau, h("div", { class: "hh-loc" }, h("label", null, "Tìm", o), h("label", null, "Trạng thái", tt)), noi, h("p", { class: "hint" }, CAU_DUOI_DS_DOI_TAC)),
+    khoi(
+      { tieuDe: "Người có cấp riêng", idTieuDe: "hh-dt-ten", viec, thuoc: { class: "hh-dt-vung" } }, // hai nút: khối hẹp thì xuống cuối khối, khỏi bóp tên khối
+      luoi(null, truong("Tìm", o, { cot: 6 }), truong("Trạng thái", tt, { cot: 6 })),
+      noi,
+      h("p", { class: "khoi-mo-ta" }, CAU_DUOI_DS_DOI_TAC),
+    ),
   );
   ve();
   for (const x of tatCa) {
