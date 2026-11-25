@@ -221,7 +221,7 @@ function veMaTran(mt: ReturnType<typeof maTranCap>, d: DuLieuHoaHong, mo: MoHop,
     luoi({ class: "hh-ma-tran-loc" }, truong("Tìm", tim, { cot: 4 }), truong("Nhóm", chonNhom, { cot: 4 }), h("label", { class: "check", "data-cot": 4 }, oThieu, NHAN_CON_THIEU)),
     khongKiem && h("p", { class: "khoi-mo-ta", id: "hh-mt-thieu-chu-thich" }, CAU_CON_THIEU_CHUA_KIEM),
     dem,
-    h("div", { class: "hh-ma-tran-khung vung-tu-do" }, bang), // vùng tự do: bảng nhập cấp × dịch vụ cuộn hai chiều (chờ chủ duyệt mục sổ ngoại lệ, đợt C)
+    h("div", { class: "hh-ma-tran-khung vung-tu-do" }, bang), // vùng tự do: bảng nhập cấp × dịch vụ cuộn hai chiều (sổ ngoại lệ src/shared/khung-goc.ts, chủ duyệt 25/11/2026)
   );
 }
 

@@ -56,6 +56,7 @@ export const SO_NGOAI_LE: readonly NgoaiLe[] = [
   { man: "Màn bảo trì", trang: null, phan: "thẻ báo bảo trì phủ trang", loai: "vung-tu-do", lyDo: "hiện đè lên mọi trang khi bật bảo trì, bản mẫu duyệt 13/11", ngayDuyet: "2026-11-21", nguon: "ADR-0222 Đ5", tep: ["web/maintenance-screen.ts"] },
   { man: "Điều phối xe", trang: "/dieu-phoi", phan: "dòng thời gian", loai: "vung-tu-do", lyDo: "trục giờ và các chuyến xếp theo thời gian không dựng được bằng lưới cột", ngayDuyet: "2026-11-21", nguon: "ADR-0222 Đ5", tep: ["web/dieu-phoi.ts", "web/dieu-phoi-ui.ts"] },
   { man: "Ảnh vé", trang: null, phan: "ảnh vé gửi khách", loai: "vung-tu-do", lyDo: "ảnh do máy vẽ theo bố cục riêng của vé (ADR-0175), không phải trang", ngayDuyet: "2026-11-21", nguon: "ADR-0222 Đ5", tep: ["web/ve-anh-tour-dao.ts"] },
+  { man: "Hoa hồng đối tác", trang: "/hoa-hong", phan: "bảng nhập mức cấp × dịch vụ", loai: "vung-tu-do", lyDo: "bảng cuộn cả ngang lẫn dọc trong khung riêng, cột Dịch vụ và hàng đầu dính, mỗi cấp một cột — không dựng được bằng bảng chung của khung", ngayDuyet: "2026-11-25", nguon: "trang ảnh đợt C, chủ dự án «Duyệt theo khuyến nghị»; sổ việc khung gốc mục «Đợt C»", tep: ["web/hoa-hong-cap.ts"] },
   { man: "Quét vé", trang: "/quet-ve", phan: "khung ngắm của máy ảnh", loai: "vung-tu-do", lyDo: "khung hình máy ảnh chiếm màn hình theo tỉ lệ của nó", ngayDuyet: "2026-11-21", nguon: "ADR-0222 Đ5", tep: ["web/quet-ve.ts"] },
 ];
 
@@ -114,10 +115,10 @@ export function soatNgoaiLe(so: readonly NgoaiLe[], trangCo: readonly string[], 
 /** Trang CHƯA chuyển khuôn (tên tệp trong `public/`). Chỉ được bớt: chuyển xong một trang thì khai `data-khung-goc` ở `<body>` và gỡ tên khỏi đây.
  *  Trang mới không được thêm vào đây: phải khai khuôn ngay từ đầu (ADR-0222, «việc giao diện mới trong lúc chuyển phải dùng khung ngay»). */
 export const TRANG_CHUA_CHUYEN: readonly string[] = [
-  "404.html", "account.html", "audit.html", "cap-dai-ly.html", "catalog.html", "chinh-sach-dieu-phoi.html", "chup-bu.html", "dac-diem-dich-vu.html", "dang-ky.html",
-  "danh-muc-giay-to.html", "dieu-chinh-cong-no.html", "dieu-kien-xuat-ben.html", "feedback.html", "giao-dien.html", "gui-thong-bao.html", "han-muc-tra-sau.html",
-  "help.html", "hoa-hong-gioi-han.html", "hoa-hong.html", "home.html", "huong-dan.html", "index.html", "khoa-thang.html", "loai-giay-to-nguoi.html",
-  "loai-giay-to-xe.html", "login.html", "luat-ban.html", "ly-do-dieu-phoi.html", "ngoai-mang.html", "nguoi-ban.html", "parties.html", "phan-dinh.html", "phi-don.html",
-  "phieu-dang-ky.html", "quet-ve.html", "sessions.html", "so-cong-no.html", "staff.html", "thiet-lap.html", "to-chuc.html", "tro-ly-cai-dat.html", "ve-cai-dat.html",
+  "404.html", "account.html", "audit.html", "catalog.html", "chinh-sach-dieu-phoi.html", "dac-diem-dich-vu.html", "dang-ky.html",
+  "danh-muc-giay-to.html", "dieu-kien-xuat-ben.html", "feedback.html", "giao-dien.html", "gui-thong-bao.html",
+  "help.html", "home.html", "huong-dan.html", "index.html", "loai-giay-to-nguoi.html",
+  "loai-giay-to-xe.html", "login.html", "luat-ban.html", "ly-do-dieu-phoi.html", "ngoai-mang.html", "parties.html", "phi-don.html",
+  "phieu-dang-ky.html", "quet-ve.html", "sessions.html", "staff.html", "thiet-lap.html", "to-chuc.html", "tro-ly-cai-dat.html", "ve-cai-dat.html",
   "ve-doi-chieu.html", "ve-kho.html",
 ];

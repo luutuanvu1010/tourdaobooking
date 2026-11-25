@@ -48,6 +48,17 @@ export const BANG_CI = [
   { khoa: "giay-to-sap-het-han", trang: "/giay-to-sap-het-han", bo: "ADMIN" },
   { khoa: "bang-gia-xe", trang: "/bang-gia-xe", bo: "ACCOUNTING" },
   { khoa: "bang-ke-xe", trang: "/bang-ke-xe", bo: "ACCOUNTING" },
+  // Đợt C (25/11/2026): 10 trang Tiền. Dữ liệu tiền tối thiểu (hai cấp đại lý có mức, cấp riêng và hạn mức Trả sau cho đối tác thử, giảm phí đưa đón) gieo ở dưới.
+  { khoa: "so-cong-no", trang: "/so-cong-no", bo: "ACCOUNTING" },
+  { khoa: "phan-dinh", trang: "/phan-dinh", bo: "ACCOUNTING" },
+  { khoa: "khoa-thang", trang: "/khoa-thang", bo: "ACCOUNTING" },
+  { khoa: "dieu-chinh-cong-no", trang: "/dieu-chinh-cong-no", bo: "ACCOUNTING" },
+  { khoa: "chup-bu", trang: "/chup-bu", bo: "ACCOUNTING" },
+  { khoa: "hoa-hong", trang: "/hoa-hong", bo: "ACCOUNTING" },
+  { khoa: "cap-dai-ly", trang: "/cap-dai-ly", bo: "ACCOUNTING" },
+  { khoa: "han-muc-tra-sau", trang: "/han-muc-tra-sau", bo: "ACCOUNTING" },
+  { khoa: "nguoi-ban", trang: "/nguoi-ban", bo: "ACCOUNTING" },
+  { khoa: "hoa-hong-gioi-han", trang: "/hoa-hong-gioi-han", bo: "SUPER_ADMIN" },
 ];
 /** Bộ quyền chỉ dùng để GIEO (không có màn đo): Toàn quyền đánh cờ «cần xác nhận» cho một dịch vụ giả. */
 const BO_GIEO = ["SUPER_ADMIN"];
@@ -199,6 +210,32 @@ async function chay() {
       }
       const dd = await L.call(ck, "POST", "/api/locations", { code: "KS_DO_KHUNG", name: "Khách sạn đo khung", locationTypeCode: "HOTEL", address: "12 Trần Phú, Nha Trang", sortOrder: 95 });
       if (dd.status !== 201) console.log(`  ✗ gieo địa điểm: ${dd.status} ${JSON.stringify(dd.body?.error ?? dd.body).slice(0, 300)}`);
+    }
+    // ---- gieo thêm: dữ liệu tiền tối thiểu cho các trang Tiền (khung gốc đợt C, 25/11/2026), cùng route và hình dữ liệu như kịch bản gieo của máy thử
+    // (docs/evidence/2026-11-25-khung-goc-dot-c/kich-ban/gieo-tien.mjs): trang Hoa hồng, Cấp độ đại lý, Hạn mức trả sau có bảng thật để đo, không đo trên trang rỗng.
+    // Gieo hỏng thì chỉ in lỗi: các trang đó vẫn mở được (trạng thái rỗng theo khuôn chung) và vẫn được đo.
+    if (moi.taiKhoan.ACCOUNTING && moi.taiKhoan.SUPER_ADMIN) {
+      const kt = await L.session(moi.taiKhoan.ACCOUNTING), tq = await L.session(moi.taiKhoan.SUPER_ADMIN);
+      const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+      const thu = async (viec, r, mong = [200, 201]) => { if (!mong.includes(r.status)) console.log(`  ✗ gieo tiền — ${viec}: ${r.status} ${JSON.stringify(r.body?.error ?? r.body).slice(0, 200)}`); return mong.includes(r.status) ? r.body : null; };
+      const cap = {};
+      for (const [ten, ty, giam, goiY] of [["Đại lý vàng", 1500, 50000, { hanMuc: 50_000_000, gioTra: 168, gioAnHan: 24 }], ["Đại lý bạc", 1000, 30000, { hanMuc: 20_000_000, gioTra: 72, gioAnHan: 12 }]]) {
+        const m = await thu(`tạo cấp ${ten}`, await L.call(kt, "POST", "/api/pricing/muc-ta", { ten }), [201]);
+        if (!m?.muc?.code) continue;
+        cap[ten] = m.muc.code;
+        if (!m.muc.dangBat) await thu(`bật cấp ${ten}`, await L.call(kt, "POST", `/api/pricing/muc-ta/${m.muc.code}/bat`, {}));
+        await thu(`mức ${ten}`, await L.call(kt, "POST", `/api/pricing/muc-ta/${m.muc.code}/dong`, { phamVi: "ALL", kieu: "RATE", tyLeBp: ty, tuNgay: homNay }), [201]);
+        await thu(`giảm phí đưa đón ${ten}`, await L.call(kt, "POST", "/api/pricing/giam-phi-don", { tierCode: m.muc.code, amount: giam, validFromDate: homNay }));
+        await thu(`gợi ý Trả sau ${ten}`, await L.call(tq, "PUT", `/api/tra-sau/goi-y/${m.muc.code}`, goiY));
+      }
+      if (cap["Đại lý bạc"]) await thu("gắn vai Công ty lữ hành", await L.call(kt, "POST", "/api/pricing/muc-ta/gan", { loai: "TRAVEL_AGENCY", muc: cap["Đại lý bạc"], tuNgay: homNay }), [201]);
+      await thu("mức theo vai Cộng tác viên", await L.call(kt, "POST", "/api/pricing/hoa-hong", { doiTuong: { loai: "VAI", code: "COLLABORATOR" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000, tuNgay: homNay }), [201]);
+      await thu("mức tối đa Quản trị được cấp", await L.call(tq, "POST", "/api/tra-sau/muc-toi-da", { so: 30_000_000 }), [201]);
+      const dt = moi.taiKhoan.PARTNER ? (await L.call(await L.session(moi.taiKhoan.PARTNER), "GET", "/api/auth/me")).body?.staff?.partyId ?? null : null;
+      if (dt && cap["Đại lý vàng"]) {
+        await thu("cấp riêng đối tác thử", await L.call(kt, "POST", `/api/pricing/ho-so/${dt}/muc-rieng`, { muc: cap["Đại lý vàng"], tuNgay: homNay }), [201]);
+        await thu("hạn mức Trả sau đối tác thử", await L.call(tq, "POST", "/api/tra-sau/han-muc", { partyId: dt, hanMuc: 20_000_000, gioTra: 72, gioAnHan: 12, lyDo: "Đối tác đo khung, đặt đoàn đều" }), [201]);
+      } else console.log("  ✗ gieo tiền — cấp riêng / hạn mức: thiếu hồ sơ đối tác thử hoặc cấp vàng");
     }
     // ---- gieo thêm (lượt hai): một đơn ĐANG CHỜ XÁC NHẬN (khung gốc đợt A), để màn «Đơn chờ xác nhận» được đo khi có danh sách, như người dùng thật thấy. Gieo hỏng thì trang
     // rỗng; lượt đó tính là KHÔNG CHẠY ĐƯỢC (mã 2) — không đo màn ở trạng thái rỗng rồi báo đạt (soát độc lập 24/11). Cùng cách kịch bản tests/e2e/gui-don.mjs:
