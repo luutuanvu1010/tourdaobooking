@@ -1,6 +1,7 @@
 // Khung thử phá: nạp CẢ ứng dụng (src/index.ts: router + mọi module) bằng esbuild, chạy trên D1 giả = SQLite thật (node:sqlite) với schema dựng
 // từ migrations/*.sql. Không mạng, không Turnstile (thiếu TURNSTILE_SECRET_KEY = tắt), không đụng D1 local/remote.
-import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -25,6 +26,17 @@ export function dungTuMigration(duongDan = ":memory:") {
 let thuMucTam = null;
 let tepMau = null;
 let soBan = 0;
+// Rút lượt kiểm 25/11/2026: hơn 400 tệp kiểm dùng khung này, mỗi tệp một tiến trình tự dựng bản mẫu (~1,5 giây trên máy GitHub, ~10 phút máy mỗi lượt).
+// Nay các tiến trình trên CÙNG MÁY dùng chung một tệp mẫu đặt theo DẤU NỘI DUNG (băm mọi migration theo thứ tự + mã hàm dungTuMigration + phiên bản SQLite):
+// đổi một migration là ra tên khác, không bao giờ dùng mẫu cũ. Tệp mẫu ghi ra tên tạm riêng rồi đổi tên (nguyên tử) — tiến trình chết giữa chừng không để lại
+// mẫu dở; hai tiến trình cùng dựng thì cùng ra một nội dung. Mẫu chỉ được CHÉP, không bao giờ mở để ghi.
+function dauNoiDung() {
+  const h = createHash("sha256");
+  h.update(process.versions.sqlite ?? "");
+  h.update(dungTuMigration.toString());
+  for (const f of readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort()) h.update(`\0${f}\0`).update(readFileSync(MIG + f));
+  return h.digest("hex").slice(0, 32);
+}
 function banMau() {
   if (tepMau) return tepMau;
   thuMucTam = mkdtempSync(join(tmpdir(), "tourdao-khung-thu-"));
@@ -35,8 +47,14 @@ function banMau() {
       /* thoát rồi: không làm gì thêm được */
     }
   });
-  const p = join(thuMucTam, "mau.sqlite");
-  dungTuMigration(p).close();
+  const chung = join(tmpdir(), "tourdao-khung-thu-mau");
+  mkdirSync(chung, { recursive: true });
+  const p = join(chung, `${dauNoiDung()}.sqlite`);
+  if (!existsSync(p)) {
+    const tam = join(thuMucTam, "mau-dang-dung.sqlite");
+    dungTuMigration(tam).close();
+    renameSync(tam, p);
+  }
   tepMau = p;
   return tepMau;
 }

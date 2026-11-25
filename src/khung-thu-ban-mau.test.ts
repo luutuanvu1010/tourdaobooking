@@ -37,4 +37,12 @@ test("bản sao có đủ bảng, view, trigger, chỉ mục như CSDL dựng th
   const soDong = (db: typeof thang) => (db.prepare("SELECT count(*) AS n FROM stf_permission_type").get() as { n: number }).n;
   assert.ok(soDong(thang) > 0);
   assert.equal(soDong(sao), soDong(thang));
+  // Từ 25/11/2026 tệp mẫu DÙNG CHUNG giữa các tiến trình (đặt tên theo dấu nội dung migration): mọi dòng dữ liệu cũng phải bằng dựng thẳng (bỏ giờ tạo),
+  // để một tệp mẫu cũ (dữ liệu gieo khác) không lọt qua chỉ vì cấu trúc giống.
+  const duLieu = (db: typeof thang) =>
+    (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all() as { name: string }[]).map((t) => [
+      t.name,
+      db.prepare(`SELECT * FROM "${t.name}"`).all().map((r) => JSON.stringify(r).replace(/\d{4}-\d\d-\d\d[T ]\d\d:\d\d:\d\d(\.\d+)?Z?/g, "<GIO>").replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b|\b[0-9a-f]{32}\b/g, "<ID>")).sort(),
+    ]);
+  assert.deepEqual(duLieu(sao), duLieu(thang));
 });
