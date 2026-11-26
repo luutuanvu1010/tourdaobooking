@@ -1,5 +1,5 @@
 {
-  "ghiChu": "9 màn của đợt D3 khung gốc (8 trang Thiết lập hệ thống và vận chuyển), số màn giữ theo bảng 20/11. Thêm 157: Toàn quyền mở trang Thiết lập (25 mục). 063: Quản trị mở Điều kiện cho xe chạy (trang chỉ Toàn quyền đặt được).",
+  "ghiChu": "9 màn của đợt D3 khung gốc (8 trang Thiết lập hệ thống và vận chuyển), số màn giữ theo bảng 20/11. Thêm 157: Toàn quyền mở trang Thiết lập (25 mục). 063: Quản trị mở Điều kiện cho xe chạy (trang chỉ Toàn quyền đặt được). 162: Toàn quyền mở Chính sách điều phối (biểu mẫu đủ; chỉ có ảnh đề xuất, thêm sau khi bản nháp đã sửa mã).",
   "man": [
     { "so": 57, "bo": "ADMIN", "trang": "/thiet-lap", "ho": "D3" },
     { "so": 157, "bo": "SUPER_ADMIN", "trang": "/thiet-lap", "ho": "D3" },
@@ -7,6 +7,7 @@
     { "so": 60, "bo": "ADMIN", "trang": "/loai-giay-to-xe", "ho": "D3" },
     { "so": 61, "bo": "ADMIN", "trang": "/ly-do-dieu-phoi", "ho": "D3" },
     { "so": 62, "bo": "ADMIN", "trang": "/chinh-sach-dieu-phoi", "ho": "D3" },
+    { "so": 162, "bo": "SUPER_ADMIN", "trang": "/chinh-sach-dieu-phoi", "ho": "D3" },
     { "so": 63, "bo": "ADMIN", "trang": "/dieu-kien-xuat-ben", "ho": "D3" },
     { "so": 87, "bo": "SUPER_ADMIN", "trang": "/dieu-kien-xuat-ben", "ho": "D3" },
     { "so": 66, "bo": "SUPER_ADMIN", "trang": "/giao-dien", "ho": "D3" },

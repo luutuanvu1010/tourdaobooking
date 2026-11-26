@@ -161,7 +161,7 @@ function veDieuKien(): void {
       nut,
     );
   };
-  const moThem = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-action": "mo-them-dieu-kien" }, "Thêm điều kiện");
+  const moThem = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "mo-them-dieu-kien" }, "+ Thêm điều kiện");
   moThem.addEventListener("click", () => moThemDieuKien(moThem));
   replaceChildren(
     dkEl,
