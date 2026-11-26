@@ -15,8 +15,8 @@
   <!-- web/sessions.ts dựng ô lọc, bảng (khối rộng) và danh sách dòng (khối hẹp) chỉ khi máy chủ nói có ô auth.session.viewAll (ADR-0075 điều 7). -->
   <div id="filters" class="thanh-loc" hidden></div>
   <section id="table-card" class="khoi" data-kieu="bang" aria-label="Danh sách máy đang đăng nhập" hidden>
-    <table class="bang">
-      <thead><tr><th>Người</th><th>Máy</th><th data-cot-phu>IP</th><th data-cot-phu>Cách đăng nhập</th><th>Đăng nhập lúc</th><th>Hoạt động gần nhất</th><th>Trạng thái</th><th><span class="visually-hidden">Việc</span></th></tr></thead>
+    <table class="bang" data-cot-phu="an">
+      <thead><tr><th>Người</th><th>Máy</th><th data-cot-phu>IP</th><th data-cot-phu>Cách đăng nhập</th><th data-cot-phu>Đăng nhập lúc</th><th>Hoạt động gần nhất</th><th data-cot-phu>Trạng thái</th><th><span class="visually-hidden">Việc</span></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
     <div id="list-cards" class="ds-dong" data-thay-bang></div>

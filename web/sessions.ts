@@ -214,14 +214,27 @@ if (!can(staff, "auth.session.viewAll")) {
     const tr = h(
       "tr",
       { "data-ngung": s.live ? undefined : "", "data-phien": s.id },
-      h("td", null, tenNguoi(s), s.thisDevice && h("span", { class: "o-phu" }, "(máy này)")),
-      h("td", null, s.deviceLabel, h("span", { class: "o-phu", "data-thay-cot": "" }, `IP ${s.ip ?? "không rõ"} · ${s.methodLabel}`)),
+      // Người chấm giao diện 26/11: bảng 8 cột tràn khối ở 1280 (IP ngắt giữa số, tên xuống 2–3 dòng, hai nút xếp dọc). Cột IP, Cách đăng nhập, Đăng nhập lúc,
+      // Trạng thái nay là cột phụ (bảng khai data-cot-phu="an": ẩn ở mọi bề rộng — tham số khuôn Danh sách ở public/app.css), nội dung nằm dưới ô Người / Máy /
+      // Hoạt động gần nhất; mỗi mẩu số không ngắt giữa (data-manh). Ô Máy, Hoạt động gần nhất co về tối thiểu (data-co): chỗ dư cho tên và hai nút.
+      h("td", null, tenNguoi(s), s.thisDevice && h("span", { class: "o-phu" }, "(máy này)"), h("span", { class: "o-phu", "data-thay-cot": "" }, trangThai(s))),
+      h(
+        "td",
+        { "data-co": "" },
+        s.deviceLabel,
+        h("span", { class: "o-phu", "data-thay-cot": "", "data-manh": "" }, h("span", null, `IP ${s.ip ?? "không rõ"}`), h("span", null, `· ${s.methodLabel}`)),
+      ),
       h("td", { "data-cot-phu": "" }, s.ip ?? "—"),
       h("td", { "data-cot-phu": "" }, s.methodLabel),
-      h("td", null, vnDateTimeText(s.createdAt)),
-      h("td", null, vnDateTimeText(s.lastSeenAt)),
-      h("td", null, trangThai(s)),
-      h("td", null, nuts.length > 0 ? h("div", { class: "hang" }, ...nuts) : null),
+      h("td", { "data-cot-phu": "" }, vnDateTimeText(s.createdAt)),
+      h(
+        "td",
+        { "data-co": "" },
+        h("span", { "data-manh": "" }, h("span", null, vnDateTimeText(s.lastSeenAt))),
+        h("span", { class: "o-phu", "data-thay-cot": "", "data-manh": "" }, h("span", null, "Đăng nhập"), h("span", null, vnDateTimeText(s.createdAt))),
+      ),
+      h("td", { "data-cot-phu": "" }, trangThai(s)),
+      h("td", null, nuts.length > 0 ? h("div", { class: "hang", "data-mot-hang": "" }, ...nuts) : null),
     );
     const hop = hopXacNhan(s);
     return hop ? [tr, h("tr", null, h("td", { colSpan: 8, "data-ca-hang": "" }, hop))] : [tr];

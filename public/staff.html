@@ -4,8 +4,9 @@
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Khuôn Danh sách của khung gốc (ADR-0222; đợt D1): đầu trang (lối sang Cấp độ đại lý, Phiếu đăng ký), khối «Hàng chờ xác minh» (ô party.verify), thanh lọc
-       (nút lọc theo vai trò, nút «Thêm tài khoản» ở mép phải — ô account.create), rồi MỘT khối bảng tài khoản: khối từ 800 hiện bảng, hẹp hơn hiện danh sách dòng.
+  <!-- Khuôn Danh sách của khung gốc (ADR-0222; đợt D1): đầu trang (lối sang Cấp độ đại lý, Phiếu đăng ký), thanh lọc (nút lọc theo
+       vai trò, nút «Thêm tài khoản» ở mép phải — ô account.create), MỘT khối bảng tài khoản (khối từ 800 hiện bảng, hẹp hơn hiện danh sách dòng), rồi khối
+       «Hàng chờ xác minh» (ô party.verify).
        Biểu mẫu thêm (#add-form, giữ sẵn trong #add-kho) và sửa mở trong bảng trượt (web/staff.ts). PIN mới hiện ở khối #secret trên trang, đúng một lần. -->
   <h1>Quản lý tài khoản</h1>
   <div id="dau-trang" class="dau-trang" hidden>
@@ -17,7 +18,6 @@
   </div>
   <div id="error" class="alert" role="alert" hidden></div>
   <section id="secret" class="khoi" hidden></section>
-  <section id="xac-minh" class="khoi" aria-labelledby="xm-heading" hidden></section>
   <div id="thanh-loc" class="thanh-loc" hidden>
     <div id="loc-vai" class="hang" role="group" aria-label="Lọc theo vai trò" hidden></div>
     <button id="add-card" type="button" class="nut day-phai" data-cap="chinh" hidden>Thêm tài khoản</button>
@@ -33,12 +33,14 @@
   </div>
   <section id="tk-khoi" class="khoi" data-kieu="bang" aria-labelledby="tk-ten" hidden>
     <header class="khoi-dau"><h2 id="tk-ten">Danh sách tài khoản</h2></header>
-    <table class="bang">
+    <table class="bang" data-cot-phu="an">
       <thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Vai trò / quyền</th><th id="cot-cap" hidden>Cấp độ đại lý</th><th>Tạo lúc</th><th>Đăng nhập gần nhất</th><th></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
     <div id="list-cards" class="ds-dong" data-thay-bang></div>
   </section>
+  <!-- Hàng chờ xác minh đứng SAU danh sách (người chấm giao diện 26/11: khối rỗng chiếm chỗ trên danh sách); khối tự dựng, chức năng giữ nguyên. -->
+  <section id="xac-minh" class="khoi" aria-labelledby="xm-heading" hidden></section>
 </main>
 <script type="module" src="/js/staff.js"></script>
 </body></html>

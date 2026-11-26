@@ -4768,9 +4768,27 @@ body[data-khung-goc="thiet-lap"] .vc-bottom-bar > .nut { width: 100%; }
 body[data-khung-goc="danh-sach"] .bang[data-cot-cuoi="chu"] tr > :last-child, body[data-khung-goc="danh-sach"] .bang td[data-ca-hang] { text-align: left; white-space: normal; }
 /* Ô chọn trong thanh lọc (bộ lọc hành động của Nhật ký): tên lựa chọn dài không đẩy ô tràn khỏi màn điện thoại. */
 body[data-khung-goc="danh-sach"] .thanh-loc > select.o { min-width: 0; }
-/* -- Đợt D1 (26/11/2026) — trang Quản lý tài khoản (web/staff.ts): ô nút cuối dòng bảng có tới sáu nút — xuống hàng trong ô (không đẩy bảng ra ngoài khối khi
-   khối hẹp, kể cả bề rộng «vừa»), canh mép phải như ô cuối của bảng. -- */
-body[data-khung-goc="danh-sach"] .bang td > .tk-viec { justify-content: flex-end; white-space: nowrap; }
+/* -- Đợt D1 (26/11/2026) — tham số bảng và thanh lọc của khuôn Danh sách (data-*), dựng khi sửa phát hiện người chấm giao diện ở /staff, /sessions, /parties:
+   bảng nhiều cột tràn khối ở 1280 (tiêu đề cột không xuống dòng) nên ô nút cuối dòng bị cắt, nút xếp dọc, số IP ngắt giữa.
+   .bang[data-cot-phu="an"]: cột phụ ẩn ở MỌI bề rộng (kể cả khối từ 1040), nội dung luôn ở dòng phụ .o-phu[data-thay-cot]; tiêu đề cột được xuống dòng.
+   [data-manh]: dòng phụ gồm nhiều mẩu (số điện thoại, IP, giờ) — xuống dòng giữa các mẩu, không bao giờ ngắt giữa một mẩu.
+   td[data-co]: cột co về bề rộng tối thiểu, chỗ dư dành cho hàng nút.
+   .hang[data-mot-hang] (ô nút cuối dòng): canh mép phải; khối hẹp hơn 1040 thì nút xuống hàng ngang trong ô (không tràn, không cắt), từ 1040 luôn một hàng. -- */
+body[data-khung-goc="danh-sach"] .bang[data-cot-phu="an"] :is(th, td)[data-cot-phu] { display: none; }
+body[data-khung-goc="danh-sach"] .bang[data-cot-phu="an"] .o-phu[data-thay-cot]:not([data-manh]) { display: block; overflow-wrap: normal; }
+body[data-khung-goc="danh-sach"] .bang[data-cot-phu="an"] th { white-space: normal; }
+body[data-khung-goc="danh-sach"] .bang[data-cot-phu="an"] [data-manh] { display: flex; flex-wrap: wrap; column-gap: var(--s2); overflow-wrap: normal; }
+body[data-khung-goc="danh-sach"] .bang [data-manh] > * { white-space: nowrap; }
+body[data-khung-goc="danh-sach"] .bang td[data-co] { width: 1%; }
+body[data-khung-goc="danh-sach"] .bang td > .hang[data-mot-hang] { justify-content: flex-end; white-space: nowrap; }
+@container khoi (min-width: 1040px) { body[data-khung-goc="danh-sach"] .bang td > .hang[data-mot-hang] { flex-wrap: nowrap; } }
+/* .thanh-loc[data-o-deu] (thanh lọc có nhãn trên ô, như Danh bạ): mọi ô cùng một bề rộng cơ sở (điện thoại: mỗi ô kín hàng), nút canh đáy ngang ô nhập;
+   vùng nội dung hẹp hơn 560 thì ô tích đứng riêng một hàng, các nút chung hàng dưới. */
+body[data-khung-goc="danh-sach"] .thanh-loc[data-o-deu] { align-items: flex-end; }
+body[data-khung-goc="danh-sach"] .thanh-loc[data-o-deu] > .truong { flex: 1 1 var(--kg-cot-dai); }
+body[data-khung-goc="danh-sach"] .thanh-loc[data-o-deu] > .truong > .o { width: 100%; min-width: 0; }
+body[data-khung-goc="danh-sach"] .thanh-loc[data-o-deu] > .check { flex-basis: 100%; min-height: var(--kg-cao-o); margin: 0; }
+@container trang (min-width: 560px) { body[data-khung-goc="danh-sach"] .thanh-loc[data-o-deu] > .check { flex-basis: auto; } }
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
 
 /* ---------- Tạo / Sửa đơn — ruột trang theo ngôn ngữ thị giác (ADR-0234 nguyên tắc 1: một dòng một thứ đậm; khối một con số nổi). Chỉ đổi ĐỘ ĐẬM, khoanh trong

@@ -1,5 +1,5 @@
-// Trang Quản lý tài khoản (/staff). Bố cục: khuôn Danh sách của khung gốc (ADR-0222, đợt D1) — đầu trang (lối sang), khối «Hàng chờ xác minh», thanh lọc theo vai trò
-// với nút «Thêm tài khoản» ở mép phải, rồi MỘT khối bảng: khối từ 800 là bảng, hẹp hơn là danh sách dòng (public/staff.html). Biểu mẫu thêm, sửa và hộp tắt bảo mật
+// Trang Quản lý tài khoản (/staff). Bố cục: khuôn Danh sách của khung gốc (ADR-0222, đợt D1) — đầu trang (lối sang), thanh lọc theo vai trò
+// với nút «Thêm tài khoản» ở mép phải, MỘT khối bảng (khối từ 800 là bảng, hẹp hơn là danh sách dòng), rồi khối «Hàng chờ xác minh» (public/staff.html). Biểu mẫu thêm, sửa và hộp tắt bảo mật
 // hai lớp mở trong bảng trượt (web/bang-truot.ts); lỗi của thao tác hiện trong bảng đang mở. PIN mới hiện ở khối #secret trên trang, đúng một lần.
 // Đợt D1 chỉ đổi bố cục: mọi ô, nút, điều kiện hiện nút theo quyền và lời gọi máy chủ giữ nguyên.
 import { ApiError, api, type StaffAccount, type Api } from "./api";
@@ -256,19 +256,27 @@ function row(s: Api.StaffListRowDto): HTMLElement {
       isMe && h("span", { class: "muted" }, " (bạn)"),
       dauXacMinh(s.dauXacMinh),
       huyHieuCua(s),
-      !anCot("createdAt") && h("span", { class: "o-phu", "data-thay-cot": "" }, `Tạo lúc ${dateTime(s.createdAt)}`),
+      // Ba cột Số điện thoại, Tạo lúc, Đăng nhập gần nhất nằm thành MỘT dòng phụ dưới tên (bảng khai data-cot-phu="an": cột phụ ẩn ở mọi bề rộng — tham số khuôn
+      // Danh sách ở public/app.css): bảng còn chỗ cho hàng nút cuối dòng (phát hiện người chấm giao diện, đợt D1). Mỗi mẩu không ngắt giữa (data-manh).
+      h(
+        "span",
+        { class: "o-phu", "data-thay-cot": "", "data-manh": "" },
+        h("span", null, s.phone),
+        !anCot("createdAt") && h("span", null, `Tạo lúc ${dateTime(s.createdAt)}`),
+        !anCot("lastLoginAt") && h("span", null, s.lastLoginAt ? `Đăng nhập ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
+      ),
     ),
-    h("td", { "data-gon": "" }, s.phone),
+    h("td", { "data-gon": "", "data-cot-phu": "" }, s.phone),
     h("td", null, accessLabel(s)),
-    hienCotCap && h("td", null, oCapCuaS(s)),
+    hienCotCap && h("td", { "data-co": "" }, oCapCuaS(s)), // cột co về bề rộng tối thiểu: chỗ dư dành cho hàng nút
     h("td", { class: "muted", "data-cot-phu": "", hidden: anCot("createdAt") }, dateTime(s.createdAt)),
-    h("td", { class: "muted", hidden: anCot("lastLoginAt") }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
+    h("td", { class: "muted", "data-cot-phu": "", hidden: anCot("lastLoginAt") }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
     h(
       "td",
       null,
       h(
         "div",
-        { class: "hang tk-viec" },
+        { class: "hang", "data-mot-hang": "" },
         quanDuoc(s) && btn("Sửa", (b) => void openEdit(s, b), "phu"),
         // Cờ máy chủ theo dòng (ADR-0090 đ2): cùng hàm với cổng route — hai ô, cấp dưới, không phải chính mình (DK-T3-02: đổi PIN của mình ở trang "Tôi"),
         // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
@@ -698,8 +706,8 @@ else {
   byId("dau-trang").hidden = byId("lien-ket-cap-dai-ly").hidden && byId("lien-ket-phieu-dang-ky").hidden;
   chinhSach = await taiChinhSach();
   for (const th of document.querySelectorAll<HTMLElement>("#tk-khoi th")) anPhanTu(anCot(th.textContent === "Tạo lúc" ? "createdAt" : th.textContent === "Đăng nhập gần nhất" ? "lastLoginAt" : ""), th);
-  // Cột «Tạo lúc» là cột phụ: chỉ hiện khi khối từ 1040, hẹp hơn thì nằm dưới tên (thuộc tính đặt ở đây để hàng tiêu đề trong HTML giữ nguyên dạng cũ).
-  for (const th of document.querySelectorAll<HTMLElement>("#tk-khoi th")) if (th.textContent === "Tạo lúc") th.setAttribute("data-cot-phu", "");
+  // Cột «Số điện thoại», «Tạo lúc», «Đăng nhập gần nhất» là cột phụ, nội dung nằm ở dòng phụ dưới tên (thuộc tính đặt ở đây để hàng tiêu đề trong HTML giữ nguyên dạng cũ).
+  for (const th of document.querySelectorAll<HTMLElement>("#tk-khoi th")) if (["Số điện thoại", "Tạo lúc", "Đăng nhập gần nhất"].includes(th.textContent ?? "")) th.setAttribute("data-cot-phu", "");
   await load();
   // Task 3b: khối vai dựng SAU lần nạp đầu để ô vai mang tên hiện hành (tenVai) từ máy chủ. Nút «Thêm tài khoản» chỉ hiện khi khối vai đã có (trước đó bấm Tạo không làm gì).
   if (can(staff, "account.create")) {
