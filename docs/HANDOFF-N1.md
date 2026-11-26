@@ -2,7 +2,23 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.45 ĐÃ LÊN PRODUCTION (khung gốc đợt B, ADR-0222 + ADR-0234: 15 trang Tài xế – Vận chuyển theo khung chung, lần đầu dùng khuôn «Tổng quan» (trang `dieu-phoi`, `cuoc` và các trang tổng quan khác của đợt); kèm phần rút lượt kiểm GitHub xuống ~6 phút) — không migration — triển khai 2026-11-25 14:39 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.46 ĐÃ LÊN PRODUCTION (khung gốc đợt C, ADR-0222 + ADR-0234: 10 trang Tiền theo khung chung — Sổ công nợ, Phân định, Khoá sổ, Điều chỉnh công nợ, Chụp bù, Hoa hồng, Cấp độ đại lý, Hạn mức trả sau, Nhà cung cấp, Giới hạn nhập hoa hồng; số tiền không đổi; kèm sửa nút chính đầu trang rớt hàng ở Điều phối 600) — không migration — triển khai 2026-11-26 07:33 giờ Việt Nam
+
+Ghi bởi phiên thi công đợt C, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ.
+
+- Ngày giờ: 2026-11-26 07:33 (giờ Việt Nam)
+- Commit: 8757605f8 Khung gốc: nút chính rớt hàng ở đầu trang vẫn đứng mép phải (vùng nội dung từ 560)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-26T00:12:57Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45726431058
+- Migration đã áp: không có
+- Worker Version ID: 4d1516c1-d783-43c7-9933-7e9565daab44
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (3 cảnh báo)
+- Phiên bản: 3.46
+- Cổng phiên bản trước deploy: ĐẠT; sau deploy: ĐẠT
+- Thời gian: day-len 5 phút 57 giây (chờ GitHub kiểm 5 phút 51 giây); trien-khai 0 phút 46 giây; tổng 6 phút 43 giây
+- Ghi chú: lần day-len đầu (25/11, lượt kiểm 45713316434) đỏ ở Điều phối @600 vì chữ «Thứ Năm · hôm nay» dài hơn «Thứ Tư» làm nút «+ Chuyến mới» rớt hàng sang trái (lỗi có sẵn từ đợt B) — sửa ở 8757605f8. Hai bài `src/khung-thu-ban-mau.test.ts` và `src/modules/parties/cong-ty-chu.test.ts` đỏ trong khoảng 0–7 giờ sáng giờ Việt Nam (bản chính cũ 3c3cceeff cũng đỏ y hệt): chưa sửa, nên chạy day-len sau 7 giờ.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 3.45 ĐÃ LÊN PRODUCTION (khung gốc đợt B, ADR-0222 + ADR-0234: 15 trang Tài xế – Vận chuyển theo khung chung, lần đầu dùng khuôn «Tổng quan» (trang `dieu-phoi`, `cuoc` và các trang tổng quan khác của đợt); kèm phần rút lượt kiểm GitHub xuống ~6 phút) — không migration — triển khai 2026-11-25 14:39 giờ Việt Nam
 
 Ghi bởi phiên thi công đợt B. Phiên này KHÔNG có đầu ra `npm run trien-khai` của lần chạy thật (lệnh chạy ở ô Terminal của phiên khác), nên các dòng dưới lấy từ nguồn kiểm được; dòng nào không kiểm được thì ghi rõ.
 
