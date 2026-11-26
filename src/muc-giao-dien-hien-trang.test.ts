@@ -32,6 +32,8 @@
 // Riêng `ngoaiTuyen.thanhTab` GIỮ NGUYÊN giá trị cũ: lệnh chụp, kể cả `--rev HEAD`, ra mảng rỗng ở ô này (lệch từ trước, không do ADR-0169), còn bài mất mạng dưới đây vẫn đọc bốn tab cơ bản từ bảng.
 // Sửa 2026-11-23 (việc 15, chủ chọn tên «Nhà cung cấp» thay «Người bán dịch vụ»): chỉ đổi đúng hai chuỗi nhãn «Người bán dịch vụ» → «Nhà cung cấp» (ô `thanh-ben` và `trang-toi`),
 // GIỮ NGUYÊN mặt nạ tập quyền — đổi chữ có chủ ý, không đổi ai thấy mục nào.
+// Sửa 2026-11-26 (menu Thiết lập nhiều tầng, đặc tả 2026-11-26-menu-thiet-lap-nhieu-tang, chủ duyệt «Duyệt cả ba»): chỉ ĐỔI THỨ TỰ các chuỗi THIẾT LẬP trong hai ô `thanh-ben` và
+// `khung-tam:thanh-ben` theo sáu nhóm con, và đưa «Báo bận của tôi» (đang kẹt giữa khối Thiết lập) về ngay sau «Cuốc của tôi» như thứ tự THANH_BEN. Mỗi chuỗi mang theo đúng mặt nạ cũ — không đổi ai thấy mục nào.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

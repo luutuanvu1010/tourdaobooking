@@ -128,7 +128,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 118.922 → 119.044 (+122, Việc 10 — ADR-0229 Giá mùa vụ), đo thật sau gộp main 23/11 (có Việc 13): +89 là ba ô quyền `catalog.seasonal.write/approve/cap` trong bảng quyền dùng chung
 // (chủ dự án duyệt 23/11/2026, chat, nguyên văn «duyệt cả ba theo khuyến nghị»), +33 là điều kiện mở màn hẹp Dịch vụ & giá cho người giữ ô giá mùa vụ trong `dungManHepDichVu`
 // (chủ dự án duyệt 23/11/2026, chat, nguyên văn «Duyệt 118.812» — số đo trên nền 118.690 trước khi gộp Việc 13). Trần = đúng số đo.
-const TRAN_ORDERS = 119_044;
+// Nới 119.044 → 119.520 (+476, menu Thiết lập nhiều tầng — đặc tả 2026-11-26-menu-thiet-lap-nhieu-tang, chủ duyệt 26/11 «Duyệt cả ba»; đặc tả báo trước phải nới): sáu hằng nhóm con
+// (tên có dấu thành \uXXXX), tham số nhóm ở 25 dòng `tl()`, hàm `khoiThietLap` và nhánh vẽ nhóm con ở `web/shell.ts` (đã gộp chung với nhánh «Điều phối», từ +626 xuống +476). Chỉ điều hướng.
+const TRAN_ORDERS = 119_520;
 
 function dung(trang: string) {
   const r = buildSync({

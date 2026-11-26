@@ -1,6 +1,6 @@
 # Đặc tả ngắn — Menu Thiết lập nhiều tầng cho Quản trị và Toàn quyền (26/11/2026)
 
-> Trạng thái: **nháp, chờ chủ trả lời mục 5**. Lời chủ 26/11 nguyên văn: «Tái cấu trúc mạnh mẽ menu của Admin, Super Admin theo nhiều tầng theo nhiều nhóm khác nhau ở 1 phiên khác». Bàn giao: `docs/superpowers/plans/2026-11-26-ban-giao-phien-dieu-phoi-giao-dien.md` §4 (nhánh `claude/tour-booking-ui-audit-b8c386`). Khung gốc ADR-0222, ngôn ngữ thị giác ADR-0234.
+> Trạng thái: **chủ duyệt 26/11/2026**, nguyên văn «Duyệt cả ba» (phương án A, bộ tên khuyến nghị, điện thoại hiện sẵn có tiêu đề, tách trang «Cài đặt lập đơn» sau khi nhánh P1 vào `main`). Lời chủ 26/11 nguyên văn: «Tái cấu trúc mạnh mẽ menu của Admin, Super Admin theo nhiều tầng theo nhiều nhóm khác nhau ở 1 phiên khác». Bàn giao: `docs/superpowers/plans/2026-11-26-ban-giao-phien-dieu-phoi-giao-dien.md` §4 (nhánh `claude/tour-booking-ui-audit-b8c386`). Khung gốc ADR-0222, ngôn ngữ thị giác ADR-0234.
 
 ## 1. Việc gì, cho ai, vì sao
 

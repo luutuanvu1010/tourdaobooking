@@ -1330,6 +1330,9 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .sidebar-group-toggle[aria-expanded="false"] .sidebar-chevron { transform: rotate(-90deg); }
 .sidebar-gap .sidebar-item { min-height: var(--h-muc-nho); padding-top: var(--s1); padding-bottom: var(--s1); padding-left: var(--sidebar-sub-indent); font-weight: var(--fw-regular); }
 .sidebar-gap .sidebar-item[aria-current="page"] { font-weight: var(--fw-bold); }
+/* Nhóm con trong Thiết lập (đặc tả 2026-11-26-menu-thiet-lap-nhieu-tang): nút chữ thường thụt một bậc, mục bên trong thụt thêm một bậc — phân biệt với nút THIẾT LẬP viết hoa. */
+.sidebar-gap .sidebar-gap > .sidebar-group-toggle { padding-left: var(--sidebar-sub-indent); font-weight: var(--fw-semibold); letter-spacing: 0; text-transform: none; color: var(--c-sidebar-item); }
+.sidebar-gap .sidebar-gap .sidebar-item { padding-left: calc(var(--sidebar-sub-indent) + var(--s4)); }
 /* Chân thanh: ba mục chân menu, rồi người dùng, rồi Đăng xuất */
 /* Chân gọn (sửa vòng 2, 7b): Đăng xuất đứng CÙNG hàng với người dùng (lưới hai cột) thay vì một hàng riêng — bớt ~44px để vùng danh sách mục có chỗ ở màn thấp. */
 .sidebar-foot { position: sticky; bottom: 0; background: var(--c-sidebar-bg); margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s2); row-gap: var(--s1); padding: var(--s2) var(--s3); border-top: 1px solid var(--c-sidebar-border); }
@@ -4103,7 +4106,10 @@ a.toast[data-tong], .toast-bam-duoc { pointer-events: auto; }
 .trang-thai-phu { color: var(--c-text-muted); }
 .trang-thai-xuong { display: flex; flex-direction: column; gap: var(--s2); }
 .tl-muc { display: flex; flex-direction: column; max-width: var(--w-thiet-lap-max); }
-.tl-muc > .dong { color: inherit; text-decoration: none; }
+.tl-muc > .dong, .tl-nhom > .dong { color: inherit; text-decoration: none; }
+/* Nhóm con của trang Thiết lập điện thoại: hiện sẵn, tiêu đề chữ nhỏ viết hoa (chủ chọn 26/11 «hiện sẵn có tiêu đề»). */
+.tl-nhom { display: flex; flex-direction: column; }
+.tl-nhom-ten { margin: 0; padding: var(--s5) var(--s4) var(--s2); font-size: var(--fs-badge); font-weight: var(--fw-heavy); letter-spacing: var(--ls-eyebrow); text-transform: uppercase; color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
 .tl-muc-hinh { flex: none; display: flex; color: var(--c-text-muted); } /* Việc 16: hình bên trái mỗi dòng; chữ giãn hết chỗ còn lại để huy hiệu số nằm sát phải */
 .tl-muc-chu { flex: 1; min-width: 0; }
 
