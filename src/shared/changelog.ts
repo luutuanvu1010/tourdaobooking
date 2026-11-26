@@ -18,13 +18,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0236 (lệnh chủ 26/11 «1- bật lại đi. 2- giữ nguyên như vậy, nhưng cho cả 2 tùy chọn này vào trong bảng điều khiển của Admin , Super Admin»). Nhánh claude/cong-tac-dat-coc-bang-lai-6434a8.
-    // Có migration 0193 (một bảng cài đặt chỉ-thêm). Số 3.48 = số trống kế tiếp sau 3.47 (bản chạy thật lúc soạn, 26/11); bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
-    version: "3.48",
+    // Có migration 0193 (một bảng cài đặt chỉ-thêm). Số 3.50 = sau 3.49 (menu Thiết lập) đã vào bản chính trước; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác. Sửa 26/11: hai công tắc chỉ Toàn quyền.
+    version: "3.50",
     date: "2026-11-26",
     items: [
       { kind: "doi", text: "Tạo đơn của đối tác: ô «Khách đặt cọc cho đối tác» hiện lại. Khách đưa cọc tiền mặt cho đối tác thì ghi số vào ô này; đơn xác nhận thì số đó thành khoản thu." },
       { kind: "moi", text: "Trang Tôi của Toàn quyền: thêm nút bật / tắt ô «Khách đặt cọc cho đối tác». Tắt thì đối tác không ghi được số cọc mới; số đã ghi giữ nguyên." },
       { kind: "moi", text: "Trang Tôi của Toàn quyền: thêm mục «Ô bằng lái trên phiếu đăng ký», hiện đang tắt và chưa bật được vì phiếu đăng ký chưa có ô bằng lái." },
+    ],
+  },
+  {
+    // Menu Thiết lập nhiều tầng (đặc tả 2026-11-26-menu-thiet-lap-nhieu-tang; chủ duyệt «Duyệt cả ba» và «Duyệt ảnh» 26/11). Nhánh claude/menu-quan-tri-nhieu-tang-82d17f. Không migration, không đổi quyền.
+    // Số 3.49 = sau 3.48 mà nhánh ADR-0236 (phiên P1) đã giữ, chưa nhập lúc soạn; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác.
+    version: "3.49",
+    date: "2026-11-26",
+    items: [
+      { kind: "doi", text: "Thiết lập: các trang chia thành nhóm theo chủ đề (Dịch vụ & giá bán, Đối tác & hoa hồng, Vé…) thay cho một danh sách dài." },
+      { kind: "doi", text: "Máy tính: bấm tên nhóm để mở, nhóm có trang đang xem tự mở. Điện thoại: mỗi nhóm có tiêu đề riêng." },
     ],
   },
   {

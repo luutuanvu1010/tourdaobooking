@@ -7,6 +7,7 @@ import {
   THANH_TAB,
   coKhungNho,
   gomNhomGap,
+  khoiThietLap,
   nhanTheoDuong,
   trangChaCua,
   sangTabToi,
@@ -20,6 +21,7 @@ import {
   TRANG,
   type KhoaTrang,
   type NguoiXem,
+  type KhoiThanhBen,
   type NhomThanhBen,
 } from "../src/shared/muc-giao-dien";
 import { cauBaoTri, KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
@@ -275,7 +277,7 @@ function sidebarItem(m: Muc, path: string, loaders: (() => void)[], seesAll: boo
  * Nút gập dùng chung (THIẾT LẬP và nhóm gập như Điều phối): `button[aria-expanded]` điều khiển `div#id[hidden]`. `dangChua` = nhóm chứa trang đang mở: khi nhóm đóng
  * hiện chấm Biển để người dùng biết mình đang ở trong đó.
  */
-function nutGap(id: string, nhan: string, rows: HTMLElement[], moSan: boolean, dangChua: boolean, dem?: HTMLElement): HTMLElement {
+function nutGap(id: string, nhan: string, rows: HTMLElement[], moSan: boolean, dangChua: boolean, dem?: HTMLElement | false): HTMLElement {
   const cham = dangChua && h("span", { class: "sidebar-cham", hidden: moSan });
   const toggle = h("button", { type: "button", class: "sidebar-group-toggle", "aria-expanded": String(moSan), "aria-controls": id }, nhan, cham, dem, h("span", { class: "sidebar-chevron" }, icon("chevron-down", 16)));
   const body = h("div", { id, class: "sidebar-group-items", hidden: !moSan }, ...rows);
@@ -296,20 +298,20 @@ function nutGap(id: string, nhan: string, rows: HTMLElement[], moSan: boolean, d
 function sidebarGroup(nhom: NhomThanhBen, muc: readonly Muc[], path: string, loaders: (() => void)[], seesAll: boolean, moSan: boolean): HTMLElement | null {
   if (muc.length === 0) return null;
   const dong = (m: Muc) => sidebarItem(m, path, loaders, seesAll);
-  if (nhom !== "THIẾT LẬP") {
-    const khoi = gomNhomGap(muc).map((k) => {
-      if (!("muc" in k)) return dong(k);
-      const co = k.muc.some((m) => sangTaiMuc(m, path));
-      return nutGap(`nhom-gap-${k.nhomGap.ma}`, k.nhomGap.nhan, k.muc.map(dong), co, co);
-    });
-    return h("div", { class: "sidebar-group" }, nhom !== "HẰNG NGÀY" && h("div", { class: "sidebar-group-title" }, nhom), h("div", { class: "sidebar-group-items" }, ...khoi));
-  }
-  const rows = muc.map(dong);
-  const dem = h("span", { class: "sidebar-group-count" }, String(rows.length));
+  // Khối gập (Điều phối; nhóm con của Thiết lập — đặc tả 2026-11-26-menu-thiet-lap-nhieu-tang): nhóm chứa trang đang đứng mở sẵn, nhóm khác đóng. Nhóm con Thiết lập kèm số mục.
+  const khoi = (k: KhoiThanhBen, dem?: boolean) => {
+    if (!("muc" in k)) return dong(k);
+    const co = k.muc.some((m) => sangTaiMuc(m, path));
+    return nutGap(`nhom-gap-${k.nhomGap.ma}`, k.nhomGap.nhan, k.muc.map(dong), co, co, dem && h("span", { class: "sidebar-group-count" }, String(k.muc.length)));
+  };
+  if (nhom !== "THIẾT LẬP")
+    return h("div", { class: "sidebar-group" }, nhom !== "HẰNG NGÀY" && h("div", { class: "sidebar-group-title" }, nhom), h("div", { class: "sidebar-group-items" }, ...gomNhomGap(muc).map((k) => khoi(k))));
+  const rows = khoiThietLap(muc).map((k) => khoi(k, true));
+  const dem = h("span", { class: "sidebar-group-count" }, String(muc.length));
   if (muc.some((m) => m.trang === "dichVu"))
     loaders.push(() => {
       void catalogConflictBadge().then((n) => {
-        if (n > 0) dem.textContent = `${rows.length} · ${n} lệch giá`;
+        if (n > 0) dem.textContent = `${muc.length} · ${n} lệch giá`;
       });
     });
   return h("div", { class: "sidebar-group" }, nutGap("nhom-thiet-lap", "Thiết lập", rows, moSan, muc.some((m) => sangTaiMuc(m, path)), dem));
