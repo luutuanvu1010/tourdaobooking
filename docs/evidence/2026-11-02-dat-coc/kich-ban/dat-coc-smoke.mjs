@@ -9,10 +9,12 @@ import { CHU, MOB, OUT, assert, axe, axeNote, boDem, dungMoiTruong, noCode, noOv
 const DOITAC = { name: "Đối Tác Đặt Cọc", phone: "0900000711", pin: "246711", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" }; // ADR-0185: tài khoản Đối tác phải có vai trò đối tác
 const BAN = { name: "Bán Hàng Không Ô Cọc", phone: "0900000712", pin: "246712", permissions: ["SALES"] };
 const QT = { name: "Quản Trị Công Tắc Cọc", phone: "0900000713", pin: "246713", permissions: ["ADMIN"] }; // ADR-0236 Đ2: Quản trị KHÔNG thấy, không đổi được công tắc ô cọc (chủ 26/11)
+// QT mở trang trong trình duyệt (bước 2e) nên lời gọi API bị từ chối dùng tài khoản Quản trị THỨ HAI (một phiên mỗi tài khoản, ADR-0075).
+const QT_API = { name: "Quản Trị Gọi API Cọc", phone: "0900000716", pin: "246716", permissions: ["ADMIN"] };
 const TQ = { name: "Toàn Quyền Công Tắc Cọc", phone: "0900000715", pin: "246715", permissions: ["SUPER_ADMIN"] }; // ADR-0236 Đ2: chỉ Toàn quyền đổi được
 // Một phiên mỗi tài khoản (ADR-0075): TQ mở trang trong trình duyệt, nên lời gọi API bật / tắt dùng tài khoản Toàn quyền THỨ HAI để không đá phiên của trang.
 const TQ_API = { name: "Toàn Quyền Gọi API Cọc", phone: "0900000714", pin: "246714", permissions: ["SUPER_ADMIN"] };
-const { env, call } = await dungMoiTruong([CHU, DOITAC, BAN, QT, TQ, TQ_API]);
+const { env, call } = await dungMoiTruong([CHU, DOITAC, BAN, QT, QT_API, TQ, TQ_API]);
 const b = boDem("KHACH DAT COC TRUOC");
 mkdirSync(join(OUT, "anh"), { recursive: true });
 const ngay = vnDate(3);
@@ -79,7 +81,7 @@ const buoc = async (khung, hau) => {
   });
   p.close();
   // ---- Toàn quyền TẮT công tắc ⇒ form Đối tác không còn ô; bật lại cho các bước sau ----
-  dung(await call(QT, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false }), 403, "Quản trị không tắt được ô cọc");
+  dung(await call(QT_API, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false }), 403, "Quản trị không tắt được ô cọc");
   dung(await call(TQ_API, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false }), 200, "Toàn quyền tắt ô cọc");
   p = await env.as(DOITAC, `/order-form?id=${donNhap.id}`, khung);
   await p.waitFor(`!!document.querySelector('#pay-card') && document.querySelector('#customerName') && document.querySelector('#customerName').value !== ''`, "form khi công tắc tắt");
