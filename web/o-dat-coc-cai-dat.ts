@@ -37,8 +37,8 @@ export async function ganCaiDatODatCoc(el: HTMLElement): Promise<void> {
         "p",
         { class: "muted" },
         s.hien
-          ? "Form Tạo đơn của tài khoản đối tác có ô «Khách đặt cọc cho đối tác». Khi đơn được xác nhận, số đó thành khoản thu tiền mặt do đối tác giữ."
-          : "Form Tạo đơn của tài khoản đối tác không có ô đặt cọc. Đơn nháp đã ghi tiền đặt cọc trước đó vẫn giữ số và vẫn thành khoản thu khi xác nhận.",
+          ? "Đối tác ghi được tiền cọc khi tạo đơn. Đơn xác nhận thì số đó thành khoản thu tiền mặt do đối tác giữ."
+          : "Đối tác không ghi được tiền cọc mới. Đơn nháp đã ghi trước đó vẫn giữ số và vẫn thành khoản thu khi xác nhận.",
       ),
       loi,
       nut,
