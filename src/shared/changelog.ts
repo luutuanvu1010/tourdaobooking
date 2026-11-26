@@ -23,7 +23,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-11-26",
     items: [
       { kind: "doi", text: "Tạo đơn của đối tác: ô «Khách đặt cọc cho đối tác» hiện lại. Khách đưa cọc tiền mặt cho đối tác thì ghi số vào ô này; đơn xác nhận thì số đó thành khoản thu." },
-      { kind: "moi", text: "Trang Tôi của Quản trị và Toàn quyền: thêm nút bật / tắt ô «Khách đặt cọc cho đối tác». Tắt thì đối tác không ghi được số cọc mới; số đã ghi trên đơn nháp giữ nguyên." },
+      { kind: "moi", text: "Trang Tôi của Quản trị và Toàn quyền: thêm nút bật / tắt ô «Khách đặt cọc cho đối tác». Tắt thì đối tác không ghi được số cọc mới; số đã ghi giữ nguyên." },
       { kind: "moi", text: "Trang Tôi của Quản trị và Toàn quyền: thêm mục «Ô bằng lái trên phiếu đăng ký», hiện đang tắt và chưa bật được vì phiếu đăng ký chưa có ô bằng lái." },
     ],
   },

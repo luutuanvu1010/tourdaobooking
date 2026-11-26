@@ -111,10 +111,7 @@ test("máy chủ tuân theo: Tắt ⇒ Đối tác lập / lưu nháp với lờ
   const giu = await sua(w, id, undefined);
   assert.equal(giu.status, 200, giu.text);
   assert.equal(cot(w, id), 200000, "Tắt mà thân không có khoá: nháp khai lúc Bật giữ số (ADR-0225 Đ1 mục 5)");
-  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: PARTNER, body: {} });
-  assert.equal(g.status, 200, g.text);
-  const khoan = w.q("SELECT amount, method_code FROM bil_payment_receipt WHERE order_id = ?", id);
-  assert.deepEqual(khoan.map((k: any) => [k.amount, k.method_code]), [[200000, "CASH"]], "xác nhận lúc Tắt vẫn sinh đúng một khoản thu tiền mặt (khớp ADR-0225 Đ2)");
+  // Xác nhận lúc Tắt vẫn sinh đúng một khoản thu tiền mặt: bài src/modules/billing/dat-coc-cong-tac.test.ts (orders không đọc sổ của billing — ADR-0024 điều 4).
   assert.equal((await dat(w, SUP, true)).status, 200);
   assert.equal((await lap(w, PARTNER, 120000)).status, 201, "Bật lại: khai được");
 });
