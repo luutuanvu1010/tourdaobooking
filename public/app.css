@@ -3142,7 +3142,7 @@ body[data-khung-goc="thiet-lap"] :is(#dk-dieu-kien, #dk-hang-bang) .ds-dong > .d
 .tl-o { flex: 1; min-width: 0; min-height: var(--tap-min); margin: 0; font-size: var(--fs-step-5); resize: none; }
 .tl-gui { flex: none; }
 
-.tl-cd-bat { display: flex; align-items: center; gap: var(--s2); }
+.tl-cd-bat { display: flex; align-items: center; gap: var(--s2); min-height: var(--tap-min); cursor: pointer; } /* cả dòng nhãn là vùng chạm của ô tích (đợt D3: ≥ 44 px) */
 .tl-cd-bat input { display: inline-block; width: auto; margin: 0; }
 .tl-cd-loi { margin: 0; color: var(--c-danger-text); }
 /* Bảng điều khiển trợ lý Hỗ trợ (ADR-0069, /tro-ly-cai-dat) + câu hỏi mẫu trong khung Hỗ trợ — chỉ token */
@@ -4244,8 +4244,8 @@ main select { max-width: 100%; }
 .kv-chu { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
 .kv-ten { font-size: var(--fs-ui); font-weight: var(--fw-semibold); color: var(--c-text); overflow-wrap: anywhere; }
 /* Công tắc giữ nguyên hình, vùng chạm đủ --tap-min: phần đệm trong suốt trên dưới. */
-.kv-dong .dp-switch, .kv-o .dp-switch, .nhom-dua-don .dp-switch { box-sizing: border-box; height: var(--tap-min); padding-block: calc((var(--tap-min) - var(--h-switch)) / 2); background-clip: content-box; }
-.kv-dong .dp-switch-knob, .kv-o .dp-switch-knob, .nhom-dua-don .dp-switch-knob { top: calc((var(--tap-min) - var(--h-switch)) / 2 + var(--switch-inset)); }
+.kv-dong .dp-switch, .kv-o .dp-switch, .nhom-dua-don .dp-switch, .dp-toggle .dp-switch { box-sizing: border-box; height: var(--tap-min); padding-block: calc((var(--tap-min) - var(--h-switch)) / 2); background-clip: content-box; }
+.kv-dong .dp-switch-knob, .kv-o .dp-switch-knob, .nhom-dua-don .dp-switch-knob, .dp-toggle .dp-switch-knob { top: calc((var(--tap-min) - var(--h-switch)) / 2 + var(--switch-inset)); }
 /* ADR-0169 Đ4: công tắc kiểm vé ở màn Dịch vụ & giá; khối đặt riêng trống thì ẩn */
 .kv-tu-kiem-the:empty { display: none; }
 .kv-dong-ve { flex-wrap: wrap; }

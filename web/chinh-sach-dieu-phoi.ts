@@ -100,12 +100,10 @@ function congTac(id: string, nhan: string, goiY: string, bat: boolean, khoa: boo
     nut.setAttribute("aria-checked", String(moi));
     onDoi?.(moi);
   });
-  return h(
-    "div",
-    { class: khoa ? "dp-toggle is-locked" : "dp-toggle" },
-    h("span", { class: "dp-toggle-text" }, h("span", { id: `${id}-label`, class: "dp-toggle-label" }, nhan), h("span", { id: `${id}-hint`, class: "dp-toggle-hint" }, goiY)),
-    nut,
-  );
+  // Cả dòng chữ bấm được như nhãn của công tắc (vùng chạm cả dòng, đợt D3 26/11/2026); công tắc khoá thì không.
+  const chu = h("span", { class: "dp-toggle-text" }, h("span", { id: `${id}-label`, class: "dp-toggle-label" }, nhan), h("span", { id: `${id}-hint`, class: "dp-toggle-hint" }, goiY));
+  chu.addEventListener("click", () => { if (!nut.disabled) nut.click(); });
+  return h("div", { class: khoa ? "dp-toggle is-locked" : "dp-toggle" }, chu, nut);
 }
 
 // ---- lịch sử bản -------------------------------------------------------------------------------------------------------------------------------------------

@@ -170,8 +170,9 @@ function veAiDung(daLuu = false): void {
     "tl-ai-dung",
     "Ai được dùng",
     { viec: [sua] },
+    // Huy hiệu xếp tràn hàng (như «Điều kiện cho xe chạy có sẵn» ở trang Chính sách điều phối), không một cột hẹp — trợ lý chấm giao diện 26/11 (S8).
     dangBat.length
-      ? truong("Vai trò được dùng", h("ul", { class: "tl-cd-ds" }, ...dangBat.map((v) => h("li", null, v))), { idNhan: "tl-ai-dung-nhan" })
+      ? truong("Vai trò được dùng", h("div", { class: "dp-chips", role: "list", "aria-labelledby": "tl-ai-dung-nhan" }, ...dangBat.map((v) => h("span", { class: "huy-hieu", "data-tong": "bien", role: "listitem" }, v))), { idNhan: "tl-ai-dung-nhan" })
       : h("p", null, "Chưa vai trò nào được dùng — không ai thấy nút Trợ lý."),
     h("p", null, `Số câu mỗi người mỗi ngày: ${s.tranNgay}.`),
     h("p", { class: "khoi-mo-ta" }, "Tài khoản có nhiều vai trò được dùng khi ít nhất một vai trò đang bật."),
