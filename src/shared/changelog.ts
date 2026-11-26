@@ -22,7 +22,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "3.49",
     date: "2026-11-26",
     items: [
-      { kind: "doi", text: "Thiết lập: các trang chia thành nhóm theo chủ đề (Dịch vụ & giá bán, Đối tác & hoa hồng, Vé, Danh mục vận chuyển, Tài khoản & an toàn, Hệ thống) thay cho một danh sách dài. Máy tính: bấm tên nhóm để mở; nhóm có trang đang xem tự mở. Điện thoại: mỗi nhóm có tiêu đề riêng." },
+      { kind: "doi", text: "Thiết lập: các trang chia thành nhóm theo chủ đề (Dịch vụ & giá bán, Đối tác & hoa hồng, Vé…) thay cho một danh sách dài." },
+      { kind: "doi", text: "Máy tính: bấm tên nhóm để mở, nhóm có trang đang xem tự mở. Điện thoại: mỗi nhóm có tiêu đề riêng." },
     ],
   },
   {
