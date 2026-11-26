@@ -8,7 +8,8 @@ import { uocMotCauMicroUsd } from "../src/shared/tro-ly-mau";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
-import { byId, h, replaceChildren } from "./dom";
+import { byId, h, replaceChildren, type Child } from "./dom";
+import { khoi, luoi, thanhNut, truong } from "./khung";
 import { chuInDam } from "./tro-ly-in-dam";
 import { dateTime } from "./format";
 import { initShell, showError } from "./shell";
@@ -50,8 +51,14 @@ async function bam(nut: HTMLButtonElement, bao: ReturnType<typeof dongBao>, viec
   }
 }
 
-const oChu = (props: Record<string, unknown>): HTMLInputElement => h("input", { type: "text", autocomplete: "off", ...props });
-const oVung = (props: Record<string, unknown>): HTMLTextAreaElement => h("textarea", { rows: 3, ...props });
+const oChu = (props: Record<string, unknown>): HTMLInputElement => h("input", { type: "text", class: "o", autocomplete: "off", ...props });
+const oVung = (props: Record<string, unknown>): HTMLTextAreaElement => h("textarea", { rows: 3, class: "o", "data-loai": "nhieu-dong", ...props });
+
+/** Khuôn Thiết lập (ADR-0222): thay phần `#id` bằng MỘT khối của khung, giữ nguyên id (các hàm vẽ lại và `nutBoNao` tìm phần theo id). */
+function datKhoi(id: string, tieuDe: string, tuy: { viec?: HTMLElement[]; moTa?: string }, ...than: Child[]): void {
+  // Nút của khối (chỉ «Thử khoá») luôn ở đầu khối: ở khối hẹp nó không rơi xuống dưới nút «Lưu» của biểu mẫu.
+  byId(id).replaceWith(khoi({ tieuDe, idTieuDe: `${id}-h`, viec: tuy.viec, viecODau: true, moTa: tuy.moTa, thuoc: { id } }, ...than));
+}
 
 // ---- 1 + 2. Tình trạng, Ai được dùng -----------------------------------------------------------------------------------------------------------------------
 
@@ -60,10 +67,17 @@ let caiDat: Api.TroLyCaiDatResponse;
 function veTinhTrang(daLuu = false): void {
   const s = caiDat;
   const bat = h("input", { type: "checkbox", checked: s.bat, id: "tl-bat" });
-  const tran = h("input", { type: "number", id: "tl-tran-thang", min: 0, max: 100, step: 0.5, value: String(s.tranThangUsd), inputmode: "decimal" });
-  const luu = h("button", { class: "btn btn-primary", type: "submit" }, "Lưu");
+  const tran = h("input", { type: "number", class: "o", id: "tl-tran-thang", min: 0, max: 100, step: 0.5, value: String(s.tranThangUsd), inputmode: "decimal" });
+  const luu = h("button", { class: "nut", "data-cap": "chinh", type: "submit" }, "Lưu");
   const bao = dongBao();
-  const form = h("form", { class: "tl-cd-form" }, h("label", { class: "tl-cd-bat" }, bat, "Bật trợ lý cho cả công ty"), h("label", null, "Trần chi phí mỗi tháng (USD)", tran), luu, bao.el);
+  const form = h(
+    "form",
+    { class: "luoi" },
+    h("label", { class: "tl-cd-bat" }, bat, "Bật trợ lý cho cả công ty"),
+    truong("Trần chi phí mỗi tháng (USD)", tran, { cot: 6 }),
+    thanhNut(null, luu),
+    bao.el,
+  );
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     void bam(luu, bao, async () => {
@@ -73,23 +87,23 @@ function veTinhTrang(daLuu = false): void {
     });
   });
   if (daLuu) bao.ok("Đã lưu.");
-  const thu = h("button", { class: "btn", type: "button" }, "Thử khoá");
+  const thu = h("button", { class: "nut", "data-cap": "phu", type: "button" }, "Thử khoá");
   const baoThu = dongBao();
   thu.addEventListener("click", () => void bam(thu, baoThu, async () => (await api<Api.TroLyThuKhoaResponse>("/api/tro-ly/thu-khoa", { method: "POST", body: {} })).cau));
   const [nam, thang] = s.thang.split("-");
-  replaceChildren(
-    byId("tl-tinh-trang"),
-    h("h2", { id: "tl-tinh-trang-h" }, "Tình trạng"),
+  datKhoi(
+    "tl-tinh-trang",
+    "Tình trạng",
+    { viec: [thu] },
     h("p", null, s.bat ? "Đang bật." : "Đang tắt — không ai hỏi được."),
     h("p", null, s.coKhoa ? `Khoá: đã đặt${s.khoaCuoi ? ` (kết thúc bằng …${s.khoaCuoi})` : ""}.` : "Khoá: chưa đặt — trợ lý báo “chưa bật” tới khi có khoá."),
-    h("p", { class: "muted" }, "Đổi khoá làm trên Cloudflare, không nhập trong Nền tảng."),
-    h("div", { class: "tl-cd-hang" }, thu),
+    h("p", { class: "khoi-mo-ta" }, "Đổi khoá làm trên Cloudflare, không nhập trong Nền tảng."),
     baoThu.el,
     h("p", null, `Tháng ${thang}/${nam}: đã dùng ${usd(s.chiPhiThangUsd)} trên trần ${usd(s.tranThangUsd)} · ${s.soCauThang} câu. Hôm nay: ${s.soCauHomNay} câu.`),
     h("p", { id: "tl-luot-thu" }, `Lượt thử tháng này: ${s.soLuotThuThang} lượt thử (Thử khoá và ô thử) — tiền tháng ở trên đã gồm cả lượt thử.`),
     s.theoVai.length
       ? h("ul", { class: "tl-cd-ds" }, ...s.theoVai.map((v) => h("li", null, `${PERMISSION_LABEL[v.vai]}: ${v.soCau} câu · ${usd(v.chiPhiUsd)}`)))
-      : h("p", { class: "muted" }, "Tháng này chưa có câu hỏi nào theo vai trò."),
+      : h("p", { class: "khoi-mo-ta" }, "Tháng này chưa có câu hỏi nào theo vai trò."),
     form,
   );
 }
@@ -100,18 +114,18 @@ function veAiDung(daLuu = false): void {
   const dong = PERMISSION_CODES.map((p) => {
     const c = h("input", { type: "checkbox", checked: s.vai[p], id: `tl-vai-${p}` });
     o.set(p, c);
-    return h("label", { class: "tl-cd-bat" }, c, PERMISSION_LABEL[p]);
+    return h("label", { class: "tl-cd-bat", "data-cot": 4 }, c, PERMISSION_LABEL[p]);
   });
-  const ngay = h("input", { type: "number", id: "tl-tran-ngay", min: 0, max: 200, step: 1, value: String(s.tranNgay), inputmode: "numeric" });
-  const luu = h("button", { class: "btn btn-primary", type: "submit" }, "Lưu");
+  const ngay = h("input", { type: "number", class: "o", id: "tl-tran-ngay", min: 0, max: 200, step: 1, value: String(s.tranNgay), inputmode: "numeric" });
+  const luu = h("button", { class: "nut", "data-cap": "chinh", type: "submit" }, "Lưu");
   const bao = dongBao();
   const form = h(
     "form",
-    { class: "tl-cd-form" },
-    h("fieldset", { class: "tl-cd-vai" }, h("legend", null, "Vai trò được dùng trợ lý"), ...dong),
-    h("p", { class: "muted" }, "Tài khoản có nhiều vai trò được dùng khi ít nhất một vai trò đang bật. Vai trò tắt không thấy nút Trợ lý."),
-    h("label", null, "Số câu mỗi người mỗi ngày", ngay),
-    luu,
+    { class: "luoi" },
+    h("fieldset", { class: "nhom-chon" }, h("legend", null, "Vai trò được dùng trợ lý"), luoi(null, ...dong)),
+    h("p", { class: "khoi-mo-ta" }, "Tài khoản có nhiều vai trò được dùng khi ít nhất một vai trò đang bật. Vai trò tắt không thấy nút Trợ lý."),
+    truong("Số câu mỗi người mỗi ngày", ngay, { cot: 6 }),
+    thanhNut(null, luu),
     bao.el,
   );
   form.addEventListener("submit", (e) => {
@@ -125,7 +139,7 @@ function veAiDung(daLuu = false): void {
     });
   });
   if (daLuu) bao.ok("Đã lưu.");
-  replaceChildren(byId("tl-ai-dung"), h("h2", { id: "tl-ai-dung-h" }, "Ai được dùng"), form);
+  datKhoi("tl-ai-dung", "Ai được dùng", {}, form);
 }
 
 // ---- 3. Bộ não (ADR-0073 Đ1, Đ2, Đ5) ---------------------------------------------------------------------------------------------------------------------
@@ -134,7 +148,7 @@ const CANH_BAO =
   "Xoá các luật an toàn trong lời nhắc có thể khiến trợ lý trả lời điều không nên nói. Che số điện thoại, ẩn số tiền, giới hạn tiền và quyền xem vẫn do máy chủ giữ.";
 
 // Mục Bộ não = phần cấu hình (dựng lại sau mỗi lần lưu) + ô thử (dựng MỘT lần, giữ câu hỏi và kết quả thử qua các lần lưu).
-const vungCauHinh = h("div", { class: "tl-cd-form" });
+const vungCauHinh = h("div", { class: "luoi" }); // lưới một cột (không dùng gop: con của gop rơi vào lưới hai cột của khối)
 let layCauHinh: () => Api.TroLyBoNao;
 let dsMau: Api.TroLyMauDto[] = [];
 /** Đang chạy một việc của mục Bộ não (Lưu, Khôi phục, Quay lại bản, Thử) ⇒ mọi nút của mục bị khoá, kể cả nút dựng ra giữa chừng. */
@@ -161,16 +175,16 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
   const hh = d.hienHanh;
   dsMau = d.danhSachMau;
   const mauMat = !d.danhSachMau.some((m) => m.ma === hh.mau);
-  const mau = h("select", { id: "tl-mau" }, ...d.danhSachMau.map((m) => h("option", { value: m.ma }, m.ten)));
+  const mau = h("select", { id: "tl-mau", class: "o" }, ...d.danhSachMau.map((m) => h("option", { value: m.ma }, m.ten)));
   mau.value = hh.mau;
   if (mauMat) mau.selectedIndex = -1;
   const baoMauMat = h("p", { class: "tl-cd-loi", id: "tl-mau-mat", hidden: !mauMat }, "Mẫu đã lưu không còn trong danh sách — chọn mẫu khác rồi Lưu.");
-  const muc = h("select", { id: "tl-muc" });
-  const doDai = h("select", { id: "tl-do-dai" }, ...d.doDai.map((x) => h("option", { value: x.ma }, x.nhan)));
+  const muc = h("select", { id: "tl-muc", class: "o" });
+  const doDai = h("select", { id: "tl-do-dai", class: "o" }, ...d.doDai.map((x) => h("option", { value: x.ma }, x.nhan)));
   doDai.value = hh.doDai;
   const goiYCao = h("p", { class: "muted", id: "tl-token-goi-y", hidden: true }, `Mức Cao cần ít nhất ${G.tokenRaKhiCao.toLocaleString("vi-VN")} token trả lời.`);
   const token = h("input", {
-    type: "number", id: "tl-token-ra", min: G.tokenRaThap, max: G.tokenRaCao, step: 100, value: String(hh.tokenRaToiDa), inputmode: "numeric", "aria-describedby": "tl-token-goi-y",
+    type: "number", class: "o", id: "tl-token-ra", min: G.tokenRaThap, max: G.tokenRaCao, step: 100, value: String(hh.tokenRaToiDa), inputmode: "numeric", "aria-describedby": "tl-token-goi-y",
   });
   const gia = h("p", { class: "muted", id: "tl-gia" });
   const loiNhac = oVung({ id: "tl-loi-nhac", rows: 14, maxlength: G.loiNhac, value: hh.loiNhac, "aria-describedby": "tl-dem" });
@@ -213,8 +227,8 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
   loiNhac.addEventListener("input", veDem);
   layCauHinh = () => ({ mau: mau.value, mucSuyNghi: muc.value, doDai: doDai.value, tokenRaToiDa: Number(token.value), loiNhac: loiNhac.value });
 
-  const luu = h("button", { class: "btn btn-primary", type: "submit" }, "Lưu bộ não");
-  const khoiPhuc = h("button", { class: "btn", type: "button" }, "Điền lời nhắc mặc định");
+  const luu = h("button", { class: "nut", "data-cap": "chinh", type: "submit" }, "Lưu bộ não");
+  const khoiPhuc = h("button", { class: "nut", "data-cap": "phu", type: "button" }, "Điền lời nhắc mặc định");
   const bao = dongBao();
   const gui = async (body: Api.TroLyBoNao): Promise<void> => veBoNao(await api<Api.TroLyBoNaoResponse>("/api/tro-ly/bo-nao", { method: "PUT", body }), true);
   // Khôi phục chỉ đưa bản mặc định vào Ô LỜI NHẮC (không lưu, không đụng mẫu / mức / độ dài); người dùng bấm "Lưu bộ não" để dùng.
@@ -237,7 +251,7 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
           dsBan,
           ...(r.cacBan.length
             ? r.cacBan.map((b, i) => {
-              const nut = h("button", { class: "btn", type: "button", disabled: boNaoBan }, "Dùng bản này");
+              const nut = h("button", { class: "nut", "data-cap": "phu", type: "button", disabled: boNaoBan }, "Dùng bản này");
               const baoBan = dongBao();
               nut.addEventListener("click", () => void bamBoNao(baoBan, () => gui({ mau: b.mau, mucSuyNghi: b.mucSuyNghi, doDai: b.doDai, tokenRaToiDa: b.tokenRaToiDa, loiNhac: b.loiNhac })));
               return h(
@@ -245,7 +259,7 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
                 { class: "tl-cd-ban-dong" },
                 h("p", { class: "muted" }, `${dateTime(b.luc)} · ${b.nguoi ?? "Hệ thống"} · đổi: ${b.phanDoi}${i === 0 ? " · đang dùng" : ""}`),
                 h("p", { class: "tl-chu" }, `${tenMau(b.mau)} · ${b.tokenRaToiDa} token trả lời · lời nhắc ${b.loiNhac.length.toLocaleString("vi-VN")} ký tự`),
-                i === 0 ? null : nut,
+                i === 0 ? null : thanhNut(null, nut),
                 baoBan.el,
               );
             })
@@ -257,18 +271,17 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
 
   const form = h(
     "form",
-    { class: "tl-cd-form" },
-    h("label", null, "Mẫu AI", mau),
+    { class: "luoi" },
+    truong("Mẫu AI", mau),
     baoMauMat,
     gia,
-    h("label", null, "Mức suy nghĩ", muc),
-    h("label", null, "Độ dài trả lời", doDai),
-    h("label", null, `Số token trả lời tối đa (${G.tokenRaThap}–${G.tokenRaCao})`, token),
-    goiYCao,
-    h("label", null, "Lời nhắc (trợ lý đọc trước mọi câu hỏi)", loiNhac),
+    truong("Mức suy nghĩ", muc, { cot: 4 }),
+    truong("Độ dài trả lời", doDai, { cot: 4 }),
+    truong(`Số token trả lời tối đa (${G.tokenRaThap}–${G.tokenRaCao})`, token, { cot: 4, loi: goiYCao }),
+    truong("Lời nhắc (trợ lý đọc trước mọi câu hỏi)", loiNhac),
     dem,
     h("p", { class: "alert warn", role: "note" }, CANH_BAO),
-    h("div", { class: "tl-cd-hang" }, luu, khoiPhuc),
+    thanhNut(null, luu, khoiPhuc),
     bao.el,
   );
   form.addEventListener("submit", (e) => {
@@ -297,9 +310,9 @@ function veBoNao(d: Api.TroLyBoNaoResponse, daLuu = false): void {
 
 /** Dựng khung mục Bộ não + ô thử MỘT lần (ADR-0073 Đ5): cấu hình ĐANG SOẠN (chưa lưu) + vai giả định; lượt thử tính vào trần tiền tháng. */
 function dungBoNao(): void {
-  const vaiThu = h("select", { id: "tl-thu-vai" }, ...PERMISSION_CODES.map((p) => h("option", { value: p }, PERMISSION_LABEL[p])));
+  const vaiThu = h("select", { id: "tl-thu-vai", class: "o" }, ...PERMISSION_CODES.map((p) => h("option", { value: p }, PERMISSION_LABEL[p])));
   const cauThu = oVung({ id: "tl-thu-cau", rows: 2, maxlength: 500, placeholder: "Gõ câu hỏi để thử" });
-  const nutThu = h("button", { class: "btn", type: "button" }, "Thử với cấu hình đang soạn");
+  const nutThu = h("button", { class: "nut", "data-cap": "phu", type: "button" }, "Thử với cấu hình đang soạn");
   const ketQua = h("div", { id: "tl-thu-kq", "aria-live": "polite" });
   const baoThu = dongBao();
   nutThu.addEventListener("click", () =>
@@ -339,17 +352,22 @@ function dungBoNao(): void {
       }
     }),
   );
-  replaceChildren(
-    byId("tl-bo-nao"),
-    h("h2", { id: "tl-bo-nao-h" }, "Bộ não"),
+  // Ô thử là mục con của khối (div, để đường kẻ trên của mục con luôn hiện: luật `.muc-con:first-of-type` đếm theo thẻ).
+  datKhoi(
+    "tl-bo-nao",
+    "Bộ não",
+    {},
     vungCauHinh,
-    h("h3", { class: "tl-cd-tieu-de" }, "Thử trước khi lưu"),
-    h("p", { class: "muted" }, "Chạy câu hỏi với cấu hình đang soạn ở trên (chưa cần lưu). Lượt thử tính vào trần tiền tháng, không tính vào số câu mỗi ngày."),
-    h("label", null, "Vai trò giả định", vaiThu),
-    h("label", null, "Câu hỏi thử", cauThu),
-    h("div", { class: "tl-cd-hang" }, nutThu),
-    baoThu.el,
-    ketQua,
+    h(
+      "div",
+      { class: "muc-con" },
+      h("h3", null, "Thử trước khi lưu"),
+      h("p", { class: "khoi-mo-ta" }, "Chạy câu hỏi với cấu hình đang soạn ở trên (chưa cần lưu). Lượt thử tính vào trần tiền tháng, không tính vào số câu mỗi ngày."),
+      luoi(null, truong("Vai trò giả định", vaiThu, { cot: 6 }), truong("Câu hỏi thử", cauThu)),
+      thanhNut(null, nutThu),
+      baoThu.el,
+      ketQua,
+    ),
   );
 }
 
@@ -359,18 +377,18 @@ function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
   const hh = d.hienHanh;
   const chao = oVung({ id: "tl-cau-chao", maxlength: G.cauChao, rows: 2, value: hh.cauChao });
   const mau = oVung({ id: "tl-cau-mau", rows: 4, value: hh.cauHoiMau.join("\n"), placeholder: "Mỗi dòng một câu hỏi" });
-  const luu = h("button", { class: "btn btn-primary", type: "submit" }, "Lưu thành bản mới");
+  const luu = h("button", { class: "nut", "data-cap": "chinh", type: "submit" }, "Lưu thành bản mới");
   const bao = dongBao();
   const gui = async (body: Api.TroLyLoiDan): Promise<void> => veLoiDan(await api<Api.TroLyLoiDanResponse>("/api/tro-ly/loi-dan", { method: "POST", body }), true);
   const form = h(
     "form",
-    { class: "tl-cd-form" },
-    h("label", null, "Câu chào", chao),
-    h("label", null, `Câu hỏi mẫu (mỗi dòng một câu, tối đa ${G.soCauMau})`, mau),
+    { class: "luoi" },
+    truong("Câu chào", chao),
+    truong(`Câu hỏi mẫu (mỗi dòng một câu, tối đa ${G.soCauMau})`, mau),
     // ADR-0084 Đ5: chỗ thay {ten} — khung chat thay bằng cách gọi của người đang mở (vd "anh Vũ"; chưa ghi giới tính ⇒ "bạn").
-    h("p", { class: "muted", id: "tl-cau-chao-goi-y" }, "Gõ {ten} vào câu chào để chèn cách gọi người dùng, ví dụ “anh Vũ”, “chị Lan” (hồ sơ chưa ghi giới tính: “bạn”); gõ {xung} để chèn cách Mai tự xưng: “em”, hoặc “mình” khi gọi “bạn”."),
-    h("p", { class: "muted" }, "Không gõ số điện thoại, email, số tiền. Cách trợ lý trả lời nằm ở mục Bộ não."),
-    luu,
+    h("p", { class: "khoi-mo-ta", id: "tl-cau-chao-goi-y" }, "Gõ {ten} vào câu chào để chèn cách gọi người dùng, ví dụ “anh Vũ”, “chị Lan” (hồ sơ chưa ghi giới tính: “bạn”); gõ {xung} để chèn cách Mai tự xưng: “em”, hoặc “mình” khi gọi “bạn”."),
+    h("p", { class: "khoi-mo-ta" }, "Không gõ số điện thoại, email, số tiền. Cách trợ lý trả lời nằm ở mục Bộ não."),
+    thanhNut(null, luu),
     bao.el,
   );
   form.addEventListener("submit", (e) => {
@@ -387,7 +405,7 @@ function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
       "ol",
       { class: "tl-cd-ds" },
       ...d.cacBan.map((b, i) => {
-        const nut = h("button", { class: "btn", type: "button" }, "Dùng bản này");
+        const nut = h("button", { class: "nut", "data-cap": "phu", type: "button" }, "Dùng bản này");
         const baoBan = dongBao();
         nut.addEventListener("click", () => void bam(nut, baoBan, () => gui({ cauChao: b.cauChao, giong: b.giong, loiDanThem: b.loiDanThem, cauHoiMau: b.cauHoiMau })));
         return h(
@@ -396,14 +414,14 @@ function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
           h("p", { class: "muted" }, `${dateTime(b.luc)} · ${b.nguoi ?? "Hệ thống"}${i === 0 ? " · đang dùng" : ""}`),
           h("p", { class: "tl-chu" }, b.cauChao),
           b.cauHoiMau.length ? h("p", { class: "tl-chu" }, `Câu mẫu: ${b.cauHoiMau.join(" · ")}`) : null,
-          i === 0 ? null : nut,
+          i === 0 ? null : thanhNut(null, nut),
           baoBan.el,
         );
       }),
     ),
   );
   if (daLuu) bao.ok("Đã lưu thành bản mới.");
-  replaceChildren(byId("tl-loi-dan"), h("h2", { id: "tl-loi-dan-h" }, "Lời dặn"), form, lichSu);
+  datKhoi("tl-loi-dan", "Lời dặn", {}, form, lichSu);
 }
 
 // ---- 5. Ngữ cảnh bổ sung ---------------------------------------------------------------------------------------------------------------------------------
@@ -411,16 +429,16 @@ function veLoiDan(d: Api.TroLyLoiDanResponse, daLuu = false): void {
 function veNguCanh(d: Api.TroLyNguCanhResponse, daLuu = false): void {
   const tieuDe = oChu({ id: "tl-nc-tieu-de", maxlength: G.tieuDeNguCanh, placeholder: "Ví dụ: Giờ làm việc văn phòng" });
   const noiDung = oVung({ id: "tl-nc-noi-dung", maxlength: G.noiDungNguCanh, rows: 4 });
-  const them = h("button", { class: "btn btn-primary", type: "submit" }, "Thêm đoạn");
-  const huy = h("button", { class: "btn", type: "button", hidden: true }, "Huỷ sửa");
+  const them = h("button", { class: "nut", "data-cap": "chinh", type: "submit" }, "Thêm đoạn");
+  const huy = h("button", { class: "nut", "data-cap": "loi", type: "button", hidden: true }, "Huỷ sửa");
   const bao = dongBao();
   let dangSua: Api.TroLyNguCanhResponse["doan"][number] | null = null;
   const form = h(
     "form",
-    { class: "tl-cd-form" },
-    h("label", null, "Tiêu đề đoạn", tieuDe),
-    h("label", null, "Nội dung", noiDung),
-    h("div", { class: "tl-cd-hang" }, them, huy),
+    { class: "luoi" },
+    truong("Tiêu đề đoạn", tieuDe),
+    truong("Nội dung", noiDung),
+    thanhNut(null, them, huy),
     bao.el,
   );
   const boSua = (): void => {
@@ -454,7 +472,7 @@ function veNguCanh(d: Api.TroLyNguCanhResponse, daLuu = false): void {
             .then((r) => veNguCanh(r))
             .catch((err) => { bat.checked = !bat.checked; bat.disabled = false; baoDoan.loi(loiCua(err)); });
         });
-        const sua = h("button", { class: "btn", type: "button" }, "Sửa");
+        const sua = h("button", { class: "nut", "data-cap": "phu", type: "button" }, "Sửa");
         sua.addEventListener("click", () => {
           dangSua = x;
           tieuDe.value = x.tieuDe;
@@ -468,34 +486,28 @@ function veNguCanh(d: Api.TroLyNguCanhResponse, daLuu = false): void {
           { class: "tl-cd-ban-dong" },
           h("h3", { class: "tl-cd-tieu-de" }, x.tieuDe),
           h("p", { class: "tl-chu" }, x.noiDung),
-          h("div", { class: "tl-cd-hang" }, h("label", { class: "tl-cd-bat" }, bat, "Đang dùng"), sua),
+          h("div", { class: "hang" }, h("label", { class: "tl-cd-bat" }, bat, "Đang dùng"), sua),
           baoDoan.el,
         );
       }),
     )
-    : h("p", { class: "muted" }, "Chưa có đoạn nào.");
+    : h("p", { class: "khoi-mo-ta" }, "Chưa có đoạn nào.");
   if (daLuu) bao.ok("Đã lưu.");
-  replaceChildren(
-    byId("tl-ngu-canh"),
-    h("h2", { id: "tl-ngu-canh-h" }, "Ngữ cảnh bổ sung"),
-    h("p", { class: "muted" }, "Đoạn đang dùng được trợ lý đọc như một mục hướng dẫn. Không gõ số điện thoại, email, số tiền."),
-    ds,
-    form,
-  );
+  datKhoi("tl-ngu-canh", "Ngữ cảnh bổ sung", { moTa: "Đoạn đang dùng được trợ lý đọc như một mục hướng dẫn. Không gõ số điện thoại, email, số tiền." }, ds, form);
 }
 
 // ---- 6. Lịch sử hỏi đáp ----------------------------------------------------------------------------------------------------------------------------------
 
 function veLichSu(): void {
-  const tu = h("input", { type: "date", id: "tl-ls-tu" });
-  const den = h("input", { type: "date", id: "tl-ls-den" });
-  const nguoi = h("select", { id: "tl-ls-nguoi" }, h("option", { value: "" }, "Mọi người"));
-  const vai = h("select", { id: "tl-ls-vai" }, h("option", { value: "" }, "Mọi vai trò"), ...PERMISSION_CODES.map((p) => h("option", { value: p }, PERMISSION_LABEL[p])));
-  const q = h("input", { type: "search", id: "tl-ls-q", maxlength: 100, placeholder: "Tìm trong câu hỏi, câu trả lời" });
-  const loc = h("button", { class: "btn btn-primary", type: "submit" }, "Lọc");
+  const tu = h("input", { type: "date", class: "o", id: "tl-ls-tu" });
+  const den = h("input", { type: "date", class: "o", id: "tl-ls-den" });
+  const nguoi = h("select", { id: "tl-ls-nguoi", class: "o" }, h("option", { value: "" }, "Mọi người"));
+  const vai = h("select", { id: "tl-ls-vai", class: "o" }, h("option", { value: "" }, "Mọi vai trò"), ...PERMISSION_CODES.map((p) => h("option", { value: p }, PERMISSION_LABEL[p])));
+  const q = h("input", { type: "search", class: "o", id: "tl-ls-q", maxlength: 100, placeholder: "Tìm trong câu hỏi, câu trả lời" });
+  const loc = h("button", { class: "nut", "data-cap": "chinh", type: "submit" }, "Lọc");
   const ds = h("ol", { class: "tl-cd-ds tl-ls-ds", "aria-live": "polite" });
-  const truoc = h("button", { class: "btn", type: "button" }, "Trang trước");
-  const sau = h("button", { class: "btn", type: "button" }, "Trang sau");
+  const truoc = h("button", { class: "nut", "data-cap": "phu", type: "button" }, "Trang trước");
+  const sau = h("button", { class: "nut", "data-cap": "phu", type: "button" }, "Trang sau");
   const bao = dongBao();
   let trangSo = 1;
   let napNguoi = false;
@@ -536,13 +548,13 @@ function veLichSu(): void {
   };
   const form = h(
     "form",
-    { class: "tl-cd-loc" },
-    h("label", null, "Từ ngày", tu),
-    h("label", null, "Đến ngày", den),
-    h("label", null, "Người hỏi", nguoi),
-    h("label", null, "Vai trò", vai),
-    h("label", { class: "tl-cd-loc-tim" }, "Tìm chữ", q),
-    loc,
+    { class: "luoi" },
+    truong("Từ ngày", tu, { cot: 3 }),
+    truong("Đến ngày", den, { cot: 3 }),
+    truong("Người hỏi", nguoi, { cot: 3 }),
+    truong("Vai trò", vai, { cot: 3 }),
+    truong("Tìm chữ", q),
+    thanhNut(null, loc),
   );
   form.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -551,14 +563,14 @@ function veLichSu(): void {
   });
   truoc.addEventListener("click", () => { trangSo = Math.max(1, trangSo - 1); void nap(); });
   sau.addEventListener("click", () => { trangSo += 1; void nap(); });
-  replaceChildren(
-    byId("tl-lich-su"),
-    h("h2", { id: "tl-lich-su-h" }, "Lịch sử hỏi đáp"),
-    h("p", { class: "muted" }, "Số điện thoại, email, số giấy tờ trong câu hỏi đã được che trước khi lưu. Lịch sử không xoá được."),
+  datKhoi(
+    "tl-lich-su",
+    "Lịch sử hỏi đáp",
+    { moTa: "Số điện thoại, email, số giấy tờ trong câu hỏi đã được che trước khi lưu. Lịch sử không xoá được." },
     form,
     bao.el,
     ds,
-    h("div", { class: "tl-cd-hang" }, truoc, sau),
+    thanhNut(null, truoc, sau),
   );
   void nap();
 }

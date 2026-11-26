@@ -1,23 +1,26 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Chính sách điều phối — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Chính sách điều phối" data-back="/account">
+<body data-rong="vua" data-khung-goc="thiet-lap" data-title="Chính sách điều phối" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Chính sách điều phối (ADR-0049 D2, ADR-0050 VK1-A; chỉ Toàn quyền — ô settings.ops). Bản vẽ docs/design/van-chuyen-dieu-phoi/project/08 Chinh sach dieu phoi.dc.html (8a, 8b). -->
-  <div class="vc-page-head"><h1>Chính sách điều phối</h1></div>
+  <!-- Chính sách điều phối (ADR-0049 D2, ADR-0050 VK1-A; chỉ Toàn quyền — ô settings.ops). Bản vẽ docs/design/van-chuyen-dieu-phoi/project/08 Chinh sach dieu phoi.dc.html (8a, 8b).
+       Khuôn Thiết lập của khung gốc (ADR-0222): mỗi phần một khối xếp dọc — biểu mẫu chính sách (#cs-form; Quản trị chỉ có hai ô hạn chốt), «Lịch sử bản» (#cs-lich-su,
+       chỉ nhánh Toàn quyền; điện thoại mở trong bảng trượt), «Hạn mức Từ chối của hướng dẫn viên» (#hm-the). Ô nhập nằm trong khối, nút lưu ở cuối khối như màn
+       Giới hạn nhập hoa hồng (đợt C) — không chuyển vào bảng trượt vì biểu mẫu nhiều ô, lưu thành một bản mới, và có thanh nút dính đáy riêng. -->
+  <h1>Chính sách điều phối</h1>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="cs-ok" class="alert ok" role="status" hidden></div>
-  <div id="cs-layout" class="dp-cs-layout" hidden>
-    <form id="cs-form" class="vc-card dp-cs-form" autocomplete="off" novalidate></form>
-    <section id="cs-lich-su" class="vc-card dp-hist" aria-labelledby="cs-lich-su-title"></section>
+  <div id="cs-layout" class="vung-ve" hidden>
+    <form id="cs-form" class="khoi" autocomplete="off" novalidate></form>
+    <section id="cs-lich-su" class="khoi" data-kieu="bang" aria-labelledby="cs-lich-su-title" hidden></section>
   </div>
   <!-- Thanh nút dính đáy của RIÊNG biểu mẫu chính sách (điện thoại, nhánh Toàn quyền). Đứng ngay sau biểu mẫu, TRƯỚC thẻ Hạn mức: thanh chỉ bám đáy màn hình khi chỗ của
        nó trong trang còn ở dưới màn hình, tức lúc đang ở phần chính sách; cuộn xuống thẻ Hạn mức thì thanh nằm lại sau biểu mẫu, không đè lên nút «Lưu cài đặt» của thẻ đó
        (sửa 21/11/2026; trước đó thanh đứng cuối trang nên bám đáy suốt cả trang). -->
   <div id="cs-bottom" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden></div>
   <!-- Hạn mức Từ chối của hướng dẫn viên (ADR-0032 điều 8): bảng số lần cho Quản trị + Toàn quyền (admin.manage); cài đặt, đặt lại chỉ Toàn quyền (settings.ops). -->
-  <section id="hm-the" class="vc-card hm-card" aria-label="Hạn mức Từ chối của hướng dẫn viên" hidden></section>
+  <section id="hm-the" class="khoi" aria-labelledby="hm-ten" hidden></section>
 </main>
 <script type="module" src="/js/chinh-sach-dieu-phoi.js"></script>
 </body></html>

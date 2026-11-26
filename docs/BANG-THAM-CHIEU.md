@@ -1939,7 +1939,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Tên vai trò (Bán hàng, Kế toán, Đối tác…)** | Đăng nhập (chỉ demo.tourdao.vn) › sau mã PIN của tài khoản dùng thử › «Bạn muốn dùng thử với vai trò nào?» | Ghi vai trò đã chọn vào phiên đăng nhập của máy này rồi vào Nền tảng như người giữ vai trò đó. Không đổi quyền thật của tài khoản dùng thử; không chọn được Toàn quyền. Chỉ có trên bản dùng thử, bản chính thức không có màn này. | không | được: đăng xuất rồi chọn vai trò khác | `/api/account/dung-thu-vai`<br>nhật ký `acting_role_set` | `web/dung-thu-vai.ts`: ⟪v.nhan⟫ | chờ chọn (ADR-0223 Đ3.1 (chủ duyệt 22/11): câu hỏi «Bạn muốn dùng thử với vai trò nào?» theo kế hoạch 16 việc; mỗi nút mang đúng tên quyền trong bảng; AI đặt 2026-11-22, chờ chủ) |
 | **Khoá bản dùng thử / Mở bản dùng thử** | Tôi › khối «Bản dùng thử» (chỉ demo.tourdao.vn, chỉ Toàn quyền) | Khoá: tài khoản dùng thử không đăng nhập được nữa, máy đang dùng thử bị chặn ở lần thao tác kế tiếp. Mở: đăng nhập lại được. Trạng thái giữ nguyên qua các lần dữ liệu tự xoá. Toàn quyền vẫn đăng nhập được khi khoá. | không | được: bấm lại để mở / khoá | (chưa nối) | `web/dung-thu-vai.ts`: không-chữ | chờ chọn (ADR-0223 Đ5 (chủ duyệt 22/11: khoá / mở ngay trên bản dùng thử); chữ nút AI đặt 2026-11-22, chờ chủ) |
 
-## Mục bỏ qua (70)
+## Mục bỏ qua (71)
 
 Nút máy dò là ghi dữ liệu hay nút chính nhưng thực ra không phải; mỗi mục có lý do.
 
@@ -2009,6 +2009,7 @@ Nút máy dò là ghi dữ liệu hay nút chính nhưng thực ra không phải
 | `web/xac-minh-hang-cho.ts` | Đã xử lý | nút chuyển thẻ Đã xử lý |
 | `web/xac-minh-hang-cho.ts` | ⟪nhanLoaiPhieu(p.loai)⟫ / ⟪p.tenHoSo⟫ / Chuyển Toàn quyền / Gửi lúc ‹…› / ⟪p.lyDoKhong⟫ | thẻ mở chi tiết phiếu xác minh (chỉ mở) |
 | `public/parties.html` | Tìm | nút Tìm ở bộ lọc Danh bạ, chỉ đọc |
+| `public/giao-dien.html` | Về mặc định toàn bộ | nút «Về mặc định toàn bộ» của Giao diện chỉ đưa bản ĐANG CHỈNH trên máy này về mặc định, không ghi gì (ghi là nút «Áp dụng cho mọi người»); mang dáng nguy hiểm theo khuôn Thiết lập đợt D3 nên máy quét coi là nút ghi |
 | `web/giao-dien.ts` | Lưu | nút «Lưu» mẫu trong khung xem trước Giao diện, không có tác dụng (chỉ để xem màu) |
 | `web/giao-dien.ts` | Nút phụ | nút «Nút phụ» mẫu trong khung xem trước Giao diện, không có tác dụng |
 | `web/giao-dien.ts` | Xác nhận đơn | nút «Xác nhận đơn» mẫu trong khung xem trước Giao diện, không có tác dụng (chữ giống nút thật của Chi tiết đơn nhưng chỉ là hình) |

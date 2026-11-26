@@ -1,13 +1,15 @@
 // Danh mục lý do điều phối (/ly-do-dieu-phoi — ADR-0049 D2 CH-06; bản vẽ docs/design/van-chuyen-dieu-phoi/project/08 …, khung 8c / 8d).
 // Quản trị, Toàn quyền (ô admin.manage — máy chủ hỏi lại ở cả route đọc). Theo nhóm (nhãn nhóm từ NHAN_NHOM_LY_DO — một nguồn với nhật ký); thêm, sửa tên,
 // ngưng / dùng lại — không xoá (khuôn loc_location). Màn hình KHÔNG có ô mã (bản vẽ 8d chỉ "Lý do mới"): mã sinh từ nhãn (`maLyDoMoi`), trùng mã → thử hậu tố.
-// Nút trong khung thêm / sửa đều `type="button"`; mở khung thì đặt focus vào ô, đóng thì trả focus về nút đã mở.
+// Bố cục (đợt D3 khung gốc, ADR-0222, 26/11/2026): khuôn Thiết lập — mỗi nhóm một khối kiểu bảng, «+ Thêm lý do» ở đầu khối, «Sửa» và «Ngưng»/«Dùng lại» cuối dòng;
+// ô thêm và sửa mở trong bảng trượt (web/bang-truot.ts), lỗi của thao tác hiện ngay trong bảng. Đóng bảng thì trả tiêu điểm về nút đã mở.
 import { maLyDoMoi, nhomLyDoHien, nutBatTatLyDo, thuTuLyDoMoi, type NhomHien } from "../src/shared/chinh-sach-hien-thi";
-import type { NhomLyDo } from "../src/shared/dieu-phoi-kieu";
 import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
+import { moBangTruot, type BangTruot } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { datCrumb, loiCua } from "./giay-to-ui";
+import { dsDong, khoi, truong } from "./khung";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -22,8 +24,6 @@ const staff = await initShell();
 datCrumb("Vận chuyển", "Lý do điều phối");
 
 let reasons: Api.TripReasonDto[] = [];
-type Khung = { nhom: NhomLyDo; kieu: "them" } | { nhom: NhomLyDo; kieu: "sua"; code: string };
-let khung: Khung | null = null;
 let dangGui = false;
 
 const nap = async (): Promise<void> => {
@@ -36,7 +36,12 @@ function bao(ok: string | null, loi: string | null): void {
   (loi ? errorEl : ok ? okEl : null)?.scrollIntoView({ block: "nearest" });
 }
 
-/** Chạy một lệnh ghi: khoá lúc gửi; 409 stale → nạp lại rồi báo; lỗi khác → câu máy chủ. */
+/** Sau khi vẽ lại, nút cũ không còn: đưa tiêu điểm về nút tương ứng của bản mới (không cuộn — câu báo tự đưa vào tầm nhìn). */
+const veNut = (sel: string): void => nhomEl.querySelector<HTMLElement>(sel)?.focus({ preventScroll: true });
+const selThem = (nhom: string): string => `.khoi[data-nhom="${nhom}"] [data-action="them"]`;
+const selSua = (nhom: string, code: string): string => `.khoi[data-nhom="${nhom}"] .dong[data-code="${code}"] [data-action="sua"]`;
+
+/** Chạy một lệnh ghi ở dòng (Ngưng / Dùng lại): khoá lúc gửi; 409 stale → nạp lại rồi báo; lỗi khác → câu máy chủ. */
 async function ghi(fn: () => Promise<string>): Promise<void> {
   if (dangGui) return;
   dangGui = true;
@@ -44,12 +49,10 @@ async function ghi(fn: () => Promise<string>): Promise<void> {
   for (const b of nhomEl.querySelectorAll<HTMLButtonElement>("button")) b.disabled = true;
   try {
     const cau = await fn();
-    khung = null;
     ve();
     bao(cau, null);
   } catch (err) {
     if (err instanceof ApiError && err.code === "stale") {
-      khung = null;
       await nap().catch(() => undefined);
       ve();
       bao(null, STALE);
@@ -62,76 +65,112 @@ async function ghi(fn: () => Promise<string>): Promise<void> {
   }
 }
 
+/** Chạy lệnh ghi của bảng trượt: lỗi (kể cả lỗi máy chủ) hiện trong bảng; xong hoặc 409 stale thì đóng bảng, vẽ lại, báo ở trang, tiêu điểm về `sel`. */
+async function ghiBang(bang: BangTruot, loiEl: HTMLElement, btn: HTMLButtonElement, sel: string, fn: () => Promise<string>): Promise<void> {
+  if (dangGui) return;
+  dangGui = true;
+  showError(loiEl, null);
+  btn.disabled = true;
+  bang.setBusy(true);
+  try {
+    const cau = await fn();
+    bang.setBusy(false);
+    bang.close(false);
+    ve();
+    veNut(sel);
+    bao(cau, null);
+  } catch (err) {
+    bang.setBusy(false);
+    if (err instanceof ApiError && err.code === "stale") {
+      bang.close(false);
+      await nap().catch(() => undefined);
+      ve();
+      veNut(sel);
+      bao(null, STALE);
+    } else showError(loiEl, loiCua(err));
+  } finally {
+    btn.disabled = false;
+    dangGui = false;
+  }
+}
+
+/** Ô tên kèm bộ đếm ký tự (x/80) dưới ô. */
 function oTen(id: string, nhan: string, giaTri: string): { root: HTMLElement; input: HTMLInputElement } {
-  const dem = h("span", { class: "dp-count-text", "aria-hidden": "true" }, `${giaTri.length}/${TEN_TOI_DA}`);
-  const input = h("input", { id, class: "vc-input", type: "text", value: giaTri, maxLength: TEN_TOI_DA, autocomplete: "off" });
+  const dem = h("span", { "aria-hidden": "true" }, `${giaTri.length}/${TEN_TOI_DA}`);
+  const input = h("input", { id, class: "o", type: "text", value: giaTri, maxLength: TEN_TOI_DA, autocomplete: "off" });
   input.addEventListener("input", () => (dem.textContent = `${input.value.length}/${TEN_TOI_DA}`));
-  return { root: h("div", { class: "vc-field" }, h("div", { class: "dp-field-head" }, h("label", { for: id }, nhan), dem), input), input };
+  return { root: truong(nhan, input, { goiY: dem }), input };
 }
 
-function khungThem(n: NhomHien): HTMLElement {
-  const { root, input } = oTen(`ld-moi-${n.nhom}`, "Lý do mới", "");
-  const them = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "luu-them" }, "Thêm");
-  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "dong" }, "Đóng");
-  them.addEventListener("click", () => {
-    const nhan = input.value.trim().replace(/\s+/g, " ");
-    if (!nhan) return bao(null, "Nhập lý do mới.");
-    void ghi(async () => {
-      // Mã sinh từ nhãn; mã đã có (lý do cũ cùng tên, kể cả đã ngưng) → thử hậu tố _2, _3… (máy chủ báo 409 `code_taken`).
-      for (let lan = 1; ; lan++) {
-        try {
-          reasons = (await api<Api.TripReasonListResponse>("/api/van-chuyen/ly-do", {
-            method: "POST", body: { code: maLyDoMoi(n.nhom, nhan, lan), group: n.nhom, label: nhan, sortOrder: thuTuLyDoMoi(n.lyDo) },
-          })).reasons;
-          return `Đã thêm lý do “${nhan}” vào nhóm ${n.tieuDe}.`;
-        } catch (err) {
-          if (!(err instanceof ApiError && err.code === "code_taken") || lan >= 9) throw err;
-        }
-      }
-    });
-  });
-  dong.addEventListener("click", () => dongKhung(n.nhom));
-  return h("div", { class: "dp-panel", "data-khung": "them" }, root, h("div", { class: "dp-panel-actions" }, them, dong));
-}
-
-function khungSua(n: NhomHien, l: Api.TripReasonDto): HTMLElement {
-  const { root, input } = oTen(`ld-sua-${l.code}`, "Tên lý do", l.label);
-  const luu = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh", "data-action": "luu-sua" }, "Lưu");
-  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "dong" }, "Đóng");
-  luu.addEventListener("click", () => {
-    const nhan = input.value.trim().replace(/\s+/g, " ");
-    if (!nhan) return bao(null, "Nhập tên lý do.");
-    void ghi(async () => {
-      reasons = (await api<Api.TripReasonListResponse>(`/api/van-chuyen/ly-do/${encodeURIComponent(l.code)}`, {
-        method: "PUT", body: { label: nhan, sortOrder: l.sortOrder, active: l.active, expectedUpdatedAt: l.updatedAt },
-      })).reasons;
-      return `Đã sửa lý do “${nhan}”.`;
-    });
-  });
-  dong.addEventListener("click", () => dongKhung(n.nhom, l.code));
-  return h("div", { class: "dp-panel", "data-khung": "sua" }, root, h("div", { class: "dp-panel-actions" }, luu, dong));
-}
-
-function dongKhung(nhom: NhomLyDo, code?: string): void {
-  khung = null;
-  ve();
-  const sel = code ? `.dp-group[data-nhom="${nhom}"] .dp-reason[data-code="${code}"] [data-action="sua"]` : `.dp-group[data-nhom="${nhom}"] [data-action="them"]`;
-  nhomEl.querySelector<HTMLElement>(sel)?.focus();
-}
-function moKhung(k: Khung): void {
-  khung = k;
+let demBang = 0;
+/** Bảng trượt chứa ô tên: dải lỗi riêng ở đầu bảng, chân bảng «Đóng» và nút ghi; Enter trong ô cũng gửi. */
+function moBieuMau(o: { tieuDe: string; o: HTMLElement; input: HTMLInputElement; nutGhi: HTMLButtonElement; opener: HTMLElement; gui: (bang: BangTruot, loi: HTMLElement) => void }): void {
+  const id = `ld-bieu-mau-${++demBang}`;
+  const loi = h("div", { class: "alert", role: "alert", hidden: true });
+  const bieuMau = h("form", { id, class: "luoi", autocomplete: "off" }, o.o);
+  const dong = h("button", { type: "button", class: "nut", "data-co": "lon", "data-action": "dong" }, "Đóng");
+  o.nutGhi.setAttribute("form", id);
   bao(null, null);
-  ve();
-  nhomEl.querySelector<HTMLInputElement>(`.dp-group[data-nhom="${k.nhom}"] .dp-panel input`)?.focus();
+  const bang = moBangTruot({ title: o.tieuDe, body: [loi, bieuMau], foot: [dong, o.nutGhi], footClass: "vc-foot-2", opener: o.opener });
+  if (!bang) return;
+  dong.addEventListener("click", () => bang.close());
+  bieuMau.addEventListener("submit", (e) => {
+    e.preventDefault();
+    o.gui(bang, loi);
+  });
+  o.input.focus();
+}
+
+function moThem(n: NhomHien, opener: HTMLElement): void {
+  const { root, input } = oTen(`ld-moi-${n.nhom}`, "Lý do mới", "");
+  const them = h("button", { type: "submit", class: "nut", "data-co": "lon", "data-cap": "chinh", "data-action": "luu-them" }, "Thêm");
+  moBieuMau({
+    tieuDe: `Thêm lý do vào nhóm ${n.tieuDe}`, o: root, input, nutGhi: them, opener,
+    gui: (bang, loi) => {
+      const nhan = input.value.trim().replace(/\s+/g, " ");
+      if (!nhan) return showError(loi, "Nhập lý do mới.");
+      void ghiBang(bang, loi, them, selThem(n.nhom), async () => {
+        // Mã sinh từ nhãn; mã đã có (lý do cũ cùng tên, kể cả đã ngưng) → thử hậu tố _2, _3… (máy chủ báo 409 `code_taken`).
+        for (let lan = 1; ; lan++) {
+          try {
+            reasons = (await api<Api.TripReasonListResponse>("/api/van-chuyen/ly-do", {
+              method: "POST", body: { code: maLyDoMoi(n.nhom, nhan, lan), group: n.nhom, label: nhan, sortOrder: thuTuLyDoMoi(n.lyDo) },
+            })).reasons;
+            return `Đã thêm lý do “${nhan}” vào nhóm ${n.tieuDe}.`;
+          } catch (err) {
+            if (!(err instanceof ApiError && err.code === "code_taken") || lan >= 9) throw err;
+          }
+        }
+      });
+    },
+  });
+}
+
+function moSua(n: NhomHien, l: Api.TripReasonDto, opener: HTMLElement): void {
+  const { root, input } = oTen(`ld-sua-${l.code}`, "Tên lý do", l.label);
+  const luu = h("button", { type: "submit", class: "nut", "data-co": "lon", "data-cap": "chinh", "data-action": "luu-sua" }, "Lưu");
+  moBieuMau({
+    tieuDe: `Sửa lý do ${l.label}`, o: root, input, nutGhi: luu, opener,
+    gui: (bang, loi) => {
+      const nhan = input.value.trim().replace(/\s+/g, " ");
+      if (!nhan) return showError(loi, "Nhập tên lý do.");
+      void ghiBang(bang, loi, luu, selSua(n.nhom, l.code), async () => {
+        reasons = (await api<Api.TripReasonListResponse>(`/api/van-chuyen/ly-do/${encodeURIComponent(l.code)}`, {
+          method: "PUT", body: { label: nhan, sortOrder: l.sortOrder, active: l.active, expectedUpdatedAt: l.updatedAt },
+        })).reasons;
+        return `Đã sửa lý do “${nhan}”.`;
+      });
+    },
+  });
 }
 
 function dongLyDo(n: NhomHien, l: Api.TripReasonDto): HTMLElement {
-  const sua = h("button", { type: "button", class: "vc-btn vc-btn-text", "data-action": "sua", "aria-label": `Sửa lý do ${l.label}` }, "Sửa");
-  sua.addEventListener("click", () => moKhung({ nhom: n.nhom, kieu: "sua", code: l.code }));
+  const sua = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "sua", "aria-label": `Sửa lý do ${l.label}` }, "Sửa");
+  sua.addEventListener("click", () => moSua(n, l, sua));
   // R-P22 (Q-B-3): lý do HỆ THỐNG đang dùng không có nút "Ngưng" — chỉ ghi chú; máy chủ vẫn chặn (409 `ly_do_he_thong`, câu của máy chủ hiện ở dải lỗi).
   const nb = nutBatTatLyDo(l);
   const bat = nb.nut
-    ? h("button", { type: "button", class: "vc-btn vc-btn-text", "data-action": l.active ? "ngung" : "dung-lai", "aria-label": `${nb.nut} lý do ${l.label}` }, nb.nut)
+    ? h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": l.active ? "ngung" : "dung-lai", "aria-label": `${nb.nut} lý do ${l.label}` }, nb.nut)
     : null;
   bat?.addEventListener("click", () =>
     void ghi(async () => {
@@ -143,30 +182,28 @@ function dongLyDo(n: NhomHien, l: Api.TripReasonDto): HTMLElement {
   );
   return h(
     "div",
-    { class: l.active ? "dp-reason" : "dp-reason is-off", "data-code": l.code },
-    h("span", { class: "dp-reason-label" }, l.label, nb.ghiChu ? h("span", { class: "dp-reason-sub", "data-he-thong": "1" }, nb.ghiChu) : null),
-    l.active ? null : h("span", { class: "chip chip-muted" }, "Đã ngưng"),
+    { class: "dong", "data-code": l.code, "data-ngung": l.active ? undefined : "" },
+    h("div", { class: "dong-chu" }, h("span", null, l.label), nb.ghiChu ? h("span", { class: "o-phu", "data-he-thong": "1" }, nb.ghiChu) : null),
+    l.active ? null : h("span", { class: "huy-hieu", "data-tong": "xam" }, "Đã ngưng"),
     sua,
     bat,
   );
 }
 
 function veNhom(n: NhomHien): HTMLElement {
-  const titleId = `ld-nhom-${n.nhom}`;
-  const them = h("button", { type: "button", class: "pill-btn dp-group-add", "data-action": "them", "aria-label": `Thêm lý do vào nhóm ${n.tieuDe}` }, "+ Thêm lý do");
-  them.addEventListener("click", () => moKhung({ nhom: n.nhom, kieu: "them" }));
-  const rows: HTMLElement[] = [];
-  for (const l of n.lyDo) {
-    rows.push(dongLyDo(n, l));
-    if (khung?.kieu === "sua" && khung.nhom === n.nhom && khung.code === l.code) rows.push(khungSua(n, l));
-  }
-  if (n.lyDo.length === 0) rows.push(h("div", { class: "dp-reason dp-reason-empty" }, "Chưa có lý do nào."));
-  return h(
-    "section",
-    { class: "vc-card dp-group", "data-nhom": n.nhom, "aria-labelledby": titleId },
-    h("div", { class: "dp-group-head" }, h("h2", { id: titleId, class: "dp-group-title" }, n.tieuDe), h("span", { class: "dp-count" }, String(n.lyDo.length)), them),
-    ...rows,
-    khung?.kieu === "them" && khung.nhom === n.nhom ? khungThem(n) : null,
+  const them = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "them", "aria-label": `Thêm lý do vào nhóm ${n.tieuDe}` }, "+ Thêm lý do");
+  them.addEventListener("click", () => moThem(n, them));
+  return khoi(
+    {
+      tieuDe: h("span", null, n.tieuDe, " ", h("span", { class: "huy-hieu", "data-tong": "xam" }, String(n.lyDo.length))),
+      idTieuDe: `ld-nhom-${n.nhom}`,
+      viec: [them],
+      viecODau: true,
+      kieu: "bang",
+      moTa: n.lyDo.length === 0 ? "Chưa có lý do nào." : undefined,
+      thuoc: { "data-nhom": n.nhom },
+    },
+    n.lyDo.length ? dsDong(null, ...n.lyDo.map((l) => dongLyDo(n, l))) : null,
   );
 }
 

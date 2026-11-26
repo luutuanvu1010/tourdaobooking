@@ -1,20 +1,21 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Trợ lý Hỗ trợ — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="hep" data-title="Trợ lý Hỗ trợ" data-back="/account">
+<body data-khung-goc="thiet-lap" data-rong="vua" data-title="Trợ lý Hỗ trợ" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Bảng điều khiển trợ lý Hỗ trợ (ADR-0069; chỉ Toàn quyền — ô settings.ops, máy chủ kiểm lại ở mọi route). Sáu phần (ADR-0069 + mục "Bộ não" của ADR-0073). -->
+  <!-- Bảng điều khiển trợ lý Hỗ trợ (ADR-0069; chỉ Toàn quyền — ô settings.ops, máy chủ kiểm lại ở mọi route). Sáu phần (ADR-0069 + mục "Bộ não" của ADR-0073).
+       Khuôn Thiết lập của khung gốc (ADR-0222): mỗi phần một khối (web/tro-ly-cai-dat.ts thay từng chỗ giữ dưới đây bằng khoi() cùng id); ô nhập nằm trong khối, nút lưu ở cuối khối. -->
   <h1>Trợ lý Hỗ trợ</h1>
-  <p class="muted">Chỉ người phụ trách hệ thống thấy mục này</p>
+  <div class="dau-trang"><p class="doan-dan">Chỉ người phụ trách hệ thống thấy mục này</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <div id="tl-trang" class="tl-trang" hidden>
-    <section id="tl-tinh-trang" class="card" aria-labelledby="tl-tinh-trang-h"></section>
-    <section id="tl-ai-dung" class="card" aria-labelledby="tl-ai-dung-h"></section>
-    <section id="tl-bo-nao" class="card" aria-labelledby="tl-bo-nao-h"></section>
-    <section id="tl-loi-dan" class="card" aria-labelledby="tl-loi-dan-h"></section>
-    <section id="tl-ngu-canh" class="card" aria-labelledby="tl-ngu-canh-h"></section>
-    <section id="tl-lich-su" class="card" aria-labelledby="tl-lich-su-h"></section>
+  <div id="tl-trang" class="vung-ve" hidden>
+    <section id="tl-tinh-trang" class="khoi"></section>
+    <section id="tl-ai-dung" class="khoi"></section>
+    <section id="tl-bo-nao" class="khoi"></section>
+    <section id="tl-loi-dan" class="khoi"></section>
+    <section id="tl-ngu-canh" class="khoi"></section>
+    <section id="tl-lich-su" class="khoi"></section>
   </div>
 </main>
 <script type="module" src="/js/tro-ly-cai-dat.js"></script>

@@ -5,6 +5,7 @@ import { NUM, PHONG, bienCss, giaTriHieuLuc, giaTriKhiBoGhiDe, kiemGiaoDien, typ
 import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { khoi, thanhNut } from "./khung";
 import { orderCard } from "./order-card";
 import { dungBangDieuKhienTruong } from "./bang-dieu-khien-truong";
 import { initShell, showError } from "./shell";
@@ -55,7 +56,7 @@ function oNhap(n: Num): HTMLElement {
     ...[400, 500, 600, 700].filter((d) => d >= n.min! && d <= n.max!).map((d) => h("option", { value: String(d), selected: String(d) === giaTri(n.khoa) }, String(d))));
   else input = h("input", { id, type: "number", inputmode: "numeric", min: String(n.min), max: String(n.max), step: "1", value: giaTri(n.khoa),
     oninput: (e: Event) => doi((e.target as HTMLInputElement).value) });
-  const veMacDinh = h("button", { type: "button", class: "btn-link", hidden: true, onclick: () => { delete dangSua[n.khoa]; dungForm(); capNhat(); } }, "Về mặc định");
+  const veMacDinh = h("button", { type: "button", class: "btn-link", hidden: true, onclick: () => { delete dangSua[n.khoa]; dungForm(); capNhat(); } }, "Về mặc định"); // lối chữ nhỏ trong dòng núm (giữ dáng cũ; bảng động từ xếp «Về» là nút phụ — nút viền to trong mỗi dòng làm khối nặng)
   const loi = h("p", { class: "gd-loi", role: "alert", hidden: true });
   const hang = h("div", { class: "gd-dong" },
     h("label", { for: id }, n.nhan, n.loai === "co" && h("span", { class: "muted" }, ` (${n.min}–${n.max}px)`)),
@@ -64,10 +65,11 @@ function oNhap(n: Num): HTMLElement {
   return hang;
 }
 
-/** Dựng form MỘT lần theo `dangSua` hiện tại (gọi lại chỉ khi đổi nguồn: nạp, bỏ thay đổi, về mặc định). */
+/** Dựng form MỘT lần theo `dangSua` hiện tại (gọi lại chỉ khi đổi nguồn: nạp, bỏ thay đổi, về mặc định).
+ *  Khuôn Thiết lập (ADR-0222): mỗi nhóm núm một khối của khung; dòng núm (nhãn trái, ô phải) giữ dáng `.gd-dong` của màn. */
 function dungForm(): void {
   dong.clear();
-  replaceChildren(formEl, ...NHOM.map(([nhom, ten]) => h("fieldset", { class: "card gd-nhom" }, h("legend", null, ten),
+  replaceChildren(formEl, ...NHOM.map(([nhom, ten]) => khoi({ tieuDe: ten, idTieuDe: `gd-nhom-${nhom}` },
     ...NUM.filter((n) => n.nhom === nhom).map((n) => oNhap(n)))));
 }
 
@@ -131,9 +133,9 @@ async function napLai(): Promise<void> {
 function hoiXacNhan(): void {
   replaceChildren(xacNhanEl,
     h("p", null, "Áp dụng giao diện này cho mọi người? Mọi người sẽ thấy sau một đến hai lần chuyển trang."),
-    h("div", { class: "actions" },
-      h("button", { type: "button", class: "btn btn-primary btn-chinh", onclick: () => void apDung() }, "Áp dụng"),
-      h("button", { type: "button", class: "btn", onclick: () => { xacNhanEl.hidden = true; } }, "Thôi")));
+    thanhNut(null,
+      h("button", { type: "button", class: "nut", "data-cap": "chinh", onclick: () => void apDung() }, "Áp dụng"),
+      h("button", { type: "button", class: "nut", "data-cap": "loi", onclick: () => { xacNhanEl.hidden = true; } }, "Thôi")));
   xacNhanEl.hidden = false;
 }
 
@@ -161,7 +163,7 @@ void (async () => {
   if (!staff) return;
   if (!can(staff, "settings.ops")) {
     showError(errorEl, "Chỉ người phụ trách hệ thống được đổi giao diện.");
-    for (const el of [formEl, xemEl, apDungBtn.parentElement!]) el.hidden = true;
+    for (const el of [formEl, xemEl, apDungBtn.closest(".khoi") as HTMLElement]) el.hidden = true; // #gd-form mang lớp gop (display: contents) nhưng [hidden] vẫn thắng (luật chung !important)
     return;
   }
   tatBanDaLuu();

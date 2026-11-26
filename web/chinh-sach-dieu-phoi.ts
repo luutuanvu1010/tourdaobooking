@@ -4,6 +4,8 @@
 // hai ô theo PHÚT (nghỉ, khai lùi); đổi đơn vị và câu báo lỗi ở src/shared/chinh-sach-hien-thi.ts (ruling H19). "Phải có hợp đồng" khoá tắt (ĐP7), không gửi.
 // Ô ngày hiệu lực và dòng "Đang soạn" của bản vẽ: CHỜ CHỦ (câu Q3 — docs/design/van-chuyen-dieu-phoi/DOI-CHIEU-2026-09-29.md mục 2.14) → không dựng.
 // Điện thoại: lịch sử bản mở trong bảng trượt ("Lịch sử bản (N) ›"), nút "Lưu thành bản mới" dính đáy (chỉ nhánh Toàn quyền; nhánh hai số của Quản trị giữ nút trong thẻ).
+// Khuôn Thiết lập của khung gốc (ADR-0222, đợt D3): biểu mẫu là một khối (ô bằng `truong()` trên `luoi()`, nút lưu ở cuối khối trong `.dp-cs-actions` — lớp mà
+// luật giấu nút ở điện thoại khi thanh đáy hiện bám vào), «Lịch sử bản» là khối thứ hai xếp dưới; không còn lưới hai cột (cột lịch sử để trống ở nhánh Quản trị).
 import {
   GOI_Y_HAN_CHOT, docFormChinhSach, dongLichSuChinhSach, formTuChinhSach, nhanDieuKien, nhanThoiLuong, thayDoiChinhSach, type DongLichSu, type FormChinhSach, type TruongChinhSach,
 } from "../src/shared/chinh-sach-hien-thi";
@@ -14,6 +16,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { veTheHanMuc } from "./han-muc-tu-choi-the";
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { dsDong, luoi, thanhNut, truong as oTruong } from "./khung";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -57,10 +60,10 @@ const oSo: O[] = [];
 
 function taoO(truong: TruongChinhSach, nhan: string, goiY: string, theoGio: boolean | "tel"): HTMLElement {
   const id = `cs-${truong}`;
-  const hint = h("div", { id: `${id}-hint`, class: "vc-hint" }, goiY);
-  const err = h("div", { id: `${id}-error`, class: "vc-field-error", role: "alert", hidden: true });
+  const hint = h("span", { id: `${id}-hint` }, goiY);
+  const err = h("div", { id: `${id}-error`, class: "truong-loi", role: "alert", hidden: true });
   const input = h("input", {
-    id, class: "vc-input", type: theoGio === "tel" ? "tel" : "text", inputmode: theoGio === "tel" ? "tel" : theoGio ? "decimal" : "numeric", value: st[truong], autocomplete: "off", "aria-describedby": `${id}-hint ${id}-error`,
+    id, class: "o", type: theoGio === "tel" ? "tel" : "text", inputmode: theoGio === "tel" ? "tel" : theoGio ? "decimal" : "numeric", value: st[truong], autocomplete: "off", "aria-describedby": `${id}-hint ${id}-error`,
   });
   input.addEventListener("input", () => {
     st = { ...st, [truong]: input.value };
@@ -68,7 +71,7 @@ function taoO(truong: TruongChinhSach, nhan: string, goiY: string, theoGio: bool
     if (truong === "satMocPhut") capNhatGoiYSatMoc();
   });
   oSo.push({ truong, input, err, hint });
-  return h("div", { class: "vc-field" }, h("label", { for: id }, nhan), input, hint, err);
+  return oTruong(nhan, input, { cot: 6, loi: err, goiY: hint });
 }
 function baoLoi(o: O, cau: string | null): void {
   replaceChildren(o.err, ...(cau ? [icon("alert", 16, 2), cau] : []));
@@ -107,39 +110,44 @@ function congTac(id: string, nhan: string, goiY: string, bat: boolean, khoa: boo
 
 // ---- lịch sử bản -------------------------------------------------------------------------------------------------------------------------------------------
 // Bản vẽ 8a có dòng "Bản N · Đang soạn · Chưa lưu" — CHỜ CHỦ (bản đối chiếu mục 2.14, câu Q3): tới khi chủ trả lời, lịch sử chỉ gồm các bản đã lưu.
+const TONG_BAN: Record<DongLichSu["tone"], string> = { unit: "bien", warn: "cat", muted: "xam" };
 function dongDom(d: DongLichSu): HTMLElement {
   return h(
     "div",
-    { class: "dp-hist-row", "data-ban": d.ten },
-    h("span", { class: "dp-hist-name" }, h("strong", null, d.ten), h("span", { class: `chip chip-${d.tone}` }, d.trangThai)),
-    h("span", null, d.hieuLuc),
-    h("span", { class: "dp-hist-sub" }, d.tomTat),
-    d.nguoiLuu ? h("span", { class: "dp-hist-sub", "data-nguoi-luu": "1" }, d.nguoiLuu) : null,
+    { class: "dong", "data-ban": d.ten },
+    h(
+      "div",
+      { class: "dong-chu" },
+      h("span", null, h("strong", null, d.ten), " ", h("span", { class: "huy-hieu", "data-tong": TONG_BAN[d.tone] }, d.trangThai)),
+      h("span", null, d.hieuLuc),
+      h("span", { class: "o-phu" }, d.tomTat),
+      d.nguoiLuu ? h("span", { class: "o-phu", "data-nguoi-luu": "1" }, d.nguoiLuu) : null,
+    ),
   );
 }
 /** Các bản đã lưu, mới trước (máy chủ trả sẵn thứ tự). */
-function dongLichSu(): HTMLElement[] {
+function dongLichSu(): HTMLElement {
   const out = dongLichSuChinhSach(duLieu.history).map(dongDom);
-  if (out.length === 0) out.push(h("div", { class: "dp-hist-row dp-hist-sub" }, "Chưa có bản nào."));
-  return out;
+  if (out.length === 0) out.push(h("div", { class: "dong o-phu" }, "Chưa có bản nào."));
+  return dsDong(null, ...out);
 }
 function veLichSu(): void {
-  replaceChildren(histEl, h("div", { class: "dp-hist-head" }, icon("history", 16), h("h2", { id: "cs-lich-su-title", class: "dp-hist-title" }, "Lịch sử bản")), ...dongLichSu());
+  replaceChildren(histEl, h("header", { class: "khoi-dau" }, h("h2", { id: "cs-lich-su-title" }, "Lịch sử bản")), dongLichSu());
+  histEl.hidden = false;
   const mo = document.getElementById("cs-hist-open");
   if (mo) mo.firstChild!.textContent = `Lịch sử bản (${duLieu.history.length})`;
 }
 function moLichSu(nut: HTMLElement): void {
-  const dong = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Đóng");
-  const bang = moBangTruot({ title: "Lịch sử bản", body: [h("div", { class: "dp-hist dp-hist-sheet" }, ...dongLichSu())], foot: [dong], opener: nut });
+  const dong = h("button", { type: "button", class: "nut", "data-co": "lon" }, "Đóng");
+  const bang = moBangTruot({ title: "Lịch sử bản", body: [dongLichSu()], foot: [dong], opener: nut });
   dong.addEventListener("click", () => bang?.close());
 }
 
 // ---- dựng form -------------------------------------------------------------------------------------------------------------------------------------------
 function dung(): void {
   oSo.length = 0;
-  const nums = h(
-    "div",
-    { class: "dp-cs-nums" },
+  const nums = luoi(
+    null,
     taoO("mocPhut", "Hạn chốt trước giờ đón (phút)", GOI_Y_HAN_CHOT, false),
     taoO("satMocPhut", "Cảnh báo sắp tới hạn chốt (phút)", "", false),
     taoO("nghiPhut", "Khoảng nghỉ tài xế (phút)", "Giữa hai chuyến của cùng tài xế.", false),
@@ -174,24 +182,24 @@ function dung(): void {
     { class: "dp-cs-rules" },
     h("span", { id: "cs-rules-label", class: "dp-cs-rules-label" }, "Điều kiện cho xe chạy có sẵn"),
     dangAp.length > 0
-      ? h("div", { class: "dp-chips", role: "list", "aria-labelledby": "cs-rules-label" }, ...dangAp.map((r) => h("span", { class: "chip chip-unit", role: "listitem" }, nhanDieuKien(r, (c) => tenGiayToNguoi.get(c)))))
-      : h("span", { class: "dp-hist-sub" }, "Chưa có điều kiện nào đang áp."),
+      ? h("div", { class: "dp-chips", role: "list", "aria-labelledby": "cs-rules-label" }, ...dangAp.map((r) => h("span", { class: "huy-hieu", "data-tong": "bien", role: "listitem" }, nhanDieuKien(r, (c) => tenGiayToNguoi.get(c)))))
+      : h("span", { class: "o-phu" }, "Chưa có điều kiện nào đang áp."),
     h("a", { class: "dp-link", href: "/dieu-kien-xuat-ben" }, "Điều kiện theo cỡ xe, hạng bằng ›"),
   );
-  const luuMay = h("button", { type: "submit", class: "vc-btn btn btn-primary" }, "Lưu thành bản mới");
+  const luuMay = h("button", { type: "submit", class: "nut", "data-cap": "chinh" }, "Lưu thành bản mới");
   replaceChildren(
     formEl,
     nums,
     toggles,
     rules,
-    h("p", { class: "vc-hint dp-cs-note" }, "Bản mới có hiệu lực ngay khi lưu; bản đang dùng chuyển vào lịch sử."),
-    h("div", { class: "dp-cs-actions" }, luuMay),
+    h("p", { class: "khoi-mo-ta" }, "Bản mới có hiệu lực ngay khi lưu; bản đang dùng chuyển vào lịch sử."),
+    thanhNut({ class: "dp-cs-actions" }, luuMay),
   );
   const moLs = h("button", { id: "cs-hist-open", type: "button", class: "dp-hist-open" }, `Lịch sử bản (${duLieu.history.length})`, " ›");
   moLs.addEventListener("click", () => moLichSu(moLs));
   document.getElementById("cs-hist-open")?.remove();
   layoutEl.after(moLs);
-  const luuDay = h("button", { type: "button", class: "vc-btn btn btn-primary btn-chinh" }, "Lưu thành bản mới");
+  const luuDay = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-co": "lon" }, "Lưu thành bản mới");
   luuDay.addEventListener("click", () => formEl.requestSubmit());
   replaceChildren(bottomEl, luuDay);
   veLichSu();
@@ -257,28 +265,27 @@ const soPhut = (v: string, min: number, max: number): number | null => {
 };
 async function veMocRieng(): Promise<void> {
   let hienHanh = await api<Api.MocRaLenhResponse>("/api/van-chuyen/moc-ra-lenh");
-  const oMoc = h("input", { id: "cs-moc-phut", class: "vc-input", type: "text", inputmode: "numeric", autocomplete: "off", value: String(hienHanh.minLeadMinutes), "aria-describedby": "cs-moc-phut-hint" });
-  const oSat = h("input", { id: "cs-sat-phut", class: "vc-input", type: "text", inputmode: "numeric", autocomplete: "off", value: String(hienHanh.warnLeadMinutes), "aria-describedby": "cs-sat-phut-hint" });
-  const loiMoc = h("div", { id: "cs-moc-phut-error", class: "vc-field-error", role: "alert", hidden: true });
-  const loiSat = h("div", { id: "cs-sat-phut-error", class: "vc-field-error", role: "alert", hidden: true });
-  const nut = h("button", { type: "submit", class: "vc-btn btn btn-primary" }, "Lưu hạn chốt");
+  const oMoc = h("input", { id: "cs-moc-phut", class: "o", type: "text", inputmode: "numeric", autocomplete: "off", value: String(hienHanh.minLeadMinutes), "aria-describedby": "cs-moc-phut-hint" });
+  const oSat = h("input", { id: "cs-sat-phut", class: "o", type: "text", inputmode: "numeric", autocomplete: "off", value: String(hienHanh.warnLeadMinutes), "aria-describedby": "cs-sat-phut-hint" });
+  const loiMoc = h("div", { id: "cs-moc-phut-error", class: "truong-loi", role: "alert", hidden: true });
+  const loiSat = h("div", { id: "cs-sat-phut-error", class: "truong-loi", role: "alert", hidden: true });
+  const nut = h("button", { type: "submit", class: "nut", "data-cap": "chinh" }, "Lưu hạn chốt");
   const bao = (el: HTMLElement, cau: string | null): void => {
     replaceChildren(el, ...(cau ? [icon("alert", 16, 2), cau] : []));
     el.hidden = !cau;
   };
   replaceChildren(
     formEl,
-    h("p", { class: "vc-hint dp-cs-note" }, "Bạn chỉ đổi được hai con số này; các cài đặt điều phối khác do Toàn quyền giữ."),
-    h(
-      "div",
-      { class: "dp-cs-nums" },
-      h("div", { class: "vc-field" }, h("label", { for: "cs-moc-phut" }, "Hạn chốt trước giờ đón (phút)"), oMoc,
-        h("div", { id: "cs-moc-phut-hint", class: "vc-hint" }, GOI_Y_HAN_CHOT), loiMoc),
-      h("div", { class: "vc-field" }, h("label", { for: "cs-sat-phut" }, "Cảnh báo sắp tới hạn chốt (phút)"), oSat,
-        h("div", { id: "cs-sat-phut-hint", class: "vc-hint" }, "Lượt đưa đón chưa xếp trong khoảng này trước hạn chốt hiện nhãn «Sắp tới hạn chốt». Từ 0 đến 1440."), loiSat),
+    h("p", { class: "khoi-mo-ta" }, "Bạn chỉ đổi được hai con số này; các cài đặt điều phối khác do Toàn quyền giữ."),
+    luoi(
+      null,
+      oTruong("Hạn chốt trước giờ đón (phút)", oMoc, { cot: 6, loi: loiMoc, goiY: h("span", { id: "cs-moc-phut-hint" }, GOI_Y_HAN_CHOT) }),
+      oTruong("Cảnh báo sắp tới hạn chốt (phút)", oSat, {
+        cot: 6, loi: loiSat, goiY: h("span", { id: "cs-sat-phut-hint" }, "Lượt đưa đón chưa xếp trong khoảng này trước hạn chốt hiện nhãn «Sắp tới hạn chốt». Từ 0 đến 1440."),
+      }),
     ),
-    h("p", { class: "vc-hint dp-cs-note" }, "Bản mới có hiệu lực ngay khi lưu."),
-    h("div", { class: "dp-cs-actions" }, nut),
+    h("p", { class: "khoi-mo-ta" }, "Bản mới có hiệu lực ngay khi lưu."),
+    thanhNut({ class: "dp-cs-actions" }, nut),
   );
   formEl.addEventListener("submit", (e) => {
     e.preventDefault();

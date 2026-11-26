@@ -1,0 +1,17 @@
+{
+  "ghiChu": "Màn của đợt D1 khung gốc (6 trang Người và tài khoản), số màn giữ theo bảng 20/11 và bang-man-them.json 24/11. Thêm 158: Quản trị mở Danh bạ.",
+  "man": [
+    { "so": 54, "bo": "ADMIN", "trang": "/staff", "ho": "D1" },
+    { "so": 11, "bo": "HR", "trang": "/staff", "ho": "D1" },
+    { "so": 86, "bo": "INTERN", "trang": "/staff", "ho": "D1" },
+    { "so": 120, "bo": "PARTNER", "trang": "/staff", "ho": "D1" },
+    { "so": 24, "bo": "SALES", "trang": "/parties", "ho": "D1" },
+    { "so": 158, "bo": "ADMIN", "trang": "/parties", "ho": "D1" },
+    { "so": 67, "bo": "SUPER_ADMIN", "trang": "/sessions", "ho": "D1" },
+    { "so": 55, "bo": "ADMIN", "trang": "/phieu-dang-ky", "ho": "D1" },
+    { "so": 113, "bo": "HR", "trang": "/phieu-dang-ky", "ho": "D1" },
+    { "so": 122, "bo": "SALES_MANAGER", "trang": "/phieu-dang-ky", "ho": "D1" },
+    { "so": 68, "bo": "SUPER_ADMIN", "trang": "/audit", "ho": "D1" },
+    { "so": 69, "bo": "SUPER_ADMIN", "trang": "/gui-thong-bao", "ho": "D1" }
+  ]
+}

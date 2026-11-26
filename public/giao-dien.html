@@ -1,25 +1,33 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Giao diện — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-tabbar="off" data-title="Giao diện" data-back="/account">
+<body data-khung-goc="thiet-lap" data-rong="vua" data-tabbar="off" data-title="Giao diện" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
-<main class="gd">
-  <!-- Màn Giao diện công ty (ADR-0087; chỉ Toàn quyền — ô settings.ops, máy chủ kiểm lại ở mọi route). -->
+<main>
+  <!-- Màn Giao diện công ty (ADR-0087; chỉ Toàn quyền — ô settings.ops, máy chủ kiểm lại ở mọi route). Khuôn Thiết lập của khung gốc (ADR-0222):
+       cột chính = mỗi nhóm núm một khối (web/giao-dien.ts dựng trong #gd-form, lớp gop để các khối xếp như con của cột);
+       cột phụ = khối ba nút (đứng ĐẦU cột để luôn thấy khi cột dính, kể cả màn thấp) + hộp xác nhận + khối xem trước (nội dung riêng của màn, dựng bằng thành phần thật). Từ 800 cột phụ dính theo khi cuộn; điện thoại: cột phụ sau cột chính. -->
   <h1>Giao diện</h1>
-  <p class="muted">Đổi màu, phông và cỡ chữ cho cả công ty. Thay đổi hiện ngay trên máy bạn; bấm "Áp dụng cho mọi người" thì mọi người thấy ở lần mở trang kế tiếp.</p>
+  <div class="dau-trang"><p class="doan-dan">Đổi màu, phông và cỡ chữ cho cả công ty. Thay đổi hiện ngay trên máy bạn; bấm "Áp dụng cho mọi người" thì mọi người thấy ở lần mở trang kế tiếp.</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <div class="gd-luoi">
-    <form id="gd-form" class="gd-o" autocomplete="off"></form>
-    <aside id="gd-xem-truoc" class="gd-xem card" aria-label="Xem trước"></aside>
+  <div class="hai-cot" data-phu="sau">
+    <div class="cot-chinh">
+      <form id="gd-form" class="gop" autocomplete="off"></form>
+    </div>
+    <div class="cot-phu">
+      <div class="khoi">
+        <div id="gd-nut" class="thanh-nut">
+          <button id="gd-mac-dinh" class="nut" data-cap="nguy-hiem" type="button">Về mặc định toàn bộ</button>
+          <button id="gd-bo" class="nut" data-cap="loi" type="button" disabled>Bỏ thay đổi</button>
+          <button id="gd-ap-dung" class="nut" data-cap="chinh" type="button" disabled>Áp dụng cho mọi người</button>
+        </div>
+      </div>
+      <div id="gd-xac-nhan" class="khoi" hidden></div>
+      <aside id="gd-xem-truoc" class="khoi" aria-label="Xem trước"></aside>
+    </div>
   </div>
-  <div class="form-actions gd-nut thanh-hanh-dong-cuoi">
-    <button id="gd-ap-dung" class="btn btn-primary" type="button" disabled>Áp dụng cho mọi người</button>
-    <button id="gd-bo" class="btn" type="button" disabled>Bỏ thay đổi</button>
-    <button id="gd-mac-dinh" class="btn" type="button">Về mặc định toàn bộ</button>
-  </div>
-  <div id="gd-xac-nhan" class="card" hidden></div>
-  <!-- Hiển thị trường theo màn hình (ADR-0194 đợt 1; chỉ Toàn quyền): web/bang-dieu-khien-truong.ts dựng nội dung. -->
-  <section id="bdk" class="card" aria-labelledby="bdk-tieu-de" hidden></section>
+  <!-- Hiển thị trường theo màn hình (ADR-0194 đợt 1; chỉ Toàn quyền): web/bang-dieu-khien-truong.ts dựng nội dung (ruột chưa chuyển khung). -->
+  <section id="bdk" class="khoi" aria-labelledby="bdk-tieu-de" hidden></section>
 </main>
 <script type="module" src="/js/giao-dien.js"></script>
 </body></html>

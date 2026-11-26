@@ -4756,6 +4756,13 @@ body[data-khung-goc="tong-quan"] .luoi > .cot-khoi { display: flex; flex-directi
    mang data-the-an; từ 560 mọi ô cùng hiện. */
 body[data-khung-goc="tong-quan"] .luoi > [data-the-an] { display: none; }
 @container trang (min-width: 560px) { body[data-khung-goc="tong-quan"] .luoi > .khoi[data-the-an] { display: grid; } body[data-khung-goc="tong-quan"] .luoi > .cot-khoi[data-the-an] { display: flex; } }
+/* -- Đợt D3 (26/11/2026) — trang Lý do điều phối (web/ly-do-dieu-phoi.ts): dòng có hai nút (Sửa, Ngưng) — chữ lý do co trước để hai nút đứng cùng hàng ở điện thoại. -- */
+body[data-khung-goc="thiet-lap"] .khoi[data-nhom] .ds-dong > .dong > .dong-chu { flex-basis: var(--kg-cot-ngan); }
+/* Hai nút của dòng chữ thường (ADR-0234 nguyên tắc 1: trong một dòng chỉ một thứ đậm — trang có hơn 50 dòng, mỗi dòng hai nút); viền và màu vẫn là nút phụ. */
+body[data-khung-goc="thiet-lap"] .khoi[data-nhom] .ds-dong > .dong > .nut { font-weight: var(--fw-regular); }
+/* -- Đợt D3 (26/11/2026) — trang Chính sách điều phối (web/chinh-sach-dieu-phoi.ts): nút «Lưu thành bản mới» của thanh dính đáy cũ (#cs-bottom, bài
+   src/nut-luu-khong-mat-o-dien-thoai.test.ts khoá thanh này) nay là .nut — kín bề ngang thanh như nút cũ (.vc-bottom-bar .vc-btn). -- */
+body[data-khung-goc="thiet-lap"] .vc-bottom-bar > .nut { width: 100%; }
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
 
 /* ---------- Tạo / Sửa đơn — ruột trang theo ngôn ngữ thị giác (ADR-0234 nguyên tắc 1: một dòng một thứ đậm; khối một con số nổi). Chỉ đổi ĐỘ ĐẬM, khoanh trong

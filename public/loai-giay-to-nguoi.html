@@ -1,15 +1,15 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Loại giấy tờ cá nhân — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Loại giấy tờ cá nhân" data-back="/account">
+<body data-rong="vua" data-khung-goc="thiet-lap" data-title="Loại giấy tờ cá nhân" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Loại giấy tờ cá nhân (ADR-0040 D2): loại giấy tờ của người + hạng giấy phép lái xe — danh mục chung của Danh bạ; tách khỏi trang Danh mục giấy tờ cũ 2026-09-28; khuôn sẵn của trang Địa điểm. -->
+  <!-- Loại giấy tờ cá nhân (ADR-0040 D2): loại giấy tờ của người + hạng giấy phép lái xe — danh mục chung của Danh bạ; tách khỏi trang Danh mục giấy tờ cũ 2026-09-28; khuôn Thiết lập của khung gốc (ADR-0222) như trang Địa điểm: mỗi danh mục một khối, web/danh-muc-giay-to-khoi.ts dựng khối thay chỗ section giữ chỗ cùng id. -->
   <h1>Loại giấy tờ cá nhân</h1>
-  <p class="muted">Loại giấy tờ của người (căn cước, giấy phép lái xe, khám sức khoẻ…) và hạng giấy phép lái xe, dùng chung cho mọi hồ sơ người trong Danh bạ. Không xoá được — chỉ ngưng dùng; giấy tờ đã nhập vẫn giữ tên cũ.</p>
+  <div class="dau-trang"><p class="doan-dan">Loại giấy tờ của người (căn cước, giấy phép lái xe, khám sức khoẻ…) và hạng giấy phép lái xe, dùng chung cho mọi hồ sơ người trong Danh bạ. Không xoá được — chỉ ngưng dùng; giấy tờ đã nhập vẫn giữ tên cũ.</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <section id="dm-nguoi" class="dm-khoi" hidden></section>
-  <section id="dm-hang" class="dm-khoi" hidden></section>
+  <section id="dm-nguoi" hidden></section>
+  <section id="dm-hang" hidden></section>
 </main>
 <script type="module" src="/js/loai-giay-to-nguoi.js"></script>
 </body></html>

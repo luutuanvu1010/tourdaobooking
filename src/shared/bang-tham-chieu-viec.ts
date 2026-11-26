@@ -6364,6 +6364,7 @@ export const BO_QUA: readonly MucBoQua[] = [
   { tep: "web/xac-minh-hang-cho.ts", chu: "Đã xử lý", lyDo: "nút chuyển thẻ Đã xử lý" },
   { tep: "web/xac-minh-hang-cho.ts", chu: "⟪nhanLoaiPhieu(p.loai)⟫ / ⟪p.tenHoSo⟫ / Chuyển Toàn quyền / Gửi lúc ‹…› / ⟪p.lyDoKhong⟫", lyDo: "thẻ mở chi tiết phiếu xác minh (chỉ mở)" },
   { tep: "public/parties.html", chu: "Tìm", lyDo: "nút Tìm ở bộ lọc Danh bạ, chỉ đọc" },
+  { tep: "public/giao-dien.html", chu: "Về mặc định toàn bộ", lyDo: "nút «Về mặc định toàn bộ» của Giao diện chỉ đưa bản ĐANG CHỈNH trên máy này về mặc định, không ghi gì (ghi là nút «Áp dụng cho mọi người»); mang dáng nguy hiểm theo khuôn Thiết lập đợt D3 nên máy quét coi là nút ghi" },
   { tep: "web/giao-dien.ts", chu: "Lưu", lyDo: "nút «Lưu» mẫu trong khung xem trước Giao diện, không có tác dụng (chỉ để xem màu)" },
   { tep: "web/giao-dien.ts", chu: "Nút phụ", lyDo: "nút «Nút phụ» mẫu trong khung xem trước Giao diện, không có tác dụng" },
   { tep: "web/giao-dien.ts", chu: "Xác nhận đơn", lyDo: "nút «Xác nhận đơn» mẫu trong khung xem trước Giao diện, không có tác dụng (chữ giống nút thật của Chi tiết đơn nhưng chỉ là hình)" },

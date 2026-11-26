@@ -1,15 +1,16 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Lý do điều phối — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Lý do điều phối" data-back="/account">
+<body data-rong="vua" data-khung-goc="thiet-lap" data-title="Lý do điều phối" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
-  <!-- Danh mục lý do điều phối (ADR-0049 D2 CH-06; Quản trị, Toàn quyền — ô admin.manage). Bản vẽ docs/design/van-chuyen-dieu-phoi/project/08 Chinh sach dieu phoi.dc.html (8c, 8d). -->
-  <div class="vc-page-head dp-ly-do-head"><h1>Lý do điều phối</h1><span class="dp-head-note">Hiện trong các hộp chọn lý do</span></div>
+  <!-- Danh mục lý do điều phối (ADR-0049 D2 CH-06; Quản trị, Toàn quyền — ô admin.manage). Bản vẽ docs/design/van-chuyen-dieu-phoi/project/08 Chinh sach dieu phoi.dc.html (8c, 8d). Khuôn Thiết lập của khung gốc (ADR-0222): mỗi nhóm một khối, web/ly-do-dieu-phoi.ts dựng các khối trong #ld-nhom. -->
+  <h1>Lý do điều phối</h1>
+  <div class="dau-trang"><p class="doan-dan">Hiện trong các hộp chọn lý do</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ld-ok" class="alert ok" role="status" hidden></div>
-  <div id="ld-nhom"></div>
-  <p id="ld-note" class="dp-note" hidden>Lý do đã dùng không xoá được — chỉ ngưng, để nhật ký cũ vẫn đọc đúng.</p>
+  <div id="ld-nhom" class="vung-ve"></div>
+  <p id="ld-note" class="doan-dan" hidden>Lý do đã dùng không xoá được — chỉ ngưng, để nhật ký cũ vẫn đọc đúng.</p>
 </main>
 <script type="module" src="/js/ly-do-dieu-phoi.js"></script>
 </body></html>

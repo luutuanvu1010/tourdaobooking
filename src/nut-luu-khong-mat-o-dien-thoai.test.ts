@@ -55,7 +55,7 @@ test("luật giấu chỉ áp cho biểu mẫu chính sách và chỉ ở khổ 
 test("trang Chính sách điều phối: thanh đáy là con trực tiếp của vùng nội dung, mặc định ẩn, cùng vùng với biểu mẫu", () => {
   const main = /<main>([\s\S]*)<\/main>/.exec(html)?.[1] ?? "";
   assert.match(main, /\n  <div id="cs-bottom" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden><\/div>\n/);
-  assert.match(main, /<form id="cs-form" class="vc-card dp-cs-form"/);
+  assert.match(main, /<form id="cs-form" class="khoi"/); // khuôn Thiết lập của khung gốc (đợt D3, 26/11/2026): biểu mẫu là một khối
 });
 
 // Thanh đáy là nút lưu của RIÊNG biểu mẫu chính sách. `position: sticky; bottom` chỉ giữ thanh ở đáy màn hình khi chỗ của nó trong trang còn nằm dưới màn hình;

@@ -1,0 +1,14 @@
+{
+  "ghiChu": "Màn của đợt D2 khung gốc (7 trang Danh mục và vé), số màn giữ theo bảng 20/11 và bang-man-them.json 24/11. Thêm 159: Quản trị mở Dịch vụ & giá.",
+  "man": [
+    { "so": 56, "bo": "SALES_MANAGER", "trang": "/catalog", "ho": "D2" },
+    { "so": 159, "bo": "ADMIN", "trang": "/catalog", "ho": "D2" },
+    { "so": 64, "bo": "ADMIN", "trang": "/luat-ban", "ho": "D2" },
+    { "so": 65, "bo": "ADMIN", "trang": "/dac-diem-dich-vu", "ho": "D2" },
+    { "so": 53, "bo": "ADMIN", "trang": "/phi-don", "ho": "D2" },
+    { "so": 72, "bo": "ADMIN", "trang": "/ve-kho", "ho": "D2" },
+    { "so": 119, "bo": "SALES", "trang": "/ve-kho", "ho": "D2" },
+    { "so": 73, "bo": "ADMIN", "trang": "/ve-doi-chieu", "ho": "D2" },
+    { "so": 74, "bo": "SUPER_ADMIN", "trang": "/ve-cai-dat", "ho": "D2" }
+  ]
+}
