@@ -2,7 +2,24 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.46 ĐÃ LÊN PRODUCTION (khung gốc đợt C, ADR-0222 + ADR-0234: 10 trang Tiền theo khung chung — Sổ công nợ, Phân định, Khoá sổ, Điều chỉnh công nợ, Chụp bù, Hoa hồng, Cấp độ đại lý, Hạn mức trả sau, Nhà cung cấp, Giới hạn nhập hoa hồng; số tiền không đổi; kèm sửa nút chính đầu trang rớt hàng ở Điều phối 600) — không migration — triển khai 2026-11-26 07:33 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.47 ĐÃ LÊN PRODUCTION (dải vàng «còn thiếu mức» ở trang Hoa hồng hiện đủ câu và danh sách vai trò trên điện thoại; chỉ dải nhắc đầu trang còn cắt hai dòng) — không migration — triển khai 2026-11-26 13:26 giờ Việt Nam
+
+Ghi bởi phiên sửa dải Hoa hồng, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ.
+
+- Ngày giờ: 2026-11-26 13:26 (giờ Việt Nam)
+- Commit: e283cfa8d Merge branch 'main' into claude/trusting-rosalind-4e0af8 (sửa chính ở 04c75438e, ab2ddcd18; mục nhật ký 355aaa752)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-26T05:15:53Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45759886733
+- Migration đã áp: không có
+- Worker Version ID: c78e7cb3-bebc-4e46-a001-e185000e5c6a
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (3 cảnh báo)
+- Phiên bản: 3.47
+- Cổng phiên bản trước deploy: ĐẠT; sau deploy: ĐẠT
+- Thời gian: day-len 5 phút 18 giây (chờ GitHub kiểm 5 phút 13 giây); trien-khai 0 phút 48 giây; tổng 6 phút 06 giây
+- Kiểm sau triển khai (GET công khai, 26/11 ~13:30): `/api/auth/config` báo đúng bản; `/app.css` có luật `#strips .dai-cau`. Lúc đó chế độ bảo trì đang BẬT (hẹn tắt 2026-11-29T03:52Z) — không do lần triển khai này bật; sáng 26/11 lúc 09:30 còn tắt.
+- Nợ: kịch bản Chrome `docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/kich-ban/hoa-hong-smoke.mjs` chưa theo kịp khung gốc đợt C, đỏ sẵn ~40 bước.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 3.46 ĐÃ LÊN PRODUCTION (khung gốc đợt C, ADR-0222 + ADR-0234: 10 trang Tiền theo khung chung — Sổ công nợ, Phân định, Khoá sổ, Điều chỉnh công nợ, Chụp bù, Hoa hồng, Cấp độ đại lý, Hạn mức trả sau, Nhà cung cấp, Giới hạn nhập hoa hồng; số tiền không đổi; kèm sửa nút chính đầu trang rớt hàng ở Điều phối 600) — không migration — triển khai 2026-11-26 07:33 giờ Việt Nam
 
 Ghi bởi phiên thi công đợt C, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ.
 
