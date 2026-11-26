@@ -4,6 +4,7 @@ Hai bản chép, giữ TÊN tệp cũ vì bảng «sửa tệp nào → chạy k
 
 - `danh-muc-giay-to-smoke.mjs` ← `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/danh-muc-giay-to-smoke.mjs`
 - `chinh-sach-dieu-phoi-smoke.mjs` ← `docs/evidence/2026-09-29-adr-0049/kich-ban/chinh-sach-dieu-phoi-smoke.mjs`
+- `bang-dieu-khien-tro-ly-smoke.mjs` ← `docs/evidence/2026-09-30-bang-dieu-khien-tro-ly/kich-ban/bang-dieu-khien-tro-ly-smoke.mjs` (Trợ lý cài đặt; máy AI giả trong kịch bản, không cần mạng). Đổi theo trang mới: Ai được dùng và Lời dặn sửa qua nút «Sửa» → bảng trượt (`.sheet form`), lỗi câu chào ở `.sheet .alert`, vai trò được dùng đọc ở huy hiệu `#tl-ai-dung .dp-chips .huy-hieu`. Dòng `[trước D3]`: tài khoản Đối tác thử phải kèm `vai` (ADR-0185), nút mở khung Trợ lý nay là `#tl-nut`, chữ «Khoá: đã đặt», «Thử khoá», «Khoá dùng được», «Điền lời nhắc mặc định», «nhóm vai trò:». Chạy 26/11 sau lần lưu 1bad55ab4: **12/12 bước đạt**.
 
 Chạy từ gốc kho sau `npm run build:web` (tự dựng máy thử riêng, không cần cổng 8891):
 
