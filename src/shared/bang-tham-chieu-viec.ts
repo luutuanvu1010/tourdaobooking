@@ -973,8 +973,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/o-dat-coc-cai-dat.ts", chu: "Tắt ô khách đặt cọc cho đối tác / Bật ô khách đặt cọc cho đối tác" },
     ],
-    trangThai: "cho-chon",
-    nguonTen: "ADR-0236 (đề xuất 26/11/2026): người thi công đặt theo nhãn ô có sẵn «Khách đặt cọc cho đối tác», chờ chủ chọn",
+    trangThai: "da-chot",
+    nguonTen: "ADR-0236 điều 3: chủ chốt 2026-11-26, nguyên văn «Duyệt cả ba»",
   },
   {
     nhom: "Cài đặt vận hành",
