@@ -524,6 +524,10 @@ try {
             const dai = await p.ev(`(() => { const d = document.querySelector('#hh-dai .dai[data-tong="cat"]'); if (!d || document.getElementById('hh-dai').hidden) return null;
               return { tieuDe: d.querySelector('strong')?.textContent ?? '', p: [...d.querySelectorAll('.dai-cau > p')].map((x) => x.textContent), li: [...d.querySelectorAll('li')].map((x) => x.textContent), chu: d.innerText }; })()`);
             assert.ok(dai, "có dải `.dai[data-tong=cat]`");
+            // 26/11 (lỗi người chấm 25/11): ở điện thoại dải từng bị cắt hai dòng, mất danh sách vai trò thiếu mức — innerText vẫn đủ nên các câu đọc chữ không bắt được. Đặt TRƯỚC các câu đọc chữ. Đo chữ có bị giấu không.
+            const cat = await p.ev(`(() => { const c = document.querySelector('#hh-dai .dai-cau'); const li = [...c.querySelectorAll('li')]; const k = c.getBoundingClientRect();
+              return { an: c.scrollHeight > c.clientHeight + 2, liNgoai: li.filter((x) => x.getBoundingClientRect().bottom > k.bottom + 1).length }; })()`);
+            assert.deepEqual(cat, { an: false, liNgoai: 0 }, `dải hiện đủ, không cắt dòng nào (${kho}): ${JSON.stringify(cat)}`);
             const n = dai.li.length;
             assert.equal(dai.tieuDe, cauTieuDeDai(n), `tiêu đề = số dòng: ${dai.tieuDe} / ${n} dòng`);
             assert.equal(dai.p[0], CAU_THAN_DAI, "thân dải nguyên văn §5.1");
@@ -535,10 +539,6 @@ try {
             const soTat = phai(await goiTrongTrang(p, "GET", "/api/pricing/loai-doi-tac"), 200, "loại").loai.filter((l) => !l.dangBat).length;
             assert.ok(soTat >= 1 && dai.p.includes(cauLoaiTatDai(soTat)), `dòng loại đã tắt = ${soTat}: ${JSON.stringify(dai.p)}`);
             assert.ok(!/mở khoá|tự động/.test(dai.chu), "dải không chứa «mở khoá», «tự động»");
-            // 26/11 (lỗi người chấm 25/11): ở điện thoại dải từng bị cắt hai dòng, mất danh sách vai trò thiếu mức — innerText vẫn đủ nên các câu trên không bắt được. Đo chữ có bị giấu không.
-            const cat = await p.ev(`(() => { const c = document.querySelector('#hh-dai .dai-cau'); const li = [...c.querySelectorAll('li')]; const k = c.getBoundingClientRect();
-              return { an: c.scrollHeight > c.clientHeight + 2, liNgoai: li.filter((x) => x.getBoundingClientRect().bottom > k.bottom + 1).length }; })()`);
-            assert.deepEqual(cat, { an: false, liNgoai: 0 }, `dải hiện đủ, không cắt dòng nào (${kho}): ${JSON.stringify(cat)}`);
             await chuyenThe(p, "loai");
             await locLoai(p, "tat-ca");
             const cum = await p.ev("[...document.querySelectorAll('#hh-the-loai article[data-loai]')].map((a) => a.dataset.phu)");
