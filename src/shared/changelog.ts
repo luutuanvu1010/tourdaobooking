@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt D3 khung gốc (ADR-0222, ADR-0234; chủ duyệt ảnh 26/11 «D3 và D1 duyệt theo khuyến nghị»): 7 trang Thiết lập. Nhánh claude/khung-goc-dot-d3-b7cd70. Không migration, không đổi quyền.
+    // Số 3.50 = sau 3.48 (nhánh ADR-0236) và 3.49 (menu Thiết lập), cả hai chưa lên lúc soạn; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác.
+    version: "3.50",
+    date: "2026-11-26",
+    items: [
+      { kind: "doi", text: "Thiết lập: bảy trang (Loại giấy tờ, Lý do và Chính sách điều phối, Điều kiện cho xe chạy, Giao diện, Trợ lý) theo một khuôn chung." },
+      { kind: "doi", text: "Chính sách điều phối, Trợ lý cài đặt: phần cài đặt hiện để xem, bấm «Sửa» mới mở ô nhập; dòng đã ngừng tô chữ xám cho dễ đọc." },
+    ],
+  },
+  {
     // Menu Thiết lập nhiều tầng (đặc tả 2026-11-26-menu-thiet-lap-nhieu-tang; chủ duyệt «Duyệt cả ba» và «Duyệt ảnh» 26/11). Nhánh claude/menu-quan-tri-nhieu-tang-82d17f. Không migration, không đổi quyền.
     // Số 3.49 = sau 3.48 mà nhánh ADR-0236 (phiên P1) đã giữ, chưa nhập lúc soạn; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác.
     version: "3.49",
