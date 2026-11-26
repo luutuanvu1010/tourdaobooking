@@ -535,6 +535,10 @@ try {
             const soTat = phai(await goiTrongTrang(p, "GET", "/api/pricing/loai-doi-tac"), 200, "loại").loai.filter((l) => !l.dangBat).length;
             assert.ok(soTat >= 1 && dai.p.includes(cauLoaiTatDai(soTat)), `dòng loại đã tắt = ${soTat}: ${JSON.stringify(dai.p)}`);
             assert.ok(!/mở khoá|tự động/.test(dai.chu), "dải không chứa «mở khoá», «tự động»");
+            // 26/11 (lỗi người chấm 25/11): ở điện thoại dải từng bị cắt hai dòng, mất danh sách vai trò thiếu mức — innerText vẫn đủ nên các câu trên không bắt được. Đo chữ có bị giấu không.
+            const cat = await p.ev(`(() => { const c = document.querySelector('#hh-dai .dai-cau'); const li = [...c.querySelectorAll('li')]; const k = c.getBoundingClientRect();
+              return { an: c.scrollHeight > c.clientHeight + 2, liNgoai: li.filter((x) => x.getBoundingClientRect().bottom > k.bottom + 1).length }; })()`);
+            assert.deepEqual(cat, { an: false, liNgoai: 0 }, `dải hiện đủ, không cắt dòng nào (${kho}): ${JSON.stringify(cat)}`);
             await chuyenThe(p, "loai");
             await locLoai(p, "tat-ca");
             const cum = await p.ev("[...document.querySelectorAll('#hh-the-loai article[data-loai]')].map((a) => a.dataset.phu)");

@@ -60,3 +60,11 @@ test("tông .dai và .toast đủ biến thể, nhịp .xuong tắt khi giảm c
   assert.match(khoiSach, /prefers-reduced-motion[\s\S]*\.xuong/);
   assert.match(khoiSach, /\.trang-thai\[data-loai=/);
 });
+
+test("dải trong trang (.dai ngoài #strips) không bị cắt hai dòng ở điện thoại — chỉ dải nhắc đầu trang mới cắt (lỗi 25/11: dải thiếu mức ở /hoa-hong mất danh sách vai trò)", () => {
+  // Dải đầu trang (#strips, web/dai.ts) có nút để đọc đủ nên được cắt «…»; dải đặt trong trang (Hoa hồng, màn bảo trì) không có nút nào ⇒ phải hiện đủ.
+  const luatCat = [...khoiSach.matchAll(/([^{}]+)\{[^}]*line-clamp[^}]*\}/g)].map((m) => m[1].trim());
+  const luatCatDai = luatCat.filter((bc) => bc.includes(".dai-cau"));
+  assert.ok(luatCatDai.length > 0, "không còn luật cắt hai dòng nào cho dải đầu trang");
+  for (const bc of luatCatDai) for (const mot of bc.split(",")) assert.match(mot.trim(), /^#strips\b/, `luật cắt hai dòng áp cho dải ngoài #strips: «${mot.trim()}»`);
+});
