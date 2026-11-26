@@ -1343,7 +1343,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Lưu cài đặt** | Vận chuyển › Chính sách điều phối › thẻ «Hạn mức Từ chối của hướng dẫn viên» | Lưu chế độ (Tắt, Chỉ đo, Chặn) và hai số (đơn liên tiếp tối đa, số lần mỗi tuần) của hạn mức Từ chối đơn. Hiệu lực ngay. Nếu chọn Chặn, hướng dẫn viên vượt mức không bấm Từ chối được nữa mà phải gọi văn phòng. Là thẻ riêng, không liên quan nút «Lưu thành bản mới» của form chính sách trên cùng trang. | không | một phần: đặt lại chế độ và số cũ | `/api/dispatch/han-muc-tu-choi/chinh-sach`<br>nhật ký `refuse_policy_changed` | `web/han-muc-tu-choi-the.ts`: Lưu cài đặt | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
+| **Lưu cài đặt** | Vận chuyển › Chính sách điều phối › thẻ «Hạn mức Từ chối của hướng dẫn viên» | Lưu chế độ (Tắt, Chỉ đo, Chặn) và hai số (đơn liên tiếp tối đa, số lần mỗi tuần) của hạn mức Từ chối đơn. Hiệu lực ngay. Nếu chọn Chặn, hướng dẫn viên vượt mức không bấm Từ chối được nữa mà phải gọi văn phòng. Là thẻ riêng, không liên quan nút «Lưu thành bản mới» của form chính sách trên cùng trang. | không | một phần: đặt lại chế độ và số cũ | `/api/dispatch/han-muc-tu-choi/chinh-sach`<br>nhật ký `refuse_policy_changed` | `web/han-muc-tu-choi-the.ts`: Lưu cài đặt<br>`web/han-muc-tu-choi-the.ts`: Sửa | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
 
 ### Chính sách điều phối: đặt lại số lần Từ chối
 

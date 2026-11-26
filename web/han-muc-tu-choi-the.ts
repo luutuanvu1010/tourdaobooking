@@ -2,7 +2,8 @@
 // Bảng số lần: ai có `admin.manage` (Quản trị, Toàn quyền — trang này chỉ mở cho hai nhóm đó). Ô cài đặt + nút «Đặt lại»: chỉ `settings.ops` (Toàn quyền).
 // Ẩn/hiện hỏi bảng quyền (`can`); máy chủ kiểm lại mọi lệnh. Không lộ mã thô (OFF/MEASURE/BLOCK, mã lý do): nhãn từ src/shared.
 // Khuôn Thiết lập của khung gốc (ADR-0222, đợt D3): `el` là một `.khoi` (public/chinh-sach-dieu-phoi.html) — đầu khối có tên và nút «Đặt lại tất cả», câu đang áp
-// dụng là mô tả khối, biểu mẫu cài đặt (ô trên lưới, nút «Lưu cài đặt» cuối biểu mẫu), rồi danh sách dòng theo người với nút «Đặt lại» cuối dòng.
+// dụng là mô tả khối, rồi danh sách dòng theo người với nút «Đặt lại» cuối dòng. Cài đặt (Toàn quyền) mở bằng nút «Sửa» ở đầu khối: biểu mẫu nằm trong bảng
+// trượt, «Lưu cài đặt» ở chân bảng — như ô mức giảm phí sau nút «Sửa» của đợt C; khối chỉ đọc không có nút nền đặc thứ hai cạnh «Lưu thành bản mới».
 import type { StaffProfile } from "../src/shared/contracts";
 import { CHE_DO, GIAI_THICH_CHE_DO, NHAN_CHE_DO, docCaiDat, type CheDo } from "../src/shared/han-muc-tu-choi";
 import { LY_DO_TU_CHOI } from "../src/shared/ly-do-tu-choi";
@@ -12,7 +13,7 @@ import { ApiError, api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
 import { loiCua } from "./giay-to-ui";
-import { cap, dsDong, luoi, thanhNut, truong } from "./khung";
+import { cap, dsDong, truong } from "./khung";
 import { showError } from "./shell";
 
 const BASE = "/api/dispatch/han-muc-tu-choi";
@@ -37,8 +38,8 @@ export async function veTheHanMuc(el: HTMLElement, staff: StaffProfile): Promise
     el.hidden = false;
     return;
   }
-  // `cuon`: chỉ biểu mẫu cài đặt dùng — nút «Lưu cài đặt» ở cuối biểu mẫu còn câu báo ở đầu thẻ, ở điện thoại hai chỗ không cùng một màn nên phải đưa câu báo
-  // vào tầm nhìn. «Đặt lại» từng dòng thì không cuộn: người dùng đang đứng ở dòng đó.
+  // `cuon`: chỉ biểu mẫu cài đặt dùng — bảng trượt đóng thì câu báo ở đầu thẻ có thể nằm ngoài màn, phải đưa vào tầm nhìn.
+  // «Đặt lại» từng dòng thì không cuộn: người dùng đang đứng ở dòng đó.
   const taiLai = async (cau: string | null, laLoi = false, cuon = false): Promise<void> => {
     await veTheHanMuc(el, staff);
     if (!cau) return;
@@ -98,7 +99,8 @@ export async function veTheHanMuc(el: HTMLElement, staff: StaffProfile): Promise
 
   const phan: (HTMLElement | null)[] = [dauKhoi(), null, tomTat, loi, ok];
 
-  if (doiDuoc) {
+  /** Biểu mẫu cài đặt trong bảng trượt (mở từ nút «Sửa» của khối). */
+  function moCaiDat(opener: HTMLElement): void {
     let cheDo: CheDo = cs?.cheDo ?? "MEASURE";
     const radios = CHE_DO.map((m) => {
       const input = h("input", { type: "radio", name: "hm-che-do", value: m, checked: m === cheDo });
@@ -114,16 +116,20 @@ export async function veTheHanMuc(el: HTMLElement, staff: StaffProfile): Promise
     const oLienTiep = h("input", { id: "hm-lien-tiep", class: "o", type: "text", inputmode: "numeric", autocomplete: "off", value: String(cs?.lienTiep ?? 2) });
     const oTuan = h("input", { id: "hm-moi-tuan", class: "o", type: "text", inputmode: "numeric", autocomplete: "off", value: String(cs?.moiTuan ?? 15) });
     const loiO = h("div", { class: "truong-loi", role: "alert", hidden: true });
-    const luu = h("button", { type: "submit", class: "nut", "data-cap": "chinh" }, "Lưu cài đặt");
+    const luu = h("button", { type: "submit", class: "nut", "data-co": "lon", "data-cap": "chinh" }, "Lưu cài đặt");
+    luu.setAttribute("form", "hm-bieu-mau");
+    const dong = h("button", { type: "button", class: "nut", "data-co": "lon" }, "Đóng");
     const form = h(
       "form",
-      { class: "luoi", novalidate: true, autocomplete: "off" },
+      { id: "hm-bieu-mau", class: "luoi", novalidate: true, autocomplete: "off" },
       h("fieldset", { class: "pick-list" }, h("legend", { class: "pick-legend" }, "Chế độ"), ...radios),
       truong("Số đơn liên tiếp tối đa", oLienTiep, { cot: 6, goiY: "Từ 1 đến 10. Đơn kế tiếp bị chặn." }),
       truong("Số lần mỗi tuần tối đa", oTuan, { cot: 6, goiY: "Từ 1 đến 100, tuần từ thứ Hai." }),
       loiO,
-      thanhNut(null, luu),
     );
+    const bang = moBangTruot({ title: "Cài đặt hạn mức Từ chối", body: [form], foot: [dong, luu], footClass: "vc-foot-2", opener });
+    if (!bang) return;
+    dong.addEventListener("click", () => bang.close());
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const so = (v: string): number | string => (/^\d+$/.test(v.trim()) ? Number(v.trim()) : v);
@@ -131,19 +137,29 @@ export async function veTheHanMuc(el: HTMLElement, staff: StaffProfile): Promise
       showError(loiO, r.ok ? null : r.loi);
       if (!r.ok) return;
       luu.disabled = true;
+      bang.setBusy(true);
       try {
         await api<Api.HanMucCaiDatResponse>(`${BASE}/chinh-sach`, { method: "POST", body: r.cs });
+        bang.close(false);
         await taiLai("Đã lưu cài đặt hạn mức — có hiệu lực từ bây giờ.", false, true);
+        el.querySelector<HTMLElement>('[data-action="sua-cai-dat"]')?.focus();
       } catch (err) {
         luu.disabled = false;
-        if (err instanceof ApiError && err.code === "stale") await taiLai(`${err.message}`, true, true);
-        else showError(loiO, loiCua(err));
+        bang.setBusy(false);
+        if (err instanceof ApiError && err.code === "stale") {
+          bang.close(false);
+          await taiLai(`${err.message}`, true, true);
+        } else showError(loiO, loiCua(err));
       }
     });
+  }
+
+  if (doiDuoc) {
     const tatCa = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "dat-lai-tat-ca" }, "Đặt lại tất cả");
     tatCa.addEventListener("click", () => void datLai({ tatCa: true }, tatCa, `Đặt lại số lần Từ chối của ${du.nguoi.length} hướng dẫn viên?`));
-    phan[1] = h("div", { class: "khoi-viec" }, tatCa); // nút của khối: khối rộng thì ở đầu khối bên phải, hẹp thì xuống cuối khối (khung gốc)
-    phan.push(form);
+    const sua = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "sua-cai-dat", "aria-label": "Sửa cài đặt hạn mức Từ chối" }, "Sửa");
+    sua.addEventListener("click", () => moCaiDat(sua));
+    phan[1] = h("div", { class: "khoi-viec" }, sua, tatCa); // nút của khối: khối rộng thì ở đầu khối bên phải, hẹp thì xuống cuối khối (khung gốc)
   }
   phan.push(danhSach);
   replaceChildren(el, ...phan);

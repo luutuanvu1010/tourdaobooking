@@ -697,7 +697,7 @@ body[data-khung-goc] .ds-dong > .dong:last-child { padding-bottom: 0; }
 body[data-khung-goc] .dong-chu { flex: 1 1 var(--kg-cot-dai); min-width: 0; display: grid; gap: var(--s1); }
 body[data-khung-goc] .dong-chu > strong { font-weight: var(--fw-bold); }
 body[data-khung-goc] .khoi[data-kieu="bang"] > .ds-dong { padding: 0 var(--kg-dem) var(--kg-dem); }
-body[data-khung-goc] :is(.dong, tr)[data-ngung] { opacity: .6; }
+body[data-khung-goc] :is(.dong, tr)[data-ngung] { color: var(--c-text-muted); } /* dòng đã ngừng: chữ phụ, không làm mờ cả dòng (opacity làm huy hiệu, chữ phụ, nút dưới ngưỡng tương phản — axe, đợt D3 26/11/2026) */
 
 /* Bảng lưới (khuôn Danh sách): danh sách thẻ dòng; vùng nội dung từ 800 thì mỗi thẻ thành một dòng của bảng thẳng cột, từ 1040 dùng khuôn cột rộng.
    Khuôn cột (--kg-bang-vua, --kg-bang-rong) và vùng của từng ô (--kg-o) do web/khung.ts đặt từ tên cột của thang; màn không tự viết số. */

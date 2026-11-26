@@ -58,16 +58,20 @@ test("trang Chính sách điều phối: thanh đáy là con trực tiếp của
   assert.match(main, /<form id="cs-form" class="khoi"/); // khuôn Thiết lập của khung gốc (đợt D3, 26/11/2026): biểu mẫu là một khối
 });
 
-// Thanh đáy là nút lưu của RIÊNG biểu mẫu chính sách. `position: sticky; bottom` chỉ giữ thanh ở đáy màn hình khi chỗ của nó trong trang còn nằm dưới màn hình;
-// đặt nó ngay sau biểu mẫu, TRƯỚC thẻ Hạn mức, thì cuộn xuống thẻ Hạn mức thanh nằm lại sau biểu mẫu thay vì dính đè lên nút «Lưu cài đặt» của thẻ đó
-// (trợ lý chấm giao diện 21/11: hai nút nền đặc cùng một màn, mức Nặng, khi thanh còn đứng cuối trang).
-test("thanh đáy đứng ngay sau biểu mẫu chính sách, trước thẻ Hạn mức", () => {
+// Thanh đáy là nút lưu của biểu mẫu chính sách. 21/11/2026 nó đứng ngay sau biểu mẫu, TRƯỚC thẻ Hạn mức, để lúc cuộn xuống thẻ Hạn mức thanh không dính đè lên
+// nút «Lưu cài đặt» của thẻ (trợ lý chấm giao diện 21/11: hai nút nền đặc cùng một màn, mức Nặng). Từ đợt D3 khung gốc (26/11/2026) «Lưu cài đặt» nằm trong bảng
+// trượt sau nút «Sửa» của thẻ, nên thanh về CUỐI vùng nội dung như thanh dính đáy của khung (đứng giữa trang thì lúc dính vẫn giữ chỗ trong dòng chảy: khoảng hở
+// 109 px ngoài thang giữa hai khối). Bài này khoá: thanh đứng sau cả biểu mẫu lẫn thẻ Hạn mức, và thẻ Hạn mức không còn nút nền đặc nằm thẳng trên trang.
+test("thanh đáy đứng cuối vùng nội dung, sau biểu mẫu chính sách và thẻ Hạn mức; thẻ Hạn mức không có nút chính trên trang", () => {
   const main = /<main>([\s\S]*)<\/main>/.exec(html)?.[1] ?? "";
   const bieuMau = main.indexOf('<div id="cs-layout"');
   const thanhDay = main.indexOf('<div id="cs-bottom"');
   const hanMuc = main.indexOf('<section id="hm-the"');
   assert.ok(bieuMau >= 0 && thanhDay >= 0 && hanMuc >= 0, "trang thiếu một trong ba khối: biểu mẫu chính sách, thanh đáy, thẻ Hạn mức");
-  assert.ok(bieuMau < thanhDay && thanhDay < hanMuc, "thứ tự trong trang phải là: biểu mẫu chính sách, thanh đáy, rồi thẻ Hạn mức");
+  assert.ok(bieuMau < hanMuc && hanMuc < thanhDay, "thứ tự trong trang phải là: biểu mẫu chính sách, thẻ Hạn mức, rồi thanh đáy");
+  assert.ok(/<div id="cs-bottom"[^>]*><\/div>\s*$/.test(main), "thanh đáy phải là phần tử cuối của vùng nội dung");
+  const the = doc("../web/han-muc-tu-choi-the.ts");
+  assert.match(the, /moBangTruot\(\{ title: "Cài đặt hạn mức Từ chối"[^\n]*foot: \[dong, luu\]/, "«Lưu cài đặt» phải nằm ở chân bảng trượt, không thẳng trên thẻ");
 });
 
 // Thanh đáy nay có lúc nằm trong trang (đã thôi dính) và trôi ngang qua thanh trên dính của khung. Hai thanh vốn cùng một lớp xếp chồng (`--z-dinh`), phần tử

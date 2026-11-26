@@ -2728,6 +2728,9 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
   .dp-hist-open { display: flex; }
 }
 /* danh mục lý do (khung 8c / 8d) + trang điều kiện xuất bến (khuôn sẵn) */
+/* Trang Điều kiện cho xe chạy theo khuôn Thiết lập (đợt D3, 26/11/2026): mỗi dòng một nút «Ngừng điều kiện» / «Đổi» — chữ thường như hai nút trong dòng của
+   trang Lý do (phần khung, ADR-0234 nguyên tắc 1: một dòng một thứ đậm); viền và màu giữ nguyên. Luật riêng của màn nên đứng ngoài phần khung (khung không nhắc id). */
+body[data-khung-goc="thiet-lap"] :is(#dk-dieu-kien, #dk-hang-bang) .ds-dong > .dong > .nut { font-weight: var(--fw-regular); }
 
 .dp-panel-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .dp-field-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); }
@@ -3151,7 +3154,7 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 
 .tl-cd-ds { display: grid; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
 
-.tl-cd-ban summary { cursor: pointer; font-weight: var(--fw-bold); min-height: var(--tap-min); display: flex; align-items: center; }
+.tl-cd-ban summary { cursor: pointer; font-weight: var(--fw-regular); color: var(--c-primary); min-height: var(--tap-min); display: flex; align-items: center; } /* lối mở chữ thường màu chính như liên kết (đợt D3: một khối một thứ đậm) */
 .tl-cd-ban-dong { display: grid; gap: var(--s1); padding: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); min-width: 0; }
 .tl-cd-ban-dong p { margin: 0; overflow-wrap: anywhere; }
 .tl-cd-ban-dong .btn { justify-self: start; }
@@ -4579,7 +4582,7 @@ body[data-khung-goc] .ds-dong > .dong:last-child { padding-bottom: 0; }
 body[data-khung-goc] .dong-chu { flex: 1 1 var(--kg-cot-dai); min-width: 0; display: grid; gap: var(--s1); }
 body[data-khung-goc] .dong-chu > strong { font-weight: var(--fw-bold); }
 body[data-khung-goc] .khoi[data-kieu="bang"] > .ds-dong { padding: 0 var(--kg-dem) var(--kg-dem); }
-body[data-khung-goc] :is(.dong, tr)[data-ngung] { opacity: .6; }
+body[data-khung-goc] :is(.dong, tr)[data-ngung] { color: var(--c-text-muted); } /* dòng đã ngừng: chữ phụ, không làm mờ cả dòng (opacity làm huy hiệu, chữ phụ, nút dưới ngưỡng tương phản — axe, đợt D3 26/11/2026) */
 
 /* Bảng lưới (khuôn Danh sách): danh sách thẻ dòng; vùng nội dung từ 800 thì mỗi thẻ thành một dòng của bảng thẳng cột, từ 1040 dùng khuôn cột rộng.
    Khuôn cột (--kg-bang-vua, --kg-bang-rong) và vùng của từng ô (--kg-o) do web/khung.ts đặt từ tên cột của thang; màn không tự viết số. */
