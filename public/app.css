@@ -4137,6 +4137,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 #strips > .dai[data-tong="cat"] > svg { color: var(--c-sand-text); } #strips > .dai[data-tong="do"] > svg { color: var(--c-danger); } #strips > .dai[data-tong="bien"] > svg { color: var(--c-primary); }
 .dai > svg { flex: none; }
 .dai-cau { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: var(--fw-regular); }
+.dai:has(> .dai-cau > ul) { align-items: flex-start; } .dai-cau > ul { padding-inline-start: var(--s5); } /* dải nhiều dòng có danh sách (thiếu mức ở /hoa-hong): biểu tượng đứng ngang tiêu đề, danh sách thụt vừa để không ăn bề ngang ở điện thoại (người chấm 26/11) */
 @media (min-width: 641px) { #strips .dai-cau { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } } /* ADR-0234: từ iPad trở lên dải một dòng; điện thoại giữ tối đa hai dòng (13/11) */
 .dai .nut { flex: none; min-height: var(--h-control); color: var(--c-primary); background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: var(--s1); }
 .dai-dong { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); padding: 0; color: inherit; background: transparent; border: 0; cursor: pointer; }
