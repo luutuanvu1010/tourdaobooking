@@ -291,6 +291,26 @@ const NOI_DON_THEM = defineSql(
 );
 export const cauThemNoiDon = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(NOI_DON_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
 
+// ---- Công tắc «Ô khách đặt cọc cho đối tác» (ADR-0236 Đ1, Đ2, migration 0193) — khuôn `ord_partner_pickup_place_policy`; mặc định BẬT (lệnh chủ 26/11 «bật lại đi») ---------------
+const O_DAT_COC_HIEN_HANH = defineSql(
+  "orders",
+  "partner_deposit_field_policy_current",
+  `SELECT hien FROM ord_partner_deposit_field_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/** Công tắc đang hiệu lực lúc `luc`: dòng mới nhất có `valid_from_at <= luc`. KHÔNG có dòng nào ⇒ BẬT (lệnh chủ 26/11; cùng giá trị gieo của migration 0193). */
+export async function docHienODatCoc(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(O_DAT_COC_HIEN_HANH).bind(luc).first<{ hien: number }>();
+  return r ? r.hien === 1 : true;
+}
+const O_DAT_COC_MOI_NHAT = defineSql("orders", "partner_deposit_field_policy_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_partner_deposit_field_policy`);
+export const oDatCocMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(O_DAT_COC_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const O_DAT_COC_THEM = defineSql(
+  "orders",
+  "partner_deposit_field_policy_insert",
+  `INSERT INTO ord_partner_deposit_field_policy (id, hien, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemODatCoc = (db: D1Database, v: { id: string; hien: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(O_DAT_COC_THEM).bind(v.id, v.hien ? 1 : 0, v.at, v.by);
+
 // ---- Công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» (ADR-0227 Đ1, migration 0182) — khuôn `ord_pickup_time_policy`; mặc định BẬT ------------------------------------------
 const CHAN_CHUA_GIO_HIEN_HANH = defineSql(
   "orders",

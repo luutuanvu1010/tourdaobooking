@@ -306,6 +306,7 @@ export const MATRIX = {
   // (Cron, src/modules/audit/soat-tien-hang-ngay.ts). CHỈ ĐỌC + gửi một thư tên luật và số vi phạm; không ghi gì. Toàn quyền có ô chỉ vì ADR-0014 điều 2; không route cho người.
   "audit.money.daily": chiToanQuyen(),
   "settings.ops": chiToanQuyen(), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
+  "settings.form_fields": quanTri(), // ADR-0236 Đ2 (lệnh chủ 26/11: «… vào trong bảng điều khiển của Admin , Super Admin»): bật / tắt ô nhập trên biểu mẫu — hôm nay ô «Khách đặt cọc cho đối tác»
   // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
   // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không
   // đòi contact.view; nơi đón đã che dãy từ 8 chữ số — src/modules/orders/pool.ts).

@@ -311,6 +311,13 @@ export interface ChanChuaGioSatNgayRequest { bat: boolean }
 export interface NoiDonDoiTacResponse { bat: boolean; apChoToi: boolean; doiDuoc: boolean }
 /** Thân `POST /api/cai-dat/noi-don-doi-tac` (chỉ Toàn quyền). */
 export interface NoiDonDoiTacRequest { bat: boolean }
+/**
+ * `GET`/`POST /api/cai-dat/o-dat-coc-doi-tac` (ADR-0236 Đ1, Đ2): `hien` = công tắc «Ô khách đặt cọc cho đối tác» đang BẬT (mặc định BẬT — lệnh chủ 26/11); `apChoToi` = `hien` VÀ người gọi
+ * giữ quyền Đối tác (kể cả tài khoản lai) — form Tạo đơn hiện ô cọc đúng khi `apChoToi`; `doiDuoc` = người gọi bật / tắt được (ô `settings.form_fields`: Quản trị, Toàn quyền).
+ */
+export interface ODatCocDoiTacResponse { hien: boolean; apChoToi: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/o-dat-coc-doi-tac` (Quản trị, Toàn quyền). */
+export interface ODatCocDoiTacRequest { hien: boolean }
 
 /**
  * `GET`/`POST /api/cai-dat/hanh-khach-doi-tac` (ADR-0228 Đ1): `bat` = công tắc «Đối tác không nhập danh sách hành khách» đang BẬT; `apChoToi` = `bat` VÀ người gọi là Đối tác thuần

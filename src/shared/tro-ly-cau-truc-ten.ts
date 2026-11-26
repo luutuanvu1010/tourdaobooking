@@ -173,6 +173,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "audit.money.daily": { ten: "soát tiền hằng ngày (Nền tảng tự làm)", moTa: "Mỗi sáng 7 giờ Nền tảng tự soát số liệu tiền và vé; có chỗ lệch thì gửi một thư nêu tên luật và số chỗ lệch, không kèm tên khách hay số tiền. Không có nút cho người bấm." },
   "ve.kho.purge": { ten: "xoá ảnh vé hết hạn lưu (Nền tảng tự làm)", moTa: "Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu, rồi ghi một dòng Xoá ảnh vé hết hạn lưu vào nhật ký. Không có nút cho người bấm." },
   "settings.ops": { ten: "cài đặt vận hành", moTa: "Bảo trì, chính sách điều phối, trợ lý Hỗ trợ và các cài đặt chung." },
+  "settings.form_fields": { ten: "bật tắt ô trên biểu mẫu", moTa: "Bật hoặc tắt ô «Khách đặt cọc cho đối tác» trên form Tạo đơn của đối tác." },
   "order.pool.view": { ten: "xem hàng chờ nhận", moTa: "Xem các đơn chưa có người phụ trách để bấm nhận." },
   "notice.send": { ten: "gửi thông báo thủ công", moTa: "Gửi, thu hồi thông báo và xem ai đã bấm Đã hiểu." },
   "company.legal.write": { ten: "sửa thông tin công ty chủ", moTa: "Sửa tên, mã số thuế, địa chỉ, liên hệ, tài khoản nhận tiền của công ty chủ hoặc đổi công ty chủ." },

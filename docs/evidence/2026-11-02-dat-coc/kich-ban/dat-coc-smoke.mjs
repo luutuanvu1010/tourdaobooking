@@ -1,4 +1,4 @@
-// Kịch bản Chrome + axe — «Khách đặt cọc cho đối tác» (ADR-0159; tên và ô ở đơn Trả sau theo ADR-0197, cập nhật 2026-11-11). Hai khổ 390 và 1280. Trên D1 local tạm, tên và SĐT là GIẢ, không đụng dữ liệu thật.
+// Kịch bản Chrome + axe — «Khách đặt cọc cho đối tác» (ADR-0159; tên và ô ở đơn Trả sau theo ADR-0197, cập nhật 2026-11-11; công tắc ô cọc và thẻ cài đặt theo ADR-0236, 26/11). Hai khổ 390 và 1280. Trên D1 local tạm, tên và SĐT là GIẢ, không đụng dữ liệu thật.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-11-02-dat-coc node docs/evidence/2026-11-02-dat-coc/kich-ban/dat-coc-smoke.mjs
 // Trang dùng chung kho cookie: mỗi phần đăng nhập đúng một tài khoản, mở trang của tài khoản đó sau cùng.
@@ -8,7 +8,8 @@ import { CHU, MOB, OUT, assert, axe, axeNote, boDem, dungMoiTruong, noCode, noOv
 
 const DOITAC = { name: "Đối Tác Đặt Cọc", phone: "0900000711", pin: "246711", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" }; // ADR-0185: tài khoản Đối tác phải có vai trò đối tác
 const BAN = { name: "Bán Hàng Không Ô Cọc", phone: "0900000712", pin: "246712", permissions: ["SALES"] };
-const { env, call } = await dungMoiTruong([CHU, DOITAC, BAN]);
+const QT = { name: "Quản Trị Công Tắc Cọc", phone: "0900000713", pin: "246713", permissions: ["ADMIN"] }; // ADR-0236 Đ2: Quản trị đổi được công tắc ô cọc
+const { env, call } = await dungMoiTruong([CHU, DOITAC, BAN, QT]);
 const b = boDem("KHACH DAT COC TRUOC");
 mkdirSync(join(OUT, "anh"), { recursive: true });
 const ngay = vnDate(3);
@@ -48,16 +49,17 @@ assert.equal(donTS.paymentTerm, "CREDIT");
 const DESK_RONG = { width: 1280, height: 820, mobile: false };
 
 const buoc = async (khung, hau) => {
-  // ---- Việc 5 (b1), ADR-0225 Đ1 (21/11): form Đối tác KHÔNG còn ô đặt cọc, kể cả nháp cũ đã khai số và đơn Trả sau; ô Ghi chú thanh toán không còn chữ gợi ý «nội dung chuyển khoản» ----
+  // ---- ADR-0236 Đ1 (26/11, lệnh chủ «bật lại đi»): công tắc BẬT (mặc định) ⇒ form Đối tác có lại ô đặt cọc, nháp cũ hiện đúng số đã khai; ô Ghi chú thanh toán VẪN không có chữ gợi ý
+  // «nội dung chuyển khoản» (ADR-0225 Đ2 còn hiệu lực). Công tắc TẮT ⇒ ô ẩn như ADR-0225 Đ1. ----
   let p = await env.as(DOITAC, `/order-form?id=${donNhap.id}`, khung);
   await p.waitFor(`!!document.querySelector('#pay-card') && document.querySelector('#customerName') && document.querySelector('#customerName').value !== ''`, "form nạp nháp đã khai cọc");
-  await b.step(`${hau}-1`, `${hau}: nháp cũ có lời khai 500.000 ⇒ form Đối tác không hiện ô cọc, Tóm tắt không có hai dòng cọc; Ghi chú thanh toán không có chữ gợi ý chuyển khoản; không tràn ngang${axeNote()}`, async () => {
+  await b.step(`${hau}-1`, `${hau}: công tắc Bật ⇒ form Đối tác hiện ô cọc mang số 500.000 đã khai; nút gập «Giải thích giảm giá, đặt cọc»; Ghi chú thanh toán không có chữ gợi ý chuyển khoản; không tràn ngang${axeNote()}`, async () => {
     await sleep(500);
-    assert.equal(await hien(p, "#declaredDeposit"), false, "ô cọc ẩn");
-    assert.equal(await p.ev(`[...document.querySelectorAll('[data-dat-coc]')].some((e) => e.getClientRects().length > 0)`), false, "không có dòng cọc ở Tóm tắt");
-    assert.equal(await p.ev(`document.querySelector('#paymentNote').placeholder`), "", "không còn chữ gợi ý «nội dung chuyển khoản»");
+    assert.equal(await hien(p, "#declaredDeposit"), true, "ô cọc hiện");
+    assert.equal(Number(String(await p.ev(`document.querySelector('#declaredDeposit').value`)).replace(/\D/g, "")), 500000, "nháp cũ giữ số đã khai");
+    assert.equal(await p.ev(`document.querySelector('#paymentNote').placeholder`), "", "không có chữ gợi ý «nội dung chuyển khoản» (ADR-0225 Đ2)");
     const nut = await p.ev(`(() => { const n = document.querySelector('[data-gap="thanh-toan-giai-thich"]'); return n ? { chu: n.textContent, an: n.hidden } : null; })()`);
-    assert.ok(nut === null || nut.an || nut.chu === "Giải thích giảm giá", `nút gập không còn nhắc đặt cọc: ${JSON.stringify(nut)}`);
+    assert.ok(nut && !nut.an && nut.chu === "Giải thích giảm giá, đặt cọc", `nút gập nhắc cả đặt cọc: ${JSON.stringify(nut)}`);
     assert.equal(await p.ev(noOverflowX), true);
     await chup(p, `01-doi-tac-form-${hau}`, khung);
     await axe(p, `form đối tác ${hau}`);
@@ -65,13 +67,41 @@ const buoc = async (khung, hau) => {
   p.close();
   p = await env.as(DOITAC, `/order-form?id=${donTS.id}`, khung);
   await p.waitFor(`!!document.querySelector('#tra-sau-khoi') && !document.querySelector('#tra-sau-khoi').hidden`, "form nháp Trả sau");
-  await b.step(`${hau}-2b`, `${hau}: đơn Trả sau của Đối tác cũng không có ô cọc, không có câu nhắc cọc`, async () => {
+  await b.step(`${hau}-2b`, `${hau}: đơn Trả sau của Đối tác có ô cọc và câu nhắc cọc`, async () => {
     await sleep(500);
     assert.equal(await p.ev(`document.querySelector('input[name="paymentTerm"][value="CREDIT"]').checked`), true, "nháp đang chọn Trả sau");
-    assert.equal(await hien(p, "#declaredDeposit"), false);
-    assert.equal(await hien(p, "#dat-coc-tra-sau"), false);
+    assert.equal(await hien(p, "#declaredDeposit"), true);
     assert.equal(await p.ev(noOverflowX), true);
     await chup(p, `02b-doi-tac-tra-sau-${hau}`, khung);
+  });
+  p.close();
+  // ---- Quản trị TẮT công tắc ⇒ form Đối tác không còn ô; bật lại cho các bước sau ----
+  dung(await call(QT, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false }), 200, "Quản trị tắt ô cọc");
+  p = await env.as(DOITAC, `/order-form?id=${donNhap.id}`, khung);
+  await p.waitFor(`!!document.querySelector('#pay-card') && document.querySelector('#customerName') && document.querySelector('#customerName').value !== ''`, "form khi công tắc tắt");
+  await b.step(`${hau}-2c`, `${hau}: công tắc Tắt ⇒ form Đối tác không có ô cọc; nút gập không nhắc đặt cọc`, async () => {
+    await sleep(500);
+    assert.equal(await hien(p, "#declaredDeposit"), false, "ô cọc ẩn");
+    assert.equal(await p.ev(`[...document.querySelectorAll('[data-dat-coc]')].some((e) => e.getClientRects().length > 0)`), false, "không có dòng cọc ở Tóm tắt");
+    const nut = await p.ev(`(() => { const n = document.querySelector('[data-gap="thanh-toan-giai-thich"]'); return n ? { chu: n.textContent, an: n.hidden } : null; })()`);
+    assert.ok(nut === null || nut.an || nut.chu === "Giải thích giảm giá", `nút gập không nhắc đặt cọc: ${JSON.stringify(nut)}`);
+    await chup(p, `02c-doi-tac-tat-o-coc-${hau}`, khung);
+  });
+  p.close();
+  dung(await call(QT, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: true }), 200, "Quản trị bật lại ô cọc");
+  // ---- Trang Tôi của Quản trị: hai thẻ cài đặt (ô cọc bật / tắt được, ô bằng lái khoá) ----
+  p = await env.as(QT, "/account", khung);
+  await p.waitFor(`!!document.querySelector('#o-dat-coc-doi') && !!document.querySelector('#o-bang-lai-doi')`, "trang Tôi của Quản trị");
+  await b.step(`${hau}-2d`, `${hau}: Quản trị thấy thẻ «Ô khách đặt cọc cho đối tác» (Đang bật, nút Tắt) và thẻ «Ô bằng lái trên phiếu đăng ký» (Đang tắt, nút khoá kèm lý do)${axeNote()}`, async () => {
+    await sleep(400);
+    assert.equal(await docTxt(p, "#o-dat-coc-trang-thai"), "Đang bật.");
+    assert.equal(await docTxt(p, "#o-dat-coc-doi"), "Tắt ô khách đặt cọc cho đối tác");
+    assert.equal(await p.ev(`document.querySelector('#o-bang-lai-doi').disabled`), true, "nút bật ô bằng lái khoá");
+    assert.equal(await coChu(p, "Chưa bật được: phiếu đăng ký chưa có ô bằng lái và hạng."), true);
+    assert.equal(await p.ev(noOverflowX), true);
+    await p.ev(`document.querySelector('#cai-dat-lap-don').scrollIntoView()`);
+    await chup(p, `02d-quan-tri-cai-dat-${hau}`, khung);
+    await axe(p, `trang Tôi Quản trị ${hau}`);
   });
   p.close();
   // ---- Đối tác xem đơn nháp ----

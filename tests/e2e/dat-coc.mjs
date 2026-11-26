@@ -106,7 +106,22 @@ try {
   assert.equal(r.body.error.code, "tra_sau_con_coc_o_doi_tac");
   r = await call(SUPER, "POST", `/api/orders/${ts.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
+
+  // ADR-0236 Đ1: công tắc «Ô khách đặt cọc cho đối tác» — mặc định Bật; Tắt ⇒ lời khai mới > 0 của Đối tác bị 409, nháp đã khai vẫn thành khoản thu tiền mặt khi xác nhận.
+  r = await call(dt, "GET", "/api/cai-dat/o-dat-coc-doi-tac");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.apChoToi, true, "mặc định Bật");
+  const nhapBat = await lap("ZDC2", 80000);
+  r = await call(SUPER, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  r = await call(dt, "POST", "/api/orders", than("ZDC2", 50000));
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "o_dat_coc_dang_tat");
+  r = await call(dt, "POST", `/api/orders/${nhapBat.id}/gui-don`, {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  await dungMot(nhapBat.id, 80000, "nháp khai lúc Bật, xác nhận lúc Tắt");
 } finally {
+  await call(SUPER, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: true });
   await call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZDC1", canXacNhan: false });
 }
 console.log("dat-coc OK");

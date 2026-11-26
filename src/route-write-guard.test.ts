@@ -103,7 +103,8 @@ export function isGuardedBody(body: string): boolean {
 /** Luật (4): ô quản trị được công nhận ở route cổng "admin" (ADR-0019 điều 2). Thêm ô = sửa hàng rào (người rà phải thấy). */
 // ADR-0075 điều 7: auth.session.viewAll / auth.session.revoke — ô CHỈ Toàn quyền (hẹp hơn admin.manage), cùng khuôn notice.send (ADR-0034).
 // ADR-0085: auth.session.policy — chính sách đăng nhập, ô CHỈ Toàn quyền (cùng khuôn hai ô auth.session.* ở trên).
-const ADMIN_OPS = ["admin.manage", "admin.manage.superadmin", "feedback.triage", "settings.ops", "notice.send", "auth.session.viewAll", "auth.session.revoke", "auth.session.policy"];
+// ADR-0236 Đ2 (lệnh chủ 26/11): settings.form_fields — bật / tắt ô trên biểu mẫu, Quản trị + Toàn quyền (nới có tên: thêm một ô quản trị, cổng vẫn "admin").
+const ADMIN_OPS = ["admin.manage", "admin.manage.superadmin", "feedback.triage", "settings.ops", "notice.send", "auth.session.viewAll", "auth.session.revoke", "auth.session.policy", "settings.form_fields"];
 /** Luật (4b) — ADR-0071: ô Quản lý tài khoản được công nhận ở route cổng "accounts". Thêm ô = sửa hàng rào. */
 // ADR-0125 đ1: hai ô xác minh phiếu tự khai mở ở cổng accounts — nới có tên (kế hoạch H-4 sự thật 8); ba route /api/parties/xac-minh* hỏi chúng ở đầu thân.
 // ADR-0207 Đ9 (đợt 1 Task 6): thêm `registration.queue.view` — hàng chờ phiếu đăng ký; tám route /api/dang-ky/* ở cổng accounts hỏi ô này hoặc `party.verify*` (cùng `party.view`).

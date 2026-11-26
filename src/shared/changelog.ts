@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0236 (lệnh chủ 26/11 «1- bật lại đi. 2- giữ nguyên như vậy, nhưng cho cả 2 tùy chọn này vào trong bảng điều khiển của Admin , Super Admin»). Nhánh claude/cong-tac-dat-coc-bang-lai-6434a8.
+    // Có migration 0193 (một bảng cài đặt chỉ-thêm). Số 3.48 = số trống kế tiếp sau 3.47 (bản chạy thật lúc soạn, 26/11); bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.48",
+    date: "2026-11-26",
+    items: [
+      { kind: "doi", text: "Tạo đơn của đối tác: ô «Khách đặt cọc cho đối tác» hiện lại. Khách đưa cọc tiền mặt cho đối tác thì ghi số vào ô này; đơn xác nhận thì số đó thành khoản thu." },
+      { kind: "moi", text: "Trang Tôi của Quản trị và Toàn quyền: thêm nút bật / tắt ô «Khách đặt cọc cho đối tác». Tắt thì đối tác không ghi được số cọc mới; số đã ghi trên đơn nháp giữ nguyên." },
+      { kind: "moi", text: "Trang Tôi của Quản trị và Toàn quyền: thêm mục «Ô bằng lái trên phiếu đăng ký», hiện đang tắt và chưa bật được vì phiếu đăng ký chưa có ô bằng lái." },
+    ],
+  },
+  {
     // Sửa lỗi Nặng người chấm giao diện phát hiện 25/11 (có từ trước đợt C): dải thiếu mức ở Hoa hồng bị cắt hai dòng ở điện thoại. Chỉ CSS, không migration, không đổi số tiền.
     // Số 3.47 = số trống kế tiếp sau 3.46 (bản chạy thật lúc soạn, 26/11); bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
     version: "3.47",
