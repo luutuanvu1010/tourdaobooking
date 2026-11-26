@@ -1415,7 +1415,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Tạo tài khoản** | Quản lý tài khoản › Thêm tài khoản | Tạo tài khoản mới với vai trò đã chọn (kèm hồ sơ cá nhân mới hoặc dùng hồ sơ có sẵn), tự sinh PIN 6 số và hiện đúng một lần. Nút khoá lại nếu số hoặc tên khớp hồ sơ có sẵn cho tới khi chọn hồ sơ hoặc tick tạo mới. | không | một phần: không xoá được tài khoản, chỉ Ngưng | `/api/staff`<br>nhật ký `staff_created` | `public/staff.html`: Tạo tài khoản | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+| **Tạo tài khoản** | Quản lý tài khoản › thanh lọc › nút «Thêm tài khoản» › bảng «Thêm tài khoản» | Tạo tài khoản mới với vai trò đã chọn (kèm hồ sơ cá nhân mới hoặc dùng hồ sơ có sẵn), tự sinh PIN 6 số và hiện đúng một lần. Nút khoá lại nếu số hoặc tên khớp hồ sơ có sẵn cho tới khi chọn hồ sơ hoặc tick tạo mới. | không | một phần: không xoá được tài khoản, chỉ Ngưng | `/api/staff`<br>nhật ký `staff_created` | `public/staff.html`: Thêm tài khoản<br>`public/staff.html`: Tạo tài khoản | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 
 ### Đăng xuất
 

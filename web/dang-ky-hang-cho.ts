@@ -5,6 +5,8 @@
 //   - bước duyệt, từ chối duyệt, trả về xác minh, gửi lại lời mời: `registration.approve` (Quản trị, Nhân sự, Toàn quyền); «cấp sẽ áp» kèm tên cấp: `partner.commission.view` (Nhân sự không thấy tên cấp).
 // Mọi lệnh gửi `phienBan` = bản khai người dùng đang xem; 409 `registration_version_changed` ⇒ báo câu của máy chủ và mở lại phiếu. Số giấy tờ đủ chỉ nằm trong DOM của khung chi tiết
 // (mất khi đóng), không lưu ở đâu. Không ô chữ tự do: lý do chọn trong danh sách đóng. Chỉ dựng DOM bằng h().
+// Khung gốc (ADR-0222; đợt D1, chỉ trang Phiếu đăng ký đối tác dùng tệp này): hàng chờ là danh sách dòng (dòng đang mở mang aria-current), khung chi tiết là
+// mục con ngay dưới danh sách trong cùng khối; cặp nhãn–giá trị bằng `cap()`, ô chọn vai bằng `truong()`, nút bằng `.nut[data-cap]`.
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
 import { CHU_HANG_CHO_DK, NHAN_LOAI_THU, cauBuocKhac } from "../src/shared/dang-ky-giao-dien";
@@ -15,6 +17,7 @@ import { CAU_DOI_VAI_CAP, type KetQuaCapDto } from "../src/shared/cap-se-ap-hien
 import { vnDateTimeText } from "../src/shared/vn-date";
 import { ngayVN } from "../src/shared/giay-to-hien-thi";
 import { h, replaceChildren } from "./dom";
+import { cap, truong } from "./khung";
 
 type Staff = Api.StaffProfile;
 type ThuBao = { loai: string; trangThai: "CHO" | "GUI" | "LOI" };
@@ -61,11 +64,17 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
   let luot = 0;
   const baoLoi = h("div", { class: "alert", role: "alert", hidden: true });
   const baoOk = h("div", { class: "alert ok", role: "status", hidden: true });
-  const danhSach = h("div", { class: "xm-ds", id: "dk-hc-ds" });
-  const chiTiet = h("div", { class: "xm-chi-tiet", id: "dk-hc-chi-tiet", hidden: true });
+  const danhSach = h("div", { class: "ds-dong", id: "dk-hc-ds" });
+  const chiTiet = h("div", { class: "muc-con", id: "dk-hc-chi-tiet", hidden: true });
+  /** Phiếu đang mở ở khung chi tiết: dòng của nó mang aria-current (nền xanh nhạt, đợt C). */
+  let dangMo: string | null = null;
+  const danDau = (id: string | null) => {
+    dangMo = id;
+    for (const b of danhSach.querySelectorAll<HTMLElement>("[data-phieu]")) b.setAttribute("aria-current", String(b.dataset.phieu === id));
+  };
   const hienLoi = (m: string | null) => { baoLoi.hidden = m === null; baoLoi.textContent = m ?? ""; };
   const hienOk = (m: string | null) => { baoOk.hidden = m === null; baoOk.textContent = m ?? ""; };
-  const dongChiTiet = () => { luot++; chiTiet.hidden = true; replaceChildren(chiTiet); };
+  const dongChiTiet = () => { luot++; chiTiet.hidden = true; replaceChildren(chiTiet); danDau(null); };
 
   async function taiDanhSach(): Promise<void> {
     const mine = ++luot;
@@ -94,17 +103,18 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
   function the(p: DongHangCho): HTMLElement {
     // Phiếu ĐÃ DUYỆT còn trong hàng chờ = người đăng ký chưa tự đặt PIN (ADR-0207 Đ7: «Chưa kích hoạt»).
     const nhan = p.trangThai === "DA_DUYET" ? CHU_HANG_CHO_DK.chuaKichHoat : nhanTrangThaiPhieu(p.trangThai);
-    return h("button", { type: "button", class: "xm-the xm-the-cho", "data-phieu": p.id, onclick: () => void moChiTiet(p) },
-      h("span", { class: "xm-the-dong" }, h("strong", null, p.id), h("span", { class: "huy-hieu", "data-tong": p.trangThai === "DA_DUYET" ? "cat" : "bien" }, nhan)),
-      h("span", null, p.tenLoai),
-      p.guiLuc ? h("span", { class: "muted" }, `Gửi lúc ${vnDateTimeText(p.guiLuc)}`) : null,
-      huyHieuThu(p.thu));
+    return h("button", { type: "button", class: "dong", "data-phieu": p.id, "aria-current": String(p.id === dangMo), onclick: () => void moChiTiet(p) },
+      h("span", { class: "dong-chu" },
+        h("span", { class: "hang" }, h("strong", null, p.id), h("span", { class: "huy-hieu", "data-tong": p.trangThai === "DA_DUYET" ? "cat" : "bien" }, nhan)),
+        h("span", null, p.tenLoai),
+        p.guiLuc ? h("span", { class: "o-phu" }, `Gửi lúc ${vnDateTimeText(p.guiLuc)}`) : null,
+        huyHieuThu(p.thu)));
   }
 
-  const dong = (nhan: string, giaTri: string | Node) => h("div", { class: "hs-dong" }, h("span", { class: "muted" }, nhan), h("span", null, giaTri));
+  const dong = (nhan: string, giaTri: string | Node) => cap(nhan, giaTri);
   const dauKhung = (tieuDe: string) => {
     const t = h("h3", { tabindex: -1 }, tieuDe);
-    return { t, el: h("div", { class: "xm-chi-tiet-dau" }, t, h("button", { type: "button", class: "btn btn-link", onclick: dongChiTiet }, "Đóng")) };
+    return { t, el: h("div", { class: "xm-chi-tiet-dau" }, t, h("button", { type: "button", class: "nut", "data-cap": "loi", onclick: dongChiTiet }, "Đóng")) };
   };
   function moKhung(...noi: (Node | null)[]): void {
     replaceChildren(chiTiet, ...noi);
@@ -132,6 +142,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
   async function moChiTiet(p: DongHangCho, giuLoi = false): Promise<void> {
     if (!giuLoi) { hienLoi(null); hienOk(null); }
     const mine = ++luot;
+    danDau(p.id);
     try {
       if (p.trangThai === "CHO_XAC_MINH" && xacMinhDuoc) {
         const d = await api<PhieuXacMinh>(`/api/dang-ky/phieu/${p.id}`);
@@ -186,11 +197,11 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const n = d.noiDung;
     const g = n.giayTo;
     const soEl = h("span", { id: "dk-hc-so" }, g?.soChe ?? "Không có");
-    const hienSo = g?.soChe && xemTep ? h("button", { type: "button", class: "btn", id: "dk-hc-hien-so" }, "Xem đủ số") as HTMLButtonElement : null;
+    const hienSo = g?.soChe && xemTep ? h("button", { type: "button", class: "nut", "data-cap": "phu", id: "dk-hc-hien-so" }, "Xem đủ số") as HTMLButtonElement : null;
     hienSo?.addEventListener("click", async () => {
       try { soEl.textContent = (await api<{ so: string }>(`/api/dang-ky/phieu/${d.id}/xem-so`, { method: "POST" })).so; hienSo.hidden = true; } catch (e) { hienLoi(cauLoi(e)); }
     });
-    const anh = xemTep ? (d.tep ?? []).map((t) => h("a", { href: `/api/dang-ky/phieu/${d.id}/tep/${t.id}`, target: "_blank", rel: "noopener", class: "btn btn-link", "data-tep": t.o }, nhanOTep(t.o))) : [];
+    const anh = xemTep ? (d.tep ?? []).map((t) => h("a", { href: `/api/dang-ky/phieu/${d.id}/tep/${t.id}`, target: "_blank", rel: "noopener", class: "nut", "data-cap": "loi", "data-tep": t.o }, nhanOTep(t.o))) : [];
     // Kết luận từng mục: «Đạt» hoặc «Không đạt» + lý do; mỗi lần bấm ghi một dòng (chỉ thêm), máy chủ trả lại HAI nhóm mục (cá nhân, tổ chức) — vẽ lại cả hai.
     const khoiMuc = h("div", { class: "dk-hc-muc-ds" });
     const khoiMucTc = h("div", { class: "dk-hc-muc-ds", id: "dk-hc-muc-to-chuc" });
@@ -234,9 +245,9 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const radio = (gia: string, nhan: string, chon: boolean) => {
       const r = h("input", { type: "radio", name: "dk-ho-so", value: gia, checked: chon }) as HTMLInputElement;
       r.addEventListener("change", () => { hoSo = gia === "MOI" ? { kieu: "MOI" } : { kieu: "CO_SAN", partyId: gia }; void taiCap(); });
-      return h("label", { class: "xm-ly-do" }, r, h("span", null, nhan));
+      return h("label", null, r, h("span", null, nhan));
     };
-    const danhBa = h("fieldset", { class: "xm-tu-choi", id: "dk-hc-danh-ba" }, h("legend", null, "Đối chiếu Danh bạ"),
+    const danhBa = h("fieldset", { class: "nhom-chon", id: "dk-hc-danh-ba" }, h("legend", null, "Đối chiếu Danh bạ"),
       radio("MOI", CHU_HANG_CHO_DK.hoSoMoi, hoSo?.kieu === "MOI"),
       ...(d.goiY ?? []).map((gy) => radio(gy.id, `${CHU_HANG_CHO_DK.ganHoSo}: ${gy.tenHoSo} (${gy.lyDo.map((l) => LY_DO_KHOP[l] ?? l).join(", ")})`, hoSo?.kieu === "CO_SAN" && hoSo.partyId === gy.id)),
       (d.goiY ?? []).length === 0 ? h("p", { class: "muted" }, "Không có hồ sơ nào có thể trùng.") : null);
@@ -247,9 +258,9 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const radioTc = (gia: string, nhan: string, chon: boolean) => {
       const r = h("input", { type: "radio", name: "dk-ho-so-to-chuc", value: gia, checked: chon }) as HTMLInputElement;
       r.addEventListener("change", () => { hoSoToChuc = gia === "MOI" ? { kieu: "MOI" } : { kieu: "CO_SAN", partyId: gia }; });
-      return h("label", { class: "xm-ly-do" }, r, h("span", null, nhan));
+      return h("label", null, r, h("span", null, nhan));
     };
-    const danhBaTc = d.toChuc ? h("fieldset", { class: "xm-tu-choi", id: "dk-hc-danh-ba-to-chuc" }, h("legend", null, CHU_HANG_CHO_DK.doiChieuToChuc),
+    const danhBaTc = d.toChuc ? h("fieldset", { class: "nhom-chon", id: "dk-hc-danh-ba-to-chuc" }, h("legend", null, CHU_HANG_CHO_DK.doiChieuToChuc),
       radioTc("MOI", CHU_HANG_CHO_DK.hoSoToChucMoi, hoSoToChuc?.kieu === "MOI"),
       ...(d.goiYToChuc ?? []).map((gy) => radioTc(gy.id, `${CHU_HANG_CHO_DK.ganToChuc}: ${gy.tenHoSo} (${gy.lyDo.map((l) => LY_DO_KHOP[l] ?? l).join(", ")})`, hoSoToChuc?.kieu === "CO_SAN" && hoSoToChuc.partyId === gy.id)),
       (d.goiYToChuc ?? []).length === 0 ? h("p", { class: "muted" }, "Không có hồ sơ tổ chức nào có thể trùng.") : null) : null;
@@ -268,7 +279,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       if (!ma) { hienLoi("Chọn lý do trước khi yêu cầu bổ sung."); return; }
       void lenhDk(p, async () => { await api(`/api/dang-ky/phieu/${d.id}/bo-sung`, { method: "POST", body: { lyDo: ma, phienBan: d.phienBan } }); return "Đã trả phiếu về người đăng ký để bổ sung."; });
     });
-    const nutTuChoi = h("button", { type: "button", class: "nut", "data-tong": "nguy-hiem", id: "dk-hc-tu-choi" }, "Từ chối") as HTMLButtonElement;
+    const nutTuChoi = h("button", { type: "button", class: "nut", "data-cap": "nguy-hiem", id: "dk-hc-tu-choi" }, "Từ chối") as HTMLButtonElement;
     nutTuChoi.addEventListener("click", () => {
       const ma = lyTuChoi.gia();
       if (!ma) { hienLoi("Chọn lý do trước khi từ chối."); return; }
@@ -279,7 +290,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       dong("Vai trò xin", d.tenLoai || CHU_HANG_CHO_DK.chiToChuc), d.loiMoiVaoToChuc ? dong("Mã vào tổ chức", chuMaVao(d.loiMoiVaoToChuc)) : null, d.guiLuc ? dong("Gửi lúc", vnDateTimeText(d.guiLuc)) : null,
       dong("Họ tên", n.hoTen), dong("Ngày sinh", n.ngaySinh ? ngayVN(n.ngaySinh) : "Không có"), dong("Địa chỉ", n.diaChi ?? "Không có"), dong("Số điện thoại", n.soDienThoai ?? "Không có"),
       n.nguoiGioiThieuKhai ? dong("Người giới thiệu (khai)", n.nguoiGioiThieuKhai) : null,
-      g ? h("div", { class: "hs-dong" }, h("span", { class: "muted" }, "Số căn cước"), soEl, hienSo) : null,
+      g ? cap("Số căn cước", [soEl, hienSo]) : null,
       g?.ngayCap ? dong("Ngày cấp", ngayVN(g.ngayCap)) : null, g?.noiCap ? dong("Nơi cấp", g.noiCap) : null, g?.hetHan ? dong("Hết hạn", ngayVN(g.hetHan)) : null,
       anh.length ? h("div", { class: "dk-hang-nut", id: "dk-hc-anh" }, ...anh) : null,
       d.toChuc ? khoiToChuc(d.toChuc) : null,
@@ -331,7 +342,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       await api(`/api/dang-ky/phieu/${d.id}/tra-ve-xac-minh`, { method: "POST", body: { phienBan: d.phienBan } });
       return "Đã trả phiếu về bước xác minh. Người xác minh sẽ kết luận lại.";
     }));
-    const nutTuChoi = h("button", { type: "button", class: "nut", "data-tong": "nguy-hiem", id: "dk-hc-tu-choi-duyet" }, "Từ chối") as HTMLButtonElement;
+    const nutTuChoi = h("button", { type: "button", class: "nut", "data-cap": "nguy-hiem", id: "dk-hc-tu-choi-duyet" }, "Từ chối") as HTMLButtonElement;
     nutTuChoi.addEventListener("click", () => {
       const ma = lyTuChoi.gia();
       if (!ma) { hienLoi("Chọn lý do trước khi từ chối."); return; }
@@ -344,8 +355,8 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       kl ? dong(CHU_HANG_CHO_DK.ketLuanToChuc, kl.kieu === "EXISTING" ? `Gắn tổ chức có sẵn${kl.tenHoSo ? `: ${kl.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoToChucMoi) : null,
       kl?.ghiChu ? h("p", { class: "dk-hc-cap", id: "dk-hc-ghi-chu-to-chuc" }, kl.ghiChu) : null,
       d.nguoiXacMinhLaBan ? h("p", { class: "xm-chan", id: "dk-hc-nguoi-xac-minh" }, cauNguoiXacMinh(laToanQuyen)) : null,
-      h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò đối tác"), vai), baoLoaiTat, baoDoiVai,
-      vaiTc ? h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò của tổ chức"), vaiTc) : null,
+      truong("Vai trò đối tác", vai), baoLoaiTat, baoDoiVai,
+      vaiTc ? truong("Vai trò của tổ chức", vaiTc) : null,
       h("div", { class: "dk-hang-nut" }, nutDuyet, nutTraVe), h("div", { class: "dk-hang-nut" }, lyTuChoi.el, nutTuChoi));
   }
 
@@ -373,8 +384,8 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
   }
 
   replaceChildren(goc,
-    h("h2", { id: "dk-hc-heading" }, CHU_HANG_CHO_DK.tieuDe),
-    h("p", { class: "muted" }, "Phiếu người ngoài tự gửi để làm đối tác. Quản lý bán hàng xác minh; Quản trị hoặc Nhân sự duyệt mở tài khoản."),
+    h("header", { class: "khoi-dau" }, h("h2", { id: "dk-hc-heading" }, CHU_HANG_CHO_DK.tieuDe)),
+    h("p", { class: "khoi-mo-ta" }, "Phiếu người ngoài tự gửi để làm đối tác. Quản lý bán hàng xác minh; Quản trị hoặc Nhân sự duyệt mở tài khoản."),
     baoLoi, baoOk, danhSach, chiTiet);
   goc.hidden = false;
   void taiDanhSach();

@@ -1,37 +1,40 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Danh bạ — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="rong" data-title="Danh bạ">
+<body data-rong="rong" data-khung-goc="danh-sach" data-title="Danh bạ">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
+  <!-- Khuôn Danh sách của khung gốc (ADR-0222): thanh tìm và lọc (nút «+ Hồ sơ mới» ở mép phải), rồi MỘT khối bảng. Khối rộng từ 800 hiện bảng (#list),
+       hẹp hơn hiện danh sách dòng (#list-cards); mỗi dòng mở hồ sơ. Hồ sơ mới (#create), hồ sơ đang xem (#detail: nhiều khối), gộp (#merge) và nghi trùng (#dups)
+       mở ngay trên trang, phía trên danh sách — web/parties.ts dựng. -->
   <h1>Danh bạ</h1>
   <p class="muted">Danh bạ chung: khách hàng, đại lý, hướng dẫn viên, lái cano, tài xế, nhân sự… Mục "Công việc tại đâu" chỉ để ghi và tìm — không giới hạn ai được chọn.</p>
+  <form id="search-form" class="thanh-loc" autocomplete="off" role="search">
+    <div class="truong"><label for="q">Tìm (tên hoặc số điện thoại)</label><input id="q" class="o" type="search" maxlength="100"></div>
+    <div class="truong"><label for="kind">Loại</label><select id="kind" class="o"><option value="">Tất cả</option><option value="PERSON">Cá nhân</option><option value="ORGANIZATION">Tổ chức</option></select></div>
+    <div class="truong"><label for="role">Công việc (đang hiệu lực hôm nay)</label><select id="role" class="o"><option value="">Tất cả</option></select></div>
+    <div class="truong"><label for="location">Nơi làm</label><select id="location" class="o"><option value="">Tất cả</option></select></div>
+    <label class="check"><input id="inactive" class="o-tick" type="checkbox">Gồm cả hồ sơ đã ngưng</label>
+    <button class="nut" data-cap="phu" type="submit">Tìm</button>
+    <button id="dup-btn" class="nut" data-cap="loi" type="button" hidden>Hồ sơ nghi trùng</button>
+    <button id="new" class="nut day-phai" data-cap="phu" type="button">+ Hồ sơ mới</button>
+  </form>
   <div id="error" class="alert" role="alert" hidden></div>
-  <section class="card">
-    <form id="search-form" class="grid three" autocomplete="off">
-      <label>Tìm (tên hoặc số điện thoại)<input id="q" type="search" maxlength="100"></label>
-      <label>Loại<select id="kind"><option value="">Tất cả</option><option value="PERSON">Cá nhân</option><option value="ORGANIZATION">Tổ chức</option></select></label>
-      <label>Công việc (đang hiệu lực hôm nay)<select id="role"><option value="">Tất cả</option></select></label>
-      <label>Nơi làm<select id="location"><option value="">Tất cả</option></select></label>
-      <label class="check"><input id="inactive" type="checkbox" style="width:auto;display:inline;margin:0 6px 0 0">Gồm cả hồ sơ đã ngưng</label>
-      <div><button class="btn btn-primary" type="submit">Tìm</button> <button id="new" class="btn" type="button">+ Hồ sơ mới</button> <button id="dup-btn" class="btn" type="button" hidden>Hồ sơ nghi trùng</button></div>
-    </form>
-  </section>
-  <section id="create" class="card" hidden></section>
-  <section id="detail" class="card" hidden></section>
-  <section id="merge" class="card" hidden aria-labelledby="merge-title"></section>
-  <section id="dups" class="card" hidden aria-labelledby="dups-title"></section>
-  <section class="card table-wrap">
-    <table class="items">
+  <section id="create" class="khoi" hidden aria-labelledby="create-title"></section>
+  <div id="detail" class="vung-ve" hidden></div>
+  <section id="merge" class="khoi" hidden aria-labelledby="merge-title"></section>
+  <section id="dups" class="khoi" hidden aria-labelledby="dups-title"></section>
+  <section id="list-khoi" class="khoi" data-kieu="bang" aria-label="Danh sách hồ sơ">
+    <table class="bang">
       <thead><tr><th>Tên</th><th>Loại</th><th>Điện thoại chính</th><th data-cot="roleCodes">Công việc hôm nay</th></tr></thead>
       <tbody id="list"></tbody>
     </table>
+    <div id="list-cards" class="ds-dong" data-thay-bang></div>
+    <p id="empty" class="rong" hidden>Không có hồ sơ nào khớp.</p>
+    <button id="more" class="nut bang-them" data-cap="loi" type="button" hidden>Xem thêm</button>
   </section>
-  <div id="list-cards" class="card-list"></div>
-  <p id="empty" class="empty" hidden>Không có hồ sơ nào khớp.</p>
-  <button id="more" class="btn" type="button" hidden>Xem thêm</button>
   <!-- web/phieu-xoa.ts dựng khối này chỉ khi có ô party.erasure.process (ADR-0126). -->
-  <section id="phieu-xoa" class="card" aria-labelledby="px-heading" hidden></section>
+  <section id="phieu-xoa" class="khoi" aria-labelledby="px-heading" hidden></section>
 </main>
 <script type="module" src="/js/parties.js"></script>
 </body></html>

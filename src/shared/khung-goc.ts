@@ -115,8 +115,8 @@ export function soatNgoaiLe(so: readonly NgoaiLe[], trangCo: readonly string[], 
 /** Trang CHƯA chuyển khuôn (tên tệp trong `public/`). Chỉ được bớt: chuyển xong một trang thì khai `data-khung-goc` ở `<body>` và gỡ tên khỏi đây.
  *  Trang mới không được thêm vào đây: phải khai khuôn ngay từ đầu (ADR-0222, «việc giao diện mới trong lúc chuyển phải dùng khung ngay»). */
 export const TRANG_CHUA_CHUYEN: readonly string[] = [
-  "404.html", "thiet-lap.html", "account.html", "audit.html", "catalog.html", "dac-diem-dich-vu.html", "dang-ky.html", "danh-muc-giay-to.html", "feedback.html",
-  "gui-thong-bao.html", "help.html", "home.html", "huong-dan.html", "index.html", "login.html", "luat-ban.html", "ngoai-mang.html", "parties.html",
-  "phi-don.html", "phieu-dang-ky.html", "quet-ve.html", "sessions.html", "staff.html", "to-chuc.html", "ve-cai-dat.html", "ve-doi-chieu.html",
+  "404.html", "thiet-lap.html", "account.html", "catalog.html", "dac-diem-dich-vu.html", "dang-ky.html", "danh-muc-giay-to.html", "feedback.html",
+  "help.html", "home.html", "huong-dan.html", "index.html", "login.html", "luat-ban.html", "ngoai-mang.html",
+  "phi-don.html", "quet-ve.html", "to-chuc.html", "ve-cai-dat.html", "ve-doi-chieu.html",
   "ve-kho.html",
 ];

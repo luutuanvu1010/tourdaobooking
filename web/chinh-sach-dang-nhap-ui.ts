@@ -1,9 +1,10 @@
 // Mục "Chính sách đăng nhập" trên trang Phiên đăng nhập (ADR-0085; đặc tả §5). Toàn quyền chọn cho từng quyền Một máy / Nhiều máy; dòng Toàn quyền khoá cứng.
 // Lưu: xem trước (số máy/số người) → hộp xác nhận TRONG TRANG (không confirm()) → PUT → tải lại. 409 → "Chính sách vừa được người khác đổi — đã tải lại".
-// Người gọi đã hỏi can(staff, "auth.session.policy"); máy chủ vẫn kiểm lại.
+// Người gọi đã hỏi can(staff, "auth.session.policy"); máy chủ vẫn kiểm lại. Chỉ trang Máy đang đăng nhập dùng tệp này: vỏ khối, nút, hộp xác nhận theo khung gốc (ADR-0222; đợt D1).
 import { ApiError, api, type Api } from "./api";
 import { CANH_BAO_NHIEU_MAY_BEN_NGOAI, QUYEN_DAT_DUOC, canCanhBaoBenNgoai, isQuyenDatDuoc, thayDoiChinhSach, type QuyenDatDuoc } from "../src/shared/chinh-sach-dang-nhap";
 import { h, replaceChildren } from "./dom";
+import { thanhNut, vungPhu } from "./khung";
 
 export async function dungMucChinhSach(el: HTMLElement): Promise<void> {
   let rows: Api.SessionPolicyRowDto[] = [];
@@ -17,8 +18,9 @@ export async function dungMucChinhSach(el: HTMLElement): Promise<void> {
     chon = new Map(rows.flatMap((r) => (isQuyenDatDuoc(r.permissionCode) ? [[r.permissionCode, r.multi] as [QuyenDatDuoc, boolean]] : [])));
     xemTruoc = null;
   }
-  const nut = (label: string, onclick: () => void, cls: string): HTMLButtonElement => {
-    const b = h("button", { type: "button", class: cls, disabled: dangGui }, label);
+  /** Nút của bộ thành phần chung; `capNut` là cấp (`data-cap`). */
+  const nut = (label: string, onclick: () => void, capNut: "chinh" | "phu" | "loi"): HTMLButtonElement => {
+    const b = h("button", { type: "button", class: "nut", "data-cap": capNut, disabled: dangGui }, label);
     b.addEventListener("click", onclick);
     return b;
   };
@@ -79,23 +81,23 @@ export async function dungMucChinhSach(el: HTMLElement): Promise<void> {
     const coDoi = thayDoi().length > 0;
     replaceChildren(
       el,
-      h("h2", null, "Chính sách đăng nhập"),
-      h("p", { class: "muted" }, "Mỗi quyền chọn Một máy (đăng nhập máy mới thì máy cũ tự đăng xuất) hoặc Nhiều máy. Tài khoản có một quyền Nhiều máy là được nhiều máy."),
+      h("header", { class: "khoi-dau" }, h("h2", { id: "pol-heading" }, "Chính sách đăng nhập")),
+      h("p", { class: "khoi-mo-ta" }, "Mỗi quyền chọn Một máy (đăng nhập máy mới thì máy cũ tự đăng xuất) hoặc Nhiều máy. Tài khoản có một quyền Nhiều máy là được nhiều máy."),
       bao && h("div", { class: bao.loai === "ok" ? "alert ok" : "alert", role: bao.loai === "ok" ? "status" : "alert" }, bao.chu),
-      h("table", { class: "items" },
+      h("table", { class: "bang", "data-cot-cuoi": "chu" },
         h("thead", null, h("tr", null, h("th", null, "Quyền"), h("th", { colSpan: 2 }, "Số máy được đăng nhập cùng lúc"))),
         h("tbody", null, ...rows.map(dong),
-          h("tr", { "data-quyen": "SUPER_ADMIN" }, h("td", null, "Toàn quyền"), h("td", { colSpan: 2, class: "muted" }, "Luôn nhiều máy · Vai trò IT luôn được nhiều máy")))),
+          h("tr", { "data-quyen": "SUPER_ADMIN" }, h("td", null, "Toàn quyền"), h("td", { colSpan: 2 }, h("span", { class: "o-phu" }, "Luôn nhiều máy · Vai trò IT luôn được nhiều máy"))))),
       canCanhBaoBenNgoai(chon) && h("p", { class: "alert warn", "data-canh-bao": "ben-ngoai" }, CANH_BAO_NHIEU_MAY_BEN_NGOAI),
-      h("div", { class: "maint-actions" },
-        nut("Tất cả một máy", () => { for (const c of QUYEN_DAT_DUOC) chon.set(c, false); xemTruoc = null; render(); }, "btn"),
-        nut("Tất cả nhiều máy", () => { for (const c of QUYEN_DAT_DUOC) chon.set(c, true); xemTruoc = null; render(); }, "btn"),
-        coDoi && nut("Lưu chính sách", () => void bamLuu(), "btn btn-primary btn-chinh")),
-      xemTruoc && h("div", { class: "maint-confirm", role: "group", "aria-label": "Xác nhận lưu chính sách" },
+      thanhNut(null,
+        nut("Tất cả một máy", () => { for (const c of QUYEN_DAT_DUOC) chon.set(c, false); xemTruoc = null; render(); }, "phu"),
+        nut("Tất cả nhiều máy", () => { for (const c of QUYEN_DAT_DUOC) chon.set(c, true); xemTruoc = null; render(); }, "phu"),
+        coDoi && nut("Lưu chính sách", () => void bamLuu(), "chinh")),
+      xemTruoc && vungPhu({ role: "group", "aria-label": "Xác nhận lưu chính sách" },
         h("p", null, h("strong", null, `Sẽ đăng xuất ${xemTruoc.soPhien} máy của ${xemTruoc.soNguoi} người. Lưu?`)),
-        h("div", { class: "maint-actions" },
-          nut("Xác nhận lưu", () => void xacNhan(), "btn btn-primary btn-chinh"),
-          nut("Thôi", () => { xemTruoc = null; render(); }, "btn"))),
+        thanhNut(null,
+          nut("Xác nhận lưu", () => void xacNhan(), "chinh"),
+          nut("Thôi", () => { xemTruoc = null; render(); }, "loi"))),
     );
     el.hidden = false;
   }

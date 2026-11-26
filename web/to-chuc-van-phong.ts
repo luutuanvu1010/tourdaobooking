@@ -89,7 +89,8 @@ export function dungKhoiToChucVanPhong(goc: HTMLElement, orgId: string, datCheDo
     });
     const giu = h("input", { type: "checkbox", id: "tc-vp-giu", class: "o-tick", checked: true }) as HTMLInputElement;
     const nhan = ql ? "Chuyển quyền quản lý" : "Giao người quản lý";
-    const nut = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "tc-vp-giao" }, nhan) as HTMLButtonElement;
+    // Cấp «phu»: trong trang Danh bạ khối này nằm cạnh «Lưu thông tin» của hồ sơ — vùng nội dung chỉ một nút nền đặc (ADR-0234 Đ5b).
+    const nut = h("button", { type: "button", class: "nut", "data-cap": "phu", id: "tc-vp-giao" }, nhan) as HTMLButtonElement;
     nut.addEventListener("click", () => void (async () => {
       if (!chon.value) { hienLoi("Chọn người sẽ làm người quản lý."); return; }
       if (!lyDo.value) { hienLoi("Chọn lý do."); return; }

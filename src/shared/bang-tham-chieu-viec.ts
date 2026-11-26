@@ -3711,7 +3711,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Tạo tài khoản",
-    manHinh: "Quản lý tài khoản › Thêm tài khoản",
+    manHinh: "Quản lý tài khoản › thanh lọc › nút «Thêm tài khoản» › bảng «Thêm tài khoản»",
     ten: "Tạo tài khoản",
     thatSuLam: "Tạo tài khoản mới với vai trò đã chọn (kèm hồ sơ cá nhân mới hoặc dùng hồ sơ có sẵn), tự sinh PIN 6 số và hiện đúng một lần. Nút khoá lại nếu số hoặc tên khớp hồ sơ có sẵn cho tới khi chọn hồ sơ hoặc tick tạo mới.",
     hoiLai: "không",
@@ -3719,6 +3719,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     duongLenh: ["/api/staff"],
     maNhatKy: ["staff_created"],
     noiDat: [
+      { tep: "public/staff.html", chu: "Thêm tài khoản" },
       { tep: "public/staff.html", chu: "Tạo tài khoản" },
     ],
     trangThai: "ten-hien-tai",

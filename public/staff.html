@@ -1,38 +1,44 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Quản lý tài khoản — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Quản lý tài khoản">
+<body data-rong="rong" data-khung-goc="danh-sach" data-title="Quản lý tài khoản">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
+  <!-- Khuôn Danh sách của khung gốc (ADR-0222; đợt D1): đầu trang (lối sang Cấp độ đại lý, Phiếu đăng ký), khối «Hàng chờ xác minh» (ô party.verify), thanh lọc
+       (nút lọc theo vai trò, nút «Thêm tài khoản» ở mép phải — ô account.create), rồi MỘT khối bảng tài khoản: khối từ 800 hiện bảng, hẹp hơn hiện danh sách dòng.
+       Biểu mẫu thêm (#add-form, giữ sẵn trong #add-kho) và sửa mở trong bảng trượt (web/staff.ts). PIN mới hiện ở khối #secret trên trang, đúng một lần. -->
   <h1>Quản lý tài khoản</h1>
-  <p id="lien-ket-cap-dai-ly" hidden><a href="/cap-dai-ly">Đặt cấp độ đại lý cho mọi đối tác, gồm cả hồ sơ chưa có tài khoản</a></p>
-  <!-- ADR-0219 Đ3: hàng chờ phiếu đăng ký đối tác chuyển sang trang riêng /phieu-dang-ky; ở đây giữ một lối sang (hiện theo ô registration.queue.view). -->
-  <p id="lien-ket-phieu-dang-ky" hidden><a href="/phieu-dang-ky">Phiếu đăng ký đối tác</a></p>
+  <div id="dau-trang" class="dau-trang" hidden>
+    <div class="doan-dan">
+      <p id="lien-ket-cap-dai-ly" hidden><a href="/cap-dai-ly">Đặt cấp độ đại lý cho mọi đối tác, gồm cả hồ sơ chưa có tài khoản</a></p>
+      <!-- ADR-0219 Đ3: hàng chờ phiếu đăng ký đối tác chuyển sang trang riêng /phieu-dang-ky; ở đây giữ một lối sang (hiện theo ô registration.queue.view). -->
+      <p id="lien-ket-phieu-dang-ky" hidden><a href="/phieu-dang-ky">Phiếu đăng ký đối tác</a></p>
+    </div>
+  </div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <section id="secret" class="card secret" hidden></section>
-  <section id="edit" class="card" hidden></section>
-  <section id="add-card" class="card" hidden>
-    <h2>Thêm tài khoản</h2>
-    <form id="add-form" class="grid three" autocomplete="off">
-      <label>Họ tên<input id="add-name" type="text" maxlength="200" required></label>
-      <label>Số điện thoại (tên đăng nhập)<input id="add-phone" type="tel" inputmode="tel" required></label>
-      <div class="span-2">
-        <strong>Vai trò và quyền</strong>
-        <div id="add-perms"></div>
-      </div>
-      <div><button class="btn btn-primary" type="submit">Tạo tài khoản</button></div>
+  <section id="secret" class="khoi" hidden></section>
+  <section id="xac-minh" class="khoi" aria-labelledby="xm-heading" hidden></section>
+  <div id="thanh-loc" class="thanh-loc" hidden>
+    <div id="loc-vai" class="hang" role="group" aria-label="Lọc theo vai trò" hidden></div>
+    <button id="add-card" type="button" class="nut day-phai" data-cap="chinh" hidden>Thêm tài khoản</button>
+  </div>
+  <div id="add-kho" hidden>
+    <form id="add-form" class="luoi" autocomplete="off">
+      <div class="truong"><label for="add-name">Họ tên</label><input id="add-name" class="o" type="text" maxlength="200" required></div>
+      <div class="truong"><label for="add-phone">Số điện thoại (tên đăng nhập)</label><input id="add-phone" class="o" type="tel" inputmode="tel" required></div>
+      <div class="truong"><div id="add-vai-nhan" class="nhan">Vai trò và quyền</div><div id="add-perms" role="group" aria-labelledby="add-vai-nhan"></div></div>
+      <p class="khoi-mo-ta">Hệ thống tự sinh PIN 6 số và chỉ hiện một lần.</p>
     </form>
-    <p class="muted">Hệ thống tự sinh PIN 6 số và chỉ hiện một lần.</p>
-  </section>
-  <section id="xac-minh" class="card" aria-labelledby="xm-heading" hidden></section>
-  <div id="loc-vai" class="loc-nut-hang" role="group" aria-label="Lọc theo vai trò" hidden></div>
-  <section class="card table-wrap">
-    <table class="items">
+    <button id="add-tao" class="nut" data-cap="chinh" data-co="lon" type="submit" form="add-form">Tạo tài khoản</button>
+  </div>
+  <section id="tk-khoi" class="khoi" data-kieu="bang" aria-labelledby="tk-ten" hidden>
+    <header class="khoi-dau"><h2 id="tk-ten">Danh sách tài khoản</h2></header>
+    <table class="bang">
       <thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Vai trò / quyền</th><th id="cot-cap" hidden>Cấp độ đại lý</th><th>Tạo lúc</th><th>Đăng nhập gần nhất</th><th></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
+    <div id="list-cards" class="ds-dong" data-thay-bang></div>
   </section>
-  <div id="list-cards" class="card-list"></div>
 </main>
 <script type="module" src="/js/staff.js"></script>
 </body></html>

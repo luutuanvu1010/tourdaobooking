@@ -1,19 +1,22 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Gửi thông báo — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="hep" data-title="Gửi thông báo" data-back="/account">
+<body data-rong="hep" data-khung-goc="bieu-mau" data-title="Gửi thông báo" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
+  <!-- Gửi thông báo (ADR-0034 điều 5–9, chỉ Toàn quyền). Khuôn Biểu mẫu của khung gốc (ADR-0222): khối «Soạn tin», rồi thanh nút cuối biểu mẫu như Tạo đơn — vùng
+       nội dung từ 560 thì nút «Gửi thông báo» ở thanh nút của trang (#thanh-nut), hẹp hơn thì ở thanh dính đáy (#thanh-day); web/gui-thong-bao.ts chuyển MỘT nút
+       (nút submit của #form, khai form="form") và câu lỗi theo thanh đang hiện. Sau đó là khối «Đã gửi». -->
   <h1>Gửi thông báo</h1>
-  <p class="muted">Chỉ người phụ trách hệ thống thấy mục này</p>
+  <div class="dau-trang"><p class="doan-dan">Chỉ người phụ trách hệ thống thấy mục này</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <div class="ntf-send">
-    <form id="form" class="card" novalidate></form>
-    <section class="card">
-      <h2>Đã gửi</h2>
-      <div id="sent"></div>
-    </section>
-  </div>
+  <form id="form" class="khoi" novalidate aria-labelledby="tb-soan-ten" hidden></form>
+  <div id="thanh-nut" class="thanh-nut" data-kieu="trang" hidden></div>
+  <div id="thanh-day" class="thanh-day thanh-hanh-dong-cuoi" hidden></div>
+  <section id="tb-da-gui" class="khoi" aria-labelledby="tb-da-gui-ten" hidden>
+    <header class="khoi-dau"><h2 id="tb-da-gui-ten">Đã gửi</h2></header>
+    <div id="sent"></div>
+  </section>
 </main>
 <script type="module" src="/js/gui-thong-bao.js"></script>
 </body></html>

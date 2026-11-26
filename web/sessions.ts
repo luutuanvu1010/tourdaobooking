@@ -3,12 +3,14 @@
 // (khuôn trang Quản lý tài khoản). "Gỡ phiên" và "Gỡ phiên + đặt lại PIN" xác nhận bằng hộp TRONG TRANG (không dùng hộp thoại trình duyệt). Không có route gộp:
 // nút gộp gọi tuần tự POST /api/sessions/:id/revoke rồi POST /api/staff/:id/reset-pin (PIN mới hiện một lần, như trang Quản lý tài khoản).
 // Ẩn/hiện hỏi bảng quyền (`can`) — cùng ô máy chủ hỏi (web/CLAUDE.md, luật 1.52); máy chủ vẫn kiểm lại.
+// Khuôn Danh sách của khung gốc (ADR-0222; đợt D1): khối bảng (bảng từ 800, danh sách dòng hẹp hơn), nút bằng `.nut[data-cap]`, cặp nhãn–giá trị bằng `cap()`.
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
 import { vnDateTimeText } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
 import { dungMucChinhSach } from "./chinh-sach-dang-nhap-ui";
+import { cap, thanhNut, vungPhu } from "./khung";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -32,18 +34,17 @@ function hienOk(text: string | null): void {
 
 /** PIN mới chỉ hiện đúng một lần ở đây; không lưu ở đâu phía trình duyệt (cùng khuôn showSecrets của web/staff.ts). */
 function hienPinMoi(name: string, phone: string, pin: string): void {
-  const close = h("button", { type: "button", class: "btn btn-link" }, "Đã ghi lại, ẩn đi");
+  const close = h("button", { type: "button", class: "nut", "data-cap": "loi" }, "Đã ghi lại, ẩn đi");
   close.addEventListener("click", () => {
     secretEl.hidden = true;
     replaceChildren(secretEl);
   });
   replaceChildren(
     secretEl,
-    h("h2", null, "PIN mới"),
+    h("header", { class: "khoi-dau" }, h("h2", { id: "pin-moi-ten" }, "PIN mới")),
     h("p", { class: "alert warn" }, "PIN chỉ hiển thị một lần duy nhất. Hãy gửi riêng cho người này (không gửi vào nhóm chung); họ nên tự đổi PIN sau khi đăng nhập."),
-    h("table", { class: "items" }, h("thead", null, h("tr", null, h("th", null, "Họ tên"), h("th", null, "Số điện thoại (tên đăng nhập)"), h("th", null, "PIN"))),
-      h("tbody", null, h("tr", null, h("td", null, name), h("td", null, phone), h("td", { class: "pin" }, pin)))),
-    h("div", { class: "actions" }, close),
+    h("div", null, cap("Họ tên", name), cap("Số điện thoại (tên đăng nhập)", phone), cap("PIN", h("span", { class: "pin" }, pin))),
+    thanhNut(null, close),
   );
   secretEl.hidden = false;
   secretEl.scrollIntoView({ block: "nearest" });
@@ -65,11 +66,11 @@ async function dungAnDanhPhienCu(goc: HTMLElement): Promise<void> {
     return;
   }
   const coHan = d.hanNgay !== null;
-  const nut = h("button", { type: "button", class: "btn btn-danger", id: "adp-nut", disabled: !coHan || d.soPhien === 0 }, "Ẩn danh hoá") as HTMLButtonElement;
-  const xacNhan = h("div", { class: "maint-confirm", id: "adp-xac-nhan", role: "group", "aria-label": "Xác nhận ẩn danh hoá máy đã đăng xuất", hidden: true },
+  const nut = h("button", { type: "button", class: "nut", "data-cap": "nguy-hiem", id: "adp-nut", disabled: !coHan || d.soPhien === 0 }, "Ẩn danh hoá") as HTMLButtonElement;
+  const xacNhan = vungPhu({ id: "adp-xac-nhan", role: "group", "aria-label": "Xác nhận ẩn danh hoá máy đã đăng xuất", hidden: true },
     h("p", null, h("strong", null, `Ẩn danh hoá ${d.soPhien} máy đã đăng xuất? Địa chỉ mạng và thông tin máy của các máy này bị xoá, không hoàn tác được.`)),
-    h("div", { class: "maint-actions" },
-      h("button", { type: "button", class: "btn btn-primary btn-chinh", id: "adp-xac-nhan-nut", onclick: async () => {
+    thanhNut(null,
+      h("button", { type: "button", class: "nut", "data-cap": "nguy-hiem", id: "adp-xac-nhan-nut", onclick: async () => {
         showError(errorEl, null);
         try {
           const r = await api<Api.PhienCuAnDanhKetQua>("/api/sessions/an-danh-cu", { method: "POST" });
@@ -80,14 +81,15 @@ async function dungAnDanhPhienCu(goc: HTMLElement): Promise<void> {
           showError(errorEl, reasonOf(err));
         }
       } }, "Xác nhận ẩn danh hoá"),
-      h("button", { type: "button", class: "btn", onclick: () => { xacNhan.hidden = true; } }, "Thôi")));
+      h("button", { type: "button", class: "nut", "data-cap": "loi", onclick: () => { xacNhan.hidden = true; } }, "Thôi")));
   nut.addEventListener("click", () => { xacNhan.hidden = false; });
   replaceChildren(goc,
-    h("h2", { id: "adp-heading" }, "Ẩn danh hoá máy đã đăng xuất"),
+    h("header", { class: "khoi-dau" }, h("h2", { id: "adp-heading" }, "Ẩn danh hoá máy đã đăng xuất")),
+    h("div", { class: "khoi-viec" }, nut),
     coHan
-      ? h("p", { id: "adp-dong" }, `Ẩn danh IP và thông tin máy của ${d.soPhien} máy đã đăng xuất quá ${d.hanNgay} ngày.`)
-      : h("p", { class: "muted", id: "adp-dong" }, "Chính sách riêng tư chưa có thời hạn giữ thông tin máy đã đăng xuất, nên chưa ẩn danh hoá được."),
-    nut, xacNhan);
+      ? h("p", { class: "khoi-mo-ta", id: "adp-dong" }, `Ẩn danh IP và thông tin máy của ${d.soPhien} máy đã đăng xuất quá ${d.hanNgay} ngày.`)
+      : h("p", { class: "khoi-mo-ta", id: "adp-dong" }, "Chính sách riêng tư chưa có thời hạn giữ thông tin máy đã đăng xuất, nên chưa ẩn danh hoá được."),
+    xacNhan);
   goc.hidden = false;
 }
 
@@ -101,7 +103,7 @@ if (!can(staff, "auth.session.viewAll")) {
   let xacNhan: { id: string; datLaiPin: boolean } | null = null;
   let dangGui = false;
 
-  const timEl = h("input", { type: "search", id: "tim-ten", placeholder: "Tìm theo tên người", "aria-label": "Tìm theo tên người" });
+  const timEl = h("input", { type: "search", id: "tim-ten", class: "o", placeholder: "Tìm theo tên người", "aria-label": "Tìm theo tên người" });
   const chiSong = h("input", { type: "checkbox", id: "chi-song", class: "o-tick", checked: true });
   timEl.addEventListener("input", () => render());
   chiSong.addEventListener("change", () => {
@@ -159,26 +161,26 @@ if (!can(staff, "auth.session.viewAll")) {
     }
   }
 
-  function nut(label: string, onclick: () => void, cls: string): HTMLButtonElement {
-    const b = h("button", { type: "button", class: cls, disabled: dangGui }, label);
+  /** Nút của bộ thành phần chung; `capNut` là cấp (`data-cap`) — dòng dùng lối chữ, hộp xác nhận dùng nguy hiểm / lối chữ. */
+  function nut(label: string, onclick: () => void, capNut: "loi" | "nguy-hiem"): HTMLButtonElement {
+    const b = h("button", { type: "button", class: "nut", "data-cap": capNut, disabled: dangGui }, label);
     b.addEventListener("click", onclick);
     return b;
   }
 
   /** Các nút của một phiên còn sống, không phải máy đang dùng (máy chủ trả 409 cho phiên của chính request — dùng Đăng xuất). */
-  function nutGo(s: Api.StaffSessionDto, pill: boolean): HTMLElement[] {
+  function nutGo(s: Api.StaffSessionDto): HTMLElement[] {
     if (!goDuoc || !s.live || s.thisDevice) return [];
-    const cls = pill ? "pill-btn pill-btn-danger" : "btn btn-link danger";
     const out = [nut("Đăng xuất máy này", () => {
       xacNhan = { id: s.id, datLaiPin: false };
       render();
-    }, cls)];
+    }, "loi")];
     // Đặt lại PIN: máy chủ tính `datLaiPinDuoc` cho từng dòng bằng CÙNG luật route reset-pin (hai ô, không phải chính mình, cấp bậc) — trang không chép luật.
     if (s.datLaiPinDuoc) {
       out.push(nut("Đăng xuất mọi máy + đặt lại PIN", () => {
         xacNhan = { id: s.id, datLaiPin: true };
         render();
-      }, cls));
+      }, "loi"));
     }
     return out;
   }
@@ -190,54 +192,58 @@ if (!can(staff, "auth.session.viewAll")) {
     const cau = kemPin
       ? `Đăng xuất máy ${s.deviceLabel} của ${tenNguoi(s)} và đặt lại PIN? PIN cũ, Face ID và mọi máy đang đăng nhập của tài khoản này mất hiệu lực. PIN mới hiện một lần ở đầu trang.`
       : `Đăng xuất máy ${s.deviceLabel} của ${tenNguoi(s)}? Máy đó bị đăng xuất ngay. Người có PIN vẫn đăng nhập lại được.`;
-    return h(
-      "div",
-      { class: "maint-confirm", role: "group", "aria-label": "Xác nhận đăng xuất máy", "data-xac-nhan": s.id },
+    return vungPhu(
+      { role: "group", "aria-label": "Xác nhận đăng xuất máy", "data-xac-nhan": s.id },
       h("p", null, h("strong", null, cau)),
-      h(
-        "div",
-        { class: "maint-actions" },
-        nut(kemPin ? "Xác nhận gỡ và đặt lại PIN" : "Xác nhận gỡ", () => void goPhien(s, kemPin), "btn btn-primary btn-chinh"),
+      thanhNut(
+        null,
+        nut(kemPin ? "Xác nhận gỡ và đặt lại PIN" : "Xác nhận gỡ", () => void goPhien(s, kemPin), "nguy-hiem"),
         nut("Thôi", () => {
           xacNhan = null;
           render();
-        }, "btn"),
+        }, "loi"),
       ),
     );
   }
 
   const trangThai = (s: Api.StaffSessionDto): HTMLElement =>
-    h("span", { class: s.live ? "badge badge-confirmed" : "muted" }, s.statusLabel, !s.live && s.endedAt ? ` lúc ${vnDateTimeText(s.endedAt)}` : "");
+    h("span", { class: "huy-hieu", "data-tong": s.live ? "la" : "xam" }, s.statusLabel, !s.live && s.endedAt ? ` lúc ${vnDateTimeText(s.endedAt)}` : "");
 
   function hang(s: Api.StaffSessionDto): HTMLElement[] {
+    const nuts = nutGo(s);
     const tr = h(
       "tr",
-      { class: s.live ? "" : "row-off", "data-phien": s.id },
-      h("td", null, tenNguoi(s), s.thisDevice && h("span", { class: "muted" }, " (máy này)")),
-      h("td", null, s.deviceLabel),
-      h("td", { class: "muted" }, s.ip ?? "—"),
-      h("td", null, s.methodLabel),
-      h("td", { class: "muted" }, vnDateTimeText(s.createdAt)),
-      h("td", { class: "muted" }, vnDateTimeText(s.lastSeenAt)),
+      { "data-ngung": s.live ? undefined : "", "data-phien": s.id },
+      h("td", null, tenNguoi(s), s.thisDevice && h("span", { class: "o-phu" }, "(máy này)")),
+      h("td", null, s.deviceLabel, h("span", { class: "o-phu", "data-thay-cot": "" }, `IP ${s.ip ?? "không rõ"} · ${s.methodLabel}`)),
+      h("td", { "data-cot-phu": "" }, s.ip ?? "—"),
+      h("td", { "data-cot-phu": "" }, s.methodLabel),
+      h("td", null, vnDateTimeText(s.createdAt)),
+      h("td", null, vnDateTimeText(s.lastSeenAt)),
       h("td", null, trangThai(s)),
-      h("td", { class: "row-actions" }, ...nutGo(s, false)),
+      h("td", null, nuts.length > 0 ? h("div", { class: "hang" }, ...nuts) : null),
     );
     const hop = hopXacNhan(s);
-    return hop ? [tr, h("tr", null, h("td", { colSpan: 8 }, hop))] : [tr];
+    return hop ? [tr, h("tr", null, h("td", { colSpan: 8, "data-ca-hang": "" }, hop))] : [tr];
   }
 
+  /** Một dòng của danh sách dòng (khối hẹp hơn 800): tên người là chữ đậm duy nhất của dòng; hộp xác nhận nằm ngay dưới chữ của dòng. */
   function the(s: Api.StaffSessionDto): HTMLElement {
-    const nuts = nutGo(s, true);
+    const nuts = nutGo(s);
     return h(
       "div",
-      { class: s.live ? "card card-col" : "card card-col row-off", "data-phien": s.id },
-      h("div", null, h("strong", null, tenNguoi(s)), s.thisDevice && h("span", { class: "muted" }, " (máy này)")),
-      h("div", null, s.deviceLabel, " · ", s.methodLabel),
-      h("div", { class: "muted" }, `IP ${s.ip ?? "không rõ"}`),
-      h("div", { class: "muted" }, `Đăng nhập ${vnDateTimeText(s.createdAt)} · Hoạt động gần nhất ${vnDateTimeText(s.lastSeenAt)}`),
-      h("div", null, trangThai(s)),
-      nuts.length > 0 && h("div", { class: "maint-actions" }, ...nuts),
-      hopXacNhan(s),
+      { class: "dong", "data-ngung": s.live ? undefined : "", "data-phien": s.id },
+      h(
+        "span",
+        { class: "dong-chu" },
+        h("span", null, h("strong", null, tenNguoi(s)), s.thisDevice && " (máy này)"),
+        h("span", null, s.deviceLabel, " · ", s.methodLabel),
+        h("span", { class: "o-phu" }, `IP ${s.ip ?? "không rõ"}`),
+        h("span", { class: "o-phu" }, `Đăng nhập ${vnDateTimeText(s.createdAt)} · Hoạt động gần nhất ${vnDateTimeText(s.lastSeenAt)}`),
+        h("span", null, trangThai(s)),
+        nuts.length > 0 && h("span", { class: "hang" }, ...nuts),
+        hopXacNhan(s),
+      ),
     );
   }
 
@@ -246,8 +252,8 @@ if (!can(staff, "auth.session.viewAll")) {
     const shown = q ? sessions.filter((s) => boDau(tenNguoi(s)).includes(q)) : sessions;
     if (shown.length === 0) {
       const trong = q ? "Không có máy nào khớp tên này." : chiSong.checked ? "Không có máy nào đang đăng nhập." : "Chưa có máy nào đăng nhập.";
-      replaceChildren(listEl, h("tr", null, h("td", { colSpan: 8, class: "muted" }, trong)));
-      replaceChildren(cardsEl, h("div", { class: "card muted" }, trong));
+      replaceChildren(listEl, h("tr", null, h("td", { colSpan: 8, "data-ca-hang": "" }, h("span", { class: "o-phu" }, trong))));
+      replaceChildren(cardsEl, h("p", { class: "dong o-phu" }, trong));
       return;
     }
     replaceChildren(listEl, ...shown.flatMap(hang));

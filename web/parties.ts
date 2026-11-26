@@ -3,6 +3,7 @@
 // Vai trò và quan hệ chỉ quản trị viên sửa (ADR-0007); hồ sơ khách/đại lý: mọi nhân sự văn phòng; hồ sơ có tài khoản: chỉ quản trị viên cấp trên (ADR-0013, máy chủ tính `editable`);
 // hồ sơ công ty chủ: chỉ người giữ ô company.legal.write (ADR-0024 6.4 — máy chủ tính `editable`). Lựa chọn "Công ty chủ" (= đổi công ty chủ, chủ dự án 2026-09-28)
 // chỉ hiện với người giữ ô đó, trên hồ sơ tổ chức, kèm câu xác nhận. Giao diện chỉ ẩn/hiện, máy chủ luôn kiểm lại.
+import { capTheoChu, type CapNut } from "../src/shared/cap-nut";
 import { OWNER_COMPANY_ROLE } from "../src/shared/cong-ty-chu";
 import { chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared/giay-to-hien-thi";
 import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
@@ -16,10 +17,10 @@ import { GIOI_TINH, GIOI_TINH_NHAN } from "../src/shared/xung-ho";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { hoiXacNhan } from "./bang-truot";
-import { initials } from "./format";
 import { chipEl, loiCua, moFormGiayTo, moXacNhanXemSo, taoBoCheSo, type GiayToDong } from "./giay-to-ui";
 import { khoiLichSuGan } from "./hoa-hong-lich-su";
 import { icon } from "./icons";
+import { khoi, luoi, thanhNut, truong } from "./khung";
 import { dungKhoiPhieuXoa } from "./phieu-xoa";
 import { dungKhoiToChucVanPhong } from "./to-chuc-van-phong";
 import { dauXacMinh } from "./dau-xac-minh";
@@ -80,20 +81,28 @@ async function act<T>(fn: () => Promise<T>, btn?: HTMLButtonElement | null, onSt
 }
 
 const KIND_LABEL = { PERSON: "Cá nhân", ORGANIZATION: "Tổ chức" } as const;
-/** Nút chữ; `onclick` nhận chính nút để truyền cho act() khoá lúc gửi. */
-const button = (label: string, onclick: (b: HTMLButtonElement) => void, cls = "btn btn-link"): HTMLButtonElement => {
-  const b = h("button", { type: "button", class: cls }, label);
+/** Nút của bộ thành phần chung (`.nut[data-cap]`, ADR-0234); `onclick` nhận chính nút để truyền cho act() khoá lúc gửi.
+ *  Cấp nút mặc định theo bảng động từ → cấp nút (src/shared/cap-nut.ts); động từ ngoài bảng thì lối chữ, trừ khi truyền cấp.
+ *  Trần «một nút nền đặc trong vùng nội dung» (ADR-0234 Đ5b): hồ sơ đang xem chỉ «Lưu thông tin» (và khung Hồ sơ mới chỉ «Tạo hồ sơ») là nút đặc; nút «Thêm…», «Lưu»
+ *  của các mục con truyền cấp «phu» — lệch bảng động từ có chủ ý, chờ chủ quyết có đưa biểu mẫu thêm vào bảng trượt như khuôn Thiết lập hay không. */
+const button = (label: string, onclick: (b: HTMLButtonElement) => void, cap: CapNut = capTheoChu(label) ?? "loi"): HTMLButtonElement => {
+  const b = h("button", { type: "button", class: "nut", "data-cap": cap }, label);
   b.addEventListener("click", () => onclick(b));
   return b;
 };
 /** ADR-0194 đợt 1: cột phụ «Công việc hôm nay» Toàn quyền có thể ẩn — chỉ hiển thị; lỗi tải = mặc định đầy đủ. Tải TRƯỚC lần vẽ đầu. */
 let chinhSach: ChinhSachUi = CHINH_SACH_DAY_DU;
 const anCot = (truong: string): boolean => chinhSach.an("quan-ly-doi-tac", truong);
-const field = (label: string, input: Child): HTMLElement => h("label", null, label, input);
-const input = (value = "", extra: Record<string, unknown> = {}) => h("input", { type: "text", value, ...extra });
+/** Trường của khung (nhãn trên ô, nối bằng for). Ô chưa có id thì được cấp một id riêng của trang. `cot`: số cột trên lưới 12 (null = kín hàng). */
+let soO = 0;
+const field = (label: string, o: HTMLElement, cot: 3 | 4 | 6 | 8 | null = 4): HTMLElement => {
+  if (!o.id) o.id = `ds-o-${++soO}`;
+  return truong(label, o, { cot: cot ?? undefined });
+};
+const input = (value = "", extra: Record<string, unknown> = {}) => h("input", { type: "text", class: "o", value, ...extra });
 /** Ô chọn; mặc định chọn MỤC ĐẦU (gán value = "" khi không có mục rỗng sẽ không chọn gì và select.value trả ""). */
 const select = (options: { value: string; label: string }[], selected = options[0]?.value ?? "") => {
-  const s = h("select", null, ...options.map((o) => h("option", { value: o.value }, o.label)));
+  const s = h("select", { class: "o" }, ...options.map((o) => h("option", { value: o.value }, o.label)));
   s.value = selected;
   return s;
 };
@@ -101,7 +110,18 @@ const select = (options: { value: string; label: string }[], selected = options[
 const oGioiTinh = (hienTai: string | null = null) =>
   select([{ value: "", label: "(để trống)" }, ...GIOI_TINH.map((g) => ({ value: g, label: GIOI_TINH_NHAN[g] }))], hienTai ?? "");
 const period = (from: string, to: string | null) => (to ? `${from} → ${to}` : `từ ${from}`);
-const checkbox = (checked: boolean) => h("input", { type: "checkbox", checked, style: "width:auto;display:inline;margin:0 6px 0 0" });
+const checkbox = (checked: boolean) => h("input", { type: "checkbox", class: "o-tick", checked });
+/** Thẻ nhỏ cạnh tên (Ngưng, chính, có tài khoản…). */
+const the = (chu: string, loai: "muted" | "unit" | "warn" = "muted") => h("span", { class: `chip chip-${loai}` }, chu);
+/** Thuộc tính của dòng đã ngưng / hết hiệu lực (khung làm mờ dòng mang data-ngung). */
+const ngung = (tat: boolean) => ({ "data-ngung": tat ? "" : undefined });
+/** Một dòng của danh sách dòng: chữ chính, chữ phụ, rồi nút ở cuối dòng. */
+const dong = (thuoc: Record<string, unknown>, chinh: Child[], phu: string, ...cuoi: Child[]): HTMLElement =>
+  h("div", { ...thuoc, class: "dong" }, h("span", { class: "dong-chu" }, h("strong", null, ...chinh), phu ? h("span", { class: "muted" }, phu) : null), ...cuoi);
+/** Dựng vỏ khối (web/khung.ts) VÀO một phần tử có sẵn của trang (giữ id và tham chiếu). */
+function doKhoi(el: HTMLElement, o: Parameters<typeof khoi>[0], ...than: Child[]): void {
+  replaceChildren(el, ...Array.from(khoi(o, ...than).childNodes));
+}
 const roleLabel = (code: string) => meta.roleTypes.find((t) => t.code === code)?.name ?? code;
 /** Vai quyết định quyền đăng nhập (nội bộ/bên ngoài, ADR-0018): chỉ gán/gỡ ở màn Quản lý tài khoản. */
 const isAccountRole = (code: string): boolean => {
@@ -120,21 +140,21 @@ function queryString(extra: Record<string, string>): string {
   return p.toString();
 }
 
+/** Dòng của danh sách (khối hẹp hơn 800): liên kết tới hồ sơ, bấm thì mở hồ sơ ngay trên trang như dòng bảng. */
 function card(p: Api.PartyListItemDto): HTMLElement {
   const el = h(
-    "div",
-    { class: p.active ? "card" : "card row-off", style: "cursor:pointer" },
-    h("div", { style: "width:40px;height:40px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);display:flex;align-items:center;justify-content:center;font-weight:var(--fw-heavy);flex:none" }, initials(p.displayName)),
+    "a",
+    { class: "dong", href: `/parties?id=${encodeURIComponent(p.id)}`, ...ngung(!p.active) },
     h(
-      "div",
-      { style: "flex:1" },
-      h("div", null, p.displayName, dauXacMinh(p.dauXacMinh), !p.active && h("span", { class: "badge badge-cancelled" }, " Ngưng")),
-      h("div", { class: "muted" }, p.primaryPhone ?? "—", ...(anCot("roleCodes") ? [] : [" · ", p.roleCodes.map(roleLabel).join(", ") || "—"])),
-      h("div", { class: "muted" }, KIND_LABEL[p.kind]),
+      "span",
+      { class: "dong-chu" },
+      h("strong", null, p.displayName, dauXacMinh(p.dauXacMinh), !p.active && the("Ngưng")),
+      h("span", { class: "muted" }, p.primaryPhone ?? "—", ...(anCot("roleCodes") ? [] : [" · ", p.roleCodes.map(roleLabel).join(", ") || "—"])),
+      h("span", { class: "muted" }, KIND_LABEL[p.kind]),
     ),
     icon("next", 20),
   );
-  el.addEventListener("click", () => void openDetail(p.id));
+  el.addEventListener("click", (e) => { e.preventDefault(); void openDetail(p.id); });
   return el;
 }
 
@@ -143,7 +163,7 @@ async function search(reset = true): Promise<void> {
   const r = await act(() => api<Api.PartyListResponse>(`/api/parties?${queryString({ offset: String(offset) })}`));
   if (!r) return;
   const rows = r.parties.map((p) => {
-    const tr = h("tr", { class: p.active ? "" : "row-off", style: "cursor:pointer" }, h("td", null, p.displayName, dauXacMinh(p.dauXacMinh), !p.active && h("span", { class: "badge badge-cancelled" }, "Ngưng")), h("td", null, KIND_LABEL[p.kind]), h("td", null, p.primaryPhone ?? ""), h("td", { hidden: anCot("roleCodes") }, p.roleCodes.map(roleLabel).join(", ")));
+    const tr = h("tr", { ...ngung(!p.active), style: "cursor:pointer" }, h("td", null, p.displayName, dauXacMinh(p.dauXacMinh), !p.active && the("Ngưng")), h("td", null, KIND_LABEL[p.kind]), h("td", null, p.primaryPhone ?? ""), h("td", { hidden: anCot("roleCodes") }, p.roleCodes.map(roleLabel).join(", ")));
     tr.addEventListener("click", () => void openDetail(p.id));
     return tr;
   });
@@ -173,8 +193,8 @@ function openCreate(): void {
   const phone = input("", { type: "tel", maxLength: 30 });
   const email = input("", { type: "email", maxLength: 200 });
   const dupBox = h("div", { class: "alert warn", hidden: true });
-  const personFields = h("div", { class: "grid three" }, field("Họ và tên", fullName), field("Giới tính", gender));
-  const orgFields = h("div", { class: "grid three" }, field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail));
+  const personFields = luoi(null, field("Họ và tên", fullName), field("Giới tính", gender));
+  const orgFields = luoi(null, field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail));
   const sync = () => {
     personFields.hidden = kind.value !== "PERSON";
     orgFields.hidden = kind.value !== "ORGANIZATION";
@@ -199,7 +219,7 @@ function openCreate(): void {
     }, 400);
   });
 
-  const save = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Tạo hồ sơ");
+  const save = h("button", { type: "button", class: "nut", "data-cap": "chinh" }, "Tạo hồ sơ");
   save.addEventListener("click", async () => {
     const contacts: Record<string, unknown>[] = [];
     if (phone.value.trim()) contacts.push({ kind: "PHONE", value: phone.value });
@@ -215,15 +235,15 @@ function openCreate(): void {
       await openDetail(r.party.id);
     }, save);
   });
-  replaceChildren(
+  doKhoi(
     createEl,
-    h("h2", null, "Hồ sơ mới"),
-    field("Loại", kind),
+    { tieuDe: "Hồ sơ mới", idTieuDe: "create-title" },
+    luoi(null, field("Loại", kind)),
     personFields,
     orgFields,
-    h("div", { class: "grid three" }, field("Số điện thoại (không bắt buộc)", phone), field("Email (không bắt buộc)", email)),
+    luoi(null, field("Số điện thoại (không bắt buộc)", phone), field("Email (không bắt buộc)", email)),
     dupBox,
-    h("div", { class: "actions" }, save, button("Đóng", () => (createEl.hidden = true), "btn")),
+    thanhNut(null, save, button("Đóng", () => (createEl.hidden = true))),
   );
   sync();
   createEl.hidden = false;
@@ -291,24 +311,20 @@ async function openDetail(id: string): Promise<void> {
         await reload();
       }, b, reload);
     },
-    "btn btn-primary",
   );
-  const info = h(
-    "div",
-    null,
-    h(
-      "div",
-      { class: "grid three" },
+  const info: Child[] = [
+    luoi(
+      null,
       ...(person ? [field("Họ và tên (tên = từ cuối)", fullName), field("Giới tính", gender)] : [field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail)]),
       h("label", { class: "check" }, active, "Đang dùng"),
     ),
     p.accountLinked ? h("p", { class: "muted" }, "Người này có tài khoản: muốn thôi dùng thì bấm Ngưng ở màn Quản lý tài khoản.") : null,
-    p.editable ? h("div", { class: "actions" }, saveInfo) : null,
-  );
+    p.editable ? thanhNut(null, saveInfo) : null,
+  ];
 
   // -- liên hệ
   const contactRows = p.contacts.map((c) =>
-    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, nhanLoaiLienHe(c.kind)), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, p.editable && !c.validTo && button("Ngừng dùng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
+    dong(ngung(!!c.validTo), [c.value, c.isPrimary && !c.validTo && the("chính", "unit")], [nhanLoaiLienHe(c.kind), c.label, period(c.validFrom, c.validTo)].filter(Boolean).join(" · "), p.editable && !c.validTo && button("Ngừng dùng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b))),
   );
   const cKind = select([{ value: "PHONE", label: "Điện thoại" }, { value: "EMAIL", label: "Email" }]);
   const cValue = input("", { maxLength: 200 });
@@ -317,11 +333,11 @@ async function openDetail(id: string): Promise<void> {
   const addContact = button("Thêm liên hệ", (b) => {
     const body = { kind: cKind.value, value: cValue.value, label: cLabel.value || null, isPrimary: cPrimary.checked };
     void act(async () => { await api(`/api/parties/${id}/contacts`, { method: "POST", body }); await reload(); }, b);
-  }, "btn");
+  }, "phu");
 
   // -- vai trò theo nơi
   const roleRows = p.roles.map((r2) =>
-    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, quanTri && !r2.validTo && (isAccountRole(r2.roleTypeCode) && !(!p.accountLinked && vaiMoChoHoSoKhongTaiKhoan(r2.roleTypeCode)) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
+    dong(ngung(!!r2.validTo), [r2.roleName], `${r2.locationName ?? "(mọi nơi)"} · ${period(r2.validFrom, r2.validTo)}`, quanTri && !r2.validTo && (isAccountRole(r2.roleTypeCode) && !(!p.accountLinked && vaiMoChoHoSoKhongTaiKhoan(r2.roleTypeCode)) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   // Vai "Công ty chủ" gieo "ngưng gán thường" (active = false) nên không có trong danh sách chung; chỉ người giữ ô company.legal.write thấy nó, trên hồ sơ tổ
   // chức chưa phải công ty chủ — gán = ĐỔI công ty chủ (chủ dự án 2026-09-28).
@@ -347,14 +363,14 @@ async function openDetail(id: string): Promise<void> {
     if (rType.value === OWNER_COMPANY_ROLE && !(await hoiXacNhan({ tieuDe: "Thêm công việc", hauQua: XAC_NHAN_DOI_CONG_TY_CHU, nhanNguyHiem: "Thêm công việc", opener: b }))) return;
     const body = { roleTypeCode: rType.value, locationId: rLoc.value || null, validFrom: rFrom.value || undefined };
     void act(async () => { await api(`/api/parties/${id}/roles`, { method: "POST", body }); await reload(); }, b);
-  }, "btn");
+  }, "phu");
 
   // -- quan hệ
   const relRows = p.relationships.map((x) =>
-    h("tr", { class: x.validTo ? "row-off" : "" }, h("td", null, `${x.fromPartyName} — ${x.typeName} — ${x.toPartyName}`), h("td", { class: "muted" }, period(x.validFrom, x.validTo)), h("td", null, quanTri && !x.validTo && !laLienKetToChuc(x.typeCode) && button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/relationships/${x.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
+    dong(ngung(!!x.validTo), [`${x.fromPartyName} — ${x.typeName} — ${x.toPartyName}`], period(x.validFrom, x.validTo), quanTri && !x.validTo && !laLienKetToChuc(x.typeCode) && button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/relationships/${x.id}/end`, { method: "POST", body: {} }); await reload(); }, b))),
   );
   const relQ = input("", { placeholder: "Gõ tên hồ sơ cần liên kết…" });
-  const relPick = h("select", null);
+  const relPick = h("select", { class: "o" });
   // Loại + chiều của quan hệ. "Tài xế của" (DRIVES_FOR, ADR-0048 D1): từ hồ sơ NGƯỜI (tài xế) tới hồ sơ đang là nhà xe đối tác — máy chủ kiểm hai đầu và trả
   // câu tiếng Việt (409) khi sai; giao diện chỉ gửi đúng chiều (Task B2, khuôn ô chọn sẵn có).
   const LOAI_QUAN_HE = [
@@ -379,22 +395,22 @@ async function openDetail(id: string): Promise<void> {
     const l = loaiQuanHe();
     const body = l.laDauTu ? { fromPartyId: id, toPartyId: relPick.value, relationshipTypeCode: l.code } : { fromPartyId: relPick.value, toPartyId: id, relationshipTypeCode: l.code };
     void act(async () => { await api(`/api/parties/${id}/relationships`, { method: "POST", body }); await reload(); }, b);
-  }, "btn");
+  }, "phu");
   relDir.addEventListener("change", () => { addRel.textContent = loaiQuanHe().nut; });
 
   // Mục "Giấy tờ" (ADR-0040 D2; bản vẽ 04): chỉ hồ sơ CÁ NHÂN, chỉ người giữ ô party.document.write (Quản trị, Toàn quyền) — party.view KHÔNG mở giấy tờ.
-  const giayTo = can(me, "party.document.write") && p.kind === "PERSON" ? h("section", { id: "giay-to", class: "vc-gt-section", "aria-labelledby": "giay-to-title" }) : null;
+  const giayTo = can(me, "party.document.write") && p.kind === "PERSON" ? h("section", { id: "giay-to", class: "khoi vc-gt-section", "data-kieu": "bang", "aria-labelledby": "giay-to-title" }) : null;
   if (giayTo) void veGiayTo(giayTo, p);
   // Mục "Tài khoản nhận tiền" (ADR-0108 đ2): chỉ hồ sơ ĐANG là công ty chủ, chỉ người giữ ô company.legal.write. Số tài khoản không viết thẳng ở mã (kho tri thức
   // Trợ lý chỉ gom chữ viết thẳng) — luôn đọc từ máy chủ.
   const laChu = p.roles.some((x) => x.roleTypeCode === OWNER_COMPANY_ROLE && x.validTo === null);
-  const taiKhoan = can(me, "company.legal.write") && laChu ? h("section", { id: "tai-khoan-nhan-tien", "aria-labelledby": "tknt-title" }) : null;
+  const taiKhoan = can(me, "company.legal.write") && laChu ? h("section", { id: "tai-khoan-nhan-tien", class: "khoi", "aria-labelledby": "tknt-title" }) : null;
   if (taiKhoan) void veTaiKhoanNhanTien(taiKhoan, p);
   // Mục «Hoa hồng hiện hành» (góp ý YC-0020): người giữ ô partner.commission.view đọc; ô partner.commission.write gắn / kết thúc mức riêng (ADR-0138). Hồ sơ không mang loại được hưởng thì mục tự ẩn; máy chủ từ chối (tài khoản lai…) cũng ẩn.
   // Khối «Người quản lý tổ chức» (ADR-0213 Đ6): hồ sơ TỔ CHỨC, ba vai văn phòng giữ ô partner.org.manager.write, không Đối tác — cùng cổng máy chủ.
-  const khoiToChuc = p.kind === "ORGANIZATION" && !p.mergedInto && can(me, "partner.org.manager.write") && !holdsPartner(me) ? h("section", { id: "to-chuc-van-phong", "aria-label": "Người quản lý tổ chức" }) : null;
+  const khoiToChuc = p.kind === "ORGANIZATION" && !p.mergedInto && can(me, "partner.org.manager.write") && !holdsPartner(me) ? h("section", { id: "to-chuc-van-phong", class: "khoi", "aria-label": "Người quản lý tổ chức" }) : null;
   if (khoiToChuc) dungKhoiToChucVanPhong(khoiToChuc, id, can(me, "admin.manage.superadmin")); // B2 Task 17: Toàn quyền đặt chế độ thành viên (cùng cổng PUT …/che-do)
-  const hoaHong = can(me, "partner.commission.view") && !p.mergedInto ? h("section", { id: "hoa-hong-hien-hanh", "aria-labelledby": "hhhh-title", hidden: true }) : null;
+  const hoaHong = can(me, "partner.commission.view") && !p.mergedInto ? h("section", { id: "hoa-hong-hien-hanh", class: "khoi", "aria-labelledby": "hhhh-title", hidden: true }) : null;
   if (hoaHong) void veHoaHongHienHanh(hoaHong, p);
 
   // -- gộp hồ sơ (ADR-0068; đặc tả §5)
@@ -404,38 +420,47 @@ async function openDetail(id: string): Promise<void> {
       ` ngày ${ngayCuaMoc(p.mergedInto.mergedAt)}. Hồ sơ này chỉ còn để xem lịch sử.`));
   }
   const nutGop = quanTri && p.kind === "PERSON" && p.active && !p.accountLinked
-    ? button("Gộp vào hồ sơ khác…", () => moHopGop({ id: p.id, displayName: p.displayName }, null), "btn btn-danger")
+    ? button("Gộp vào hồ sơ khác…", () => moHopGop({ id: p.id, displayName: p.displayName }, null), "nguy-hiem")
     : null;
   const mucDaGop = p.mergedFrom.length > 0
-    ? [h("h3", null, "Hồ sơ đã gộp vào đây"), h("ul", null, ...p.mergedFrom.map((x) => h("li", null, lienKetHoSo(x.id, x.displayName), ` — gộp ngày ${ngayCuaMoc(x.mergedAt)}`)))]
-    : [];
+    ? khoi({ tieuDe: "Hồ sơ đã gộp vào đây", capTieuDe: "h3" }, h("ul", null, ...p.mergedFrom.map((x) => h("li", null, lienKetHoSo(x.id, x.displayName), ` — gộp ngày ${ngayCuaMoc(x.mergedAt)}`))))
+    : null;
 
+  // Hồ sơ đang xem = nhiều khối (khuôn khung gốc: mỗi nhóm dữ liệu một khối, mỗi khối tối đa một nút nền đặc), xếp ngay trên danh sách.
   replaceChildren(
     detailEl,
-    h("h2", null, p.displayName, " ", h("span", { class: "muted" }, KIND_LABEL[p.kind]), dauXacMinh(p.dauXacMinh)),
-    ...khoiGop,
-    info,
-    h("h3", null, "Liên hệ"),
-    h("table", { class: "items" }, h("tbody", null, ...contactRows)),
-    p.editable ? h("div", { class: "grid three" }, field("Loại", cKind), field("Giá trị", cValue), field("Ghi chú", cLabel), h("label", { class: "check" }, cPrimary, "Liên hệ chính")) : null,
-    p.editable ? h("div", { class: "actions" }, addContact) : null,
-    h("h3", null, "Công việc tại đâu"),
-    h("table", { class: "items" }, h("tbody", null, ...roleRows)),
-    quanTri
-      ? h("div", null, h("div", { class: "grid three" }, field("Công việc", rType), oNoiLam, field("Từ ngày (mặc định hôm nay)", rFrom)), h("div", { class: "actions" }, addRole))
-      : daGop ? null : h("p", { class: "muted" }, "Chỉ quản trị viên thêm hoặc kết thúc công việc."),
-    h("h3", null, "Người liên hệ, tài xế"), // G3 (ADR-0048): mục này nay gồm cả quan hệ "Tài xế của"
-    h("table", { class: "items" }, h("tbody", null, ...relRows)),
-    quanTri ? h("div", null, h("div", { class: "grid three" }, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), h("div", { class: "actions" }, addRel)) : null,
+    khoi(
+      { tieuDe: h("span", null, p.displayName, " ", h("span", { class: "muted" }, KIND_LABEL[p.kind]), dauXacMinh(p.dauXacMinh)), idTieuDe: "detail-title", thuoc: { id: "detail-thong-tin" } },
+      ...khoiGop,
+      ...info,
+    ),
+    khoi(
+      { tieuDe: "Liên hệ", capTieuDe: "h3" },
+      h("div", { class: "ds-dong" }, ...contactRows),
+      p.editable ? luoi(null, field("Loại", cKind, 3), field("Giá trị", cValue, 3), field("Ghi chú", cLabel, 3), h("label", { class: "check", "data-cot": 3 }, cPrimary, "Liên hệ chính")) : null,
+      p.editable ? thanhNut(null, addContact) : null,
+    ),
+    khoi(
+      { tieuDe: "Công việc tại đâu", capTieuDe: "h3" },
+      h("div", { class: "ds-dong" }, ...roleRows),
+      ...(quanTri
+        ? [luoi(null, field("Công việc", rType), oNoiLam, field("Từ ngày (mặc định hôm nay)", rFrom)), thanhNut(null, addRole)]
+        : [daGop ? null : h("p", { class: "muted" }, "Chỉ quản trị viên thêm hoặc kết thúc công việc.")]),
+    ),
+    khoi(
+      { tieuDe: "Người liên hệ, tài xế", capTieuDe: "h3" }, // G3 (ADR-0048): mục này nay gồm cả quan hệ "Tài xế của"
+      h("div", { class: "ds-dong" }, ...relRows),
+      ...(quanTri ? [luoi(null, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), thanhNut(null, addRel)] : []),
+    ),
     khoiToChuc,
-    ...mucDaGop,
+    mucDaGop,
     giayTo,
     taiKhoan,
     hoaHong,
-    h("div", { class: "actions", style: "margin-top:12px" }, nutGop, button("Đóng", () => { boCheSo.che(); detailEl.hidden = true; mergeEl.hidden = true; openId = null; }, "btn")),
+    thanhNut(null, nutGop, button("Đóng", () => { boCheSo.che(); detailEl.hidden = true; mergeEl.hidden = true; openId = null; })),
   );
   detailEl.hidden = false;
-  detailEl.scrollIntoView({ block: "nearest" });
+  byId("detail-thong-tin").scrollIntoView({ block: "nearest" }); // #detail là vùng vẽ (display: contents), không có hộp để cuộn tới
 }
 
 // ---- Gộp hồ sơ (ADR-0068; đặc tả §5): chọn hồ sơ chính → xem trước ba cột → gõ lại tên hồ sơ phụ → Gộp. Lý do chặn hiện trên bảng, nút Gộp tắt. -------------
@@ -443,15 +468,15 @@ async function openDetail(id: string): Promise<void> {
 function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: string; displayName: string } | null): void {
   let dich = dichSan;
   const tim = input("", { placeholder: "Tên hoặc số điện thoại…", "aria-label": "Tìm hồ sơ chính" });
-  const chon = h("select", { "aria-label": "Hồ sơ chính" });
+  const chon = h("select", { class: "o", "aria-label": "Hồ sơ chính" });
   const bang = h("div", { "aria-live": "polite" });
   const xacNhan = input("", { placeholder: nguon.displayName, "aria-label": "Gõ lại tên hồ sơ phụ để xác nhận", autocomplete: "off" });
-  const nutGop = h("button", { type: "button", class: "btn btn-danger", disabled: true }, "Gộp hồ sơ");
+  const nutGop = h("button", { type: "button", class: "nut", "data-cap": "nguy-hiem", disabled: true }, "Gộp hồ sơ");
   let chan = true;
   let lanXem = 0; // chỉ nhận kết quả xem trước MỚI NHẤT (đổi hồ sơ chính nhanh)
   const capNhatNut = () => { nutGop.disabled = chan || !dich || chuanHoaTen(xacNhan.value) !== chuanHoaTen(nguon.displayName); };
   const cot = (tieuDe: string, ds: Api.MergeItemDto[]) =>
-    h("div", null, h("h4", null, `${tieuDe} (${ds.length})`), ds.length
+    h("div", { "data-cot": 4 }, h("h4", null, `${tieuDe} (${ds.length})`), ds.length
       ? h("ul", null, ...ds.map((x) => h("li", null, x.nhan, x.ghiChu ? h("span", { class: "muted" }, ` — ${x.ghiChu}`) : null)))
       : h("p", { class: "muted" }, "Không có."));
   const xemTruoc = async () => {
@@ -466,7 +491,7 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
       bang,
       h("p", null, "Hồ sơ chính: ", h("strong", null, r.target.displayName)), // luôn nêu tên hồ sơ sẽ gộp vào, ngay trên bảng
       ...r.chan.map((c) => h("div", { class: "alert", role: "alert" }, c.message)),
-      h("div", { class: "grid three" }, cot("Chuyển sang hồ sơ chính", r.chuyen), cot("Giữ ở hồ sơ này", r.giu), cot("Bỏ vì đã có", r.bo)),
+      luoi(null, cot("Chuyển sang hồ sơ chính", r.chuyen), cot("Giữ ở hồ sơ này", r.giu), cot("Bỏ vì đã có", r.bo)),
       h("p", { class: "muted" }, `Đơn đổi người đặt sang hồ sơ chính: ${r.donDoi}. Đơn giữ ở hồ sơ này (đã tới bước Khách đã trả đủ hoặc đã huỷ): ${r.donGiu}. Dòng công nợ giữ ở hồ sơ này: ${r.dongNoGiu}.`),
     );
     capNhatNut();
@@ -528,14 +553,13 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
       if (loi && errorEl.hidden) hienLoi(loi);
     })();
   });
-  replaceChildren(
+  doKhoi(
     mergeEl,
-    h("h2", { id: "merge-title" }, `Gộp “${nguon.displayName}” vào hồ sơ khác`),
-    h("p", { class: "muted" }, "Hồ sơ này sẽ ẩn khỏi Danh bạ; liên hệ, công việc, quan hệ, giấy tờ còn hiệu lực và đơn chưa tới bước Khách đã trả đủ chuyển sang hồ sơ chính. Không tách lại được."),
-    dichSan ? null : h("div", { class: "grid three" }, field("Tìm hồ sơ chính", tim), field("Hồ sơ chính", chon)), // điền sẵn: tên hồ sơ chính hiện ở đầu bảng xem trước
+    { tieuDe: `Gộp “${nguon.displayName}” vào hồ sơ khác`, idTieuDe: "merge-title", moTa: "Hồ sơ này sẽ ẩn khỏi Danh bạ; liên hệ, công việc, quan hệ, giấy tờ còn hiệu lực và đơn chưa tới bước Khách đã trả đủ chuyển sang hồ sơ chính. Không tách lại được." },
+    dichSan ? null : luoi(null, field("Tìm hồ sơ chính", tim, 6), field("Hồ sơ chính", chon, 6)), // điền sẵn: tên hồ sơ chính hiện ở đầu bảng xem trước
     bang,
-    field(`Gõ lại tên “${nguon.displayName}” để xác nhận`, xacNhan),
-    h("div", { class: "actions" }, nutGop, button("Huỷ", () => { mergeEl.hidden = true; }, "btn")),
+    field(`Gõ lại tên “${nguon.displayName}” để xác nhận`, xacNhan, null),
+    thanhNut(null, nutGop, button("Huỷ", () => { mergeEl.hidden = true; })),
   );
   mergeEl.hidden = false;
   mergeEl.scrollIntoView({ block: "nearest" });
@@ -547,24 +571,23 @@ function moHopGop(nguon: { id: string; displayName: string }, dichSan: { id: str
 async function moNghiTrung(): Promise<void> {
   const r = await act(() => api<Api.PartyDuplicatesResponse>("/api/parties/duplicates"));
   if (!r) return;
-  const ten = (x: Api.PartyListItemDto, coTaiKhoan: boolean) => h("span", null, lienKetHoSo(x.id, x.displayName), coTaiKhoan ? h("span", { class: "badge" }, "có tài khoản") : null);
-  const dong = (x: Api.PartyDuplicatePairDto) => {
+  const ten = (x: Api.PartyListItemDto, coTaiKhoan: boolean) => h("span", null, lienKetHoSo(x.id, x.displayName), coTaiKhoan ? the("có tài khoản") : null);
+  const dongCap = (x: Api.PartyDuplicatePairDto) => {
     const [phu, chinh] = x.aCoTaiKhoan ? [x.b, x.a] : [x.a, x.b];
     const caHai = x.aCoTaiKhoan && x.bCoTaiKhoan;
-    return h("li", null,
-      h("div", null, ten(x.a, x.aCoTaiKhoan), " — ", ten(x.b, x.bCoTaiKhoan)),
-      h("div", { class: "muted" }, x.lyDo.map((l) => NHAN_LY_DO_KHOP[l]).join("; ")),
-      caHai
-        ? h("div", { class: "muted" }, "Cả hai đều có tài khoản — không gộp được.")
-        : h("div", null, button("Gộp…", () => moHopGop({ id: phu.id, displayName: phu.displayName }, { id: chinh.id, displayName: chinh.displayName }), "btn")));
+    return h("div", { class: "dong" },
+      h("span", { class: "dong-chu" },
+        h("span", null, ten(x.a, x.aCoTaiKhoan), " — ", ten(x.b, x.bCoTaiKhoan)),
+        h("span", { class: "muted" }, x.lyDo.map((l) => NHAN_LY_DO_KHOP[l]).join("; ")),
+        caHai ? h("span", { class: "muted" }, "Cả hai đều có tài khoản — không gộp được.") : null),
+      caHai ? null : button("Gộp…", () => moHopGop({ id: phu.id, displayName: phu.displayName }, { id: chinh.id, displayName: chinh.displayName }), "phu"));
   };
-  replaceChildren(
+  doKhoi(
     dupsEl,
-    h("h2", { id: "dups-title" }, `Hồ sơ nghi trùng (${r.pairs.length}${r.conNua ? "+" : ""})`),
+    { tieuDe: `Hồ sơ nghi trùng (${r.pairs.length}${r.conNua ? "+" : ""})`, idTieuDe: "dups-title", viec: [button("Đóng", () => { dupsEl.hidden = true; })] },
     r.pairs.length === 0
-      ? h("p", { class: "empty" }, "Không thấy hồ sơ nghi trùng.")
-      : h("ul", { class: "history" }, ...r.pairs.map(dong)),
-    h("div", { class: "actions" }, button("Đóng", () => { dupsEl.hidden = true; }, "btn")),
+      ? h("p", { class: "rong" }, "Không thấy hồ sơ nghi trùng.")
+      : h("div", { class: "ds-dong" }, ...r.pairs.map(dongCap)),
   );
   dupsEl.hidden = false;
   dupsEl.scrollIntoView({ block: "nearest" });
@@ -785,11 +808,11 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
   if (!r.laNguoiHuong) return;
   const rieng = r.mucRieng;
   const tieuDe = h("h3", { id: "hhhh-title", tabindex: -1 }, "Hoa hồng hiện hành");
-  const dong = r.vai.map((v) =>
-    h("tr", null, h("td", null, v.loai.ten),
-      h("td", null, v.muc ? h("span", null, v.muc.ten, " (theo vai trò)", v.muc.dangBat ? "" : h("span", { class: "muted" }, " (cấp đã khoá)")) : h("span", { class: "muted" }, "Chưa áp dụng cấp độ đại lý"),
+  const dongVai = r.vai.map((v) =>
+    h("div", { class: "dong" }, h("span", { class: "dong-chu" }, h("strong", null, v.loai.ten),
+      h("span", null, v.muc ? h("span", null, v.muc.ten, " (theo vai trò)", v.muc.dangBat ? "" : h("span", { class: "muted" }, " (cấp đã khoá)")) : h("span", { class: "muted" }, "Chưa áp dụng cấp độ đại lý"),
         rieng ? h("span", { class: "muted" }, " — không áp cho đại lý này") : ""),
-      h("td", { class: "muted" }, v.tuNgay ? `từ ${ngayVN(v.tuNgay)}` : "")));
+      v.tuNgay ? h("span", { class: "muted" }, `từ ${ngayVN(v.tuNgay)}`) : null)));
   const khoiRieng = rieng
     ? h("p", { "data-khoi": "muc-rieng" }, h("strong", null, `Cấp riêng: ${rieng.muc.ten}`), rieng.muc.dangBat ? "" : h("span", { class: "muted" }, " (cấp đã khoá)"),
         ` — từ ${ngayVN(rieng.tuNgay)}${rieng.denNgay ? ` đến ${ngayVN(rieng.denNgay)}` : ""}. Cấp theo vai trò không áp cho đại lý này.`)
@@ -831,21 +854,21 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
     const luu = button("Lưu", (b) => {
       if (!oMuc.value) return baoLoi("Chọn cấp độ đại lý.");
       guiLenh(b, `/api/pricing/ho-so/${encodeURIComponent(p.id)}/muc-rieng`, { muc: oMuc.value, tuNgay: oTu.value }, "Đã áp dụng cấp riêng cho đại lý này.");
-    }, "btn btn-primary");
+    }, "phu");
     replaceChildren(khuLenh,
-      h("div", { class: "grid three" }, field("Cấp riêng", oMuc), field("Áp dụng từ ngày", oTu)),
+      luoi(null, field("Cấp riêng", oMuc), field("Áp dụng từ ngày", oTu)),
       r.dongRiengDoiTac > 0 ? h("p", { class: "alert warn", role: "status" }, `Lưu ý: đại lý này có ${r.dongRiengDoiTac} mức riêng — mức riêng vẫn thắng cấp riêng.`) : null,
       h("p", { class: "muted" }, "Từ ngày áp dụng, đơn của đại lý này tính theo cấp riêng, không theo cấp độ đại lý của vai trò nữa. Đơn đã xác nhận không đổi."),
-      h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
+      thanhNut(null, luu, button("Huỷ", () => replaceChildren(khuLenh))));
     oMuc.focus();
   };
   const moKetThuc = (mr: NonNullable<Api.HoaHongHoSoResponse["mucRieng"]>) => {
     const oDen = input(r.homNay < mr.tuNgay ? mr.tuNgay : r.homNay, { type: "date" }) as HTMLInputElement;
     const luu = button("Thôi theo cấp này", (b) =>
-      guiLenh(b, `/api/pricing/muc-rieng/${encodeURIComponent(mr.id)}/ket-thuc`, { denNgay: oDen.value }, "Đã ngừng áp dụng cấp riêng — sau ngày cuối, đại lý về cấp độ đại lý theo vai trò."), "btn btn-primary");
+      guiLenh(b, `/api/pricing/muc-rieng/${encodeURIComponent(mr.id)}/ket-thuc`, { denNgay: oDen.value }, "Đã ngừng áp dụng cấp riêng — sau ngày cuối, đại lý về cấp độ đại lý theo vai trò."), "phu");
     replaceChildren(khuLenh,
-      h("div", { class: "grid three" }, field("Áp dụng đến hết ngày", oDen)),
-      h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
+      luoi(null, field("Áp dụng đến hết ngày", oDen)),
+      thanhNut(null, luu, button("Huỷ", () => replaceChildren(khuLenh))));
     oDen.focus();
   };
   // ADR-0148 Đ1: «Sửa» cấp riêng — GET xem trước (đường do máy chủ quyết) rồi form điền sẵn; huỷ–thay giữ được ngày bắt đầu cũ, «từ ngày» chỉ từ ngày sớm nhất.
@@ -873,39 +896,38 @@ async function veHoaHongHienHanh(sec: HTMLElement, p: Api.PartyDto, tin?: string
       const ld = docLyDoSua(oLyDo.value);
       if (!ld.ok) return baoLoi(ld.message);
       guiLenh(b, url, { muc: oMuc.value, tuNgay: oTu.value, ...(oDen.value ? { denNgay: oDen.value } : {}), lyDo: ld.value }, "Đã sửa cấp riêng của đại lý này.");
-    }, "btn btn-primary");
+    }, "phu");
     replaceChildren(khuLenh,
       h("p", { class: "hint", role: "status" }, h("strong", null, cauXemTruocSua(xt, "cấp riêng này"))),
-      h("div", { class: "grid three" }, field("Cấp riêng", oMuc), field("Áp dụng từ ngày", oTu), field("Đến hết ngày (để trống = không thời hạn)", oDen)),
-      field("Lý do sửa (bắt buộc)", oLyDo),
-      h("div", { class: "actions" }, luu, button("Huỷ", () => replaceChildren(khuLenh), "btn")));
+      luoi(null, field("Cấp riêng", oMuc), field("Áp dụng từ ngày", oTu), field("Đến hết ngày (để trống = không thời hạn)", oDen), field("Lý do sửa (bắt buộc)", oLyDo, null)),
+      thanhNut(null, luu, button("Huỷ", () => replaceChildren(khuLenh))));
     oMuc.focus();
   };
   const duocGhi = can(me, "partner.commission.write");
-  const nutNgung = rieng && rieng.denNgay === null ? button("Thôi theo cấp này", () => moKetThuc(rieng), "btn") : null;
-  const nutSuaRieng = rieng && coQuyenSua(me) && nutSua(rieng, r.homNay) ? button("Sửa", () => void moSua(rieng), "btn") : null;
+  const nutNgung = rieng && rieng.denNgay === null ? button("Thôi theo cấp này", () => moKetThuc(rieng), "phu") : null;
+  const nutSuaRieng = rieng && coQuyenSua(me) && nutSua(rieng, r.homNay) ? button("Sửa", () => void moSua(rieng)) : null;
   const nut: HTMLElement[] = !duocGhi ? []
     : rieng ? [nutNgung, nutSuaRieng].filter((x): x is HTMLButtonElement => x !== null)
-    : [button("Chọn cấp riêng cho đối tác", () => void moGan(), "btn")];
+    : [button("Chọn cấp riêng cho đối tác", () => void moGan(), "phu")];
   // N5 (R3): lần gắn riêng đang áp vẫn đọc từ `mucRieng` (câu tra, nút như trên); `ganRieng` (lịch sử) chỉ cho lần sắp áp và nút «Xem lịch sử».
   const lan = chiaLanGan(r.ganRieng, r.homNay);
   const nutSuaSap = (g: Api.GanRiengLichSuDto): HTMLButtonElement => {
-    const b = button("Sửa", () => void moSua(g), "btn");
+    const b = button("Sửa", () => void moSua(g));
     b.setAttribute("aria-label", `Sửa cấp riêng sắp áp dụng: ${g.muc.ten}`);
     return b;
   };
   const sapAp = lan.sapAp.length === 0 ? null : h("ul", { class: "hh-tl-gan", "data-khoi": "gan-rieng-sap" },
     ...lan.sapAp.map((g) => h("li", { "data-gan-id": g.id },
-      h("span", null, h("strong", null, `Cấp riêng: ${g.muc.ten}`), " ", h("span", { class: "badge badge-draft" }, nhanSapAp(g)), g.muc.dangBat ? "" : h("span", { class: "muted" }, " (cấp đã khoá)")),
+      h("span", null, h("strong", null, `Cấp riêng: ${g.muc.ten}`), " ", the(nhanSapAp(g), "warn"), g.muc.dangBat ? "" : h("span", { class: "muted" }, " (cấp đã khoá)")),
       coQuyenSua(me) && nutSua(g, r.homNay) ? nutSuaSap(g) : null)));
   replaceChildren(sec,
     tieuDe,
     khoiRieng,
     sapAp,
-    h("table", { class: "items" }, h("tbody", null, ...dong)),
+    h("div", { class: "ds-dong" }, ...dongVai),
     ...nhac,
     khuTin,
-    nut.length > 0 ? h("div", { class: "actions" }, ...nut) : null,
+    nut.length > 0 ? thanhNut(null, ...nut) : null,
     khuLenh,
     khoiLichSuGan(lan.lichSu, r.homNay, (g) => `Cấp riêng: ${g.muc.ten}`, "hhhh-lich-su"),
     h("p", null, h("a", { href: "/hoa-hong" }, "Xem hoặc đổi mức ở trang Hoa hồng đối tác")));
@@ -956,14 +978,14 @@ async function veTaiKhoanNhanTien(sec: HTMLElement, p: Api.PartyDto, tin?: TinTa
         b.disabled = false;
       }
     })();
-  }, "btn btn-primary");
+  }, "phu");
   replaceChildren(
     sec,
     tieuDe,
     hienTai,
-    h("div", { class: "grid three" }, field("Ngân hàng", nh), field("Số tài khoản", so), field("Tên chủ tài khoản", ten)),
+    luoi(null, field("Ngân hàng", nh), field("Số tài khoản", so), field("Tên chủ tài khoản", ten)),
     khuTin,
-    h("div", { class: "actions" }, luu),
+    thanhNut(null, luu),
   );
   if (tin) tieuDe.focus();
 }

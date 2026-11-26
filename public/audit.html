@@ -1,27 +1,29 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Nhật ký — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="rong" data-title="Nhật ký" data-back="/account">
+<body data-rong="rong" data-khung-goc="danh-sach" data-title="Nhật ký" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
+  <!-- Nhật ký hệ thống (ADR-0038 điều 6, chỉ Toàn quyền). Khuôn Danh sách của khung gốc (ADR-0222): thanh tìm và lọc, rồi MỘT khối bảng. Khối rộng từ 800 hiện
+       bảng (#list), hẹp hơn hiện danh sách dòng nhóm theo ngày (#list-cards). Cột «Chi tiết» là chữ dài: bảng khai data-cot-cuoi="chu" để cột cuối xuống dòng. -->
   <h1>Nhật ký hệ thống</h1>
-  <div class="toolbar">
-    <input id="q" type="search" placeholder="Tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên…" autocomplete="off">
-    <select id="action" aria-label="Lọc hành động">
+  <div class="thanh-loc">
+    <input id="q" class="o" type="search" placeholder="Tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên…" autocomplete="off" aria-label="Tìm trong nhật ký">
+    <select id="action" class="o" aria-label="Lọc hành động">
       <option value="">Mọi hành động</option>
       <!-- các nhóm/hành động do web/audit.ts sinh từ src/shared/audit-actions.ts -->
     </select>
   </div>
   <div id="error" class="alert" role="alert" hidden></div>
-  <div class="card table-wrap">
-    <table class="items">
+  <section id="nk-khoi" class="khoi" data-kieu="bang" aria-label="Nhật ký hệ thống">
+    <table class="bang" data-cot-cuoi="chu">
       <thead><tr><th>Thời gian</th><th>Người thao tác</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
       <tbody id="list"></tbody>
     </table>
-  </div>
-  <div id="list-cards" class="card-list"></div>
-  <p id="empty" class="empty" hidden>Chưa có bản ghi nào khớp.</p>
-  <button id="more" class="btn" type="button" hidden>Tải thêm</button>
+    <div id="list-cards" class="ds-dong" data-thay-bang></div>
+    <p id="empty" class="rong" hidden>Chưa có bản ghi nào khớp.</p>
+    <button id="more" class="nut bang-them" data-cap="loi" type="button" hidden>Tải thêm</button>
+  </section>
 </main>
 <script type="module" src="/js/audit.js"></script>
 </body></html>

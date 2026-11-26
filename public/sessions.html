@@ -1,27 +1,30 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Máy đang đăng nhập — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="hep" data-title="Máy đang đăng nhập" data-back="/account">
+<body data-rong="rong" data-khung-goc="danh-sach" data-title="Máy đang đăng nhập" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
+  <!-- Máy đang đăng nhập (ADR-0075 điều 7; ADR-0085; ADR-0126 đ8). Khuôn Danh sách của khung gốc (ADR-0222): đầu trang, thanh lọc, MỘT khối bảng (khối rộng từ 800 hiện
+       bảng #list, hẹp hơn hiện danh sách dòng #list-cards), rồi hai khối cài đặt của Toàn quyền (chính sách đăng nhập, ẩn danh hoá) bên dưới. PIN mới (#secret)
+       hiện một lần ở đầu trang. Dòng xác nhận trong bảng (ô kín hàng) khai data-ca-hang để chữ xuống dòng. -->
   <h1>Máy đang đăng nhập</h1>
-  <p class="muted">Ai đang đăng nhập trên máy nào. Bấm «Đăng xuất máy này» thì máy đó bị đăng xuất ngay; người có PIN vẫn đăng nhập lại được.</p>
+  <div class="dau-trang"><p class="doan-dan">Ai đang đăng nhập trên máy nào. Bấm «Đăng xuất máy này» thì máy đó bị đăng xuất ngay; người có PIN vẫn đăng nhập lại được.</p></div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
-  <section id="secret" class="card secret" hidden></section>
-  <!-- web/chinh-sach-dang-nhap-ui.ts dựng mục này chỉ khi có ô auth.session.policy (ADR-0085) — hỏi ĐÚNG ô này, không dùng chung auth.session.viewAll. -->
-  <section id="policy-card" class="card" hidden></section>
-  <!-- web/sessions.ts dựng mục "Ẩn danh hoá phiên cũ" chỉ khi có ô auth.session.policy (ADR-0126 đ8). -->
-  <section id="an-danh-phien" class="card" aria-labelledby="adp-heading" hidden></section>
-  <!-- web/sessions.ts dựng ô lọc, bảng (máy tính) và thẻ (điện thoại) chỉ khi máy chủ nói có ô auth.session.viewAll (ADR-0075 điều 7). -->
-  <div id="filters" class="toolbar" hidden></div>
-  <section id="table-card" class="card table-wrap phien-bang" hidden>
-    <table class="items">
-      <thead><tr><th>Người</th><th>Máy</th><th>IP</th><th>Cách đăng nhập</th><th>Đăng nhập lúc</th><th>Hoạt động gần nhất</th><th>Trạng thái</th><th></th></tr></thead>
+  <section id="secret" class="khoi" aria-labelledby="pin-moi-ten" hidden></section>
+  <!-- web/sessions.ts dựng ô lọc, bảng (khối rộng) và danh sách dòng (khối hẹp) chỉ khi máy chủ nói có ô auth.session.viewAll (ADR-0075 điều 7). -->
+  <div id="filters" class="thanh-loc" hidden></div>
+  <section id="table-card" class="khoi" data-kieu="bang" aria-label="Danh sách máy đang đăng nhập" hidden>
+    <table class="bang">
+      <thead><tr><th>Người</th><th>Máy</th><th data-cot-phu>IP</th><th data-cot-phu>Cách đăng nhập</th><th>Đăng nhập lúc</th><th>Hoạt động gần nhất</th><th>Trạng thái</th><th><span class="visually-hidden">Việc</span></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
+    <div id="list-cards" class="ds-dong" data-thay-bang></div>
   </section>
-  <div id="list-cards" class="card-list"></div>
+  <!-- web/chinh-sach-dang-nhap-ui.ts dựng mục này chỉ khi có ô auth.session.policy (ADR-0085) — hỏi ĐÚNG ô này, không dùng chung auth.session.viewAll. -->
+  <section id="policy-card" class="khoi" aria-labelledby="pol-heading" hidden></section>
+  <!-- web/sessions.ts dựng mục "Ẩn danh hoá phiên cũ" chỉ khi có ô auth.session.policy (ADR-0126 đ8). -->
+  <section id="an-danh-phien" class="khoi" aria-labelledby="adp-heading" hidden></section>
 </main>
 <script type="module" src="/js/sessions.js"></script>
 </body></html>

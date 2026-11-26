@@ -4763,6 +4763,14 @@ body[data-khung-goc="thiet-lap"] .khoi[data-nhom] .ds-dong > .dong > .nut { font
 /* -- Đợt D3 (26/11/2026) — trang Chính sách điều phối (web/chinh-sach-dieu-phoi.ts): nút «Lưu thành bản mới» của thanh dính đáy cũ (#cs-bottom, bài
    src/nut-luu-khong-mat-o-dien-thoai.test.ts khoá thanh này) nay là .nut — kín bề ngang thanh như nút cũ (.vc-bottom-bar .vc-btn). -- */
 body[data-khung-goc="thiet-lap"] .vc-bottom-bar > .nut { width: 100%; }
+/* -- Đợt D1 (26/11/2026) — trang Nhật ký (web/audit.ts) và Máy đang đăng nhập (web/sessions.ts): cột cuối của bảng là chữ dài («Chi tiết» của Nhật ký,
+   bảng khai data-cot-cuoi="chu") và ô kín hàng (hộp xác nhận, câu rỗng — data-ca-hang) thì xuống dòng, canh trái, thay luật cột nút cuối dòng. -- */
+body[data-khung-goc="danh-sach"] .bang[data-cot-cuoi="chu"] tr > :last-child, body[data-khung-goc="danh-sach"] .bang td[data-ca-hang] { text-align: left; white-space: normal; }
+/* Ô chọn trong thanh lọc (bộ lọc hành động của Nhật ký): tên lựa chọn dài không đẩy ô tràn khỏi màn điện thoại. */
+body[data-khung-goc="danh-sach"] .thanh-loc > select.o { min-width: 0; }
+/* -- Đợt D1 (26/11/2026) — trang Quản lý tài khoản (web/staff.ts): ô nút cuối dòng bảng có tới sáu nút — xuống hàng trong ô (không đẩy bảng ra ngoài khối khi
+   khối hẹp, kể cả bề rộng «vừa»), canh mép phải như ô cuối của bảng. -- */
+body[data-khung-goc="danh-sach"] .bang td > .tk-viec { justify-content: flex-end; white-space: nowrap; }
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
 
 /* ---------- Tạo / Sửa đơn — ruột trang theo ngôn ngữ thị giác (ADR-0234 nguyên tắc 1: một dòng một thứ đậm; khối một con số nổi). Chỉ đổi ĐỘ ĐẬM, khoanh trong
