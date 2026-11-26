@@ -1,7 +1,7 @@
 // Khung thử phá: nạp CẢ ứng dụng (src/index.ts: router + mọi module) bằng esbuild, chạy trên D1 giả = SQLite thật (node:sqlite) với schema dựng
 // từ migrations/*.sql. Không mạng, không Turnstile (thiếu TURNSTILE_SECRET_KEY = tắt), không đụng D1 local/remote.
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -30,9 +30,21 @@ let soBan = 0;
 // Nay các tiến trình trên CÙNG MÁY dùng chung một tệp mẫu đặt theo DẤU NỘI DUNG (băm mọi migration theo thứ tự + mã hàm dungTuMigration + phiên bản SQLite):
 // đổi một migration là ra tên khác, không bao giờ dùng mẫu cũ. Tệp mẫu ghi ra tên tạm riêng rồi đổi tên (nguyên tử) — tiến trình chết giữa chừng không để lại
 // mẫu dở; hai tiến trình cùng dựng thì cùng ra một nội dung. Mẫu chỉ được CHÉP, không bao giờ mở để ghi.
-function dauNoiDung() {
+// Sự cố 26/11/2026: migration 0030 gieo hồ sơ công ty chủ với valid_from_date = date('now', '+7 hours') (ngày VN LÚC DỰNG) ⇒ tệp mẫu dựng hôm qua
+// mang ngày hôm qua, dùng lại hôm nay làm đỏ src/khung-thu-ban-mau.test.ts và «đổi lại trong cùng ngày» của cong-ty-chu.test.ts (vai cũ 25, vai mới 26).
+// Nên dấu nội dung gồm cả NGÀY VN theo ĐỒNG HỒ SQLITE (đúng đồng hồ migration dùng; Date của JS có thể bị bài giả lập giờ đổi).
+function ngayVnCuaSqlite() {
+  const db = new DatabaseSync(":memory:");
+  try {
+    return db.prepare("SELECT date('now', '+7 hours') AS d").get().d;
+  } finally {
+    db.close();
+  }
+}
+function dauNoiDung(ngayVn) {
   const h = createHash("sha256");
   h.update(process.versions.sqlite ?? "");
+  h.update(`\0ngay-vn:${ngayVn}\0`);
   h.update(dungTuMigration.toString());
   for (const f of readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort()) h.update(`\0${f}\0`).update(readFileSync(MIG + f));
   return h.digest("hex").slice(0, 32);
@@ -49,13 +61,25 @@ function banMau() {
   });
   const chung = join(tmpdir(), "tourdao-khung-thu-mau");
   mkdirSync(chung, { recursive: true });
-  const p = join(chung, `${dauNoiDung()}.sqlite`);
+  const ngayVn = ngayVnCuaSqlite();
+  const p = join(chung, `${dauNoiDung(ngayVn)}.sqlite`);
   if (!existsSync(p)) {
     const tam = join(thuMucTam, "mau-dang-dung.sqlite");
     dungTuMigration(tam).close();
+    // Dựng vắt qua nửa đêm VN: nội dung mang ngày mới nhưng tên theo ngày cũ ⇒ không chia sẻ, chỉ tiến trình này dùng.
+    if (ngayVnCuaSqlite() !== ngayVn) return (tepMau = tam);
     renameSync(tam, p);
   }
   tepMau = p;
+  // Mỗi ngày một tệp mẫu (~4 MB): xoá tệp mẫu khác cũ hơn 2 ngày (tiến trình đang dùng tệp đó đã chép xong từ lâu).
+  for (const f of readdirSync(chung)) {
+    const q = join(chung, f);
+    try {
+      if (q !== p && Date.now() - statSync(q).mtimeMs > 2 * 86400e3) rmSync(q, { force: true });
+    } catch {
+      /* tiến trình khác vừa xoá: bỏ qua */
+    }
+  }
   return tepMau;
 }
 
