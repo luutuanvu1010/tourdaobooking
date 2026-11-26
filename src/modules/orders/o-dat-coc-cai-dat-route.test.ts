@@ -96,7 +96,7 @@ test("máy chủ tuân theo: Tắt ⇒ Đối tác lập / lưu nháp với lờ
   assert.equal(truoc.status, 201, `Bật: khai được — ${truoc.text}`);
   const id = truoc.json.order.id;
   assert.equal(cot(w, id), 200000);
-  assert.equal((await dat(w, ADM, false)).status, 200);
+  assert.equal((await dat(w, SUP, false)).status, 200);
   const soDon = dem(w, "SELECT count(*) AS n FROM orders");
   const bi = await lap(w, PARTNER, 150000);
   assert.equal(bi.status, 409, bi.text);
