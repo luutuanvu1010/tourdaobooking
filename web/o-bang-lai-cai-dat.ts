@@ -1,4 +1,4 @@
-// Khối «Ô bằng lái trên phiếu đăng ký» trong nhóm «Cài đặt lập đơn» ở trang Tôi — Quản trị và Toàn quyền (ADR-0236 Đ3). CHỈ ĐỌC: phiếu đăng ký chưa có ô bằng lái và hạng (ADR-0212 Đ8
+// Khối «Ô bằng lái trên phiếu đăng ký» trong nhóm «Cài đặt lập đơn» ở trang Tôi — chỉ Toàn quyền (ADR-0236 Đ3). CHỈ ĐỌC: phiếu đăng ký chưa có ô bằng lái và hạng (ADR-0212 Đ8
 // chưa thi công, hằng `CO_O_BANG_LAI` ở src/shared/dang-ky-vai.ts), nên công tắc hiện «Đang tắt» và nút bật bị khoá kèm câu nói lý do. Không gọi API, không lưu gì. Không innerHTML.
 import { CO_O_BANG_LAI } from "../src/shared/dang-ky-vai";
 import { h, replaceChildren } from "./dom";

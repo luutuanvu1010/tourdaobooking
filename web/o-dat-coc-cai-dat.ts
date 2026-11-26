@@ -1,5 +1,5 @@
-// Khối «Ô khách đặt cọc cho đối tác» trong nhóm «Cài đặt lập đơn» ở trang Tôi — công tắc của Quản trị và Toàn quyền (ADR-0236 Đ2; khuôn `web/chan-chua-gio-cai-dat.ts`, cùng nhóm).
-// Chỉ hiện khi máy chủ trả `doiDuoc` (ô settings.form_fields); máy chủ kiểm lại khi ghi (POST /api/cai-dat/o-dat-coc-doi-tac). Không innerHTML.
+// Khối «Ô khách đặt cọc cho đối tác» trong nhóm «Cài đặt lập đơn» ở trang Tôi — công tắc của Toàn quyền (ADR-0236 Đ2; khuôn `web/chan-chua-gio-cai-dat.ts`, cùng nhóm).
+// Chỉ hiện khi máy chủ trả `doiDuoc` (ô settings.ops); máy chủ kiểm lại khi ghi (POST /api/cai-dat/o-dat-coc-doi-tac). Không innerHTML.
 import { ApiError, api, type Api } from "./api";
 import { h, replaceChildren } from "./dom";
 

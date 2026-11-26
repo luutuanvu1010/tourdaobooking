@@ -425,8 +425,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/cai-dat/phi-don-bien-nhan", access: "admin" }, // như trên; thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/noi-don-doi-tac", access: "orders" }, // ADR-0221 Đ1: công tắc «Đối tác không nhập nơi đón» — thân hỏi can(order.create); trả apChoToi theo người gọi
   { method: "POST", path: "/api/cai-dat/noi-don-doi-tac", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
-  { method: "GET", path: "/api/cai-dat/o-dat-coc-doi-tac", access: "orders" }, // ADR-0236 Đ1: công tắc «Ô khách đặt cọc cho đối tác» — thân hỏi can(order.create) hoặc can(settings.form_fields); trả apChoToi
-  { method: "POST", path: "/api/cai-dat/o-dat-coc-doi-tac", access: "admin" }, // ADR-0236 Đ2: bật / tắt — thân hỏi can(settings.form_fields) (Quản trị + Toàn quyền)
+  { method: "GET", path: "/api/cai-dat/o-dat-coc-doi-tac", access: "orders" }, // ADR-0236 Đ1: công tắc «Ô khách đặt cọc cho đối tác» — thân hỏi can(order.create) hoặc can(settings.ops); trả apChoToi
+  { method: "POST", path: "/api/cai-dat/o-dat-coc-doi-tac", access: "admin" }, // ADR-0236 Đ2: bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/chan-chua-gio-sat-ngay", access: "orders" }, // ADR-0227 Đ1: công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» — thân hỏi can(order.create)
   { method: "POST", path: "/api/cai-dat/chan-chua-gio-sat-ngay", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/hanh-khach-doi-tac", access: "orders" }, // ADR-0228 Đ1: công tắc «Đối tác không nhập danh sách hành khách» — thân hỏi can(order.create); trả apChoToi theo người gọi

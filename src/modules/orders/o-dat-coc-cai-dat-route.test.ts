@@ -1,5 +1,5 @@
 // ADR-0236 Đ1, Đ2 (lệnh chủ 26/11: «1- bật lại đi … cho cả 2 tùy chọn này vào trong bảng điều khiển của Admin , Super Admin»): công tắc «Ô khách đặt cọc cho đối tác».
-// `GET`/`POST /api/cai-dat/o-dat-coc-doi-tac`: GHI ô `settings.form_fields` (Quản trị + Toàn quyền), MỘT lô dòng chỉ-thêm + nhật ký; thua mốc ⇒ 409 `stale`; gửi đúng trạng thái đang có ⇒ 200,
+// `GET`/`POST /api/cai-dat/o-dat-coc-doi-tac`: GHI ô `settings.ops` (chỉ Toàn quyền — chủ 26/11 «không thay đổi quyền của Quản trị»), MỘT lô dòng chỉ-thêm + nhật ký; thua mốc ⇒ 409 `stale`; gửi đúng trạng thái đang có ⇒ 200,
 // không ghi; thiếu `Origin` ⇒ 403. Gieo BẬT. MÁY CHỦ TUÂN THEO: công tắc Tắt ⇒ tài khoản Đối tác gửi lời khai > 0 bị 409 `o_dat_coc_dang_tat`; không gửi khoá / gửi 0 ⇒ giữ số đang lưu;
 // nháp đã khai lúc Bật vẫn thành khoản thu tiền mặt khi xác nhận dù công tắc đã Tắt (ADR-0225 Đ1 mục 5). Chạy CẢ ứng dụng trên SQLite thật (tests/audit/harness.mjs). Tên, SĐT GIẢ.
 import { test } from "node:test";
@@ -21,14 +21,14 @@ const moc = (w: W, id: string) => w.q("SELECT updated_at AS u FROM orders WHERE 
 const sua = (w: W, id: string, coc: unknown) =>
   w.call("PUT", `/api/orders/${id}`, { as: PARTNER, body: than(coc, { expectedUpdatedAt: moc(w, id) }, [{ ...svc("ZB1", inDays(3)), id: w.q("SELECT id FROM order_service WHERE order_id = ?", id)[0].id }]) });
 
-test("cổng: Bán hàng, Thực tập, Đối tác, tài khoản lai, Kế toán, HDV POST ⇒ 403, không ghi; Quản trị VÀ Toàn quyền đổi được ⇒ 200 + MỘT nhật ký không gắn đơn; gửi đúng trạng thái đang có ⇒ 200, không ghi", async () => {
+test("cổng: Quản trị, Bán hàng, Thực tập, Đối tác, tài khoản lai, Kế toán, HDV POST ⇒ 403, không ghi; CHỈ Toàn quyền đổi được ⇒ 200 + MỘT nhật ký không gắn đơn; gửi đúng trạng thái đang có ⇒ 200, không ghi", async () => {
   const w = setup();
   assert.deepEqual((await w.call("GET", URL, { as: SUP })).json, { hien: true, apChoToi: false, doiDuoc: true }, "mặc định Bật (migration gieo 1)");
-  assert.deepEqual((await w.call("GET", URL, { as: ADM })).json, { hien: true, apChoToi: false, doiDuoc: true }, "Quản trị cũng đổi được (lệnh chủ 26/11)");
-  for (const ai of [A, INTERN, PARTNER, LAI, ACC, H]) assert.equal((await dat(w, ai, false)).status, 403, `POST ${ai}`);
+  assert.deepEqual((await w.call("GET", URL, { as: ADM })).json, { hien: true, apChoToi: false, doiDuoc: false }, "Quản trị không đổi được (chủ 26/11: «không thay đổi quyền của Quản trị»)");
+  for (const ai of [ADM, A, INTERN, PARTNER, LAI, ACC, H]) assert.equal((await dat(w, ai, false)).status, 403, `POST ${ai}`);
   assert.equal(soDong(w), 1, "từ chối thì không ghi");
   assert.equal(soNhatKy(w), 0);
-  const r = await dat(w, ADM, false);
+  const r = await dat(w, SUP, false);
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(r.json, { hien: false, apChoToi: false, doiDuoc: true });
   const nk = w.q("SELECT detail, order_id, target_type, staff_id FROM audit_log WHERE action = 'partner_deposit_field_policy_changed'");
@@ -36,7 +36,7 @@ test("cổng: Bán hàng, Thực tập, Đối tác, tài khoản lai, Kế toá
   assert.equal(nk[0].detail, "Tắt ô khách đặt cọc cho đối tác");
   assert.equal(nk[0].order_id ?? null, null, "không gắn đơn");
   assert.equal(nk[0].target_type, "system");
-  assert.equal(nk[0].staff_id, ADM);
+  assert.equal(nk[0].staff_id, SUP);
   assert.equal(soDong(w), 2);
   assert.equal((await dat(w, SUP, false)).status, 200);
   assert.equal(soDong(w), 2, "đúng trạng thái đang có: không ghi dòng");

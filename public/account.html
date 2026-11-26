@@ -42,9 +42,9 @@
     <section id="noi-don-cai-dat" class="card" aria-labelledby="noi-don-heading" hidden></section>
     <!-- Chặn đơn chưa có giờ đón khi sát ngày đón (ADR-0227 Đ1): web/chan-chua-gio-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/chan-chua-gio-sat-ngay trả doiDuoc — ô settings.ops). -->
     <section id="chan-chua-gio-cai-dat" class="card" aria-labelledby="chan-chua-gio-heading" hidden></section>
-    <!-- Ô khách đặt cọc cho đối tác (ADR-0236 Đ2): web/o-dat-coc-cai-dat.ts chỉ hiện cho Quản trị và Toàn quyền (GET /api/cai-dat/o-dat-coc-doi-tac trả doiDuoc — ô settings.form_fields). -->
+    <!-- Ô khách đặt cọc cho đối tác (ADR-0236 Đ2): web/o-dat-coc-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/o-dat-coc-doi-tac trả doiDuoc — ô settings.ops). -->
     <section id="o-dat-coc-cai-dat" class="card" aria-labelledby="o-dat-coc-heading" hidden></section>
-    <!-- Ô bằng lái trên phiếu đăng ký (ADR-0236 Đ3): web/o-bang-lai-cai-dat.ts — chỉ đọc, khoá tới khi ADR-0212 Đ8 làm xong; Quản trị và Toàn quyền (ô settings.form_fields). -->
+    <!-- Ô bằng lái trên phiếu đăng ký (ADR-0236 Đ3): web/o-bang-lai-cai-dat.ts — chỉ đọc, khoá tới khi ADR-0212 Đ8 làm xong; chỉ Toàn quyền (ô settings.ops). -->
     <section id="o-bang-lai-cai-dat" class="card" aria-labelledby="o-bang-lai-heading" hidden></section>
     </div>
     <!-- Bảo mật đăng nhập (bảo mật hai lớp — ADR-0074 điều 5): web/account.ts hiện sau khi GET /api/account/mfa về; mọi tài khoản có phiên. -->

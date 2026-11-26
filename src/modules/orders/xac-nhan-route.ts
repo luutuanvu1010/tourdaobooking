@@ -117,7 +117,7 @@ export function lenhGhiODatCoc(db: D1Database, v: { hien: boolean; at: string; b
 /** ADR-0236 Đ1: trạng thái công tắc ô cọc theo NGƯỜI GỌI: `apChoToi` = bật VÀ giữ quyền Đối tác (kể cả tài khoản lai — cùng `coODatCoc` của form, cùng cổng `congLoiKhaiKhiLuu`). */
 async function docODatCocDoiTac(db: D1Database, staff: StaffProfile, luc: string): Promise<ODatCocDoiTacResponse> {
   const hien = await docHienODatCoc(db, luc);
-  return { hien, apChoToi: hien && holdsPartner(staff), doiDuoc: can(staff, "settings.form_fields") };
+  return { hien, apChoToi: hien && holdsPartner(staff), doiDuoc: can(staff, "settings.ops") };
 }
 /** Trạng thái công tắc theo NGƯỜI GỌI: `apChoToi` = bật VÀ giữ quyền Đối tác (kể cả tài khoản lai — ADR-0221 Đ1, chủ chọn câu 2). */
 /** ADR-0228 Đ1: trạng thái công tắc danh sách hành khách theo NGƯỜI GỌI: `apChoToi` = bật VÀ Đối tác thuần (cùng luật C2 của công tắc tên, SĐT). */
@@ -899,15 +899,15 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     return json((await docNoiDonDoiTac(env.DB, staff, new Date().toISOString())) satisfies NoiDonDoiTacResponse);
   }),
 
-  // CÔNG TẮC «Ô KHÁCH ĐẶT CỌC CHO ĐỐI TÁC» (ADR-0236 Đ1, Đ2): khuôn đúng công tắc nơi đón ngay trên. ĐỌC: cổng `orders`, hỏi `order.create` (form Tạo đơn hỏi `apChoToi`) HOẶC ô ghi (Quản trị
-  // xem thẻ cài đặt); GHI: cổng `admin`, thân hỏi `settings.form_fields` (Quản trị + Toàn quyền — lệnh chủ 26/11). MỘT lô (`lenhGhiODatCoc`); va UNIQUE ⇒ 409 `stale`, cả lô lui; gửi đúng trạng
+  // CÔNG TẮC «Ô KHÁCH ĐẶT CỌC CHO ĐỐI TÁC» (ADR-0236 Đ1, Đ2): khuôn đúng công tắc nơi đón ngay trên. ĐỌC: cổng `orders`, hỏi `order.create` (form Tạo đơn hỏi `apChoToi`) HOẶC ô ghi (Toàn quyền
+  // xem thẻ cài đặt); GHI: cổng `admin`, thân hỏi `settings.ops` (chỉ Toàn quyền — chủ 26/11: «không thay đổi quyền của Quản trị»). MỘT lô (`lenhGhiODatCoc`); va UNIQUE ⇒ 409 `stale`, cả lô lui; gửi đúng trạng
   // thái đang có ⇒ 200, không ghi. Máy chủ tuân theo ở `congLoiKhaiKhiLuu` (index.ts): Tắt ⇒ lời khai > 0 của Đối tác bị 409; lời khai đã lưu không bị đụng.
   route("GET", "/api/cai-dat/o-dat-coc-doi-tac", "orders", async ({ env, staff }) => {
-    if (!can(staff, "order.create") && !can(staff, "settings.form_fields")) return error(403, "forbidden", "Tài khoản này không xem được cài đặt này.");
+    if (!can(staff, "order.create") && !can(staff, "settings.ops")) return error(403, "forbidden", "Tài khoản này không xem được cài đặt này.");
     return json(await docODatCocDoiTac(env.DB, staff, new Date().toISOString()));
   }),
   route("POST", "/api/cai-dat/o-dat-coc-doi-tac", "admin", async ({ env, request, staff }) => {
-    if (!can(staff, "settings.form_fields")) return error(403, "forbidden", "Chỉ Quản trị và Toàn quyền đổi cài đặt ô khách đặt cọc cho đối tác.");
+    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt ô khách đặt cọc cho đối tác.");
     const b = (await readJson(request)) as Record<string, unknown> | null;
     if (!b || typeof b !== "object" || typeof b.hien !== "boolean") return error(400, "invalid_input", "Chọn bật hoặc tắt.");
     const now = new Date();

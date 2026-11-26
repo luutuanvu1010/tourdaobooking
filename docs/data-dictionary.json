@@ -464,7 +464,7 @@
       "name": "ord_partner_deposit_field_policy",
       "module": "orders",
       "kind": "table",
-      "note": "công tắc «Ô khách đặt cọc cho đối tác» (ADR-0236 Đ1, Đ2, migration 0193), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = BẬT; gieo hien = 1 (lệnh chủ 26/11 «bật lại»); Quản trị và Toàn quyền thêm dòng mới (settings.form_fields); BẬT: form Tạo đơn của tài khoản giữ quyền Đối tác có ô lời khai (orders.declared_deposit); TẮT: ô ẩn, lời khai MỚI > 0 của Đối tác bị 409 o_dat_coc_dang_tat, lời khai đã lưu giữ nguyên và vẫn thành khoản thu tiền mặt khi xác nhận"
+      "note": "công tắc «Ô khách đặt cọc cho đối tác» (ADR-0236 Đ1, Đ2, migration 0193), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = BẬT; gieo hien = 1 (lệnh chủ 26/11 «bật lại»); chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: form Tạo đơn của tài khoản giữ quyền Đối tác có ô lời khai (orders.declared_deposit); TẮT: ô ẩn, lời khai MỚI > 0 của Đối tác bị 409 o_dat_coc_dang_tat, lời khai đã lưu giữ nguyên và vẫn thành khoản thu tiền mặt khi xác nhận"
     },
     {
       "name": "ord_partner_passenger_policy",

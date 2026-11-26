@@ -8,10 +8,11 @@ import { CHU, MOB, OUT, assert, axe, axeNote, boDem, dungMoiTruong, noCode, noOv
 
 const DOITAC = { name: "Đối Tác Đặt Cọc", phone: "0900000711", pin: "246711", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" }; // ADR-0185: tài khoản Đối tác phải có vai trò đối tác
 const BAN = { name: "Bán Hàng Không Ô Cọc", phone: "0900000712", pin: "246712", permissions: ["SALES"] };
-const QT = { name: "Quản Trị Công Tắc Cọc", phone: "0900000713", pin: "246713", permissions: ["ADMIN"] }; // ADR-0236 Đ2: Quản trị đổi được công tắc ô cọc
-// Một phiên mỗi tài khoản (ADR-0075): QT mở trang trong trình duyệt, nên lời gọi API bật / tắt dùng tài khoản Quản trị THỨ HAI để không đá phiên của trang.
-const QT_API = { name: "Quản Trị Gọi API Cọc", phone: "0900000714", pin: "246714", permissions: ["ADMIN"] };
-const { env, call } = await dungMoiTruong([CHU, DOITAC, BAN, QT, QT_API]);
+const QT = { name: "Quản Trị Công Tắc Cọc", phone: "0900000713", pin: "246713", permissions: ["ADMIN"] }; // ADR-0236 Đ2: Quản trị KHÔNG thấy, không đổi được công tắc ô cọc (chủ 26/11)
+const TQ = { name: "Toàn Quyền Công Tắc Cọc", phone: "0900000715", pin: "246715", permissions: ["SUPER_ADMIN"] }; // ADR-0236 Đ2: chỉ Toàn quyền đổi được
+// Một phiên mỗi tài khoản (ADR-0075): TQ mở trang trong trình duyệt, nên lời gọi API bật / tắt dùng tài khoản Toàn quyền THỨ HAI để không đá phiên của trang.
+const TQ_API = { name: "Toàn Quyền Gọi API Cọc", phone: "0900000714", pin: "246714", permissions: ["SUPER_ADMIN"] };
+const { env, call } = await dungMoiTruong([CHU, DOITAC, BAN, QT, TQ, TQ_API]);
 const b = boDem("KHACH DAT COC TRUOC");
 mkdirSync(join(OUT, "anh"), { recursive: true });
 const ngay = vnDate(3);
@@ -77,8 +78,9 @@ const buoc = async (khung, hau) => {
     await chup(p, `02b-doi-tac-tra-sau-${hau}`, khung);
   });
   p.close();
-  // ---- Quản trị TẮT công tắc ⇒ form Đối tác không còn ô; bật lại cho các bước sau ----
-  dung(await call(QT_API, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false }), 200, "Quản trị tắt ô cọc");
+  // ---- Toàn quyền TẮT công tắc ⇒ form Đối tác không còn ô; bật lại cho các bước sau ----
+  dung(await call(QT, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false }), 403, "Quản trị không tắt được ô cọc");
+  dung(await call(TQ_API, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false }), 200, "Toàn quyền tắt ô cọc");
   p = await env.as(DOITAC, `/order-form?id=${donNhap.id}`, khung);
   await p.waitFor(`!!document.querySelector('#pay-card') && document.querySelector('#customerName') && document.querySelector('#customerName').value !== ''`, "form khi công tắc tắt");
   await b.step(`${hau}-2c`, `${hau}: công tắc Tắt ⇒ form Đối tác không có ô cọc; nút gập không nhắc đặt cọc`, async () => {
@@ -90,11 +92,20 @@ const buoc = async (khung, hau) => {
     await chup(p, `02c-doi-tac-tat-o-coc-${hau}`, khung);
   });
   p.close();
-  dung(await call(QT_API, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: true }), 200, "Quản trị bật lại ô cọc");
-  // ---- Trang Tôi của Quản trị: hai thẻ cài đặt (ô cọc bật / tắt được, ô bằng lái khoá) ----
+  dung(await call(TQ_API, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: true }), 200, "Toàn quyền bật lại ô cọc");
+  // ---- Trang Tôi của Quản trị: KHÔNG có hai thẻ (chủ 26/11 «không thay đổi quyền của Quản trị») ----
   p = await env.as(QT, "/account", khung);
-  await p.waitFor(`!!document.querySelector('#o-dat-coc-doi') && !!document.querySelector('#o-bang-lai-doi')`, "trang Tôi của Quản trị");
-  await b.step(`${hau}-2d`, `${hau}: Quản trị thấy thẻ «Ô khách đặt cọc cho đối tác» (Đang bật, nút Tắt) và thẻ «Ô bằng lái trên phiếu đăng ký» (Đang tắt, nút khoá kèm lý do)${axeNote()}`, async () => {
+  await p.waitFor(`document.readyState === "complete" && !!document.querySelector('#cai-dat-lap-don')`, "trang Tôi của Quản trị");
+  await b.step(`${hau}-2e`, `${hau}: Quản trị không thấy thẻ «Ô khách đặt cọc cho đối tác» và «Ô bằng lái trên phiếu đăng ký»`, async () => {
+    await sleep(1200);
+    assert.equal(await p.ev(`!!document.querySelector('#o-dat-coc-doi') || !!document.querySelector('#o-bang-lai-doi')`), false, "Quản trị không có nút");
+    assert.equal(await p.ev(`['#o-dat-coc-cai-dat', '#o-bang-lai-cai-dat'].some((s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0; })`), false, "hai thẻ ẩn");
+  });
+  p.close();
+  // ---- Trang Tôi của Toàn quyền: hai thẻ cài đặt (ô cọc bật / tắt được, ô bằng lái khoá) ----
+  p = await env.as(TQ, "/account", khung);
+  await p.waitFor(`!!document.querySelector('#o-dat-coc-doi') && !!document.querySelector('#o-bang-lai-doi')`, "trang Tôi của Toàn quyền");
+  await b.step(`${hau}-2d`, `${hau}: Toàn quyền thấy thẻ «Ô khách đặt cọc cho đối tác» (Đang bật, nút Tắt) và thẻ «Ô bằng lái trên phiếu đăng ký» (Đang tắt, nút khoá kèm lý do)${axeNote()}`, async () => {
     await sleep(400);
     assert.equal(await docTxt(p, "#o-dat-coc-trang-thai"), "Đang bật.");
     assert.equal(await docTxt(p, "#o-dat-coc-doi"), "Tắt ô khách đặt cọc cho đối tác");
@@ -102,8 +113,8 @@ const buoc = async (khung, hau) => {
     assert.equal(await coChu(p, "Chưa bật được: phiếu đăng ký chưa có ô bằng lái và hạng."), true);
     assert.equal(await p.ev(noOverflowX), true);
     await p.ev(`document.querySelector('#cai-dat-lap-don').scrollIntoView()`);
-    await chup(p, `02d-quan-tri-cai-dat-${hau}`, khung);
-    await axe(p, `trang Tôi Quản trị ${hau}`);
+    await chup(p, `02d-toan-quyen-cai-dat-${hau}`, khung);
+    await axe(p, `trang Tôi Toàn quyền ${hau}`);
   });
   p.close();
   // ---- Đối tác xem đơn nháp ----

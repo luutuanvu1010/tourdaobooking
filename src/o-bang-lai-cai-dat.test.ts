@@ -17,8 +17,8 @@ test("phiếu chưa có ô bằng lái ⇒ khối chỉ đọc: nút khoá, khô
   assert.doesNotMatch(khoi, /\bapi[<(]/, "không gọi máy chủ");
 });
 
-test("nối dây trang Tôi: hai khối hiện theo ô settings.form_fields (Quản trị + Toàn quyền), không theo settings.ops", () => {
+test("nối dây trang Tôi: hai khối hiện theo ô settings.ops (chỉ Toàn quyền — chủ 26/11 «không thay đổi quyền của Quản trị»)", () => {
   const acc = doc("web/account.ts");
-  assert.match(acc, /if \(can\(staff, "settings\.form_fields"\)\) void ganCaiDatODatCoc\(byId\("o-dat-coc-cai-dat"\)\);/);
-  assert.match(acc, /if \(can\(staff, "settings\.form_fields"\)\) ganCaiDatOBangLai\(byId\("o-bang-lai-cai-dat"\)\);/);
+  assert.match(acc, /if \(can\(staff, "settings\.ops"\)\) void ganCaiDatODatCoc\(byId\("o-dat-coc-cai-dat"\)\);/);
+  assert.match(acc, /if \(can\(staff, "settings\.ops"\)\) ganCaiDatOBangLai\(byId\("o-bang-lai-cai-dat"\)\);/);
 });
