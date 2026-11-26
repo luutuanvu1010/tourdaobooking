@@ -9,7 +9,9 @@ import { CHU, MOB, OUT, assert, axe, axeNote, boDem, dungMoiTruong, noCode, noOv
 const DOITAC = { name: "Đối Tác Đặt Cọc", phone: "0900000711", pin: "246711", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" }; // ADR-0185: tài khoản Đối tác phải có vai trò đối tác
 const BAN = { name: "Bán Hàng Không Ô Cọc", phone: "0900000712", pin: "246712", permissions: ["SALES"] };
 const QT = { name: "Quản Trị Công Tắc Cọc", phone: "0900000713", pin: "246713", permissions: ["ADMIN"] }; // ADR-0236 Đ2: Quản trị đổi được công tắc ô cọc
-const { env, call } = await dungMoiTruong([CHU, DOITAC, BAN, QT]);
+// Một phiên mỗi tài khoản (ADR-0075): QT mở trang trong trình duyệt, nên lời gọi API bật / tắt dùng tài khoản Quản trị THỨ HAI để không đá phiên của trang.
+const QT_API = { name: "Quản Trị Gọi API Cọc", phone: "0900000714", pin: "246714", permissions: ["ADMIN"] };
+const { env, call } = await dungMoiTruong([CHU, DOITAC, BAN, QT, QT_API]);
 const b = boDem("KHACH DAT COC TRUOC");
 mkdirSync(join(OUT, "anh"), { recursive: true });
 const ngay = vnDate(3);
@@ -76,7 +78,7 @@ const buoc = async (khung, hau) => {
   });
   p.close();
   // ---- Quản trị TẮT công tắc ⇒ form Đối tác không còn ô; bật lại cho các bước sau ----
-  dung(await call(QT, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false }), 200, "Quản trị tắt ô cọc");
+  dung(await call(QT_API, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false }), 200, "Quản trị tắt ô cọc");
   p = await env.as(DOITAC, `/order-form?id=${donNhap.id}`, khung);
   await p.waitFor(`!!document.querySelector('#pay-card') && document.querySelector('#customerName') && document.querySelector('#customerName').value !== ''`, "form khi công tắc tắt");
   await b.step(`${hau}-2c`, `${hau}: công tắc Tắt ⇒ form Đối tác không có ô cọc; nút gập không nhắc đặt cọc`, async () => {
@@ -88,7 +90,7 @@ const buoc = async (khung, hau) => {
     await chup(p, `02c-doi-tac-tat-o-coc-${hau}`, khung);
   });
   p.close();
-  dung(await call(QT, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: true }), 200, "Quản trị bật lại ô cọc");
+  dung(await call(QT_API, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: true }), 200, "Quản trị bật lại ô cọc");
   // ---- Trang Tôi của Quản trị: hai thẻ cài đặt (ô cọc bật / tắt được, ô bằng lái khoá) ----
   p = await env.as(QT, "/account", khung);
   await p.waitFor(`!!document.querySelector('#o-dat-coc-doi') && !!document.querySelector('#o-bang-lai-doi')`, "trang Tôi của Quản trị");

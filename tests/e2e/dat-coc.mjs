@@ -111,10 +111,14 @@ try {
   r = await call(dt, "GET", "/api/cai-dat/o-dat-coc-doi-tac");
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.apChoToi, true, "mặc định Bật");
-  const nhapBat = await lap("ZDC2", 80000);
+  // Tới đây tài khoản đã được cấp trả sau ⇒ đơn mới phải lập theo Trả sau (ADR-0197: đơn Trả sau vẫn khai cọc được).
+  const thanTS = (coc) => ({ ...than("ZDC2", coc), paymentTerm: "CREDIT" });
+  r = await call(dt, "POST", "/api/orders", thanTS(80000));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const nhapBat = r.body.order;
   r = await call(SUPER, "POST", "/api/cai-dat/o-dat-coc-doi-tac", { hien: false });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  r = await call(dt, "POST", "/api/orders", than("ZDC2", 50000));
+  r = await call(dt, "POST", "/api/orders", thanTS(50000));
   assert.equal(r.status, 409, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "o_dat_coc_dang_tat");
   r = await call(dt, "POST", `/api/orders/${nhapBat.id}/gui-don`, {});
