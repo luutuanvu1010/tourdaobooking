@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa lỗi Nặng người chấm giao diện phát hiện 25/11 (có từ trước đợt C): dải thiếu mức ở Hoa hồng bị cắt hai dòng ở điện thoại. Chỉ CSS, không migration, không đổi số tiền.
+    // Số 3.47 = số trống kế tiếp sau 3.46 (bản chạy thật lúc soạn, 26/11); bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.47",
+    date: "2026-11-26",
+    items: [
+      { kind: "sua", text: "Hoa hồng đối tác: trên điện thoại, dải vàng báo vai trò còn thiếu mức nay hiện đủ câu và danh sách từng vai trò, không còn bị cắt «…»." },
+    ],
+  },
+  {
     // Đợt C khung gốc (ADR-0222, ADR-0234; chủ duyệt ảnh 25/11 «Duyệt theo khuyến nghị»): 10 trang Tiền. Nhánh claude/khung-goc-dot-c-9a95ac. Không migration, không đổi số tiền.
     // Số 3.46 = số trống kế tiếp sau 3.45 (bản chạy thật lúc soạn, GET /api/auth/config 25/11); bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
     version: "3.46",
