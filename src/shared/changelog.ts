@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Menu Thiết lập nhiều tầng (đặc tả 2026-11-26-menu-thiet-lap-nhieu-tang; chủ duyệt «Duyệt cả ba» và «Duyệt ảnh» 26/11). Nhánh claude/menu-quan-tri-nhieu-tang-82d17f. Không migration, không đổi quyền.
+    // Số 3.49 = sau 3.48 mà nhánh ADR-0236 (phiên P1) đã giữ, chưa nhập lúc soạn; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác.
+    version: "3.49",
+    date: "2026-11-26",
+    items: [
+      { kind: "doi", text: "Thiết lập: các trang chia thành nhóm theo chủ đề (Dịch vụ & giá bán, Đối tác & hoa hồng, Vé, Danh mục vận chuyển, Tài khoản & an toàn, Hệ thống) thay cho một danh sách dài. Máy tính: bấm tên nhóm để mở; nhóm có trang đang xem tự mở. Điện thoại: mỗi nhóm có tiêu đề riêng." },
+    ],
+  },
+  {
     // Sửa lỗi Nặng người chấm giao diện phát hiện 25/11 (có từ trước đợt C): dải thiếu mức ở Hoa hồng bị cắt hai dòng ở điện thoại. Chỉ CSS, không migration, không đổi số tiền.
     // Số 3.47 = số trống kế tiếp sau 3.46 (bản chạy thật lúc soạn, 26/11); bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
     version: "3.47",
