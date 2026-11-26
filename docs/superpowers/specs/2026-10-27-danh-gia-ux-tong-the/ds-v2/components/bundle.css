@@ -110,10 +110,12 @@ body.sheet-open { overflow: hidden; }
 .dai[data-tong="bien"] { color: var(--c-primary-strong); background: var(--c-primary-soft); }
 .dai[data-tong="cat"] { color: var(--c-sand-text); background: var(--c-mat-mang-bg); }
 .dai[data-tong="do"] { color: var(--c-danger); background: var(--c-danger-soft); }
-/* Bước 1 khung chung (N9, chủ duyệt 13/11 «Theo khuyến nghị»): điện thoại — dải tối đa hai dòng, câu dài cắt «…» (bấm nút của dải để đọc đủ; bộ đọc màn hình vẫn đọc cả câu); nút và nút đóng giữ một hàng. */
+/* Bước 1 khung chung (N9, chủ duyệt 13/11 «Theo khuyến nghị»): điện thoại — dải tối đa hai dòng, câu dài cắt «…» (bấm nút của dải để đọc đủ; bộ đọc màn hình vẫn đọc cả câu); nút và nút đóng giữ một hàng.
+   Chỉ cắt dải nhắc đầu trang (#strips, có nút để đọc đủ). Dải đặt trong trang (vd thiếu mức ở /hoa-hong, màn bảo trì) không có nút nào nên hiện đủ (lỗi 25/11: mất danh sách vai trò thiếu mức). */
 @media (max-width: 640px) {
   .dai { flex-wrap: nowrap; gap: var(--s2); }
-  .dai-cau { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-size: var(--fs-step-3); line-height: var(--lh-20); }
+  .dai-cau { font-size: var(--fs-step-3); line-height: var(--lh-20); }
+  #strips .dai-cau { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 }
 
 .chan-dinh { position: sticky; bottom: 0; z-index: var(--z-dinh); display: flex; gap: var(--s3); padding: var(--le-trang) var(--le-trang) calc(var(--le-trang) + env(safe-area-inset-bottom)); background: var(--c-surface); border-top: 1px solid var(--c-border); min-height: var(--h-control-lon); }
