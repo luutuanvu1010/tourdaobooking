@@ -1,5 +1,5 @@
 // ADR-0155 Đ2 — kế hoạch lượt 2 Task 4.2, bài (e3) «nối dây»: cột «Cấp độ đại lý» ở Quản lý tài khoản phải được NỐI đúng chỗ, vì giao diện thật cần trình duyệt (kịch bản Chrome, ngoài npm test).
-//   (1) `public/staff.html` có `<th id="cot-cap" hidden>` cạnh «Vai trò / quyền» — mặc định ẨN, chỉ trang bật khi `thayCotCap`;
+//   (1) `public/staff.html` có `<th id="cot-cap" … hidden>` cạnh «Vai trò / quyền» — mặc định ẨN, chỉ trang bật khi `thayCotCap`;
 //   (2) `web/staff.ts` chỉ gọi route đọc sau khi hỏi `thayCotCap` (Hành chính nhân sự không có ô xem thì không gọi), và hỏi `suaDuocCot` cho quyền sửa;
 //   (3) chỉ `web/staff.ts` và `web/cap-dai-ly.ts` (màn gom, đặc tả 2026-11-04-man-cap-dai-ly) nhập `web/cot-cap-dai-ly.ts`; tệp luật thuần chỉ do `web/cot-cap-dai-ly.ts`, `web/staff.ts` nhập;
 //   (4) gói của trang Đơn hàng KHÔNG kéo hai tệp này (ADR-0035 — mã cột không được làm nặng trang bán hàng); gói của trang Quản lý tài khoản CÓ kéo (chống bài rỗng);
@@ -27,7 +27,7 @@ const boChuThich = (m: string): string => m.replace(/\/\*[\s\S]*?\*\//g, "").rep
 
 test("(e3-1) public/staff.html: th#cot-cap hidden nằm ngay sau «Vai trò / quyền»; hàng tiêu đề còn đủ cột cũ", () => {
   const html = doc("public/staff.html");
-  assert.match(html, /<th>Vai trò \/ quyền<\/th>\s*<th id="cot-cap" hidden>Cấp độ đại lý<\/th>\s*<th>Tạo lúc<\/th>/, "cột Cấp độ đại lý cạnh Vai trò / quyền, mặc định ẩn");
+  assert.match(html, /<th>Vai trò \/ quyền<\/th>\s*<th id="cot-cap"(?: data-co)? hidden>Cấp độ đại lý<\/th>\s*<th>Tạo lúc<\/th>/, "cột Cấp độ đại lý cạnh Vai trò / quyền, mặc định ẩn");
   assert.equal([...html.matchAll(/id="cot-cap"/g)].length, 1);
   for (const cot of ["Họ tên", "Số điện thoại", "Tạo lúc", "Đăng nhập gần nhất"]) assert.ok(html.includes(`<th>${cot}</th>`), `mất cột ${cot}`);
 });
@@ -188,7 +188,7 @@ test("(man-4) vẽ theo từng phím không dựng lại cả bảng: ô tìm c�
 });
 
 test("(man-5) Quản lý tài khoản có đường dẫn sang màn, chỉ hiện cho người sửa được (cùng hàm suaDuocCot)", () => {
-  assert.match(doc("public/staff.html"), /<p id="lien-ket-cap-dai-ly" hidden><a href="\/cap-dai-ly">/);
+  assert.match(doc("public/staff.html"), /<p id="lien-ket-cap-dai-ly"(?: data-loi-mo)? hidden><a href="\/cap-dai-ly">/);
   assert.match(boChuThich(doc("web/staff.ts")), /byId\("lien-ket-cap-dai-ly"\)\.hidden = !suaDuocCot\(me\)/);
 });
 
