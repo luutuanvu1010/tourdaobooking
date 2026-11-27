@@ -756,6 +756,14 @@ body[data-khung-goc] .nhom-chon { display: flex; flex-direction: column; min-wid
 body[data-khung-goc] .nhom-chon > legend { margin: 0 0 var(--s1); padding: 0; font-size: var(--fs-label); font-weight: var(--fw-regular); line-height: var(--lh-20); color: var(--c-text); }
 body[data-khung-goc] .nhom-chon > label { display: flex; align-items: center; gap: var(--s3); min-height: var(--kg-cao-o); margin: 0; font-weight: var(--fw-regular); }
 body[data-khung-goc] .nhom-chon > p { margin: 0; font-size: var(--fs-label); line-height: var(--lh-20); color: var(--c-text-muted); }
+/* Đợt D1 (27/11/2026), bổ sung, không đổi luật đang có — vùng chạm ≥ --tap-min (T4):
+   - [data-loi-mo]: đoạn chỉ chứa một lối mở sang trang khác (liên kết đầu trang): liên kết cao bằng vùng chạm;
+   - ô chọn trong ô bảng (td > label.check, vd Một máy / Nhiều máy) và ô tích ở thanh lọc (thanh-loc > label.check): cao bằng vùng chạm; trong bảng ô tròn cách chữ (khối hẹp hơn ba cột thì chữ vẫn xuống dòng — không tràn ngang);
+   - th[data-co] (đầu của cột co về tối thiểu): không gãy giữa các từ. */
+body[data-khung-goc] [data-loi-mo] > a { display: inline-flex; align-items: center; min-height: var(--tap-min); }
+body[data-khung-goc] .bang td > label.check { gap: var(--s2); min-height: var(--tap-min); padding: 0; }
+body[data-khung-goc] .thanh-loc > label.check { min-height: var(--tap-min); padding: 0; }
+body[data-khung-goc="danh-sach"] .bang th[data-co] { white-space: nowrap; }
 body[data-khung-goc] .khoi input:is([type="radio"], [type="checkbox"]) { flex: none; width: var(--s5); height: var(--s5); margin: 0; accent-color: var(--c-primary); }
 body[data-khung-goc] :is(.khoi, .thanh-loc) select:not([multiple]):not(.o-noi-khung > select) { -webkit-appearance: none; appearance: none; padding-right: var(--s6); background-color: var(--c-surface); background-image: linear-gradient(45deg, transparent 50%, var(--c-text-muted) 50%), linear-gradient(135deg, var(--c-text-muted) 50%, transparent 50%); background-size: var(--kg-mui-chon) var(--kg-mui-chon); background-position: calc(100% - var(--s4) - var(--kg-mui-chon)) 50%, calc(100% - var(--s4)) 50%; background-repeat: no-repeat; }
 

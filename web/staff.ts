@@ -705,7 +705,8 @@ else {
   byId("lien-ket-phieu-dang-ky").hidden = !can(staff, "registration.queue.view");
   byId("dau-trang").hidden = byId("lien-ket-cap-dai-ly").hidden && byId("lien-ket-phieu-dang-ky").hidden;
   chinhSach = await taiChinhSach();
-  for (const th of document.querySelectorAll<HTMLElement>("#tk-khoi th")) anPhanTu(anCot(th.textContent === "Tạo lúc" ? "createdAt" : th.textContent === "Đăng nhập gần nhất" ? "lastLoginAt" : ""), th);
+  // Cột «Cấp độ đại lý» (#cot-cap) ẩn / hiện theo hienCotCap ở trên — không qua vòng chính sách cột (vòng cũ bỏ ẩn nó cho Nhân sự: đầu cột thừa, hàng ngắn hơn khung).
+  for (const th of document.querySelectorAll<HTMLElement>("#tk-khoi th:not(#cot-cap)")) anPhanTu(anCot(th.textContent === "Tạo lúc" ? "createdAt" : th.textContent === "Đăng nhập gần nhất" ? "lastLoginAt" : ""), th);
   // Cột «Số điện thoại», «Tạo lúc», «Đăng nhập gần nhất» là cột phụ, nội dung nằm ở dòng phụ dưới tên (thuộc tính đặt ở đây để hàng tiêu đề trong HTML giữ nguyên dạng cũ).
   for (const th of document.querySelectorAll<HTMLElement>("#tk-khoi th")) if (["Số điện thoại", "Tạo lúc", "Đăng nhập gần nhất"].includes(th.textContent ?? "")) th.setAttribute("data-cot-phu", "");
   await load();

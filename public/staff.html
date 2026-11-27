@@ -11,9 +11,9 @@
   <h1>Quản lý tài khoản</h1>
   <div id="dau-trang" class="dau-trang" hidden>
     <div class="doan-dan">
-      <p id="lien-ket-cap-dai-ly" hidden><a href="/cap-dai-ly">Đặt cấp độ đại lý cho mọi đối tác, gồm cả hồ sơ chưa có tài khoản</a></p>
+      <p id="lien-ket-cap-dai-ly" data-loi-mo hidden><a href="/cap-dai-ly">Đặt cấp độ đại lý cho mọi đối tác, gồm cả hồ sơ chưa có tài khoản</a></p>
       <!-- ADR-0219 Đ3: hàng chờ phiếu đăng ký đối tác chuyển sang trang riêng /phieu-dang-ky; ở đây giữ một lối sang (hiện theo ô registration.queue.view). -->
-      <p id="lien-ket-phieu-dang-ky" hidden><a href="/phieu-dang-ky">Phiếu đăng ký đối tác</a></p>
+      <p id="lien-ket-phieu-dang-ky" data-loi-mo hidden><a href="/phieu-dang-ky">Phiếu đăng ký đối tác</a></p>
     </div>
   </div>
   <div id="error" class="alert" role="alert" hidden></div>
@@ -34,7 +34,7 @@
   <section id="tk-khoi" class="khoi" data-kieu="bang" aria-labelledby="tk-ten" hidden>
     <header class="khoi-dau"><h2 id="tk-ten">Danh sách tài khoản</h2></header>
     <table class="bang" data-cot-phu="an">
-      <thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Vai trò / quyền</th><th id="cot-cap" hidden>Cấp độ đại lý</th><th>Tạo lúc</th><th>Đăng nhập gần nhất</th><th></th></tr></thead>
+      <thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Vai trò / quyền</th><th id="cot-cap" data-co hidden>Cấp độ đại lý</th><th>Tạo lúc</th><th>Đăng nhập gần nhất</th><th></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
     <div id="list-cards" class="ds-dong" data-thay-bang></div>
