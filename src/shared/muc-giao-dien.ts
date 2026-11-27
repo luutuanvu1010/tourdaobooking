@@ -222,7 +222,14 @@ const NHAN_HOA_HONG = "Hoa hồng đối tác";
 const THIET_LAP = "THIẾT LẬP";
 // Dòng Thiết lập viết bằng `tl(trang, nhan, hình)`: gọn hơn chữ khoá lặp ~25 byte mỗi dòng trong gói nén (Việc 16 thêm hình cho cả 25 dòng); generic giữ nguyên kiểu chữ
 // để web/shell.ts bắt tên hình sai lúc biên dịch. Mỗi mục một hình riêng, không mượn hình của nhóm khác — bài src/thiet-lap-bieu-tuong.test.ts.
-const tl = <T extends string, N extends string, B extends string>(trang: T, nhan: N, bieuTuong: B) => ({ nhom: THIET_LAP, trang, nhan, bieuTuong }) as const;
+// Nhóm con của Thiết lập (đặc tả 2026-11-26-menu-thiet-lap-nhieu-tang, chủ duyệt «Duyệt cả ba»): một hằng mỗi nhóm, dòng nào cũng trỏ tới — không chép tên vào từng dòng (trần gói).
+const TL_DV: NhomGap = { ma: "tl-dv", nhan: "Dịch vụ & giá bán" };
+const TL_DT: NhomGap = { ma: "tl-dt", nhan: "Đối tác & hoa hồng" };
+const TL_VE: NhomGap = { ma: "tl-ve", nhan: "Vé" };
+const TL_VC: NhomGap = { ma: "tl-vc", nhan: "Danh mục vận chuyển" };
+const TL_TK: NhomGap = { ma: "tl-tk", nhan: "Tài khoản & an toàn" };
+const TL_HT: NhomGap = { ma: "tl-ht", nhan: "Hệ thống" };
+const tl = <T extends string, N extends string, B extends string>(trang: T, nhan: N, bieuTuong: B, nhomGap: NhomGap) => ({ nhom: THIET_LAP, trang, nhan, bieuTuong, nhomGap }) as const;
 export const THANH_BEN = [
   { nhom: "HẰNG NGÀY", trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
   // Tài xế: "Trang chủ" của họ là /tai-xe; "Cuốc của tôi" cho mọi tài khoản tài xế công ty (kể cả kiêm văn phòng — K2b T2).
@@ -242,31 +249,31 @@ export const THANH_BEN = [
   { nhom: "TIỀN", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money" },
   // Sổ công nợ (25/10) gộp với Khoá sổ tháng — cùng điều kiện hiện (ledger.view không ngữ cảnh); giữ trần 10 mục hiện sẵn của Toàn quyền. Trang Sổ công nợ có lối sang Khoá sổ tháng.
   { nhom: "TIỀN", trang: "soCongNo", nhan: "Sổ công nợ & khoá sổ", bieuTuong: "lock", gom: ["soCongNo", "khoaThang"] },
-  tl("hoaHong", NHAN_HOA_HONG, "percent"),
-  tl("capDaiLy", NHAN_CAP_DAI_LY, "layers"),
-  tl("phiDon", NHAN_PHI_DON, "route"),
-  tl("hanMucTraSau", "Hạn mức trả sau", "gauge"),
-  tl("luatBan", "Luật bán", "scale"),
-  tl("nguoiBan", "Nhà cung cấp", "store"),
-  tl("chupBu", "Chụp bù mức", "camera"),
-  tl("veKho", "Vé điện tử", "ticket"),
-  tl("veDoiChieu", "Đối chiếu vé", "ticketCheck"),
-  tl("veCaiDat", "Cài đặt vé điện tử", "ticketGear"),
-  tl("hoaHongGioiHan", "Giới hạn nhập hoa hồng", "bounds"),
-  tl("dichVu", "Dịch vụ & giá", "services"),
-  tl("dacDiem", "Đặc điểm dịch vụ", "toggle"),
-  tl("diaDiem", "Địa điểm", "map"),
-  tl("loaiGiayToNguoi", "Loại giấy tờ cá nhân", "idCard"),
-  tl("loaiGiayToXe", "Loại giấy tờ xe", "carDoc"),
-  tl("lyDoDieuPhoi", "Lý do điều phối", "list"),
-  tl("chinhSachDieuPhoi", "Chính sách điều phối", "book"),
-  tl("taiKhoan", "Quản lý tài khoản", "staff"),
-  tl("phieuDangKy", "Phiếu đăng ký đối tác", "userCheck"),
-  tl("phien", "Máy đang đăng nhập", "devices"),
-  tl("nhatKy", "Nhật ký", "history"),
-  tl("guiThongBao", "Gửi thông báo", "bell"),
-  tl("troLy", "Trợ lý Hỗ trợ", "chat"),
-  tl("giaoDien", "Giao diện", "palette"),
+  tl("dichVu", "Dịch vụ & giá", "services", TL_DV),
+  tl("dacDiem", "Đặc điểm dịch vụ", "toggle", TL_DV),
+  tl("luatBan", "Luật bán", "scale", TL_DV),
+  tl("phiDon", NHAN_PHI_DON, "route", TL_DV),
+  tl("nguoiBan", "Nhà cung cấp", "store", TL_DV),
+  tl("hoaHong", NHAN_HOA_HONG, "percent", TL_DT),
+  tl("capDaiLy", NHAN_CAP_DAI_LY, "layers", TL_DT),
+  tl("hoaHongGioiHan", "Giới hạn nhập hoa hồng", "bounds", TL_DT),
+  tl("hanMucTraSau", "Hạn mức trả sau", "gauge", TL_DT),
+  tl("chupBu", "Chụp bù mức", "camera", TL_DT),
+  tl("phieuDangKy", "Phiếu đăng ký đối tác", "userCheck", TL_DT),
+  tl("veKho", "Vé điện tử", "ticket", TL_VE),
+  tl("veDoiChieu", "Đối chiếu vé", "ticketCheck", TL_VE),
+  tl("veCaiDat", "Cài đặt vé điện tử", "ticketGear", TL_VE),
+  tl("diaDiem", "Địa điểm", "map", TL_VC),
+  tl("loaiGiayToXe", "Loại giấy tờ xe", "carDoc", TL_VC),
+  tl("lyDoDieuPhoi", "Lý do điều phối", "list", TL_VC),
+  tl("chinhSachDieuPhoi", "Chính sách điều phối", "book", TL_VC),
+  tl("taiKhoan", "Quản lý tài khoản", "staff", TL_TK),
+  tl("loaiGiayToNguoi", "Loại giấy tờ cá nhân", "idCard", TL_TK),
+  tl("phien", "Máy đang đăng nhập", "devices", TL_TK),
+  tl("nhatKy", "Nhật ký", "history", TL_TK),
+  tl("guiThongBao", "Gửi thông báo", "bell", TL_HT),
+  tl("troLy", "Trợ lý Hỗ trợ", "chat", TL_HT),
+  tl("giaoDien", "Giao diện", "palette", TL_HT),
   { nhom: "CHÂN MENU", trang: "toi", nhan: "Của tôi", bieuTuong: "me" },
   { nhom: "CHÂN MENU", trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", moTu: (p: string) => `/huong-dan?from=${encodeURIComponent(p)}` },
   { nhom: "CHÂN MENU", trang: "troGiup", nhan: "Nhật ký thay đổi", bieuTuong: "megaphone" },
@@ -422,6 +429,11 @@ export function gomNhomGap(muc: readonly MucThanhBen[]): KhoiThanhBen[] {
 }
 
 /** Số khối hiện sẵn trên thanh bên (trần 10): mọi nhóm trừ CHÂN MENU, mỗi nhóm gập đếm 1, THIẾT LẬP đếm 1 khi có mục. */
+/** Khối của nhóm Thiết lập (thanh bên máy tính và trang Thiết lập điện thoại): tổng ≤ 5 mục thì phẳng, nhiều hơn thì gom theo nhóm con (nhóm một mục vẫn phẳng). */
+export function khoiThietLap(muc: readonly MucThanhBen[]): KhoiThanhBen[] {
+  return muc.length > 5 ? gomNhomGap(muc) : [...muc];
+}
+
 export function demMucHienSan(nhomHien: ReturnType<typeof thanhBen>): number {
   return nhomHien.reduce((t, g) => t + (g.nhom === "CHÂN MENU" ? 0 : g.nhom === "THIẾT LẬP" ? +!!g.muc.length : gomNhomGap(g.muc).length), 0);
 }

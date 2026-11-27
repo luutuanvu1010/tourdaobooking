@@ -154,7 +154,7 @@ function veDieuKien(): void {
       h(
         "div",
         { class: "dong-chu" },
-        h("strong", null, nhan),
+        h("span", null, nhan),
         h("span", { class: "o-phu" }, r.active ? `Áp từ ${ngayTuIso(r.validFrom)}` : `Đã ngừng ${ngayTuIso(r.validTo ?? r.validFrom)}`),
       ),
       r.active ? h("span", { class: "huy-hieu", "data-tong": "la" }, "Đang áp dụng") : h("span", { class: "huy-hieu", "data-tong": "xam" }, "Đã ngừng"),
@@ -209,7 +209,7 @@ function veHangBang(): void {
       h(
         "div",
         { class: "dong-chu" },
-        h("strong", null, x.name),
+        h("span", null, x.name),
         h("span", { class: "o-phu" }, c ? `${nhanSoKhachHang(c.maxPassengers)} · áp từ ${ngayTuIso(c.validFrom)}` : nhanSoKhachHang(undefined)),
       ),
       doi,

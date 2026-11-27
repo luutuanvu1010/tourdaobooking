@@ -15,12 +15,12 @@
     <form id="cs-form" class="khoi" autocomplete="off" novalidate></form>
     <section id="cs-lich-su" class="khoi" data-kieu="bang" aria-labelledby="cs-lich-su-title" hidden></section>
   </div>
-  <!-- Thanh nút dính đáy của RIÊNG biểu mẫu chính sách (điện thoại, nhánh Toàn quyền). Đứng ngay sau biểu mẫu, TRƯỚC thẻ Hạn mức: thanh chỉ bám đáy màn hình khi chỗ của
-       nó trong trang còn ở dưới màn hình, tức lúc đang ở phần chính sách; cuộn xuống thẻ Hạn mức thì thanh nằm lại sau biểu mẫu, không đè lên nút «Lưu cài đặt» của thẻ đó
-       (sửa 21/11/2026; trước đó thanh đứng cuối trang nên bám đáy suốt cả trang). -->
-  <div id="cs-bottom" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden></div>
   <!-- Hạn mức Từ chối của hướng dẫn viên (ADR-0032 điều 8): bảng số lần cho Quản trị + Toàn quyền (admin.manage); cài đặt, đặt lại chỉ Toàn quyền (settings.ops). -->
   <section id="hm-the" class="khoi" aria-labelledby="hm-ten" hidden></section>
+  <!-- Thanh nút dính đáy của biểu mẫu chính sách (điện thoại, nhánh Toàn quyền), đứng CUỐI vùng nội dung như thanh dính đáy của khung. 21/11/2026 thanh từng dời lên
+       trước thẻ Hạn mức để không đè nút «Lưu cài đặt» của thẻ; từ đợt D3 (26/11/2026) nút đó nằm trong bảng trượt sau nút «Sửa», thẻ không còn nút nền đặc nên thanh về
+       cuối trang — đứng giữa trang thì lúc dính nó vẫn giữ chỗ trong dòng chảy, tạo khoảng hở ngoài thang giữa hai khối (lệnh đo khung: 109 ở 360–640). -->
+  <div id="cs-bottom" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden></div>
 </main>
 <script type="module" src="/js/chinh-sach-dieu-phoi.js"></script>
 </body></html>

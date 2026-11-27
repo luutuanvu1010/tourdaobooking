@@ -59,6 +59,14 @@ export const BANG_CI = [
   { khoa: "han-muc-tra-sau", trang: "/han-muc-tra-sau", bo: "ACCOUNTING" },
   { khoa: "nguoi-ban", trang: "/nguoi-ban", bo: "ACCOUNTING" },
   { khoa: "hoa-hong-gioi-han", trang: "/hoa-hong-gioi-han", bo: "SUPER_ADMIN" },
+  // Đợt D3 (26/11/2026): 7 trang Thiết lập. Ba danh mục đo bằng Quản trị như ảnh duyệt; bốn trang chỉ Toàn quyền đặt được (biểu mẫu đủ) đo bằng Toàn quyền.
+  { khoa: "loai-giay-to-nguoi", trang: "/loai-giay-to-nguoi", bo: "ADMIN" },
+  { khoa: "loai-giay-to-xe", trang: "/loai-giay-to-xe", bo: "ADMIN" },
+  { khoa: "ly-do-dieu-phoi", trang: "/ly-do-dieu-phoi", bo: "ADMIN" },
+  { khoa: "chinh-sach-dieu-phoi", trang: "/chinh-sach-dieu-phoi", bo: "SUPER_ADMIN" },
+  { khoa: "dieu-kien-xuat-ben", trang: "/dieu-kien-xuat-ben", bo: "SUPER_ADMIN" },
+  { khoa: "giao-dien", trang: "/giao-dien", bo: "SUPER_ADMIN" },
+  { khoa: "tro-ly-cai-dat", trang: "/tro-ly-cai-dat", bo: "SUPER_ADMIN" },
 ];
 /** Bộ quyền chỉ dùng để GIEO (không có màn đo): Toàn quyền đánh cờ «cần xác nhận» cho một dịch vụ giả. */
 const BO_GIEO = ["SUPER_ADMIN"];

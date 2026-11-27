@@ -3532,6 +3532,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     maNhatKy: ["refuse_policy_changed"],
     noiDat: [
       { tep: "web/han-muc-tu-choi-the.ts", chu: "Lưu cài đặt" },
+      { tep: "web/han-muc-tu-choi-the.ts", chu: "Sửa" }, // khung gốc đợt D3 (26/11/2026): «Sửa» ở đầu thẻ mở bảng trượt chứa biểu mẫu và nút «Lưu cài đặt»
     ],
     trangThai: "da-chot",
     nguonTen: "chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)",
