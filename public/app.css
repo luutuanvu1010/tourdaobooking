@@ -3636,7 +3636,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .mfa-remove { margin-top: var(--s4); }
 .mfa-remove summary { display: flex; align-items: center; min-height: var(--tap-min); cursor: pointer; color: var(--c-danger); font-weight: var(--fw-semibold); }
 
-/* Quản lý tài khoản (máy tính): thêm nút "Tắt bảo mật hai lớp" làm hàng nút dài hơn bảng — cho xuống dòng giữa các nút (mỗi nút vẫn một dòng), như .phien-bang. */
+/* Quản lý tài khoản (máy tính): thêm nút "Tắt bảo mật hai lớp" làm hàng nút dài hơn bảng — cho xuống dòng giữa các nút (mỗi nút vẫn một dòng). */
 #list .row-actions { white-space: normal; }
 #list .row-actions .btn-link { white-space: nowrap; }
 /* Ô chọn dịch vụ của form Tạo đơn (đặc tả 20/11): đã chọn xong thì hàng nhóm và khung danh sách thu lại, chỉ còn ô tìm. */

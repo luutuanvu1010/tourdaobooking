@@ -207,7 +207,7 @@ try {
     await vaoApp(nv);
   });
 
-  await b.step("6", `Quản trị (1040): nhãn "Hai lớp", nút "Tắt bảo mật hai lớp" theo cờ máy chủ, hộp xác nhận trong trang → tắt${axeNote()}`, async () => {
+  await b.step("6", `Quản trị (1280): nhãn "Hai lớp", nút "Tắt bảo mật hai lớp" theo cờ máy chủ, hộp xác nhận trong trang → tắt${axeNote()}`, async () => {
     const qt = await env.as(ACCOUNTS.admin, "/staff", DESK_D1);
     pages.push(qt);
     await qt.waitFor("document.querySelectorAll('#list tr').length > 3", "danh sách tài khoản", 10000);
@@ -221,12 +221,12 @@ try {
     await qt.ev(`[...${dong(NV.name)}.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Tắt bảo mật hai lớp').click(); true`);
     await qt.waitFor(`!!${q(".sheet")} && !!${q("#mfa-reset-confirm")}`, "hộp xác nhận trong trang", 5000);
     assert.match(await qt.ev(txt(".sheet")), /24 giờ/);
-    await shotView(qt, "10-hop-tat-hai-lop-1040.png");
+    await shotView(qt, "10-hop-tat-hai-lop-1280.png");
     await axe(qt, "Quản lý tài khoản — hộp tắt");
     await qt.ev(`${q("#mfa-reset-confirm")}.click(); true`);
     await qt.waitFor(`!!${q("#mfa-reset-done")}`, "báo đã tắt", 10000);
     await qt.waitFor(`/Hai lớp: Chưa bật/.test(${dong(NV.name)}.innerText)`, "nhãn đổi sang Chưa bật", 10000);
-    await shotView(qt, "11-da-tat-1040.png");
+    await shotView(qt, "11-da-tat-1280.png");
     const sp = consoleProblems(qt);
     assert.deepEqual(sp.csp, []);
     assert.deepEqual(sp.errors, []);

@@ -199,7 +199,7 @@ try {
     }
     assert.deepEqual(p.consoleErrors, [], `lỗi console (bộ lọc máy tính): ${p.consoleErrors}`);
     p.close();
-    ok(`bộ lọc theo vai trò (máy tính 1040×800): bấm vai → bảng và thẻ cùng lọc, khớp số trong nút; «Tất cả» đủ ${TONG} dòng; «Chưa gán vai trò» ${soChua} dòng; tải lại còn lựa chọn; lựa chọn không còn nút về «Tất cả»`);
+    ok(`bộ lọc theo vai trò (máy tính 1280×800): bấm vai → bảng và thẻ cùng lọc, khớp số trong nút; «Tất cả» đủ ${TONG} dòng; «Chưa gán vai trò» ${soChua} dòng; tải lại còn lựa chọn; lựa chọn không còn nút về «Tất cả»`);
   }
 
   {
@@ -224,7 +224,7 @@ try {
   const doTrang = [];
   for (const [label, path] of PAGES) {
    try {
-    // ---- khổ máy tính (1040×800): table.items HIỆN, .card-list ẨN ----
+    // ---- khổ máy tính (1280×800): table.items HIỆN, .card-list ẨN ----
     let p = await env.as(ACCOUNTS.admin, path, DESK);
     await p.waitFor("document.querySelectorAll('.card-list .card, .ds-dong > .dong').length >= 1", `${label}: thẻ đã dựng xong (máy tính)`);
     const desk = await measure(p);
@@ -234,7 +234,7 @@ try {
     assert.deepEqual(p.consoleErrors, [], `lỗi console (${label} máy tính): ${p.consoleErrors}`);
     await shot(p, `${label}-may-tinh.png`);
     p.close();
-    ok(`${label} (máy tính, 1040×800): table.items hiện, .card-list ẩn`);
+    ok(`${label} (máy tính, 1280×800): table.items hiện, .card-list ẩn`);
 
     // ---- khổ điện thoại (390×844): table.items ẨN, .card-list HIỆN với ≥1 .card, axe không critical/serious ----
     p = await env.as(ACCOUNTS.admin, path, MOB);
