@@ -461,6 +461,12 @@
       "note": "công tắc «Đối tác không nhập nơi đón» (ADR-0221 Đ1, migration 0181), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo khong_nhap = 0 (TẮT = hành vi trước ADR-0221) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: tài khoản giữ quyền Đối tác lập / lưu nháp lượt chiều đi không nơi đón thì máy chủ ghi chữ tạm «(chưa ghi nơi đón)», văn phòng điền lúc Còn vé; cổng xác nhận pickup_place_required xét theo dữ liệu lượt, không đọc bảng này"
     },
     {
+      "name": "ord_partner_deposit_field_policy",
+      "module": "orders",
+      "kind": "table",
+      "note": "công tắc «Ô khách đặt cọc cho đối tác» (ADR-0236 Đ1, Đ2, migration 0193), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = BẬT; gieo hien = 1 (lệnh chủ 26/11 «bật lại»); chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: form Tạo đơn của tài khoản giữ quyền Đối tác có ô lời khai (orders.declared_deposit); TẮT: ô ẩn, lời khai MỚI > 0 của Đối tác bị 409 o_dat_coc_dang_tat, lời khai đã lưu giữ nguyên và vẫn thành khoản thu tiền mặt khi xác nhận"
+    },
+    {
       "name": "ord_partner_passenger_policy",
       "module": "orders",
       "kind": "table",
@@ -2280,6 +2286,7 @@
     "ord_partner_customer_policy": { "id": "N1", "hide_customer_info": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_pickup_time_policy": { "id": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_partner_pickup_place_policy": { "id": "N1", "khong_nhap": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_partner_deposit_field_policy": { "id": "N1", "hien": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_pickup_deadline_policy": { "id": "N1", "chan": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_partner_passenger_policy": { "id": "N1", "khong_nhap": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_partner_manifest_exempt_policy": { "id": "N1", "mien": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

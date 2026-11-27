@@ -418,6 +418,8 @@ export const AUDIT_ACTIONS = {
   pickup_place_policy_changed: { label: "Đổi công tắc đối tác không nhập nơi đón", group: "system" },
   // ADR-0227 Đ1: Toàn quyền bật / tắt «Chặn đơn chưa có giờ đón khi sát ngày đón» (POST /api/cai-dat/chan-chua-gio-sat-ngay) — không gắn đơn; detail «Bật …» / «Tắt …».
   pickup_deadline_policy_changed: { label: "Đổi công tắc chặn đơn chưa có giờ đón", group: "system" },
+  // ADR-0236 Đ2: Toàn quyền bật / tắt «Ô khách đặt cọc cho đối tác» (POST /api/cai-dat/o-dat-coc-doi-tac) — không gắn đơn; detail «Bật …» / «Tắt …».
+  partner_deposit_field_policy_changed: { label: "Đổi công tắc ô khách đặt cọc cho đối tác", group: "system" },
   // ADR-0228 Đ1, Đ3: Toàn quyền bật / tắt «Đối tác không nhập danh sách hành khách» (POST /api/cai-dat/hanh-khach-doi-tac) và «Đơn đối tác không cần giờ đón» (POST /api/cai-dat/khong-can-gio-don)
   // — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   partner_passenger_policy_changed: { label: "Đổi công tắc đối tác không nhập danh sách hành khách", group: "system" },

@@ -12,12 +12,7 @@ export const GOI_Y_GHI_CHU_DOI_TAC = "Ví dụ: đón lúc 7 giờ 30 tại sả
 /** Trần độ dài ghi chú dịch vụ — CÙNG trần với `validateTrip` của máy chủ (src/modules/orders/service-rules.ts: `cleanText(s.note, …, 1000, true)`). */
 export const MAX_GHI_CHU_DICH_VU = 1000;
 
-/**
- * Việc 5 (b1), kế hoạch 16 việc 21/11/2026 — ADR-0225 Đ1 (bản đề xuất, chờ chủ duyệt): form Tạo đơn của Đối tác KHÔNG còn ô «Khách đặt cọc cho đối tác» (sửa ADR-0197 Đ1 và
- * ADR-0159 Đ1 mục 1 ở mức giao diện). Ô và các dòng Tóm tắt vẫn nằm trong HTML, chỉ ẩn: muốn mở lại thì đổi hằng này thành `true`. Máy chủ không đổi: thân đơn không có khoá
- * `declaredDeposit` ⇒ giữ số đang lưu (`docLoiKhai`), nên nháp cũ có lời khai không mất số.
- */
-export const HIEN_O_DAT_COC_DOI_TAC = false;
+// Ô «Khách đặt cọc cho đối tác» trên form Đối tác: hiện theo CÔNG TẮC lưu CSDL (ADR-0236 Đ1 — GET /api/cai-dat/o-dat-coc-doi-tac, `apChoToi`), không còn hằng trong mã như ADR-0225 Đ1.
 
 /** Nhãn nút gập các câu giải thích về tiền của form Đối tác: chỉ nhắc «đặt cọc» khi form còn ô đặt cọc. */
 export const nhanGapGiaiThichTien = (coODatCoc: boolean): string => (coODatCoc ? "Giải thích giảm giá, đặt cọc" : "Giải thích giảm giá");

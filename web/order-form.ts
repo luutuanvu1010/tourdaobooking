@@ -20,7 +20,7 @@ import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
 import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, baoDoiTacChuaCoSdt, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, traDoiTacTheoSo, type BenDatChon, type KhoiBenDatForm } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
-import { GOI_Y_GIAM_GIA_DOI_TAC, duaDonAnHetLuot, formGonDoiTac, HIEN_O_DAT_COC_DOI_TAC, nhanGapGiaiThichTien } from "../src/shared/form-dat-ve";
+import { GOI_Y_GIAM_GIA_DOI_TAC, duaDonAnHetLuot, formGonDoiTac, nhanGapGiaiThichTien } from "../src/shared/form-dat-ve";
 import { O_DOI_PHI_TRONG, chuSoMay, doiPhiTuO, oTuDong, type DoiPhiO } from "../src/shared/phi-don-doi-phi-o";
 import { cauThieuPhiDon } from "../src/shared/phi-don-hien-thi";
 import { cauTranGiamGiaForm, oGiamGiaChiGiaDanhMuc } from "../src/shared/ben-kia-hien-thi";
@@ -1357,6 +1357,9 @@ async function hienLaiNoiDonNeuCan(err: unknown): Promise<void> {
 const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order")) : () => api<Api.CatalogPublicResponse>("/api/catalog/for-order");
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
+// ADR-0236 Đ1: công tắc «Ô khách đặt cọc cho đối tác» — chỉ tài khoản giữ quyền Đối tác hỏi (người khác không bao giờ có ô). Hỏi NGAY, chờ ở chỗ gán `coODatCoc`. Lỗi mạng ⇒ ẩn ô
+// (không khai được thì vô hại; máy chủ vẫn quyết lại lời khai ở lần lưu).
+const layODatCoc = holdsPartner(staff) ? api<Api.ODatCocDoiTacResponse>("/api/cai-dat/o-dat-coc-doi-tac").then((r) => r.apChoToi, () => false) : Promise.resolve(false);
 // ---- ADR-0192: bản chụp tạm form đơn lúc hết phiên (sessionStorage, gắn mã nhân viên, 30 phút, một lần) ----
 // Chụp: chỉ khi trang bị rời VÌ `goLogin` (401) — `goLogin` ghi `SESSION_ENDED_KEY` trước khi chuyển về /login, và /login đọc rồi xoá khoá đó mỗi lần mở, nên lúc
 // rời form theo cách thường khoá không có. Lời gọi session-ended hỏng (mất mạng) thì không có dấu ⇒ không chụp (chỉ là không khôi phục được). Form chưa nạp xong hoặc đã
@@ -1394,7 +1397,7 @@ if (banChup?.loai !== "form") {
   banChup = null; // đã quyết và xoá: bước quyết muộn không xét lại
 }
 guiDonKhiLuu = holdsPartner(staff);
-coODatCoc = HIEN_O_DAT_COC_DOI_TAC && holdsPartner(staff); // ADR-0225 Đ1 (đề xuất): form Đối tác không còn ô đặt cọc
+coODatCoc = (await layODatCoc) && holdsPartner(staff); // ADR-0236 Đ1: ô cọc theo công tắc CSDL (thay hằng của ADR-0225 Đ1)
 byId("dat-coc-o").hidden = !coODatCoc;
 byId("dat-coc-goi-y").hidden = !coODatCoc;
 // Hai dòng đặt cọc của Tóm tắt do `recompute()` hiện khi có số khai (đặc tả 2026-11-20); ở đây giữ ẩn.
@@ -1412,7 +1415,7 @@ if (formGon) {
   // H1 (chủ duyệt 20/11/2026) — chỉ form của tài khoản Đối tác:
   // (1) chữ tiêu đề «Thanh toán» ẩn với mắt, vẫn là tên khối cho trình đọc màn hình (`aria-labelledby`);
   byId("pay-title").classList.add("visually-hidden");
-  // Việc 5 (b1), ADR-0225 Đ1 (đề xuất): chủ yêu cầu bỏ chữ gợi ý «vd: nội dung chuyển khoản» của ô Ghi chú thanh toán (form văn phòng giữ).
+  // Việc 5 (b1), ADR-0225 Đ1: bỏ chữ gợi ý «vd: nội dung chuyển khoản» của ô Ghi chú thanh toán (form văn phòng giữ). ADR-0236 Đ1 GIỮ việc bỏ này dù ô cọc hiện lại: ADR-0225 Đ2 — đơn đối tác chỉ thu hộ tiền mặt.
   (field("paymentNote") as HTMLTextAreaElement).placeholder = "";
   // (2) «Hình thức thanh toán» sang cột phải ngay trên nút gửi (điện thoại: cuối trang, ngay trước thanh nút); chỗ chứa hiện / ẩn cùng khối trong `napTraSau`;
   byId("hinh-thuc-cho").append(byId("tra-sau-khoi"), byId("tra-sau-bao"));

@@ -21,6 +21,8 @@ import { ganCaiDatGioDon } from "./gio-don-cai-dat";
 import { ganCaiDatPhiDonBienNhan } from "./phi-don-bien-nhan-cai-dat";
 import { ganCaiDatNoiDon } from "./noi-don-cai-dat";
 import { ganCaiDatChanChuaGio } from "./chan-chua-gio-cai-dat";
+import { ganCaiDatODatCoc } from "./o-dat-coc-cai-dat";
+import { ganCaiDatOBangLai } from "./o-bang-lai-cai-dat";
 import { ganNutThanhDuoi } from "./thanh-duoi-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
@@ -885,6 +887,9 @@ if (can(staff, "settings.ops")) void ganCaiDatPhiDonBienNhan(byId("phi-don-bien-
 if (can(staff, "settings.ops")) void ganCaiDatNoiDon(byId("noi-don-cai-dat"));
 // ADR-0227 Đ1: «Chặn đơn chưa có giờ đón khi sát ngày đón» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), cuối nhóm «Cài đặt lập đơn».
 if (can(staff, "settings.ops")) void ganCaiDatChanChuaGio(byId("chan-chua-gio-cai-dat"));
+// ADR-0236 Đ2, Đ3 (lệnh chủ 26/11): «Ô khách đặt cọc cho đối tác» và «Ô bằng lái trên phiếu đăng ký» — chỉ Toàn quyền (ô settings.ops như cả nhóm; chủ 26/11 «không thay đổi quyền của Quản trị»; máy chủ kiểm lại khi ghi), cuối nhóm.
+if (can(staff, "settings.ops")) void ganCaiDatODatCoc(byId("o-dat-coc-cai-dat"));
+if (can(staff, "settings.ops")) ganCaiDatOBangLai(byId("o-bang-lai-cai-dat"));
 // ADR-0187 Đ2.3: mục «Nút thanh dưới» (chỉ điện thoại). Ai thấy: ô me.favorites.write và không đang xem như vai trò khác — hàm tự hỏi bảng quyền.
 ganNutThanhDuoi(byId("thanh-duoi"), staff);
 
