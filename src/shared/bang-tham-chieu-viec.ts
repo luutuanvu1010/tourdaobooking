@@ -963,6 +963,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Cài đặt vận hành",
+    manHinh: "Tôi (trang cá nhân) › nhóm «Cài đặt lập đơn» › khối «Ô khách đặt cọc cho đối tác»",
+    ten: "Tắt ô khách đặt cọc cho đối tác · Bật ô khách đặt cọc cho đối tác",
+    thatSuLam: "Đổi công tắc chung, chỉ Toàn quyền bấm được. Khi bật (mặc định), form Tạo đơn của mọi tài khoản giữ quyền Đối tác có ô «Khách đặt cọc cho đối tác»; đơn xác nhận thì số đó thành khoản thu tiền mặt do đối tác giữ. Khi tắt, ô ẩn và máy chủ từ chối số đặt cọc mới của đối tác; đơn nháp đã ghi số trước đó vẫn giữ số và vẫn thành khoản thu khi xác nhận.",
+    hoiLai: "không",
+    hoanTac: "được: bấm lại nút kia (số đặt cọc đã ghi trên đơn nháp không đổi)",
+    duongLenh: ["/api/cai-dat/o-dat-coc-doi-tac"],
+    maNhatKy: ["partner_deposit_field_policy_changed"],
+    noiDat: [
+      { tep: "web/o-dat-coc-cai-dat.ts", chu: "Tắt ô khách đặt cọc cho đối tác / Bật ô khách đặt cọc cho đối tác" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "ADR-0236 điều 3: chủ chốt 2026-11-26, nguyên văn «Duyệt cả ba»",
+  },
+  {
+    nhom: "Cài đặt vận hành",
     manHinh: "Tôi (trang cá nhân) › khối «Đối tác không nhập nơi đón»",
     ten: "Bật đối tác không nhập nơi đón · Tắt đối tác không nhập nơi đón",
     thatSuLam: "Đổi công tắc chung. Khi bật, form Tạo đơn của mọi tài khoản giữ quyền Đối tác chỉ còn hai nút «Đón», «Không đón» và ô ghi chú đưa đón: đối tác không điền nơi đón. Văn phòng điền nơi đón ở bảng «Xác nhận đơn» lúc bấm «Còn vé, xác nhận đơn»; đơn còn lượt chưa có nơi đón thì không xác nhận được. Đơn của Bán hàng không đổi. Mặc định đang tắt.",

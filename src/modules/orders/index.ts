@@ -82,7 +82,7 @@ import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu
 import { thanLapDonKhiAn, thanNhapKhiAn, type AnKhach } from "./an-thong-tin-khach";
 import { apTruongDichVu, boHanhKhachKhiAn, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
 import { thanKhiKhongNhapNoiDon } from "./noi-don-doi-tac";
-import { anKhachBat, cauGhiNguoiMoi, docChanChuaGioSatNgay, docKhongNhapHanhKhach, docMienDuTen, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
+import { anKhachBat, cauGhiNguoiMoi, docChanChuaGioSatNgay, docHienODatCoc, docKhongNhapHanhKhach, docMienDuTen, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
 import { cauKhepLoiMoi, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
@@ -254,9 +254,11 @@ const PARTNER_NO_PARTY = () => error(409, "partner_no_party", "Tài khoản đ�
  * ADR-0159 Đ1 mục 1, 4: cổng lời khai «Khách đặt cọc trước» lúc LẬP / LƯU. Người không giữ quyền Đối tác gửi số > 0 ⇒ 403 (Tự quyết: từ chối rõ, không lặng lẽ bỏ); gửi 0 ⇒ coi như không gửi, số đang lưu
  * giữ nguyên (tài khoản đã thôi quyền). Trả số SẼ lưu: `null` = giữ số đang lưu. Tổng là tổng sau giảm của thân này. Chưa gắn hồ sơ khai > 0 ⇒ 409 khuôn `partner_no_party`.
  */
-async function congLoiKhaiKhiLuu(staff: StaffProfile, gui: number | null, dangLuu: number, tong: number, chanKhaiLai: (id: string) => Promise<ChanKhaiLai>): Promise<{ loi: Response } | { giaTri: number | null }> {
+async function congLoiKhaiKhiLuu(staff: StaffProfile, gui: number | null, dangLuu: number, tong: number, chanKhaiLai: (id: string) => Promise<ChanKhaiLai>, hienODatCoc: () => Promise<boolean>): Promise<{ loi: Response } | { giaTri: number | null }> {
   const laDoiTac = holdsPartner(staff);
   if (!laDoiTac && gui !== null && gui > 0) return { loi: error(403, "forbidden", CAU_KHONG_PHAI_DOI_TAC) };
+  // ADR-0236 Đ1: công tắc «Ô khách đặt cọc cho đối tác» Tắt ⇒ lời khai MỚI > 0 bị từ chối rõ (không lặng lẽ bỏ số); không gửi khoá / gửi 0 ⇒ giữ số đang lưu như ADR-0225 Đ1 mục 5. Chỉ đọc công tắc khi cần.
+  if (laDoiTac && gui !== null && gui > 0 && !(await hienODatCoc())) return { loi: O_DAT_COC_DANG_TAT() };
   const giaTri = laDoiTac ? gui : null;
   const seLuu = giaTri ?? dangLuu;
   if (seLuu === 0) return { giaTri };
@@ -267,6 +269,7 @@ async function congLoiKhaiKhiLuu(staff: StaffProfile, gui: number | null, dangLu
   return { giaTri };
 }
 
+const O_DAT_COC_DANG_TAT = () => error(409, "o_dat_coc_dang_tat", "Văn phòng đã tắt ô «Khách đặt cọc cho đối tác». Tải lại trang rồi lưu lại đơn; cần ghi tiền khách đặt cọc thì nhờ văn phòng.");
 const BEN_DAT_DOI_TAC_CAM = () => error(403, "partner_booker_forbidden", "Đơn qua đại lý hoặc cộng tác viên do văn phòng lập hộ — tài khoản đối tác không chọn được bên đặt này.");
 
 /**
@@ -1514,7 +1517,7 @@ export const ordersModule: AppModule = {
       // đơn và mốc `at` của TỪNG lần thử của `createOrder`, nên dòng phụ trách và nhật ký cùng mốc với dòng `created`. Không đạt → 400, không tạo đơn.
       const handler = pick.staffId === null ? null : await newOrderHandler(pick.staffId);
       if (handler && !handler.ok) return error(400, "invalid_assignee", handler.message);
-      const khai = await congLoiKhaiKhiLuu(staff, donGhi.declaredDeposit, 0, donGhi.total, chanKhaiCocLai); // ADR-0159 Đ1 mục 4
+      const khai = await congLoiKhaiKhiLuu(staff, donGhi.declaredDeposit, 0, donGhi.total, chanKhaiCocLai, () => docHienODatCoc(env.DB, new Date().toISOString())); // ADR-0159 Đ1 mục 4
       if ("loi" in khai) return khai.loi;
       // ADR-0230 Đ2 mục 3: «Trả lúc check-in» chỉ đi với Thanh toán ngay; đơn Đối tác lập lúc công tắc «Khách của đối tác trả cho Công ty» Tắt thì không có. Đối tác có Trả sau
       // dùng được bị cổng Trả sau ngay dưới từ chối như mọi đơn Thanh toán ngay (ADR-0224).
@@ -1724,7 +1727,7 @@ export const ordersModule: AppModule = {
       const ghiChuCoc = cocCu > donGhi.total ? `đưa tiền thu trước cũ ${cocCu.toLocaleString("vi-VN")} ₫ ghi trên đơn về 0 (tiền đã nằm ở khoản thu "chưa rõ" trong sổ)` : null;
       // ADR-0159 Đ1 mục 2, 4: khoá khi chờ và sau xác nhận đã do các cổng trên chặn (trigger 0136 là lưới cuối); ở đây kiểm quyền, hồ sơ, trần tổng theo số SẼ lưu.
       const dangKhai = await loiKhaiDangLuu(env.DB, id);
-      const khai = await congLoiKhaiKhiLuu(staff, donGhi.declaredDeposit, dangKhai, donGhi.total, chanKhaiCocLai);
+      const khai = await congLoiKhaiKhiLuu(staff, donGhi.declaredDeposit, dangKhai, donGhi.total, chanKhaiCocLai, () => docHienODatCoc(env.DB, new Date().toISOString()));
       if ("loi" in khai) return khai.loi;
       // ADR-0168 Đ2 mục 1, 3: như lúc lập — hình thức SẼ lưu = hình thức gửi lên, vắng thì giữ hình thức đang lưu; đơn đã rời nháp không tới được đây (NOT_EDITABLE ở trên).
       // ADR-0230 Đ2 mục 3: lựa chọn SẼ lưu = khoá gửi lên, vắng thì giữ lựa chọn đang lưu; dấu công tắc là dấu CHỤP LÚC LẬP của đơn (không phải công tắc hôm nay).

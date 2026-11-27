@@ -18,12 +18,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đợt D3 khung gốc (ADR-0222, ADR-0234; chủ duyệt ảnh 26/11 «D3 và D1 duyệt theo khuyến nghị»): 7 trang Thiết lập. Nhánh claude/khung-goc-dot-d3-b7cd70. Không migration, không đổi quyền.
-    // Số 3.50 = sau 3.48 (nhánh ADR-0236) và 3.49 (menu Thiết lập), cả hai chưa lên lúc soạn; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác.
-    version: "3.50",
+    // Số 3.51 = sau 3.50 (ADR-0236, đặt cọc) đã vào bản chính trước; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác.
+    version: "3.51",
     date: "2026-11-26",
     items: [
       { kind: "doi", text: "Thiết lập: bảy trang (Loại giấy tờ, Lý do và Chính sách điều phối, Điều kiện cho xe chạy, Giao diện, Trợ lý) theo một khuôn chung." },
       { kind: "doi", text: "Chính sách điều phối, Trợ lý cài đặt: phần cài đặt hiện để xem, bấm «Sửa» mới mở ô nhập; dòng đã ngừng tô chữ xám cho dễ đọc." },
+    ],
+  },
+  {
+    // ADR-0236 (lệnh chủ 26/11 «1- bật lại đi. 2- giữ nguyên như vậy, nhưng cho cả 2 tùy chọn này vào trong bảng điều khiển của Admin , Super Admin»). Nhánh claude/cong-tac-dat-coc-bang-lai-6434a8.
+    // Có migration 0193 (một bảng cài đặt chỉ-thêm). Số 3.50 = sau 3.49 (menu Thiết lập) đã vào bản chính trước; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác. Sửa 26/11: hai công tắc chỉ Toàn quyền.
+    version: "3.50",
+    date: "2026-11-26",
+    items: [
+      { kind: "doi", text: "Tạo đơn của đối tác: ô «Khách đặt cọc cho đối tác» hiện lại. Khách đưa cọc tiền mặt cho đối tác thì ghi số vào ô này; đơn xác nhận thì số đó thành khoản thu." },
+      { kind: "moi", text: "Trang Tôi của Toàn quyền: thêm nút bật / tắt ô «Khách đặt cọc cho đối tác». Tắt thì đối tác không ghi được số cọc mới; số đã ghi giữ nguyên." },
+      { kind: "moi", text: "Trang Tôi của Toàn quyền: thêm mục «Ô bằng lái trên phiếu đăng ký», hiện đang tắt và chưa bật được vì phiếu đăng ký chưa có ô bằng lái." },
     ],
   },
   {
