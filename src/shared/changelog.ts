@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt D1 khung gốc (ADR-0222, ADR-0234; chủ duyệt ảnh 26/11 «D3 và D1 duyệt theo khuyến nghị»): 6 trang Người và tài khoản. Nhánh claude/khung-goc-dot-d1-b7cd70. Không migration, không đổi quyền.
+    // Số 3.52 = sau 3.51 (đợt D3) nhập trước; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác.
+    version: "3.52",
+    date: "2026-11-27",
+    items: [
+      { kind: "doi", text: "Quản lý tài khoản, Danh bạ, Máy đang đăng nhập, Phiếu đăng ký, Nhật ký, Gửi thông báo theo khuôn chung; thêm, sửa mở trong bảng trượt." },
+      { kind: "sua", text: "Điện thoại: liên kết đầu trang Quản lý tài khoản, ô chọn nhóm ở Gửi thông báo, ô chọn ở Máy đang đăng nhập to hơn, dễ bấm." },
+    ],
+  },
+  {
     // Đợt D3 khung gốc (ADR-0222, ADR-0234; chủ duyệt ảnh 26/11 «D3 và D1 duyệt theo khuyến nghị»): 7 trang Thiết lập. Nhánh claude/khung-goc-dot-d3-b7cd70. Không migration, không đổi quyền.
     // Số 3.51 = sau 3.50 (ADR-0236, đặt cọc) đã vào bản chính trước; bước A.0 đặt lại số và ngày nếu thứ tự nhập khác.
     version: "3.51",
