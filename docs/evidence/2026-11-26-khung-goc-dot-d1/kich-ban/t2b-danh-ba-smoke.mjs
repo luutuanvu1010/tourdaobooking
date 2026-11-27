@@ -1,0 +1,178 @@
+// BẢN CHÉP ĐỢT D1 khung gốc (27/11/2026) của docs/evidence/2026-09-28-t2b/kich-ban/t2b-danh-ba-smoke.mjs (bản gốc là hồ sơ có ngày, không sửa).
+// Đổi theo trang mới (Danh bạ khuôn Danh sách, hồ sơ đang xem là nhiều khối): dòng vai `#detail .dong` (dòng ngừng mang data-ngung) thay `#detail table.items tr`
+// (.row-off); [trước D1] axe bỏ qua thanh trên (#topbar): nút ảnh đại diện / chuông có aria-label khác chữ hiện (label-content-name-mismatch) ở mọi trang; ô chọn công việc tìm trong khối của tiêu đề (closest('.khoi')); lưới ô là `.luoi` thay `.grid`, nhãn ô là `.truong > label` (không bọc ô); thẻ điện thoại `#list-cards > .dong` thay `.card-list .card`.
+// Kịch bản Chrome T2b — Danh bạ và HỒ SƠ CÔNG TY CHỦ (ADR-0024 điều 6, 6.4, 6.5; câu trả lời của chủ dự án 2026-09-28 "cho Super Admin đổi").
+// Chỉ phần mà hàng rào mới BẮT BUỘC (chỉ đạo D7 + D12, nhật ký thi công docs/superpowers/plans/2026-09-28-t2b-thi-cong-nhat-ky.md):
+//   A  Quản trị: hồ sơ công ty chủ không có nút sửa; ô "Công việc" không có "Công ty chủ" (cả trên hồ sơ tổ chức khác); bấm "Kết thúc" dòng "Công ty chủ"
+//      → báo tiếng Việt (403), không chữ "Toàn quyền", không mã thô
+//   B  Người giữ ô company.legal.write (tài khoản CHỈ có quyền Toàn quyền — Ruling T7): hồ sơ công ty chủ sửa được; "Kết thúc" dòng "Công ty chủ" → câu
+//      tiếng Việt chỉ cách đổi (409); lựa chọn "Công ty chủ" KHÔNG có trên hồ sơ cá nhân, KHÔNG có trên chính công ty chủ, CÓ trên hồ sơ tổ chức khác;
+//      chọn + bấm "Thêm công việc" → câu xác nhận ("Trang đăng nhập và biên nhận…"), rồi ĐỔI thật trên D1 tạm (trigger đổi của migration chạy trên D1)
+//      → đúng một công ty chủ, là hồ sơ mới; GET /api/company trả hồ sơ mới
+// Dùng lại môi trường A2 (D1 tạm + wrangler dev + Chrome headless qua CDP). Các trang dùng CHUNG kho cookie — mỗi tài khoản làm xong mới mở tài khoản sau;
+// tài khoản đổi công ty chủ mở SAU CÙNG. Chạy từ GỐC repo, sau `npm run build:web`:
+//   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-09-28-t2b/kich-ban/t2b-danh-ba-smoke.mjs
+import assert from "node:assert/strict";
+import { mkdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { ACCOUNTS, ok, setInput, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { insertStaffSql } from "../../../../scripts/staff-lib.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
+
+const OUT = process.env.OUT ?? "docs/evidence/2026-11-26-khung-goc-dot-d1";
+const AXE = readFileSync(process.env.AXE_JS, "utf8");
+mkdirSync(join(OUT, "anh"), { recursive: true });
+const DESK = { width: 1040, height: 800, mobile: false };
+const MOB = { width: 390, height: 844, mobile: true };
+/** Tài khoản CHỈ giữ quyền Toàn quyền (SĐT giả của kịch bản) — chỉ tồn tại trong D1 tạm. */
+const CHU = { name: "Chủ Chrome", phone: "0900000299", pin: "135791", permissions: ["SUPER_ADMIN"] };
+const TEN_CT = "Công ty TNHH Tour Đảo"; // tên gọi gieo ở migration (chân trang đăng nhập đang hiện đúng chữ này)
+const TEN_TC = "Pháp nhân Chrome";
+const TEN_CN = "Nguyễn Chrome Cá Nhân";
+
+const OPTIONS = `[...([...document.querySelectorAll('#detail h3')].find((h) => h.textContent.trim() === 'Công việc tại đâu').closest('.khoi').querySelector('select')?.options ?? [])].map((o) => o.textContent.trim())`;
+const ROW_CTC = `[...document.querySelectorAll('#detail .dong')].find((tr) => tr.textContent.includes('Công ty chủ') && !tr.hasAttribute('data-ngung'))`;
+const NUT = (chu) => `[...document.querySelectorAll('#detail button')].some((b) => b.textContent.trim() === ${JSON.stringify(chu)})`;
+const openOwner = (env) => env.sql("SELECT r.party_id, p.display_name FROM pty_party_role r JOIN pty_party p ON p.id = r.party_id WHERE r.role_type_code = 'OWNER_COMPANY' AND r.valid_to_date IS NULL");
+
+const env = await startEnv();
+try {
+  for (const cau of (await insertStaffSql(CHU)).split("\n")) env.sql(cau);
+  const axe = async (p, label) => {
+    if (!(await p.ev("typeof axe !== 'undefined'"))) await p.ev(`${AXE}\n;true`);
+    const v = await p.ev(`axe.run({ exclude: [['#topbar']] }).then((r) => r.violations.filter((x) => x.impact === 'critical' || x.impact === 'serious').map((x) => x.id + ' ' + x.nodes.map((n) => n.target.join(' ')).join(', ')))`);
+    assert.deepEqual(v, [], `axe (${label}): ${JSON.stringify(v)}`);
+  };
+  async function moHoSo(p, ten) {
+    await p.ev(setInput("document.querySelector('#q')", ten));
+    await p.ev("document.querySelector('#search-form').requestSubmit(), true");
+    await p.waitFor(`[...document.querySelectorAll('#list tr')].some((tr) => tr.textContent.includes(${JSON.stringify(ten)}))`, `danh sách có "${ten}"`);
+    await p.ev(`[...document.querySelectorAll('#list tr')].find((tr) => tr.textContent.includes(${JSON.stringify(ten)})).click(), true`);
+    await p.waitFor(`!document.querySelector('#detail').hidden && (document.querySelector('#detail h2')?.textContent ?? '').includes(${JSON.stringify(ten)})`, `hồ sơ "${ten}" mở`);
+  }
+  async function loiSau(p, bieuThucBam) {
+    await p.ev(`document.querySelector('#error').hidden = true, true`);
+    await p.ev(`${bieuThucBam}, true`);
+    await p.waitFor(`!document.querySelector('#error').hidden && document.querySelector('#error').textContent.trim().length > 0`, "báo lỗi hiện");
+    return p.ev(`document.querySelector('#error').textContent.trim()`);
+  }
+
+  // ---- A. Quản trị (máy tính)
+  let p = await env.as(ACCOUNTS.admin, "/parties", DESK);
+  await p.waitFor(`!!document.querySelector('#search-form')`, "trang Danh bạ dựng xong");
+  // hồ sơ để thử: một tổ chức ĐỦ thông tin biên nhận (số giả) và một cá nhân — tạo qua API bằng chính phiên Quản trị
+  const taoTC = await p.ev(`fetch('/api/parties', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ORGANIZATION', displayName: ${JSON.stringify(TEN_TC)}, legalName: 'CÔNG TY PHÁP NHÂN CHROME', taxCode: '0312345678', address: '3 Đường Chrome' }) }).then((r) => r.json()).then((b) => b.party.id)`);
+  assert.equal(await p.ev(`fetch('/api/parties/${taoTC}/contacts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'PHONE', value: '0901 234 567', label: 'Hotline', isPrimary: true }) }).then((r) => r.status)`), 201);
+  assert.equal(await p.ev(`fetch('/api/parties', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'PERSON', fullName: ${JSON.stringify(TEN_CN)} }) }).then((r) => r.status)`), 201);
+  await moHoSo(p, TEN_CT);
+  assert.equal(await p.ev(NUT("Lưu thông tin")), false, "Quản trị không thấy nút sửa hồ sơ công ty chủ");
+  assert.equal(await p.ev(NUT("Thêm liên hệ")), false, "Quản trị không thấy nút thêm liên hệ");
+  assert.ok(!(await p.ev(OPTIONS)).includes("Công ty chủ"), "ô Công việc của Quản trị không có 'Công ty chủ'");
+  assert.equal(await p.ev(`!!${ROW_CTC}`), true, "dòng 'Công ty chủ' hiện trong danh sách công việc");
+  let loi = await loiSau(p, `${ROW_CTC}.querySelector('button').click()`);
+  assert.match(loi, /người phụ trách hệ thống/, `câu báo (403): ${loi}`);
+  assert.doesNotMatch(loi, /Toàn quyền|SQLITE|constraint|forbidden|owner_company/i, `câu báo (403): ${loi}`);
+  await p.shot(join(OUT, "anh", "t2b-quan-tri-cong-ty-chu-1040.png"));
+  await axe(p, "Quản trị — hồ sơ công ty chủ");
+  await moHoSo(p, TEN_TC);
+  assert.ok(!(await p.ev(OPTIONS)).includes("Công ty chủ"), "Quản trị: hồ sơ tổ chức khác cũng không có 'Công ty chủ'");
+  assert.deepEqual(p.consoleErrors, [], `lỗi console (Quản trị): ${p.consoleErrors}`);
+  p.close();
+  assert.deepEqual(openOwner(env).map((r) => r.display_name), [TEN_CT], "Quản trị không đổi được gì");
+  ok("A. Quản trị: không nút sửa, không có lựa chọn 'Công ty chủ', 'Kết thúc' bị từ chối bằng câu tiếng Việt (không 'Toàn quyền', không mã thô), axe sạch");
+
+  // ---- A2. ADR-0084 Đ1 (bản 1.57): ô "Giới tính" của hồ sơ người — cạnh ô Họ và tên, ba lựa chọn, 16px; lưu được; tổ chức không có ô; form "Hồ sơ mới" có ô
+  //      khi chọn Cá nhân. Ảnh vào docs/evidence/2026-10-01-tro-ly-mai/anh/. Quản trị mở trước Toàn quyền (chung kho cookie).
+  {
+    const MAI = "docs/evidence/2026-10-01-tro-ly-mai/anh";
+    mkdirSync(MAI, { recursive: true });
+    p = await env.as(ACCOUNTS.admin, "/parties", DESK);
+    await p.waitFor(`!!document.querySelector('#search-form')`, "trang Danh bạ dựng xong");
+    await moHoSo(p, TEN_CN);
+    const O = "document.querySelector('#sua-gioi-tinh')";
+    assert.equal(await p.ev(`!!${O}`), true, "hồ sơ người có ô Giới tính");
+    assert.deepEqual(await p.ev(`[...${O}.options].map((o) => o.textContent)`), ["(để trống)", "Nam", "Nữ"]);
+    assert.equal(await p.ev(`${O}.value`), "", "chưa ghi ⇒ để trống");
+    assert.equal(await p.ev(`${O}.closest('.truong').querySelector('label').textContent.startsWith('Giới tính')`), true, "nhãn tiếng Việt");
+    assert.equal(await p.ev(`getComputedStyle(${O}).fontSize`), "16px", "ô 16px");
+    assert.equal(await p.ev(`${O}.closest('.luoi') === document.querySelector('#detail input[type=text]').closest('.luoi')`), true, "cùng khối với ô Họ và tên");
+    await p.ev(`(() => { ${O}.value = 'NU'; ${O}.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    await p.shot(join(MAI, "danh-ba-gioi-tinh-chon-1040.png"));
+    await p.ev(`[...document.querySelectorAll('#detail button')].find((b) => b.textContent.trim() === 'Lưu thông tin').click(), true`);
+    await p.waitFor(`!!document.querySelector('#sua-gioi-tinh') && document.querySelector('#sua-gioi-tinh').value === 'NU'`, "lưu xong, ô giữ Nữ sau khi nạp lại", 10000);
+    const dong = env.sql(`SELECT pe.gender FROM pty_person pe JOIN pty_party p ON p.id = pe.party_id WHERE p.display_name = '${TEN_CN}'`);
+    assert.deepEqual(dong.map((r) => r.gender), ["NU"], "D1 lưu NU");
+    const nk = env.sql(`SELECT a.detail FROM audit_log a JOIN pty_party p ON p.id = a.target_id WHERE a.action = 'party_updated' AND p.display_name = '${TEN_CN}'`);
+    assert.deepEqual(nk.map((r) => r.detail), ["cá nhân — đổi giới tính"], "nhật ký chỉ 'đổi giới tính', không giá trị");
+    await moHoSo(p, TEN_TC);
+    assert.equal(await p.ev(`!!document.querySelector('#sua-gioi-tinh')`), false, "hồ sơ tổ chức không có ô Giới tính");
+    await p.ev("document.querySelector('#new').click(), true");
+    await p.waitFor("!document.querySelector('#create').hidden", "form Hồ sơ mới mở");
+    assert.equal(await p.ev("document.querySelector('#tao-gioi-tinh').closest('.luoi').hidden"), false, "Cá nhân: ô Giới tính hiện");
+    await p.ev(`(() => { const s = document.querySelector('#create select'); s.value = 'ORGANIZATION'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+    assert.equal(await p.ev("document.querySelector('#tao-gioi-tinh').closest('.luoi').hidden"), true, "Tổ chức: ô Giới tính ẩn");
+    await axe(p, "Quản trị — ô Giới tính");
+    assert.deepEqual(p.consoleErrors, [], `lỗi console (Giới tính): ${p.consoleErrors}`);
+    p.close();
+    p = await env.as(ACCOUNTS.admin, "/parties", MOB);
+    await p.waitFor(`!!document.querySelector('#search-form')`, "trang Danh bạ (điện thoại)");
+    await p.ev(setInput("document.querySelector('#q')", TEN_CN));
+    await p.ev("document.querySelector('#search-form').requestSubmit(), true");
+    await p.waitFor(`[...document.querySelectorAll('#list-cards > .dong')].some((c) => c.textContent.includes(${JSON.stringify(TEN_CN)}))`, "thẻ hồ sơ người (điện thoại)");
+    await p.ev(`[...document.querySelectorAll('#list-cards > .dong')].find((c) => c.textContent.includes(${JSON.stringify(TEN_CN)})).click(), true`);
+    await p.waitFor(`!document.querySelector('#detail').hidden && !!document.querySelector('#sua-gioi-tinh')`, "hồ sơ người mở (điện thoại)");
+    assert.equal(await p.ev("document.querySelector('#sua-gioi-tinh').value"), "NU");
+    assert.equal(await p.ev("document.documentElement.scrollWidth - innerWidth"), 0, "không tràn ngang 390");
+    await p.ev("document.querySelector('#sua-gioi-tinh').scrollIntoView({ block: 'center' }), true");
+    await p.shot(join(MAI, "danh-ba-gioi-tinh-390.png"));
+    assert.deepEqual(p.consoleErrors, [], `lỗi console (Giới tính 390): ${p.consoleErrors}`);
+    p.close();
+    ok("A2. ADR-0084: ô Giới tính cạnh Họ và tên (3 lựa chọn, 16px), lưu Nữ → D1 NU, nhật ký không giá trị; tổ chức không có ô; form mới ẩn/hiện theo loại; axe sạch (1040 + 390)");
+  }
+
+  // ---- B. Người giữ ô company.legal.write (chỉ quyền Toàn quyền) — mở SAU CÙNG
+  p = await env.as(CHU, "/parties", DESK);
+  await p.waitFor(`!!document.querySelector('#search-form')`, "trang Danh bạ dựng xong");
+  await moHoSo(p, TEN_CT);
+  assert.equal(await p.ev(NUT("Lưu thông tin")), true, "người giữ ô sửa được hồ sơ công ty chủ");
+  assert.ok(!(await p.ev(OPTIONS)).includes("Công ty chủ"), "chính công ty chủ: không có lựa chọn 'Công ty chủ'");
+  loi = await loiSau(p, `${ROW_CTC}.querySelector('button').click()`);
+  assert.match(loi, /Muốn đổi thì gán “Công ty chủ” cho hồ sơ tổ chức khác/, `câu báo (409): ${loi}`);
+  assert.doesNotMatch(loi, /Toàn quyền|SQLITE|constraint|owner_company/i, `câu báo (409): ${loi}`);
+  assert.deepEqual(openOwner(env).map((r) => r.display_name), [TEN_CT], "kết thúc bị từ chối: vẫn đúng một công ty chủ");
+  await moHoSo(p, TEN_CN);
+  assert.ok(!(await p.ev(OPTIONS)).includes("Công ty chủ"), "hồ sơ cá nhân: không có lựa chọn 'Công ty chủ'");
+  await moHoSo(p, TEN_TC);
+  assert.ok((await p.ev(OPTIONS)).includes("Công ty chủ"), "hồ sơ tổ chức khác: CÓ lựa chọn 'Công ty chủ'");
+  await p.ev(`(() => { const s = [...document.querySelectorAll('#detail h3')].find((h) => h.textContent.trim() === 'Công việc tại đâu').closest('.khoi').querySelector('select'); s.value = 'OWNER_COMPANY'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
+  await p.shot(join(OUT, "anh", "t2b-doi-cong-ty-chu-chon-1040.png"));
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
+  await p.ev(`window.__xacNhan = null; window.confirm = (m) => { window.__xacNhan = m; return true; }; true`);
+  await p.ev(`[...document.querySelectorAll('#detail button')].find((b) => b.textContent.trim() === 'Thêm công việc').click(), true`);
+  await p.waitFor(`!!${ROW_CTC}`, "hồ sơ mới hiện dòng 'Công ty chủ'");
+  const xacNhan = await p.ev("window.__xacNhan");
+  assert.match(xacNhan ?? "", /Trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này/, `câu xác nhận: ${xacNhan}`);
+  assert.doesNotMatch(xacNhan ?? "", /Toàn quyền/);
+  assert.deepEqual(openOwner(env).map((r) => r.party_id), [taoTC], "đổi trên D1: đúng một công ty chủ, là hồ sơ mới (trigger đổi của migration)");
+  const congTy = await p.ev(`fetch('/api/company').then((r) => r.json())`);
+  assert.equal(congTy.company.name, "CÔNG TY PHÁP NHÂN CHROME", "biên nhận đọc hồ sơ mới");
+  await p.shot(join(OUT, "anh", "t2b-doi-cong-ty-chu-xong-1040.png"));
+  await axe(p, "Toàn quyền — sau khi đổi");
+  assert.deepEqual(p.consoleErrors, [], `lỗi console (đổi): ${p.consoleErrors}`);
+  p.close();
+  p = await env.as(CHU, "/parties", MOB);
+  await p.waitFor(`!!document.querySelector('#search-form')`, "trang Danh bạ (điện thoại)");
+  await p.ev(setInput("document.querySelector('#q')", TEN_TC));
+  await p.ev("document.querySelector('#search-form').requestSubmit(), true");
+  await p.waitFor(`[...document.querySelectorAll('#list-cards > .dong')].some((c) => c.textContent.includes(${JSON.stringify(TEN_TC)}))`, "thẻ hồ sơ mới (điện thoại)");
+  await p.ev(`[...document.querySelectorAll('#list-cards > .dong')].find((c) => c.textContent.includes(${JSON.stringify(TEN_TC)})).click(), true`);
+  await p.waitFor(`!document.querySelector('#detail').hidden && !!${ROW_CTC}`, "hồ sơ mới mở (điện thoại)");
+  await p.shot(join(OUT, "anh", "t2b-cong-ty-chu-moi-390.png"));
+  await axe(p, "Toàn quyền — điện thoại");
+  assert.deepEqual(p.consoleErrors, [], `lỗi console (điện thoại): ${p.consoleErrors}`);
+  p.close();
+  ok("B. Người giữ ô: sửa được, 'Kết thúc' → câu chỉ cách đổi, lựa chọn 'Công ty chủ' chỉ trên hồ sơ tổ chức khác, câu xác nhận đúng, đổi thật trên D1, biên nhận đọc hồ sơ mới, axe sạch (1040 + 390)");
+} finally {
+  await env.stop();
+}
+console.log("T2B DANH BA SMOKE OK");
