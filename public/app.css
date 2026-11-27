@@ -2454,14 +2454,7 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 }
 
 /* Trang "Gửi thông báo" (Task 8, chỉ Toàn quyền) — chỉ token */
-.ntf-send { display: flex; flex-direction: column; gap: var(--s4); }
-.ntf-field span { display: flex; justify-content: space-between; font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-text-muted); }
-.ntf-field em { font-style: normal; font-variant-numeric: tabular-nums; }
-.ntf-who { border: 0; padding: 0; margin: var(--s3) 0; display: flex; flex-direction: column; gap: var(--s2); }
-.ntf-who legend { padding: 0; font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-text-muted); }
-.ntf-who label { display: flex; align-items: flex-start; gap: var(--s2); font-size: var(--fs-ui); cursor: pointer; }
-.ntf-who label input { width: auto; margin: var(--s1) 0 0; accent-color: var(--c-primary); }
-.ntf-who small { display: block; color: var(--c-text-muted); font-size: var(--fs-badge); }
+
 .ntf-groups { display: flex; flex-wrap: wrap; gap: var(--s2); padding-left: var(--s5); }
 .ntf-groups label { display: inline-flex; gap: var(--s1); align-items: center; padding: var(--s1) var(--s3); font-size: var(--fs-label); border: 1px solid var(--c-border); border-radius: var(--radius-pill); cursor: pointer; }
 .ntf-groups label:has(input:checked) { color: var(--c-primary-strong); font-weight: var(--fw-bold); background: var(--c-primary-soft); border-color: var(--c-primary); }
@@ -2485,10 +2478,6 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .ntf-acks li { display: flex; justify-content: space-between; gap: var(--s2); }
 .ntf-acks li time { color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
 .ntf-confirm { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3); font-size: var(--fs-label); background: var(--c-danger-soft); border-radius: var(--radius-sm); }
-@media (min-width: 900px) {
-  .ntf-send { flex-direction: row; align-items: flex-start; }
-  .ntf-send > * { flex: 1 1 0; min-width: 0; }
-}
 
 /* ---------- Vận chuyển lượt 1a (ADR-0040) — dựng theo bản vẽ Claude Design docs/design/van-chuyen-1a/ (chủ dự án vẽ 2026-09-28). Chỉ token. ----------
    Trang /xe, /xe-sua, /xe-chi-tiet, /giay-to-sap-het-han, /tai-xe; mục "Giấy tờ" ở hồ sơ Danh bạ (web/parties.ts); "Giấy tờ của tôi" + nhóm VẬN CHUYỂN ở trang
@@ -3167,9 +3156,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
    hai nút gỡ xếp dọc trong ô cuối bảng (8 cột ở khổ 1040 không đủ chỗ cho hai nút nằm ngang). Chỉ từ khoá, không giá trị — luật token của khối PWA. */
 .toolbar input.o-tick { flex: none; }
 .toolbar label.check { flex: none; }
-.phien-bang .badge { white-space: nowrap; }
-.phien-bang .row-actions { white-space: normal; }
-.phien-bang .row-actions .btn-link { display: flex; }
+
 /* ---------- đưa đón / hành khách — trang đơn (ADR-0047 Phần B; bản vẽ docs/design/2026-10-01-dua-don-hanh-khach M1–M6; Người 1). Chỉ token. ---------- */
 /* Khối "Đưa đón" trong thẻ dịch vụ (web/khoi-dua-don.ts — the-dua-don.dc.html) */
 .dd { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s4); }
@@ -3648,7 +3635,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .mfa-action { margin-top: var(--s3); }
 .mfa-remove { margin-top: var(--s4); }
 .mfa-remove summary { display: flex; align-items: center; min-height: var(--tap-min); cursor: pointer; color: var(--c-danger); font-weight: var(--fw-semibold); }
-.mfa-badge { display: inline-block; margin-top: var(--s1); white-space: nowrap; }
+
 /* Quản lý tài khoản (máy tính): thêm nút "Tắt bảo mật hai lớp" làm hàng nút dài hơn bảng — cho xuống dòng giữa các nút (mỗi nút vẫn một dòng), như .phien-bang. */
 #list .row-actions { white-space: normal; }
 #list .row-actions .btn-link { white-space: nowrap; }

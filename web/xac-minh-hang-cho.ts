@@ -20,8 +20,8 @@ export function dungHangChoXacMinh(goc: HTMLElement, staff: Staff): void {
   const duocXemSo = can(staff, "party.verify.attachment");
   let trang: "cho" | "da-xu-ly" = "cho";
   let luot = 0; // mỗi lần mở chi tiết / tải danh sách tăng một nấc: kết quả về muộn của lượt cũ bị bỏ
-  const nutCho = h("button", { type: "button", class: "btn xm-tab", id: "xm-tab-cho" }, "Đang chờ") as HTMLButtonElement;
-  const nutXong = h("button", { type: "button", class: "btn xm-tab", id: "xm-tab-xong" }, "Đã xử lý") as HTMLButtonElement;
+  const nutCho = h("button", { type: "button", class: "vien", id: "xm-tab-cho" }, "Đang chờ") as HTMLButtonElement;
+  const nutXong = h("button", { type: "button", class: "vien", id: "xm-tab-xong" }, "Đã xử lý") as HTMLButtonElement;
   const baoLoi = h("div", { class: "alert", role: "alert", hidden: true });
   const baoOk = h("div", { class: "alert ok", role: "status", hidden: true });
   const danhSach = h("div", { class: "xm-ds", id: "xm-ds" });

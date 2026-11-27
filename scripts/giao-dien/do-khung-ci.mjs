@@ -67,6 +67,14 @@ export const BANG_CI = [
   { khoa: "dieu-kien-xuat-ben", trang: "/dieu-kien-xuat-ben", bo: "SUPER_ADMIN" },
   { khoa: "giao-dien", trang: "/giao-dien", bo: "SUPER_ADMIN" },
   { khoa: "tro-ly-cai-dat", trang: "/tro-ly-cai-dat", bo: "SUPER_ADMIN" },
+  // Đợt D1 (26/11/2026): 6 trang Người và tài khoản. Đo bằng Toàn quyền (bài học D3: tài khoản thấy nhiều nút, nhiều cột nhất mà trang cho vào — Quản lý tài khoản
+  // có «Thêm tài khoản», Phiếu đăng ký thấy mọi phiếu chưa kết thúc; Máy đang đăng nhập, Nhật ký, Gửi thông báo chỉ Toàn quyền mở được).
+  { khoa: "staff", trang: "/staff", bo: "SUPER_ADMIN" },
+  { khoa: "parties", trang: "/parties", bo: "SUPER_ADMIN" },
+  { khoa: "sessions", trang: "/sessions", bo: "SUPER_ADMIN" },
+  { khoa: "phieu-dang-ky", trang: "/phieu-dang-ky", bo: "SUPER_ADMIN" },
+  { khoa: "audit", trang: "/audit", bo: "SUPER_ADMIN" },
+  { khoa: "gui-thong-bao", trang: "/gui-thong-bao", bo: "SUPER_ADMIN" },
 ];
 /** Bộ quyền chỉ dùng để GIEO (không có màn đo): Toàn quyền đánh cờ «cần xác nhận» cho một dịch vụ giả. */
 const BO_GIEO = ["SUPER_ADMIN"];

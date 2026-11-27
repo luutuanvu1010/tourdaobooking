@@ -27,8 +27,9 @@ const homNay = new Date().toISOString().slice(0, 10);
  *  Sau đợt A (Tạo / Sửa đơn, Đơn chờ xác nhận), 24/11/2026: 2521 · 120 · 14 · 144 · 59 (gỡ bố cục cột cũ của Tạo đơn, ba token --w-form, --w-side, --bw-owner, thẻ đơn chờ cũ).
  *  Sau đợt B (15 trang Tài xế – Vận chuyển), gộp với đợt A, 24/11/2026: 2300 · 120 · 13 · 130 · 44 (gỡ 327 luật kiểu cũ của nhóm Vận chuyển).
  *  Sau đợt C (10 trang Tiền), 25/11/2026: 2224 · 120 · 13 · 104 · 34 (gỡ 100 luật kiểu cũ của nhóm Tiền; số tệp còn lớp cũ đo lại bằng bài này).
- *  Sau đợt D3 (7 trang Thiết lập), 26/11/2026: 2155 · 118 · 13 · 96 · 27 (gỡ 83 luật kiểu cũ của bảy trang, hai token --w-dp-hist, --w-gd-xem). */
-const TRAN = { luatBoCucRieng: 2155, tokenBeRongRieng: 118, mocLe: 13, tepLopCu: 96, trangChuaChuyen: 27 };
+ *  Sau đợt D3 (7 trang Thiết lập), 26/11/2026: 2155 · 118 · 13 · 96 · 27 (gỡ 83 luật kiểu cũ của bảy trang, hai token --w-dp-hist, --w-gd-xem).
+ *  Sau đợt D1 (6 trang Người và tài khoản), 27/11/2026: 2147 · 118 · 13 · 83 · 21 (gỡ 15 luật kiểu cũ của sáu trang; số tệp còn lớp cũ đo lại bằng bài này). */
+const TRAN = { luatBoCucRieng: 2147, tokenBeRongRieng: 118, mocLe: 13, tepLopCu: 83, trangChuaChuyen: 21 };
 
 /** Trang có lúc lập luật 21/11/2026 — ĐÓNG BĂNG, không sửa. Danh sách chưa chuyển chỉ được là tập con của nó, nên trang mới không thể «xin» chưa chuyển. */
 const TRANG_LUC_LAP_LUAT = new Set([
